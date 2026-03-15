@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+     android:layout_width="match_parent"
+     android:layout_height="wrap_content"
+     android:padding="20dp">
+     <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="vertical">
+          <EditText
+               android:id="@+id/et_display"
+               android:layout_width="match_parent"
+               android:layout_height="wrap_content"
+               android:hint="显示文本 (大标题)" />
+          <TextView
+               android:layout_width="wrap_content"
+               android:layout_height="wrap_content"
+               android:text="短按动作"
+               android:layout_marginTop="12dp"
+               android:textColor="?android:attr/textColorSecondary" />
+          <Spinner
+               android:id="@+id/sp_short_action"
+               android:layout_width="match_parent"
+               android:layout_height="48dp" />
+          <EditText
+               android:id="@+id/et_short_text"
+               android:layout_width="match_parent"
+               android:layout_height="wrap_content"
+               android:hint="插入文本(如为插入类型)" />
+          <TextView
+               android:layout_width="wrap_content"
+               android:layout_height="wrap_content"
+               android:text="长按动作 (可选)"
+               android:layout_marginTop="12dp"
+               android:textColor="?android:attr/textColorSecondary" />
+          <Spinner
+               android:id="@+id/sp_long_action"
+               android:layout_width="match_parent"
+               android:layout_height="48dp" />
+          <EditText
+               android:id="@+id/et_long_text"
+               android:layout_width="match_parent"
+               android:layout_height="wrap_content"
+               android:hint="插入文本(如为插入类型)" />
+     </LinearLayout>
+</ScrollView>

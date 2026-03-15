@@ -106,6 +106,7 @@ dependencies {
     implementation(projects.editorLsp)
     implementation(projects.languageTreesitter)
     implementation(projects.onigurumaNative)
+    implementation(projects.zeroSymbolInputView)
 
     // Tree-sitter languages
     implementation(libs.tree.sitter.java)

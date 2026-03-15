@@ -41,6 +41,20 @@ dependencyResolutionManagement {
         mavenCentral()
         maven("https://repo.eclipse.org/content/groups/releases/")
         maven("https://maven.aliyun.com/nexus/content/groups/public/")
+        maven { url = uri("https://jitpack.io") }
+        maven { url = uri("https://repo1.maven.org/maven2/") }
+        maven("https://repo.itextsupport.com/android")
+        maven("https://maven.pkg.jetbrains.space/kotlin/p/kotlin/kotlin-ide/")
+        maven("https://cache-redirector.jetbrains.com/kotlin.bintray.com/kotlin-plugin/")
+        maven(url = "https://maven.pkg.jetbrains.space/kotlin/p/kotlin/bootstrap/")
+        maven(url = "https://maven.pkg.jetbrains.space/kotlin/p/kotlin/kotlin-ide-plugin-dependencies/")
+        maven(url = "https://www.jetbrains.com/intellij-repository/releases/")
+        maven(url = "https://cache-redirector.jetbrains.com/intellij-third-party-dependencies/")
+        maven { url = uri("https://maven.aliyun.com/repository/gradle-plugin") }
+        maven { url = uri("https://maven.aliyun.com/repository/public") }
+        maven { url = uri("https://maven.aliyun.com/repository/google") }
+        maven("https://repo.itextsupport.com/android")
+        
     }
 }
 
@@ -54,5 +68,6 @@ include(
     ":language-textmate",
     ":editor-lsp",
     ":language-treesitter",
+    ":zero-Symbol-input-view",
     ":oniguruma-native"
 )

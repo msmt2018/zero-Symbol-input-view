@@ -27,6 +27,7 @@ import android.content.DialogInterface
 import android.graphics.Typeface
 import android.net.Uri
 import android.os.Build
+import android.content.Intent
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -117,6 +118,12 @@ import org.eclipse.tm4e.core.registry.IGrammarSource
 import org.eclipse.tm4e.core.registry.IThemeSource
 import java.util.regex.PatternSyntaxException
 
+import android.zero.studio.widget.editor.symbolinput.*
+
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+
+
 /**
  * Demo and debug Activity for the code editor
  */
@@ -161,6 +168,8 @@ class MainActivity : AppCompatActivity() {
     private var undo: MenuItem? = null
     private var redo: MenuItem? = null
 
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         CrashHandler.INSTANCE.init(this)
@@ -183,11 +192,27 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Configure symbol input view
-        val inputView = binding.symbolInput
-        inputView.bindEditor(binding.editor)
-        inputView.addSymbols(SYMBOLS, SYMBOL_INSERT_TEXT)
-        inputView.forEachButton { it.typeface = typeface }
+        // val inputView = binding.symbolInput
+        // inputView.bindEditor(binding.editor)
+        // inputView.addSymbols(SYMBOLS, SYMBOL_INSERT_TEXT)
+        // inputView.forEachButton { it.typeface = typeface }
+        val symbolInputView = findViewById<AdvancedSymbolInputView>(R.id.advanced_symbol_input)
+            symbolInputView.bindEditor(binding.editor)
 
+            // 设置点击 “...” (动作22) 的监听器，跳转到管理界面
+            symbolInputView.onOpenManagerListener = {
+            startActivity(Intent(this, SymbolManagerActivity::class.java))
+        }
+
+            // 读取数据并绑定
+            // val prefs = getSharedPreferences("symbol_input_prefs", MODE_PRIVATE)
+            // val json = prefs.getString("symbol_data", "[]")
+            // val listType = object : TypeToken<MutableList<SymbolGroup>>() {}.type
+            // val groups: MutableList<SymbolGroup> = Gson().fromJson(json, listType)
+            // symbolInputView.bindData(groups)
+            
+            
+        
         // Commit search when text changed
         binding.searchEditor.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(charSequence: CharSequence, i: Int, i1: Int, i2: Int) {}
@@ -1165,5 +1190,10 @@ class MainActivity : AppCompatActivity() {
             e.printStackTrace()
         }
     }
+
+override fun onResume() {
+    super.onResume()
+    findViewById<AdvancedSymbolInputView>(R.id.advanced_symbol_input)?.refreshData()
+}
 
 }

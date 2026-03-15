@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="48dp"
+    android:orientation="horizontal"
+    android:background="?attr/colorSurface"
+    android:elevation="4dp">
+
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/symbol_view_pager"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1" />
+
+    <View
+        android:layout_width="1dp"
+        android:layout_height="match_parent"
+        android:layout_marginVertical="8dp"
+        android:background="#33888888" />
+
+    <ImageButton
+        android:id="@+id/btn_symbol_settings"
+        android:layout_width="48dp"
+        android:layout_height="match_parent"
+        android:background="?attr/selectableItemBackground"
+        android:src="@android:drawable/ic_menu_manage"
+        android:contentDescription="@string/symbol_manager_title"
+        android:tint="?attr/colorOnSurface" />
+</LinearLayout>

@@ -1,0 +1,49 @@
+<resources>
+    <string-array name="symbol_action_names">
+        <item>插入文本</item>
+        <item>删除行</item>
+        <item>清空行</item>
+        <item>转为大写</item>
+        <item>转为小写</item>
+        <item>增加缩进 (Tab)</item>
+        <item>注释/取消注释</item>
+        <item>到行首</item>
+        <item>到行尾</item>
+        <item>光标左移</item>
+        <item>光标右移</item>
+        <item>光标上移</item>
+        <item>光标下移</item>
+        <item>打开快捷功能栏管理</item>
+        <item>到文件开头</item>
+        <item>到文件结尾</item>
+        <item>全选</item>
+        <item>复制</item>
+        <item>剪切</item>
+        <item>粘贴</item>
+        <item>格式化代码</item>
+    </string-array>
+
+    <integer-array name="symbol_action_values">
+        <item>0</item>
+        <item>3</item>
+        <item>4</item>
+        <item>7</item>
+        <item>8</item>
+        <item>9</item>
+        <item>11</item>
+        <item>16</item>
+        <item>17</item>
+        <item>18</item>
+        <item>19</item>
+        <item>20</item>
+        <item>21</item>
+        <item>22</item>
+        <item>23</item>
+        <item>24</item>
+        <item>25</item>
+        <item>28</item>
+        <item>29</item>
+        <item>30</item>
+        <item>32</item>
+    </integer-array>
+</resources>
