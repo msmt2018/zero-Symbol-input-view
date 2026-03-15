@@ -1,5 +1,5 @@
 git init
-git branch -M main
+git branch -M ZeroStudio-sora-editor
 git remote add origin https://github.com/msmt2018/sora-editor.git
 git remote set-url origin https://github.com/msmt2018/sora-editor.git
 git add .
@@ -8,7 +8,7 @@ git add .
 
 git commit -m "Add: Symbol Input Toolbar Similar to MT Manager - Version 1.0"
 
-git push origin main
+git push origin ZeroStudio-sora-editor
 
 
 #git pull origin ZeroStudio
