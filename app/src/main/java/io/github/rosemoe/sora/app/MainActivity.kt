@@ -42,6 +42,7 @@ import androidx.activity.result.contract.ActivityResultContracts.GetContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.savedstate.write
+import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import io.github.dingyi222666.monarch.languages.JavaLanguage
 import io.github.dingyi222666.monarch.languages.KotlinLanguage
@@ -119,9 +120,6 @@ import org.eclipse.tm4e.core.registry.IThemeSource
 import java.util.regex.PatternSyntaxException
 
 import android.zero.studio.widget.editor.symbolinput.*
-
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 
 
 /**
@@ -203,6 +201,7 @@ class MainActivity : AppCompatActivity() {
             symbolInputView.onOpenManagerListener = {
             startActivity(Intent(this, SymbolManagerActivity::class.java))
         }
+        configureSymbolBottomSheet(symbolInputView)
 
             // 读取数据并绑定
             // val prefs = getSharedPreferences("symbol_input_prefs", MODE_PRIVATE)
@@ -349,6 +348,28 @@ class MainActivity : AppCompatActivity() {
 
         switchThemeIfRequired(this, binding.editor)
         computeSearchOptions()
+    }
+
+    private fun configureSymbolBottomSheet(symbolInputView: AdvancedSymbolInputView) {
+        val bottomBar = findViewById<View>(R.id.main_bottom_bar)
+        val behavior = BottomSheetBehavior.from(bottomBar)
+        behavior.state = BottomSheetBehavior.STATE_COLLAPSED
+        behavior.skipCollapsed = false
+        behavior.isHideable = true
+        behavior.isFitToContents = false
+        behavior.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
+            override fun onStateChanged(bottomSheet: View, newState: Int) {
+                if (newState == BottomSheetBehavior.STATE_EXPANDED) {
+                    symbolInputView.setExpansionFraction(1f)
+                } else if (newState == BottomSheetBehavior.STATE_COLLAPSED || newState == BottomSheetBehavior.STATE_HIDDEN) {
+                    symbolInputView.setExpansionFraction(0f)
+                }
+            }
+
+            override fun onSlide(bottomSheet: View, slideOffset: Float) {
+                symbolInputView.setExpansionFraction(slideOffset.coerceAtLeast(0f))
+            }
+        })
     }
 
     /**
