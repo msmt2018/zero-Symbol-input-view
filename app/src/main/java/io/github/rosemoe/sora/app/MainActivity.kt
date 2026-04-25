@@ -42,6 +42,7 @@ import androidx.activity.result.contract.ActivityResultContracts.GetContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.savedstate.write
+import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import io.github.dingyi222666.monarch.languages.JavaLanguage
 import io.github.dingyi222666.monarch.languages.KotlinLanguage
@@ -164,6 +165,7 @@ class MainActivity : AppCompatActivity() {
     private var searchOptions = SearchOptions(false, false)
     private var undo: MenuItem? = null
     private var redo: MenuItem? = null
+    private var symbolSheetBehavior: BottomSheetBehavior<View>? = null
 
 
 
@@ -200,6 +202,7 @@ class MainActivity : AppCompatActivity() {
             symbolInputView.onOpenManagerListener = {
             startActivity(Intent(this, SymbolManagerActivity::class.java))
         }
+        configureSymbolBottomSheet(symbolInputView)
 
             // 读取数据并绑定
             // val prefs = getSharedPreferences("symbol_input_prefs", MODE_PRIVATE)
@@ -346,6 +349,29 @@ class MainActivity : AppCompatActivity() {
 
         switchThemeIfRequired(this, binding.editor)
         computeSearchOptions()
+    }
+
+    private fun configureSymbolBottomSheet(symbolInputView: AdvancedSymbolInputView) {
+        val bottomSheet = findViewById<View>(R.id.main_bottom_sheet)
+        val behavior = BottomSheetBehavior.from(bottomSheet)
+        symbolSheetBehavior = behavior
+        behavior.saveFlags = BottomSheetBehavior.SAVE_NONE
+        behavior.isHideable = false
+        behavior.skipCollapsed = false
+        behavior.isFitToContents = true
+        behavior.state = BottomSheetBehavior.STATE_COLLAPSED
+        behavior.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
+            override fun onStateChanged(bottomSheet: View, newState: Int) {
+                when (newState) {
+                    BottomSheetBehavior.STATE_COLLAPSED -> symbolInputView.setExpansionFraction(0f)
+                    BottomSheetBehavior.STATE_EXPANDED -> symbolInputView.setExpansionFraction(1f)
+                }
+            }
+
+            override fun onSlide(bottomSheet: View, slideOffset: Float) {
+                symbolInputView.setExpansionFraction(slideOffset.coerceIn(0f, 1f))
+            }
+        })
     }
 
     /**
@@ -1191,6 +1217,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         findViewById<AdvancedSymbolInputView>(R.id.advanced_symbol_input)?.refreshData()
+        symbolSheetBehavior?.state = BottomSheetBehavior.STATE_COLLAPSED
     }
 
 }

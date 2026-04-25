@@ -8,7 +8,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
-import android.widget.ImageButton
 import android.widget.TextView
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -27,7 +26,6 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     private val viewPager: ViewPager2
     private val tabLayout: TabLayout
     private val tabRow: View
-    private val btnSettings: ImageButton
     private var editor: CodeEditor? = null
     var onOpenManagerListener: (() -> Unit)? = null
 
@@ -45,18 +43,10 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         viewPager = root.findViewById(R.id.symbol_view_pager)
         tabLayout = root.findViewById(R.id.symbol_tab_layout)
         tabRow = root.findViewById(R.id.tab_row)
-        btnSettings = root.findViewById(R.id.btn_symbol_settings)
 
         viewPager.adapter = groupAdapter
         viewPager.offscreenPageLimit = 1
-
-        btnSettings.setOnClickListener {
-            onOpenManagerListener?.invoke()
-        }
-
-        tabRow.visibility = View.VISIBLE
-        tabRow.alpha = 1f
-        tabRow.translationY = 0f
+        setExpansionFraction(0f)
         refreshData()
     }
 

@@ -4,17 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="?attr/colorSurface"
-    android:elevation="4dp"
     android:orientation="vertical">
-
-    <View
-        android:id="@+id/sheet_drag_handle"
-        android:layout_width="36dp"
-        android:layout_height="4dp"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="6dp"
-        android:background="@android:color/darker_gray" />
 
     <LinearLayout
         android:id="@+id/tab_row"
@@ -23,26 +13,17 @@
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingStart="8dp"
-        android:paddingEnd="4dp">
+        android:paddingEnd="8dp">
 
         <com.google.android.material.tabs.TabLayout
             android:id="@+id/symbol_tab_layout"
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_weight="1"
             app:tabGravity="fill"
             app:tabIndicatorAnimationMode="elastic"
             app:tabIndicatorFullWidth="false"
-            app:tabMode="scrollable" />
+            app:tabMode="fixed" />
 
-        <ImageButton
-            android:id="@+id/btn_symbol_settings"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/symbol_manager_title"
-            android:src="@android:drawable/ic_menu_manage"
-            android:tint="?attr/colorOnSurface" />
     </LinearLayout>
 
     <androidx.viewpager2.widget.ViewPager2

@@ -1,10 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  ~    sora-editor - the awesome code editor for Android
-  ~    https://github.com/Rosemoe/sora-editor
-  ~    Copyright (C) 2020-2024  Rosemoe
-  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
@@ -13,7 +8,7 @@
         android:id="@+id/main_layout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_above="@id/main_bottom_bar"
+        android:paddingBottom="136dp"
         android:orientation="vertical">
 
         <com.google.android.material.appbar.AppBarLayout
@@ -108,25 +103,31 @@
     </LinearLayout>
 
     <LinearLayout
-        android:id="@+id/main_bottom_bar"
+        android:id="@+id/main_bottom_sheet"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
+        android:layout_height="360dp"
+        android:layout_gravity="bottom"
+        android:layout_marginBottom="24dp"
         android:background="?attr/colorSurface"
         android:elevation="6dp"
-        android:orientation="vertical">
+        app:behavior_fitToContents="true"
+        app:behavior_hideable="false"
+        app:behavior_peekHeight="112dp"
+        app:behavior_skipCollapsed="false"
+        app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
 
         <android.zero.studio.widget.editor.symbolinput.AdvancedSymbolInputView
             android:id="@+id/advanced_symbol_input"
             android:layout_width="match_parent"
-            android:layout_height="176dp" />
-
-        <TextView
-            android:id="@+id/position_display"
-            android:layout_width="match_parent"
-            android:layout_height="24dp"
-            android:gravity="center"
-            android:textSize="14sp" />
+            android:layout_height="match_parent" />
     </LinearLayout>
 
-</RelativeLayout>
+    <TextView
+        android:id="@+id/position_display"
+        android:layout_width="match_parent"
+        android:layout_height="24dp"
+        android:layout_gravity="bottom"
+        android:gravity="center"
+        android:textSize="14sp" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
