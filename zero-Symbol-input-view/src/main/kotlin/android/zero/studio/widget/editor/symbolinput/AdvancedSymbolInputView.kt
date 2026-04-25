@@ -68,8 +68,13 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
      */
     fun setExpansionFraction(fraction: Float) {
         val clamped = fraction.coerceIn(0f, 1f)
-        tabRow.alpha = clamped
-        tabRow.translationY = (1f - clamped) * -12f * resources.displayMetrics.density
+        if (clamped <= 0.02f) {
+            tabRow.visibility = View.GONE
+        } else {
+            tabRow.visibility = View.VISIBLE
+            tabRow.alpha = clamped
+            tabRow.translationY = (1f - clamped) * -12f * resources.displayMetrics.density
+        }
 
         val newRows = minRows + ((maxRows - minRows) * clamped).roundToInt()
         if (newRows != visibleRows) {
@@ -105,7 +110,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
                 layoutManager = GridLayoutManager(context, spanCount)
                 clipToPadding = false
                 val horizontal = (8 * resources.displayMetrics.density).roundToInt()
-                val vertical = (6 * resources.displayMetrics.density).roundToInt()
+                val vertical = (2 * resources.displayMetrics.density).roundToInt()
                 setPadding(horizontal, vertical, horizontal, vertical)
             }
             return GroupViewHolder(rv)
@@ -125,7 +130,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SymbolViewHolder {
             val tv = TextView(context).apply {
                 layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-                minHeight = (40 * resources.displayMetrics.density).roundToInt()
+                minHeight = (34 * resources.displayMetrics.density).roundToInt()
                 gravity = Gravity.CENTER
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
                 isClickable = true

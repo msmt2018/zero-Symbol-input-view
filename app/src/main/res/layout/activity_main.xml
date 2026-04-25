@@ -32,7 +32,7 @@
         android:id="@+id/main_layout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:paddingBottom="132dp"
+        android:paddingBottom="176dp"
         android:orientation="vertical">
 
         <com.google.android.material.appbar.AppBarLayout
@@ -139,7 +139,7 @@
         android:orientation="vertical"
         app:behavior_fitToContents="true"
         app:behavior_hideable="false"
-        app:behavior_peekHeight="132dp"
+        app:behavior_peekHeight="176dp"
         app:behavior_skipCollapsed="false"
         app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
 
