@@ -355,13 +355,13 @@ class MainActivity : AppCompatActivity() {
         val behavior = BottomSheetBehavior.from(bottomBar)
         behavior.state = BottomSheetBehavior.STATE_COLLAPSED
         behavior.skipCollapsed = false
-        behavior.isHideable = true
-        behavior.isFitToContents = false
+        behavior.isHideable = false
+        behavior.isFitToContents = true
         behavior.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
             override fun onStateChanged(bottomSheet: View, newState: Int) {
                 if (newState == BottomSheetBehavior.STATE_EXPANDED) {
                     symbolInputView.setExpansionFraction(1f)
-                } else if (newState == BottomSheetBehavior.STATE_COLLAPSED || newState == BottomSheetBehavior.STATE_HIDDEN) {
+                } else if (newState == BottomSheetBehavior.STATE_COLLAPSED) {
                     symbolInputView.setExpansionFraction(0f)
                 }
             }
