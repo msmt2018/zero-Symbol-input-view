@@ -54,7 +54,9 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
             onOpenManagerListener?.invoke()
         }
 
-        setExpansionFraction(0f)
+        tabRow.visibility = View.VISIBLE
+        tabRow.alpha = 1f
+        tabRow.translationY = 0f
         refreshData()
     }
 
