@@ -165,6 +165,7 @@ class MainActivity : AppCompatActivity() {
     private var searchOptions = SearchOptions(false, false)
     private var undo: MenuItem? = null
     private var redo: MenuItem? = null
+    private var symbolSheetBehavior: BottomSheetBehavior<View>? = null
 
 
 
@@ -353,6 +354,8 @@ class MainActivity : AppCompatActivity() {
     private fun configureSymbolBottomSheet(symbolInputView: AdvancedSymbolInputView) {
         val bottomBar = findViewById<View>(R.id.main_bottom_bar)
         val behavior = BottomSheetBehavior.from(bottomBar)
+        symbolSheetBehavior = behavior
+        behavior.saveFlags = BottomSheetBehavior.SAVE_NONE
         behavior.state = BottomSheetBehavior.STATE_COLLAPSED
         behavior.skipCollapsed = false
         behavior.isHideable = false
@@ -1212,9 +1215,10 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-override fun onResume() {
-    super.onResume()
-    findViewById<AdvancedSymbolInputView>(R.id.advanced_symbol_input)?.refreshData()
-}
+    override fun onResume() {
+        super.onResume()
+        findViewById<AdvancedSymbolInputView>(R.id.advanced_symbol_input)?.refreshData()
+        symbolSheetBehavior?.state = BottomSheetBehavior.STATE_COLLAPSED
+    }
 
 }
