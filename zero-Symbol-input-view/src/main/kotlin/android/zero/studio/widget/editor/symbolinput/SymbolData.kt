@@ -24,7 +24,7 @@ data class SymbolUiSettings(
     val indicatorStyle: Int = 0,
     val rememberExpanded: Boolean = false,
     val uniformGroupHeight: Boolean = true,
-    val symbolTextSizeSp: Int = 18,
+    val symbolTextSizeSp: Int = 15,
     val showDragHandle: Boolean = true,
     val enableAdvancedActions: Boolean = true,
     val rememberLastPage: Boolean = true
