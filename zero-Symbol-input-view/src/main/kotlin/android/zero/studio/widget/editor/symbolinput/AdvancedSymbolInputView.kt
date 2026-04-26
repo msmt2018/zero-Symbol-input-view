@@ -17,6 +17,7 @@ import android.widget.FrameLayout
 import android.widget.GridLayout
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.widget.NestedScrollView
 import androidx.viewpager.widget.PagerAdapter
 import androidx.viewpager.widget.ViewPager
@@ -265,20 +266,20 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         tabLayout.setSelectedTabIndicatorColor(fetchColor(android.R.attr.colorAccent))
         tabLayout.setSelectedTabIndicatorHeight((2 * resources.displayMetrics.density).roundToInt())
         tabLayout.setSelectedTabIndicator(ColorDrawable(fetchColor(android.R.attr.colorAccent)))
-        tabLayout.tabIndicatorGravity = TabLayout.INDICATOR_GRAVITY_BOTTOM
-        tabLayout.isInlineLabel = false
+        tabLayout.setSelectedTabIndicatorGravity(TabLayout.INDICATOR_GRAVITY_BOTTOM)
+        tabLayout.setInlineLabel(false)
 
         when (uiSettings.indicatorStyle) {
             0 -> {
                 // 标准
                 tabLayout.setSelectedTabIndicatorHeight((2 * resources.displayMetrics.density).roundToInt())
-                tabLayout.tabIndicatorGravity = TabLayout.INDICATOR_GRAVITY_BOTTOM
+                tabLayout.setSelectedTabIndicatorGravity(TabLayout.INDICATOR_GRAVITY_BOTTOM)
             }
             1 -> {
                 // 简洁胶囊
-                tabLayout.setSelectedTabIndicatorResource(R.drawable.bg_indicator_capsule)
+                tabLayout.setSelectedTabIndicator(AppCompatResources.getDrawable(context, R.drawable.bg_indicator_capsule))
                 tabLayout.setSelectedTabIndicatorHeight((6 * resources.displayMetrics.density).roundToInt())
-                tabLayout.tabIndicatorGravity = TabLayout.INDICATOR_GRAVITY_BOTTOM
+                tabLayout.setSelectedTabIndicatorGravity(TabLayout.INDICATOR_GRAVITY_BOTTOM)
             }
             2 -> {
                 // 隐藏
@@ -288,12 +289,12 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
             3 -> {
                 // 顶部线条
                 tabLayout.setSelectedTabIndicatorHeight((3 * resources.displayMetrics.density).roundToInt())
-                tabLayout.tabIndicatorGravity = TabLayout.INDICATOR_GRAVITY_TOP
+                tabLayout.setSelectedTabIndicatorGravity(TabLayout.INDICATOR_GRAVITY_TOP)
             }
             4 -> {
                 // 块状
-                tabLayout.setSelectedTabIndicatorResource(R.drawable.bg_indicator_block)
-                tabLayout.tabIndicatorGravity = TabLayout.INDICATOR_GRAVITY_STRETCH
+                tabLayout.setSelectedTabIndicator(AppCompatResources.getDrawable(context, R.drawable.bg_indicator_block))
+                tabLayout.setSelectedTabIndicatorGravity(TabLayout.INDICATOR_GRAVITY_STRETCH)
             }
         }
     }
