@@ -78,9 +78,39 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     fun refreshData() {
         val newData = SymbolDataManager.loadData(context)
         groups.clear()
-        groups.addAll(newData)
+        groups.addAll(newData.filter { it.items.isNotEmpty() })
+        if (groups.isEmpty()) {
+            groups.addAll(buildFallbackGroups())
+        }
         groupAdapter.notifyDataSetChanged()
         bindTabs()
+    }
+
+    private fun buildFallbackGroups(): List<SymbolGroup> {
+        return listOf(
+            SymbolGroup(
+                name = "default",
+                items = mutableListOf(
+                    SymbolItem(0, "注释", "//"),
+                    SymbolItem(18, "←"),
+                    SymbolItem(20, "↑"),
+                    SymbolItem(19, "→"),
+                    SymbolItem(0, "\"", "\""),
+                    SymbolItem(0, "'", "'"),
+                    SymbolItem(0, ".", "."),
+                    SymbolItem(0, ",", ","),
+                    SymbolItem(0, "/", "/"),
+                    SymbolItem(0, "//", "//"),
+                    SymbolItem(21, "↓"),
+                    SymbolItem(0, ":", ":"),
+                    SymbolItem(0, ";", ";"),
+                    SymbolItem(0, "#", "#"),
+                    SymbolItem(0, "+", "+"),
+                    SymbolItem(0, "-", "-"),
+                    SymbolItem(22, "..."),
+                )
+            )
+        )
     }
 
     private fun bindTabs() {
