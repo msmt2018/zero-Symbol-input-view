@@ -40,6 +40,8 @@ import android.widget.PopupMenu
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts.GetContent
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.savedstate.write
 import com.google.android.material.bottomsheet.BottomSheetBehavior
@@ -166,6 +168,7 @@ class MainActivity : AppCompatActivity() {
     private var undo: MenuItem? = null
     private var redo: MenuItem? = null
     private var symbolSheetBehavior: BottomSheetBehavior<View>? = null
+    private var lastImeBottomInset = 0
 
 
 
@@ -177,6 +180,7 @@ class MainActivity : AppCompatActivity() {
 
         setSupportActionBar(binding.activityToolbar)
         applyEdgeToEdge(this, binding.toolbarContainer, binding.root)
+        setupSymbolInputWithImeInsets()
 
         val typeface = Typeface.createFromAsset(assets, "JetBrainsMono-Regular.ttf")
 
@@ -368,6 +372,7 @@ class MainActivity : AppCompatActivity() {
                 when (newState) {
                     BottomSheetBehavior.STATE_COLLAPSED -> symbolInputView.setExpansionFraction(0f)
                     BottomSheetBehavior.STATE_EXPANDED -> symbolInputView.setExpansionFraction(1f)
+                    BottomSheetBehavior.STATE_HIDDEN -> behavior.state = BottomSheetBehavior.STATE_COLLAPSED
                 }
             }
 
@@ -375,6 +380,23 @@ class MainActivity : AppCompatActivity() {
                 symbolInputView.setExpansionFraction(slideOffset.coerceIn(0f, 1f))
             }
         })
+    }
+
+    private fun setupSymbolInputWithImeInsets() {
+        val bottomSheet = findViewById<View>(R.id.main_bottom_sheet)
+        val positionDisplay = findViewById<View>(R.id.position_display)
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+            if (imeBottom != lastImeBottomInset) {
+                bottomSheet.translationY = -imeBottom.toFloat()
+                positionDisplay.translationY = -imeBottom.toFloat()
+                if (imeBottom == 0 && symbolSheetBehavior?.state == BottomSheetBehavior.STATE_HIDDEN) {
+                    symbolSheetBehavior?.state = BottomSheetBehavior.STATE_COLLAPSED
+                }
+                lastImeBottomInset = imeBottom
+            }
+            insets
+        }
     }
 
     /**

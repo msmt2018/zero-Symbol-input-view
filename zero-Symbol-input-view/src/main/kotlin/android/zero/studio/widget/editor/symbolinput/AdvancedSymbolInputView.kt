@@ -48,6 +48,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
 
         viewPager.adapter = groupAdapter
         viewPager.offscreenPageLimit = 1
+        viewPager.isSaveEnabled = false
         setExpansionFraction(0f)
         refreshData()
     }
@@ -85,7 +86,9 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         if (groups.isEmpty()) {
             groups.addAll(buildFallbackGroups())
         }
-        viewPager.setCurrentItem(0, false)
+        if (viewPager.currentItem >= groups.size) {
+            viewPager.setCurrentItem(0, false)
+        }
         groupAdapter.notifyDataSetChanged()
         bindTabs()
     }
@@ -136,6 +139,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): GroupViewHolder {
             val rv = RecyclerView(context).apply {
                 layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
+                setHasFixedSize(true)
                 overScrollMode = OVER_SCROLL_NEVER
                 isNestedScrollingEnabled = true
                 layoutManager = GridLayoutManager(context, spanCount)
@@ -163,6 +167,12 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         fun notifyVisibleRowsChanged() {
             pageAdapters.values.forEach { it.notifyDataSetChanged() }
         }
+    }
+
+    override fun onDetachedFromWindow() {
+        tabMediator?.detach()
+        tabMediator = null
+        super.onDetachedFromWindow()
     }
 
     private inner class SymbolAdapter(private val items: List<SymbolItem>) : RecyclerView.Adapter<SymbolAdapter.SymbolViewHolder>() {
