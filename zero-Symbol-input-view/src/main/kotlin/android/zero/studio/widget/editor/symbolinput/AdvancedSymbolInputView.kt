@@ -18,6 +18,7 @@ import android.widget.FrameLayout
 import android.widget.GridLayout
 import android.widget.LinearLayout
 import androidx.appcompat.widget.AppCompatTextView
+import androidx.core.content.ContextCompat
 import androidx.core.widget.TextViewCompat
 import androidx.core.widget.NestedScrollView
 import androidx.viewpager.widget.PagerAdapter
@@ -52,6 +53,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     private val fullTabHeightPx by lazy { (44 * resources.displayMetrics.density).roundToInt() }
     private var collapsedHeightPx = rowHeightPx * 2 + (20 * resources.displayMetrics.density).roundToInt()
     private var expandedHeightPx = (220 * resources.displayMetrics.density).roundToInt()
+    private var panelHeightPx = collapsedHeightPx
     private val touchSlop by lazy { ViewConfiguration.get(context).scaledTouchSlop }
 
     private var initialY = 0f
@@ -76,9 +78,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
                 if (uiSettings.rememberLastPage) {
                     SymbolDataManager.setLastPageIndex(context, position)
                 }
-                if (!uiSettings.uniformGroupHeight) {
-                    recalculateHeights()
-                }
+                recalculateHeights(animate = true)
             }
         })
 
@@ -115,6 +115,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         recalculateHeights()
         pagerAdapter.notifyDataSetChanged()
         if (groups.isNotEmpty()) {
+            viewPager.offscreenPageLimit = groups.size.coerceIn(1, 4)
             val target = if (uiSettings.rememberLastPage) {
                 SymbolDataManager.getLastPageIndex(context).coerceIn(0, groups.lastIndex)
             } else {
@@ -176,7 +177,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
             MotionEvent.ACTION_MOVE -> {
                 if (!isDragging) return super.onTouchEvent(event)
                 val deltaY = event.rawY - lastY
-                val currentHeight = viewPager.layoutParams.height.coerceAtLeast(collapsedHeightPx)
+                val currentHeight = panelHeightPx.coerceAtLeast(collapsedHeightPx)
                 val nextHeight = (currentHeight - deltaY.toInt()).coerceIn(collapsedHeightPx, expandedHeightPx)
                 updatePagerHeight(nextHeight)
                 lastY = event.rawY
@@ -185,7 +186,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
 
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 if (isDragging) {
-                    val currentHeight = viewPager.layoutParams.height.coerceAtLeast(collapsedHeightPx)
+                    val currentHeight = panelHeightPx.coerceAtLeast(collapsedHeightPx)
                     val midpoint = (collapsedHeightPx + expandedHeightPx) / 2
                     val targetHeight = if (currentHeight >= midpoint) expandedHeightPx else collapsedHeightPx
                     if (uiSettings.rememberExpanded) {
@@ -201,7 +202,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     }
 
     private fun animateToHeight(targetHeight: Int) {
-        val currentHeight = viewPager.layoutParams.height.coerceAtLeast(collapsedHeightPx)
+        val currentHeight = panelHeightPx.coerceAtLeast(collapsedHeightPx)
         val animator = ValueAnimator.ofInt(currentHeight, targetHeight)
         animator.duration = 200
         animator.addUpdateListener { animation ->
@@ -211,11 +212,15 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     }
 
     private fun updatePagerHeight(height: Int) {
-        val params = viewPager.layoutParams
         val clamped = height.coerceIn(collapsedHeightPx, expandedHeightPx)
-        params.height = clamped
-        viewPager.layoutParams = params
-        val fraction = (clamped - collapsedHeightPx).toFloat() / (expandedHeightPx - collapsedHeightPx).toFloat()
+        val params = viewPager.layoutParams
+        if (params.height != clamped) {
+            params.height = clamped
+            viewPager.layoutParams = params
+        }
+        panelHeightPx = clamped
+        val range = (expandedHeightPx - collapsedHeightPx).coerceAtLeast(1)
+        val fraction = (clamped - collapsedHeightPx).toFloat() / range.toFloat()
         applyTabRowByFraction(fraction)
     }
 
@@ -232,209 +237,53 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         tabRow.visibility = if (clamped == 0f) View.INVISIBLE else View.VISIBLE
     }
 
-private fun buildFallbackGroups(): List<SymbolGroup> {
-    return listOf(
-
-        SymbolGroup("commonlyUsed", mutableListOf(
-            SymbolItem(18, "←", null, 16, null),
-            SymbolItem(20, "↑", null, 23, null),
-            SymbolItem(19, "→", null, 17, null),
-            SymbolItem(0, "\"", "\""),
-            SymbolItem(0, "'", "'"),
-            SymbolItem(0, ".", "."),
-            SymbolItem(0, ",", ","),
-            SymbolItem(0, "/", "/"),
-            SymbolItem(0, "//", "//"),
-            SymbolItem(21, "↓", null, 24, null),
-            SymbolItem(0, ":", ":"),
-            SymbolItem(0, ";", ";"),
-            SymbolItem(0, "#", "#"),
-            SymbolItem(0, "+", "+"),
-            SymbolItem(0, "-", "-"),
-            SymbolItem(0, "*", "*"),
-            SymbolItem(0, "=", "="),
-            SymbolItem(0, "|", "|"),
-            SymbolItem(0, "~", "~"),
-            SymbolItem(0, "(", "("),
-            SymbolItem(0, ")", ")"),
-            SymbolItem(0, "(\"", "(\""),
-            SymbolItem(0, "\")", "\")"),
-            SymbolItem(0, "{", "{"),
-            SymbolItem(0, "}", "}"),
-            SymbolItem(0, "()", "()", 0, "($T)"),
-            SymbolItem(0, "[]", "[]", 0, "[$T]"),
-            SymbolItem(0, "{}", "{$S$T$E}", 0, "{$T}"),
-            SymbolItem(0, "<", "<"),
-            SymbolItem(0, ">", ">"),
-            SymbolItem(0, "\\", "\\"),
-            SymbolItem(0, "$", "$"),
-            SymbolItem(0, "&", "&"),
-            SymbolItem(0, "/*", "/**"),
-            SymbolItem(0, "*/", "*/"),
-            SymbolItem(22, "settings")
-        )),
-
-        // ---------------- Kotlin ----------------
-        SymbolGroup("Kotlin", mutableListOf(
-            SymbolItem(9, "↹"),
-            SymbolItem(18, "←"),
-            SymbolItem(20, "↑"),
-            SymbolItem(21, "↓"),
-            SymbolItem(19, "→"),
-            SymbolItem(0, "//", "//"),
-            SymbolItem(0, "/*", "/*", 0, "*/"),
-            SymbolItem(0, "\"", "\"\""),
-            SymbolItem(0, "|", "|"),
-            SymbolItem(0, "$", "$"),
-            SymbolItem(0, "@", "@"),
-            SymbolItem(0, "#", "#"),
-            SymbolItem(0, "&", "&"),
-            SymbolItem(0, "&&", "&&"),
-            SymbolItem(0, "`", "`"),
-            SymbolItem(0, "in", "in "),
-            SymbolItem(0, "as", "as "),
-            SymbolItem(0, "->", "->"),
-            SymbolItem(0, "!", "!"),
-            SymbolItem(0, "!!", "!!"),
-            SymbolItem(0, "?.", "?."),
-            SymbolItem(0, "?:", "?:"),
-            SymbolItem(0, "[", "[]", 0, "["),
-            SymbolItem(0, "]", "]"),
-            SymbolItem(0, "{", "{}", 0, "{"),
-            SymbolItem(0, "}", "}"),
-            SymbolItem(0, "(", "()", 0, "("),
-            SymbolItem(0, ")", ")"),
-            SymbolItem(0, "<", "<>", 0, "<"),
-            SymbolItem(0, ">", ">"),
-            SymbolItem(0, "..<", "..<"),
-            SymbolItem(0, "::", "::"),
-            SymbolItem(0, "+", "+"),
-            SymbolItem(0, "++", "++"),
-            SymbolItem(0, "--", "--"),
-            SymbolItem(0, "/", "/"),
-            SymbolItem(0, "*", "*"),
-            SymbolItem(0, "?", "?"),
-            SymbolItem(0, ":", ":"),
-            SymbolItem(0, ";", ";"),
-            SymbolItem(0, "_", "_")
-        )),
-
-        // ---------------- Java ----------------
-        SymbolGroup("Java", mutableListOf(
-            SymbolItem(9, "↹"),
-            SymbolItem(18, "←"),
-            SymbolItem(20, "↑"),
-            SymbolItem(21, "↓"),
-            SymbolItem(19, "→"),
-            SymbolItem(0, "//", "//"),
-            SymbolItem(0, "/*", "/*", 0, "*/"),
-            SymbolItem(0, "*/", "*/"),
-            SymbolItem(0, ",", ","),
-            SymbolItem(0, "{", "{}", 0, "{"),
-            SymbolItem(0, "}", "}"),
-            SymbolItem(0, "(", "()", 0, "("),
-            SymbolItem(0, ")", ")"),
-            SymbolItem(0, ";", ";"),
-            SymbolItem(0, "=", "="),
-            SymbolItem(0, "==", "=="),
-            SymbolItem(0, "!=", "!="),
-            SymbolItem(0, "<=", "<="),
-            SymbolItem(0, ">=", ">="),
-            SymbolItem(0, "+=", "+="),
-            SymbolItem(0, "-=", "-="),
-            SymbolItem(0, "*=", "*="),
-            SymbolItem(0, "/=", "/="),
-            SymbolItem(0, "\"", "\"\""),
-            SymbolItem(0, "<", "<>", 0, "<"),
-            SymbolItem(0, ">", ">"),
-            SymbolItem(0, "+", "+"),
-            SymbolItem(0, "-", "-"),
-            SymbolItem(0, "*", "*"),
-            SymbolItem(0, "/", "/"),
-            SymbolItem(0, "?", "?"),
-            SymbolItem(0, ":", ":"),
-            SymbolItem(0, "_", "_"),
-            SymbolItem(0, "new", "new "),
-            SymbolItem(0, "null", "null"),
-            SymbolItem(22, "settings")
-        )),
-
-        // ---------------- XML ----------------
-        SymbolGroup("XML", mutableListOf(
-            SymbolItem(9, "↹"),
-            SymbolItem(18, "←"),
-            SymbolItem(20, "↑"),
-            SymbolItem(21, "↓"),
-            SymbolItem(19, "→"),
-            SymbolItem(0, "<", "<>", 0, "<"),
-            SymbolItem(0, ">", ">"),
-            SymbolItem(0, "<!--", "<!-- -->", 0, "<!--"),
-            SymbolItem(0, "-->", "-->"),
-            SymbolItem(0, "/", "/"),
-            SymbolItem(0, "=", "="),
-            SymbolItem(0, "\"", "\"\""),
-            SymbolItem(0, ":", ":"),
-            SymbolItem(0, "@", "@"),
-            SymbolItem(0, "+", "+"),
-            SymbolItem(0, "(", "()", 0, "("),
-            SymbolItem(0, ")", ")"),
-            SymbolItem(0, ";", ";"),
-            SymbolItem(0, ",", ","),
-            SymbolItem(0, ".", "."),
-            SymbolItem(0, "?", "?"),
-            SymbolItem(0, "|", "|"),
-            SymbolItem(0, "\\", "\\"),
-            SymbolItem(0, "&", "&"),
-            SymbolItem(0, "[", "[]", 0, "["),
-            SymbolItem(0, "]", "]"),
-            SymbolItem(0, "{", "{}", 0, "{"),
-            SymbolItem(0, "}", "}"),
-            SymbolItem(0, "_", "_"),
-            SymbolItem(0, "-", "-")
-        ))
-    )
-}
+    private fun buildFallbackGroups(): List<SymbolGroup> = buildFallbackSymbolGroups()
 
 
-    private fun recalculateHeights() {
+
+    private fun recalculateHeights(animate: Boolean = false) {
         collapsedHeightPx = rowHeightPx * uiSettings.collapsedRows.coerceAtLeast(1) + (20 * resources.displayMetrics.density).roundToInt()
         val baseExpanded = (220 * resources.displayMetrics.density).roundToInt()
-        expandedHeightPx = if (uiSettings.uniformGroupHeight) {
-            groups.maxOfOrNull { calculateExpandedHeightForGroup(it) }?.coerceAtLeast(baseExpanded) ?: baseExpanded
+        val current = groups.getOrNull(viewPager.currentItem)
+        expandedHeightPx = (current?.let(::calculateExpandedHeightForGroup) ?: baseExpanded).coerceAtLeast(baseExpanded)
+        val currentHeight = panelHeightPx
+        val targetHeight = currentHeight.coerceIn(collapsedHeightPx, expandedHeightPx)
+        val shouldAnimate = animate && currentHeight > collapsedHeightPx && targetHeight != currentHeight
+        if (shouldAnimate) {
+            animateToHeight(targetHeight)
         } else {
-            val current = groups.getOrNull(viewPager.currentItem)
-            (current?.let(::calculateExpandedHeightForGroup) ?: baseExpanded).coerceAtLeast(baseExpanded)
+            updatePagerHeight(targetHeight)
         }
-        val currentHeight = viewPager.layoutParams.height
-        updatePagerHeight(currentHeight.coerceIn(collapsedHeightPx, expandedHeightPx))
     }
 
     private fun calculateExpandedHeightForGroup(group: SymbolGroup): Int {
         val cols = uiSettings.symbolsPerRow.coerceIn(1, 20)
-        val rows = (group.items.size + cols - 1) / cols
+        val rows = ((group.items.size + cols - 1) / cols).coerceAtLeast(1)
         val itemHeight = (44 * resources.displayMetrics.density).roundToInt()
-        val verticalPadding = (20 * resources.displayMetrics.density).roundToInt()
-        return (rows.coerceAtLeast(2) * itemHeight) + verticalPadding + fullTabHeightPx
+        val verticalPadding = (12 * resources.displayMetrics.density).roundToInt()
+        return rows * itemHeight + verticalPadding
     }
 
     private fun applyIndicatorStyle() {
         tabLayout.setSelectedTabIndicatorColor(fetchColor(android.R.attr.colorAccent))
         tabLayout.setSelectedTabIndicatorHeight((2 * resources.displayMetrics.density).roundToInt())
         tabLayout.setSelectedTabIndicator(ColorDrawable(fetchColor(android.R.attr.colorAccent)))
-        tabLayout.tabIndicatorGravity = TabLayout.INDICATOR_GRAVITY_BOTTOM
+        tabLayout.setSelectedTabIndicatorGravity(TabLayout.INDICATOR_GRAVITY_BOTTOM)
         tabLayout.isInlineLabel = false
 
         when (uiSettings.indicatorStyle) {
             0 -> {
                 // 标准
                 tabLayout.setSelectedTabIndicatorHeight((2 * resources.displayMetrics.density).roundToInt())
-                tabLayout.tabIndicatorGravity = TabLayout.INDICATOR_GRAVITY_BOTTOM
+                tabLayout.setSelectedTabIndicatorGravity(TabLayout.INDICATOR_GRAVITY_BOTTOM)
             }
             1 -> {
                 // 简洁胶囊
-                tabLayout.setSelectedTabIndicatorResource(R.drawable.bg_indicator_capsule)
+                tabLayout.setSelectedTabIndicator(
+                    ContextCompat.getDrawable(context, R.drawable.bg_indicator_capsule)
+                )
                 tabLayout.setSelectedTabIndicatorHeight((6 * resources.displayMetrics.density).roundToInt())
-                tabLayout.tabIndicatorGravity = TabLayout.INDICATOR_GRAVITY_BOTTOM
+                tabLayout.setSelectedTabIndicatorGravity(TabLayout.INDICATOR_GRAVITY_BOTTOM)
             }
             2 -> {
                 // 隐藏
@@ -444,12 +293,14 @@ private fun buildFallbackGroups(): List<SymbolGroup> {
             3 -> {
                 // 顶部线条
                 tabLayout.setSelectedTabIndicatorHeight((3 * resources.displayMetrics.density).roundToInt())
-                tabLayout.tabIndicatorGravity = TabLayout.INDICATOR_GRAVITY_TOP
+                tabLayout.setSelectedTabIndicatorGravity(TabLayout.INDICATOR_GRAVITY_TOP)
             }
             4 -> {
                 // 块状
-                tabLayout.setSelectedTabIndicatorResource(R.drawable.bg_indicator_block)
-                tabLayout.tabIndicatorGravity = TabLayout.INDICATOR_GRAVITY_STRETCH
+                tabLayout.setSelectedTabIndicator(
+                    ContextCompat.getDrawable(context, R.drawable.bg_indicator_block)
+                )
+                tabLayout.setSelectedTabIndicatorGravity(TabLayout.INDICATOR_GRAVITY_STRETCH)
             }
         }
     }
