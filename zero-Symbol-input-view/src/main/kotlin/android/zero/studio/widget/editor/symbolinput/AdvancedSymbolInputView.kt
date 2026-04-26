@@ -44,8 +44,26 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     private val fullTabHeight by lazy { (44 * resources.displayMetrics.density).roundToInt() }
     private var lastImeBottomInset = 0
     private var bottomSheetBehavior: BottomSheetBehavior<View>? = null
+    private val bottomSheetCallback = object : BottomSheetBehavior.BottomSheetCallback() {
+        override fun onStateChanged(bottomSheet: View, newState: Int) {
+            val behavior = bottomSheetBehavior ?: return
+            when (newState) {
+                BottomSheetBehavior.STATE_COLLAPSED -> setExpansionFraction(0f)
+                BottomSheetBehavior.STATE_EXPANDED -> setExpansionFraction(1f)
+                BottomSheetBehavior.STATE_HIDDEN -> {
+                    resetTransientOffsets()
+                    behavior.state = BottomSheetBehavior.STATE_COLLAPSED
+                }
+            }
+        }
+
+        override fun onSlide(bottomSheet: View, slideOffset: Float) {
+            setExpansionFraction(slideOffset.coerceIn(0f, 1f))
+        }
+    }
     private var managedBottomSheet: View? = null
     private var managedFollowView: View? = null
+    private var managedRootView: View? = null
     private var initialSheetBottomMargin = 0
     private var initialFollowBottomMargin = 0
 
@@ -105,7 +123,9 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
 
     fun setupWithBottomSheet(rootView: View, bottomSheet: View, followView: View? = null) {
         val behavior = BottomSheetBehavior.from(bottomSheet)
+        bottomSheetBehavior?.removeBottomSheetCallback(bottomSheetCallback)
         bottomSheetBehavior = behavior
+        managedRootView = rootView
         managedBottomSheet = bottomSheet
         managedFollowView = followView
         behavior.saveFlags = BottomSheetBehavior.SAVE_NONE
@@ -116,22 +136,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         bottomSheet.post {
             behavior.state = BottomSheetBehavior.STATE_COLLAPSED
         }
-        behavior.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
-            override fun onStateChanged(bottomSheet: View, newState: Int) {
-                when (newState) {
-                    BottomSheetBehavior.STATE_COLLAPSED -> setExpansionFraction(0f)
-                    BottomSheetBehavior.STATE_EXPANDED -> setExpansionFraction(1f)
-                    BottomSheetBehavior.STATE_HIDDEN -> {
-                        resetTransientOffsets()
-                        behavior.state = BottomSheetBehavior.STATE_COLLAPSED
-                    }
-                }
-            }
-
-            override fun onSlide(bottomSheet: View, slideOffset: Float) {
-                setExpansionFraction(slideOffset.coerceIn(0f, 1f))
-            }
-        })
+        behavior.addBottomSheetCallback(bottomSheetCallback)
 
         val bottomSheetLp = bottomSheet.layoutParams as? MarginLayoutParams
         val followLp = followView?.layoutParams as? MarginLayoutParams
@@ -256,9 +261,16 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     override fun onDetachedFromWindow() {
         tabMediator?.detach()
         tabMediator = null
-        managedBottomSheet = null
-        managedFollowView = null
         super.onDetachedFromWindow()
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        if (tabMediator == null && groups.isNotEmpty()) {
+            bindTabs()
+        }
+        managedRootView?.let { ViewCompat.requestApplyInsets(it) }
+        managedBottomSheet?.let { ViewCompat.requestApplyInsets(it) }
     }
 
     private inner class SymbolAdapter(private val items: List<SymbolItem>) : RecyclerView.Adapter<SymbolAdapter.SymbolViewHolder>() {
