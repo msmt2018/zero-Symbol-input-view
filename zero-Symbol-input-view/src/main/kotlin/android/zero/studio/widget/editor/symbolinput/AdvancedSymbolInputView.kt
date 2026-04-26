@@ -39,6 +39,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     private val pagerAdapter = SymbolPagerAdapter()
 
     private val rowHeightPx by lazy { (36 * resources.displayMetrics.density).roundToInt() }
+    private val fullTabHeightPx by lazy { (44 * resources.displayMetrics.density).roundToInt() }
     private val collapsedHeightPx by lazy { rowHeightPx * 2 + (20 * resources.displayMetrics.density).roundToInt() }
     private val expandedHeightPx by lazy { (220 * resources.displayMetrics.density).roundToInt() }
     private val touchSlop by lazy { ViewConfiguration.get(context).scaledTouchSlop }
@@ -172,8 +173,15 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
 
     private fun applyTabRowByFraction(fraction: Float) {
         val clamped = fraction.coerceIn(0f, 1f)
-        tabRow.alpha = 0.55f + (0.45f * clamped)
+        val targetHeight = (fullTabHeightPx * clamped).roundToInt()
+        val params = tabRow.layoutParams
+        if (params.height != targetHeight) {
+            params.height = targetHeight
+            tabRow.layoutParams = params
+        }
+        tabRow.alpha = clamped
         tabRow.translationY = (1f - clamped) * -6f * resources.displayMetrics.density
+        tabRow.visibility = if (clamped == 0f) View.INVISIBLE else View.VISIBLE
     }
 
     private fun buildFallbackGroups(): List<SymbolGroup> {
