@@ -4,11 +4,11 @@ import android.app.AlertDialog
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.view.View
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.EditText
@@ -17,16 +17,22 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager.widget.PagerAdapter
 import androidx.viewpager.widget.ViewPager
+import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.tabs.TabLayout
 
 class SymbolManagerActivity : AppCompatActivity() {
 
     private lateinit var tabLayout: TabLayout
     private lateinit var viewPager: ViewPager
+    private lateinit var appBarLayout: AppBarLayout
     private var symbolGroups = mutableListOf<SymbolGroup>()
     private lateinit var pagerAdapter: GroupPagerAdapter
 
@@ -35,12 +41,20 @@ class SymbolManagerActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        WindowCompat.setDecorFitsSystemWindows(window, true)
         setContentView(R.layout.activity_symbol_manager)
 
         val toolbar = findViewById<Toolbar>(R.id.toolbar)
+        appBarLayout = findViewById(R.id.app_bar_layout)
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         toolbar.setNavigationOnClickListener { finish() }
+
+        ViewCompat.setOnApplyWindowInsetsListener(appBarLayout) { view, insets ->
+            val topInset = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top
+            view.setPadding(view.paddingLeft, topInset, view.paddingRight, view.paddingBottom)
+            insets
+        }
 
         actionValues = resources.getIntArray(R.array.symbol_action_values)
         actionNames = resources.getStringArray(R.array.symbol_action_names)
@@ -49,7 +63,7 @@ class SymbolManagerActivity : AppCompatActivity() {
         viewPager = findViewById(R.id.view_pager)
 
         symbolGroups = SymbolDataManager.loadData(this)
-        
+
         pagerAdapter = GroupPagerAdapter()
         viewPager.adapter = pagerAdapter
         tabLayout.setupWithViewPager(viewPager)
@@ -71,6 +85,12 @@ class SymbolManagerActivity : AppCompatActivity() {
                 }
                 return true
             }
+
+            R.id.action_add_group -> {
+                showAddGroupDialog()
+                return true
+            }
+
             R.id.action_import_clipboard -> importFromClipboard()
             R.id.action_export_clipboard -> exportToClipboard()
             R.id.action_import_file, R.id.action_export_file -> {
@@ -78,6 +98,28 @@ class SymbolManagerActivity : AppCompatActivity() {
             }
         }
         return super.onOptionsItemSelected(item)
+    }
+
+    private fun showAddGroupDialog() {
+        val editText = EditText(this).apply {
+            hint = getString(R.string.group_name)
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.action_add_group)
+            .setView(editText)
+            .setPositiveButton(R.string.dialog_save) { _, _ ->
+                val name = editText.text.toString().trim()
+                if (name.isEmpty()) {
+                    Toast.makeText(this, R.string.toast_fail, Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                symbolGroups.add(SymbolGroup(name = name, items = mutableListOf()))
+                SymbolDataManager.saveData(this, symbolGroups)
+                onGroupsChanged(targetGroupIndex = symbolGroups.lastIndex)
+                Toast.makeText(this, R.string.toast_success, Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton(R.string.dialog_cancel, null)
+            .show()
     }
 
     private fun exportToClipboard() {
@@ -162,8 +204,14 @@ class SymbolManagerActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun onGroupsChanged() {
+    private fun onGroupsChanged(targetGroupIndex: Int? = null) {
         pagerAdapter.notifyDataSetChanged()
+        tabLayout.post {
+            val target = targetGroupIndex ?: viewPager.currentItem.coerceAtMost(symbolGroups.lastIndex)
+            if (symbolGroups.isNotEmpty() && target >= 0) {
+                viewPager.currentItem = target
+            }
+        }
     }
 
     private inner class GroupPagerAdapter : PagerAdapter() {
@@ -174,11 +222,44 @@ class SymbolManagerActivity : AppCompatActivity() {
         override fun getPageTitle(position: Int): CharSequence = symbolGroups[position].name
 
         override fun instantiateItem(container: ViewGroup, position: Int): Any {
+            val group = symbolGroups[position]
+            val itemsAdapter = ItemsAdapter(group)
             val rv = RecyclerView(this@SymbolManagerActivity).apply {
                 layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
                 layoutManager = LinearLayoutManager(this@SymbolManagerActivity)
-                adapter = ItemsAdapter(symbolGroups[position])
+                adapter = itemsAdapter
             }
+
+            val callback = object : ItemTouchHelper.SimpleCallback(
+                ItemTouchHelper.UP or ItemTouchHelper.DOWN,
+                0
+            ) {
+                override fun onMove(
+                    recyclerView: RecyclerView,
+                    viewHolder: RecyclerView.ViewHolder,
+                    target: RecyclerView.ViewHolder
+                ): Boolean {
+                    val fromPosition = viewHolder.bindingAdapterPosition
+                    val toPosition = target.bindingAdapterPosition
+                    if (fromPosition == RecyclerView.NO_POSITION || toPosition == RecyclerView.NO_POSITION) {
+                        return false
+                    }
+
+                    val moved = group.items.removeAt(fromPosition)
+                    group.items.add(toPosition, moved)
+                    itemsAdapter.notifyItemMoved(fromPosition, toPosition)
+                    SymbolDataManager.saveData(this@SymbolManagerActivity, symbolGroups)
+                    return true
+                }
+
+                override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                    // no-op
+                }
+
+                override fun isLongPressDragEnabled(): Boolean = true
+            }
+            ItemTouchHelper(callback).attachToRecyclerView(rv)
+
             container.addView(rv)
             return rv
         }
@@ -186,11 +267,11 @@ class SymbolManagerActivity : AppCompatActivity() {
         override fun destroyItem(container: ViewGroup, position: Int, `object`: Any) {
             container.removeView(`object` as View)
         }
-        
+
         override fun getItemPosition(`object`: Any): Int = POSITION_NONE
     }
 
-    private inner class ItemsAdapter(val group: SymbolGroup) : RecyclerView.Adapter<ItemsAdapter.ItemViewHolder>() {
+    private inner class ItemsAdapter(private val group: SymbolGroup) : RecyclerView.Adapter<ItemsAdapter.ItemViewHolder>() {
         inner class ItemViewHolder(view: View) : RecyclerView.ViewHolder(view) {
             val tvTitle: TextView = view.findViewById(R.id.tv_title)
             val tvSubtitle: TextView = view.findViewById(R.id.tv_subtitle)
@@ -204,7 +285,7 @@ class SymbolManagerActivity : AppCompatActivity() {
         override fun onBindViewHolder(holder: ItemViewHolder, position: Int) {
             val item = group.items[position]
             holder.tvTitle.text = item.display
-            
+
             val shortDesc = "短按: ${SymbolDataManager.getActionDesc(this@SymbolManagerActivity, item.shortAction, item.shortText)}"
             val longDesc = item.longAction?.let { ", 长按: ${SymbolDataManager.getActionDesc(this@SymbolManagerActivity, it, item.longText)}" } ?: ""
             holder.tvSubtitle.text = shortDesc + longDesc

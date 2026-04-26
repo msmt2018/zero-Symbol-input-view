@@ -3,6 +3,7 @@ package android.zero.studio.widget.editor.symbolinput
 import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.SharedPreferences
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.Gravity
@@ -37,6 +38,11 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
 
     private val groups = mutableListOf<SymbolGroup>()
     private val pagerAdapter = SymbolPagerAdapter()
+    private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == "symbol_json_data") {
+            refreshData()
+        }
+    }
 
     private val rowHeightPx by lazy { (36 * resources.displayMetrics.density).roundToInt() }
     private val fullTabHeightPx by lazy { (44 * resources.displayMetrics.density).roundToInt() }
@@ -91,6 +97,18 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
             groups.addAll(buildFallbackGroups())
         }
         pagerAdapter.notifyDataSetChanged()
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        context.getSharedPreferences("advanced_symbol_prefs", Context.MODE_PRIVATE)
+            .registerOnSharedPreferenceChangeListener(prefsListener)
+    }
+
+    override fun onDetachedFromWindow() {
+        context.getSharedPreferences("advanced_symbol_prefs", Context.MODE_PRIVATE)
+            .unregisterOnSharedPreferenceChangeListener(prefsListener)
+        super.onDetachedFromWindow()
     }
 
     override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
