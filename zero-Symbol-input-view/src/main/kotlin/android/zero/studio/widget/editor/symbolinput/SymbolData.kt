@@ -17,3 +17,15 @@ data class SymbolItem(
     @SerializedName("d") var longAction: Int? = null,
     @SerializedName("e") var longText: String? = null
 )
+
+data class SymbolUiSettings(
+    val collapsedRows: Int = 2,
+    val symbolsPerRow: Int = 10,
+    val indicatorStyle: Int = 0,
+    val rememberExpanded: Boolean = false,
+    val uniformGroupHeight: Boolean = true,
+    val symbolTextSizeSp: Int = 18,
+    val showDragHandle: Boolean = true,
+    val enableAdvancedActions: Boolean = true,
+    val rememberLastPage: Boolean = true
+)

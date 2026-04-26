@@ -11,11 +11,11 @@
                android:id="@+id/et_display"
                android:layout_width="match_parent"
                android:layout_height="wrap_content"
-               android:hint="显示文本 (大标题)" />
+               android:hint="@string/hint_display_title" />
           <TextView
                android:layout_width="wrap_content"
                android:layout_height="wrap_content"
-               android:text="短按动作"
+               android:text="@string/label_short_action"
                android:layout_marginTop="12dp"
                android:textColor="?android:attr/textColorSecondary" />
           <Spinner
@@ -26,11 +26,11 @@
                android:id="@+id/et_short_text"
                android:layout_width="match_parent"
                android:layout_height="wrap_content"
-               android:hint="插入文本(如为插入类型)" />
+               android:hint="@string/hint_insert_text_for_insert_action" />
           <TextView
                android:layout_width="wrap_content"
                android:layout_height="wrap_content"
-               android:text="长按动作 (可选)"
+               android:text="@string/label_long_action_optional"
                android:layout_marginTop="12dp"
                android:textColor="?android:attr/textColorSecondary" />
           <Spinner
@@ -41,6 +41,6 @@
                android:id="@+id/et_long_text"
                android:layout_width="match_parent"
                android:layout_height="wrap_content"
-               android:hint="插入文本(如为插入类型)" />
+               android:hint="@string/hint_insert_text_for_insert_action" />
      </LinearLayout>
 </ScrollView>

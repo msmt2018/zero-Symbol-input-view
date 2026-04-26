@@ -30,6 +30,19 @@ object SymbolActionExecutor {
             29 -> editor.cutText()
             30 -> editor.pasteText()
             32 -> editor.formatCodeAsync()
+            33 -> duplicateLine(editor)
+            34 -> cutLine(editor)
+            35 -> duplicateLine(editor)
+            36 -> replaceLine(editor, text)
+            37 -> insertTextWithMacro(editor, text ?: "\n")
+            38 -> insertTextWithMacro(editor, text ?: "\t")
+            39 -> editor.unindentSelection()
+            in 40..51 -> insertTextWithMacro(editor, text ?: "<F${actionId - 39}>")
+            52 -> editor.copyText() // Ctrl+C
+            53 -> editor.cutText() // Ctrl+X
+            54 -> editor.pasteText() // Ctrl+V
+            55 -> editor.undo()
+            56 -> editor.redo()
         }
     }
 
@@ -58,6 +71,23 @@ object SymbolActionExecutor {
     private fun clearLine(editor: CodeEditor) {
         val line = editor.cursor.leftLine
         editor.text.delete(line, 0, line, editor.text.getColumnCount(line))
+    }
+
+    private fun cutLine(editor: CodeEditor) {
+        deleteLine(editor)
+    }
+
+    private fun duplicateLine(editor: CodeEditor) {
+        val line = editor.cursor.leftLine
+        val content = editor.text.getLineString(line)
+        val insertionLine = (line + 1).coerceAtMost(editor.text.lineCount)
+        editor.text.insert(insertionLine, 0, content + "\n")
+    }
+
+    private fun replaceLine(editor: CodeEditor, replacement: String?) {
+        val line = editor.cursor.leftLine
+        editor.text.delete(line, 0, line, editor.text.getColumnCount(line))
+        editor.text.insert(line, 0, replacement ?: "")
     }
 
     private fun toggleComment(editor: CodeEditor) {
