@@ -235,57 +235,6 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         followView?.let { ViewCompat.requestApplyInsets(it) }
     }
 
-    private fun applyImeInset(
-        bottomSheet: View,
-        followView: View?,
-        bottomSheetLp: MarginLayoutParams?,
-        followLp: MarginLayoutParams?,
-        imeBottom: Int
-    ) {
-        bottomSheetLp?.let {
-            it.bottomMargin = initialSheetBottomMargin + imeBottom
-            bottomSheet.layoutParams = it
-        }
-        followLp?.let {
-            it.bottomMargin = initialFollowBottomMargin + imeBottom
-            followView?.layoutParams = it
-        }
-    }
-
-    private fun applyImeInset(
-        bottomSheet: View,
-        followView: View?,
-        bottomSheetLp: MarginLayoutParams?,
-        followLp: MarginLayoutParams?,
-        imeBottom: Int
-    ) {
-        bottomSheetLp?.let {
-            it.bottomMargin = initialSheetBottomMargin + imeBottom
-            bottomSheet.layoutParams = it
-        }
-        followLp?.let {
-            it.bottomMargin = initialFollowBottomMargin + imeBottom
-            followView?.layoutParams = it
-        }
-    }
-
-    private fun applyImeInsetInternal(
-        bottomSheet: View,
-        followView: View?,
-        bottomSheetLp: MarginLayoutParams?,
-        followLp: MarginLayoutParams?,
-        imeBottom: Int
-    ) {
-        bottomSheetLp?.let {
-            it.bottomMargin = initialSheetBottomMargin + imeBottom
-            bottomSheet.layoutParams = it
-        }
-        followLp?.let {
-            it.bottomMargin = initialFollowBottomMargin + imeBottom
-            followView?.layoutParams = it
-        }
-    }
-
     fun onHostResume() {
         bottomSheetBehavior?.state = BottomSheetBehavior.STATE_COLLAPSED
     }
