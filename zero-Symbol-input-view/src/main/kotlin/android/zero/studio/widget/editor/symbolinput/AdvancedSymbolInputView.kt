@@ -18,6 +18,7 @@ import android.widget.FrameLayout
 import android.widget.GridLayout
 import android.widget.LinearLayout
 import androidx.appcompat.widget.AppCompatTextView
+import androidx.core.content.ContextCompat
 import androidx.core.widget.TextViewCompat
 import androidx.core.widget.NestedScrollView
 import androidx.viewpager.widget.PagerAdapter
@@ -261,9 +262,9 @@ private fun buildFallbackGroups(): List<SymbolGroup> {
             SymbolItem(0, "\")", "\")"),
             SymbolItem(0, "{", "{"),
             SymbolItem(0, "}", "}"),
-            SymbolItem(0, "()", "()", 0, "($T)"),
-            SymbolItem(0, "[]", "[]", 0, "[$T]"),
-            SymbolItem(0, "{}", "{$S$T$E}", 0, "{$T}"),
+            SymbolItem(0, "()", "()", 0, "(\$T)"),
+            SymbolItem(0, "[]", "[]", 0, "[\$T]"),
+            SymbolItem(0, "{}", "{\$S\$T\$E}", 0, "{\$T}"),
             SymbolItem(0, "<", "<"),
             SymbolItem(0, ">", ">"),
             SymbolItem(0, "\\", "\\"),
@@ -421,20 +422,22 @@ private fun buildFallbackGroups(): List<SymbolGroup> {
         tabLayout.setSelectedTabIndicatorColor(fetchColor(android.R.attr.colorAccent))
         tabLayout.setSelectedTabIndicatorHeight((2 * resources.displayMetrics.density).roundToInt())
         tabLayout.setSelectedTabIndicator(ColorDrawable(fetchColor(android.R.attr.colorAccent)))
-        tabLayout.tabIndicatorGravity = TabLayout.INDICATOR_GRAVITY_BOTTOM
+        tabLayout.setSelectedTabIndicatorGravity(TabLayout.INDICATOR_GRAVITY_BOTTOM)
         tabLayout.isInlineLabel = false
 
         when (uiSettings.indicatorStyle) {
             0 -> {
                 // 标准
                 tabLayout.setSelectedTabIndicatorHeight((2 * resources.displayMetrics.density).roundToInt())
-                tabLayout.tabIndicatorGravity = TabLayout.INDICATOR_GRAVITY_BOTTOM
+                tabLayout.setSelectedTabIndicatorGravity(TabLayout.INDICATOR_GRAVITY_BOTTOM)
             }
             1 -> {
                 // 简洁胶囊
-                tabLayout.setSelectedTabIndicatorResource(R.drawable.bg_indicator_capsule)
+                tabLayout.setSelectedTabIndicator(
+                    ContextCompat.getDrawable(context, R.drawable.bg_indicator_capsule)
+                )
                 tabLayout.setSelectedTabIndicatorHeight((6 * resources.displayMetrics.density).roundToInt())
-                tabLayout.tabIndicatorGravity = TabLayout.INDICATOR_GRAVITY_BOTTOM
+                tabLayout.setSelectedTabIndicatorGravity(TabLayout.INDICATOR_GRAVITY_BOTTOM)
             }
             2 -> {
                 // 隐藏
@@ -444,12 +447,14 @@ private fun buildFallbackGroups(): List<SymbolGroup> {
             3 -> {
                 // 顶部线条
                 tabLayout.setSelectedTabIndicatorHeight((3 * resources.displayMetrics.density).roundToInt())
-                tabLayout.tabIndicatorGravity = TabLayout.INDICATOR_GRAVITY_TOP
+                tabLayout.setSelectedTabIndicatorGravity(TabLayout.INDICATOR_GRAVITY_TOP)
             }
             4 -> {
                 // 块状
-                tabLayout.setSelectedTabIndicatorResource(R.drawable.bg_indicator_block)
-                tabLayout.tabIndicatorGravity = TabLayout.INDICATOR_GRAVITY_STRETCH
+                tabLayout.setSelectedTabIndicator(
+                    ContextCompat.getDrawable(context, R.drawable.bg_indicator_block)
+                )
+                tabLayout.setSelectedTabIndicatorGravity(TabLayout.INDICATOR_GRAVITY_STRETCH)
             }
         }
     }
