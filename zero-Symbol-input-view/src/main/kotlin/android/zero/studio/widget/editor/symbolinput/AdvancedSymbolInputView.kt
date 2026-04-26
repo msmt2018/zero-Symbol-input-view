@@ -182,7 +182,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         val followLp = followView?.layoutParams as? MarginLayoutParams
         initialSheetBottomMargin = bottomSheetLp?.bottomMargin ?: 0
         initialFollowBottomMargin = followLp?.bottomMargin ?: 0
-        val applyImeBottomMargins: (Int) -> Unit = { imeBottom ->
+        val updateImeFollowMargins: (Int) -> Unit = { imeBottom ->
             bottomSheetLp?.let {
                 it.bottomMargin = initialSheetBottomMargin + imeBottom
                 bottomSheet.layoutParams = it
@@ -195,7 +195,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         ViewCompat.setOnApplyWindowInsetsListener(rootView) { _, insets ->
             val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
             if (abs(imeBottom - imeBottomInsetLast) > 1 && followSystemIme) {
-                applyImeBottomMargins(imeBottom)
+                updateImeFollowMargins(imeBottom)
                 if (imeBottom == 0 && behavior.state == BottomSheetBehavior.STATE_HIDDEN) {
                     behavior.state = BottomSheetBehavior.STATE_COLLAPSED
                 }
@@ -216,7 +216,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
                     }
                     val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
                     if (abs(imeBottom - imeBottomInsetLast) > 1) {
-                        applyImeBottomMargins(imeBottom)
+                        updateImeFollowMargins(imeBottom)
                         imeBottomInsetLast = imeBottom
                     }
                     return insets
@@ -224,7 +224,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
 
                 override fun onEnd(animation: WindowInsetsAnimationCompat) {
                     if (followSystemIme) {
-                        applyImeBottomMargins(lastStableImeBottomInset)
+                        updateImeFollowMargins(lastStableImeBottomInset)
                         imeBottomInsetLast = lastStableImeBottomInset
                     }
                 }
