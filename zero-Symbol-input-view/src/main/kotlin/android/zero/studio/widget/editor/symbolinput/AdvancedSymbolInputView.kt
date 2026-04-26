@@ -10,7 +10,6 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
@@ -42,7 +41,6 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     private val spanCount = 8
     private var visibleRows = minRows
     private val fullTabHeight by lazy { (44 * resources.displayMetrics.density).roundToInt() }
-    private var lastImeBottomInset = 0
     private var bottomSheetBehavior: BottomSheetBehavior<View>? = null
     private val bottomSheetCallback = object : BottomSheetBehavior.BottomSheetCallback() {
         override fun onStateChanged(bottomSheet: View, newState: Int) {
@@ -64,8 +62,6 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     private var managedBottomSheet: View? = null
     private var managedFollowView: View? = null
     private var managedRootView: View? = null
-    private var initialSheetBottomMargin = 0
-    private var initialFollowBottomMargin = 0
 
     init {
         val root = LayoutInflater.from(context).inflate(R.layout.view_advanced_symbol_input, this, true)
@@ -137,52 +133,18 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
             behavior.state = BottomSheetBehavior.STATE_COLLAPSED
         }
         behavior.addBottomSheetCallback(bottomSheetCallback)
-
-        val bottomSheetLp = bottomSheet.layoutParams as? MarginLayoutParams
-        val followLp = followView?.layoutParams as? MarginLayoutParams
-        initialSheetBottomMargin = bottomSheetLp?.bottomMargin ?: 0
-        initialFollowBottomMargin = followLp?.bottomMargin ?: 0
-        ViewCompat.setOnApplyWindowInsetsListener(rootView) { _, insets ->
-            val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
-            if (imeBottom != lastImeBottomInset) {
-                bottomSheetLp?.let {
-                    it.bottomMargin = initialSheetBottomMargin + imeBottom
-                    bottomSheet.layoutParams = it
-                }
-                followLp?.let {
-                    it.bottomMargin = initialFollowBottomMargin + imeBottom
-                    followView?.layoutParams = it
-                }
-                if (imeBottom == 0 && behavior.state == BottomSheetBehavior.STATE_HIDDEN) {
-                    behavior.state = BottomSheetBehavior.STATE_COLLAPSED
-                }
-                lastImeBottomInset = imeBottom
-            }
-            insets
-        }
         ViewCompat.requestApplyInsets(rootView)
         ViewCompat.requestApplyInsets(bottomSheet)
+        followView?.let { ViewCompat.requestApplyInsets(it) }
     }
 
     fun onHostResume() {
-        resetTransientOffsets()
         bottomSheetBehavior?.state = BottomSheetBehavior.STATE_COLLAPSED
     }
 
     private fun resetTransientOffsets() {
-        (managedBottomSheet?.layoutParams as? MarginLayoutParams)?.let {
-            if (it.bottomMargin != initialSheetBottomMargin) {
-                it.bottomMargin = initialSheetBottomMargin
-                managedBottomSheet?.layoutParams = it
-            }
-        }
-        (managedFollowView?.layoutParams as? MarginLayoutParams)?.let {
-            if (it.bottomMargin != initialFollowBottomMargin) {
-                it.bottomMargin = initialFollowBottomMargin
-                managedFollowView?.layoutParams = it
-            }
-        }
-        lastImeBottomInset = 0
+        // Intentionally no-op.
+        // IME/system bar insets are handled by host edge-to-edge integration.
     }
 
     private fun buildFallbackGroups(): List<SymbolGroup> {
