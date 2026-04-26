@@ -213,7 +213,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     }
 
     private fun bindTabs() {
-        tabMediator?.detach()
+        detachTabMediatorSafely()
         if (groups.isEmpty()) {
             tabLayout.removeAllTabs()
             return
@@ -223,7 +223,19 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         }.apply { attach() }
     }
 
+    private fun detachTabMediatorSafely() {
+        val mediator = tabMediator ?: return
+        try {
+            mediator.detach()
+        } catch (_: IllegalStateException) {
+            // TabLayoutMediator may already be detached during transient host lifecycle changes.
+        }
+        tabMediator = null
+    }
+
     private inner class GroupPagerAdapter : RecyclerView.Adapter<GroupPagerAdapter.GroupViewHolder>() {
+
+        private val pageAdapters = mutableMapOf<Int, SymbolAdapter>()
 
         inner class GroupViewHolder(val rv: RecyclerView) : RecyclerView.ViewHolder(rv)
 
@@ -244,23 +256,25 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
 
         override fun onBindViewHolder(holder: GroupViewHolder, position: Int) {
             val group = groups.getOrNull(position) ?: return
-            holder.rv.adapter = SymbolAdapter(group.items)
+            val symbolAdapter = pageAdapters.getOrPut(position) { SymbolAdapter(group.items) }
+            if (holder.rv.adapter !== symbolAdapter) {
+                holder.rv.adapter = symbolAdapter
+            }
         }
 
         override fun getItemCount(): Int = groups.size
 
-        fun clearPageAdapters() = Unit
+        fun clearPageAdapters() {
+            pageAdapters.clear()
+        }
 
         fun notifyVisibleRowsChanged() {
-            if (itemCount > 0) {
-                notifyItemRangeChanged(0, itemCount)
-            }
+            pageAdapters.values.forEach { it.notifyDataSetChanged() }
         }
     }
 
     override fun onDetachedFromWindow() {
-        tabMediator?.detach()
-        tabMediator = null
+        detachTabMediatorSafely()
         super.onDetachedFromWindow()
     }
 
