@@ -337,7 +337,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
                     }
                     minHeight = (36 * resources.displayMetrics.density).roundToInt()
                     gravity = Gravity.CENTER
-                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, uiSettings.symbolTextSizeSp.toFloat())
                     text = item.display
                     isClickable = true
                     isFocusable = true

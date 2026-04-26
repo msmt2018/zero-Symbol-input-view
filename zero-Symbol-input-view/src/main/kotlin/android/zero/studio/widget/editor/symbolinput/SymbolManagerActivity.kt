@@ -598,6 +598,29 @@ class SymbolManagerActivity : AppCompatActivity() {
         }
         content.addView(uniformItem)
 
+        val textSizeItem = createEntry(getString(R.string.settings_symbol_text_size), "${settings.symbolTextSizeSp}sp")
+        textSizeItem.setOnClickListener { showTextSizeDialog() }
+        content.addView(textSizeItem)
+
+        val handleItem = createEntry(getString(R.string.settings_show_drag_handle), getString(R.string.settings_show_drag_handle_desc))
+        val handleSwitch = SwitchCompat(this).apply { isChecked = settings.showDragHandle }
+        (handleItem as ViewGroup).addView(handleSwitch)
+        handleSwitch.setOnCheckedChangeListener { _, isChecked ->
+            val old = SymbolDataManager.getUiSettings(this)
+            SymbolDataManager.saveUiSettings(this, old.copy(showDragHandle = isChecked))
+            pagerAdapter.notifyDataSetChanged()
+        }
+        content.addView(handleItem)
+
+        val advancedItem = createEntry(getString(R.string.settings_enable_advanced_actions), getString(R.string.settings_enable_advanced_actions_desc))
+        val advancedSwitch = SwitchCompat(this).apply { isChecked = settings.enableAdvancedActions }
+        (advancedItem as ViewGroup).addView(advancedSwitch)
+        advancedSwitch.setOnCheckedChangeListener { _, isChecked ->
+            val old = SymbolDataManager.getUiSettings(this)
+            SymbolDataManager.saveUiSettings(this, old.copy(enableAdvancedActions = isChecked))
+        }
+        content.addView(advancedItem)
+
         return scrollView
     }
 
@@ -635,6 +658,24 @@ class SymbolManagerActivity : AppCompatActivity() {
             }
             .setPositiveButton(R.string.dialog_save) { _, _ ->
                 SymbolDataManager.saveUiSettings(this, settings.copy(indicatorStyle = checked))
+                pagerAdapter.notifyDataSetChanged()
+            }
+            .setNegativeButton(R.string.dialog_cancel, null)
+            .show()
+    }
+
+    private fun showTextSizeDialog() {
+        val settings = SymbolDataManager.getUiSettings(this)
+        val editText = EditText(this).apply {
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER
+            setText(settings.symbolTextSizeSp.toString())
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.settings_symbol_text_size)
+            .setView(editText)
+            .setPositiveButton(R.string.dialog_save) { _, _ ->
+                val textSize = editText.text.toString().toIntOrNull()?.coerceIn(12, 28) ?: settings.symbolTextSizeSp
+                SymbolDataManager.saveUiSettings(this, settings.copy(symbolTextSizeSp = textSize))
                 pagerAdapter.notifyDataSetChanged()
             }
             .setNegativeButton(R.string.dialog_cancel, null)
@@ -757,6 +798,8 @@ class SymbolManagerActivity : AppCompatActivity() {
 
             val selected = isBatchMode && groupIndex == batchGroupIndex && selectedItems.contains(item)
             holder.itemView.setBackgroundColor(if (selected) Color.parseColor("#66BEEB") else Color.TRANSPARENT)
+            val uiSettings = SymbolDataManager.getUiSettings(this@SymbolManagerActivity)
+            holder.dragHandle.visibility = if (uiSettings.showDragHandle) View.VISIBLE else View.GONE
 
             holder.itemView.setOnClickListener {
                 if (isBatchMode && groupIndex == batchGroupIndex) {
@@ -776,7 +819,7 @@ class SymbolManagerActivity : AppCompatActivity() {
             }
 
             holder.dragHandle.setOnTouchListener { _, event ->
-                if (event.actionMasked == MotionEvent.ACTION_DOWN && !isBatchMode) {
+                if (event.actionMasked == MotionEvent.ACTION_DOWN && !isBatchMode && uiSettings.showDragHandle) {
                     touchHelper?.startDrag(holder)
                 }
                 false

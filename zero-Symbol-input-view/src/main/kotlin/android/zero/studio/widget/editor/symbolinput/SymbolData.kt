@@ -23,5 +23,8 @@ data class SymbolUiSettings(
     val symbolsPerRow: Int = 10,
     val indicatorStyle: Int = 0,
     val rememberExpanded: Boolean = false,
-    val uniformGroupHeight: Boolean = true
+    val uniformGroupHeight: Boolean = true,
+    val symbolTextSizeSp: Int = 18,
+    val showDragHandle: Boolean = true,
+    val enableAdvancedActions: Boolean = true
 )

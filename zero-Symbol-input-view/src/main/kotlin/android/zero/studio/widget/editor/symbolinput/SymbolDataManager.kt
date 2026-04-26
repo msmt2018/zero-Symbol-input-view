@@ -14,6 +14,9 @@ object SymbolDataManager {
     private const val KEY_INDICATOR_STYLE = "symbol_indicator_style"
     private const val KEY_REMEMBER_EXPANDED = "symbol_remember_expanded"
     private const val KEY_UNIFORM_GROUP_HEIGHT = "symbol_uniform_group_height"
+    private const val KEY_TEXT_SIZE = "symbol_text_size_sp"
+    private const val KEY_SHOW_DRAG_HANDLE = "symbol_show_drag_handle"
+    private const val KEY_ADVANCED_ACTIONS = "symbol_enable_advanced_actions"
     private const val KEY_LAST_EXPANDED = "symbol_last_expanded"
     val gson = Gson()
 
@@ -65,7 +68,10 @@ object SymbolDataManager {
             symbolsPerRow = prefs.getInt(KEY_SYMBOLS_PER_ROW, 10).coerceIn(1, 20),
             indicatorStyle = prefs.getInt(KEY_INDICATOR_STYLE, 0).coerceIn(0, 4),
             rememberExpanded = prefs.getBoolean(KEY_REMEMBER_EXPANDED, false),
-            uniformGroupHeight = prefs.getBoolean(KEY_UNIFORM_GROUP_HEIGHT, true)
+            uniformGroupHeight = prefs.getBoolean(KEY_UNIFORM_GROUP_HEIGHT, true),
+            symbolTextSizeSp = prefs.getInt(KEY_TEXT_SIZE, 18).coerceIn(12, 28),
+            showDragHandle = prefs.getBoolean(KEY_SHOW_DRAG_HANDLE, true),
+            enableAdvancedActions = prefs.getBoolean(KEY_ADVANCED_ACTIONS, true)
         )
     }
 
@@ -77,6 +83,9 @@ object SymbolDataManager {
             .putInt(KEY_INDICATOR_STYLE, settings.indicatorStyle.coerceIn(0, 4))
             .putBoolean(KEY_REMEMBER_EXPANDED, settings.rememberExpanded)
             .putBoolean(KEY_UNIFORM_GROUP_HEIGHT, settings.uniformGroupHeight)
+            .putInt(KEY_TEXT_SIZE, settings.symbolTextSizeSp.coerceIn(12, 28))
+            .putBoolean(KEY_SHOW_DRAG_HANDLE, settings.showDragHandle)
+            .putBoolean(KEY_ADVANCED_ACTIONS, settings.enableAdvancedActions)
             .apply()
     }
 
