@@ -195,6 +195,7 @@ class MainActivity : AppCompatActivity() {
         // inputView.forEachButton { it.typeface = typeface }
         val symbolInputView = findViewById<AdvancedSymbolInputView>(R.id.advanced_symbol_input)
             symbolInputView.bindEditor(binding.editor)
+            symbolInputView.followSystemIme = true
 
             // 设置点击 “...” (动作22) 的监听器，跳转到管理界面
             symbolInputView.onOpenManagerListener = {

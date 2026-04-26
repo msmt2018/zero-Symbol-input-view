@@ -29,6 +29,7 @@ class SymbolManagerActivity : AppCompatActivity() {
     private lateinit var viewPager: ViewPager2
     private var symbolGroups = mutableListOf<SymbolGroup>()
     private lateinit var groupAdapter: GroupPagerAdapter
+    private var tabMediator: TabLayoutMediator? = null
 
     private lateinit var actionValues: IntArray
     private lateinit var actionNames: Array<String>
@@ -54,9 +55,9 @@ class SymbolManagerActivity : AppCompatActivity() {
         groupAdapter = GroupPagerAdapter()
         viewPager.adapter = groupAdapter
 
-        TabLayoutMediator(tabLayout, viewPager) { tab, position ->
+        tabMediator = TabLayoutMediator(tabLayout, viewPager) { tab, position ->
             tab.text = symbolGroups[position].name
-        }.attach()
+        }.apply { attach() }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -101,7 +102,7 @@ class SymbolManagerActivity : AppCompatActivity() {
                 symbolGroups.clear()
                 symbolGroups.addAll(importedData)
                 SymbolDataManager.saveData(this, symbolGroups)
-                groupAdapter.notifyDataSetChanged()
+                onGroupsChanged()
                 Toast.makeText(this, R.string.toast_success, Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
                 Toast.makeText(this, R.string.toast_fail, Toast.LENGTH_SHORT).show()
@@ -156,16 +157,38 @@ class SymbolManagerActivity : AppCompatActivity() {
                     group.items[index] = newItem
                 }
                 SymbolDataManager.saveData(this, symbolGroups)
-                groupAdapter.notifyDataSetChanged()
+                onGroupsChanged()
             }
             .setNeutralButton(R.string.dialog_delete) { _, _ ->
                 if (itemToEdit != null) {
                     group.items.remove(itemToEdit)
                     SymbolDataManager.saveData(this, symbolGroups)
-                    groupAdapter.notifyDataSetChanged()
+                    onGroupsChanged()
                 }
             }
             .show()
+    }
+
+    private fun onGroupsChanged() {
+        groupAdapter.notifyDataSetChanged()
+        tabMediator?.detach()
+        if (symbolGroups.isEmpty()) {
+            tabLayout.removeAllTabs()
+            return
+        }
+        val safeCurrent = viewPager.currentItem.coerceIn(0, symbolGroups.lastIndex)
+        if (viewPager.currentItem != safeCurrent) {
+            viewPager.setCurrentItem(safeCurrent, false)
+        }
+        tabMediator = TabLayoutMediator(tabLayout, viewPager) { tab, position ->
+            tab.text = symbolGroups.getOrNull(position)?.name ?: "Group ${position + 1}"
+        }.apply { attach() }
+    }
+
+    override fun onDestroy() {
+        tabMediator?.detach()
+        tabMediator = null
+        super.onDestroy()
     }
 
     private inner class GroupPagerAdapter : RecyclerView.Adapter<GroupPagerAdapter.GroupViewHolder>() {
