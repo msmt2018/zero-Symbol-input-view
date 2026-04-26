@@ -10,6 +10,7 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsAnimationCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -18,6 +19,7 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import io.github.rosemoe.sora.widget.CodeEditor
+import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.roundToInt
 
@@ -42,12 +44,29 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     private val spanCount = 8
     private var visibleRows = minRows
     private val fullTabHeight by lazy { (44 * resources.displayMetrics.density).roundToInt() }
-    private var lastImeBottomInset = 0
+    private var imeBottomInsetLast = 0
     private var bottomSheetBehavior: BottomSheetBehavior<View>? = null
     private var managedBottomSheet: View? = null
     private var managedFollowView: View? = null
+    private var managedRootView: View? = null
     private var initialSheetBottomMargin = 0
     private var initialFollowBottomMargin = 0
+    private var registeredBottomSheetCallback: BottomSheetBehavior.BottomSheetCallback? = null
+    private var lastStableImeBottomInset = 0
+
+    /**
+     * Whether this view should follow IME top edge when keyboard expands/collapses.
+     * Set true in Activity if bottom sheet needs to move with system IME animation.
+     */
+    var followSystemIme: Boolean = false
+        set(value) {
+            field = value
+            if (!value) {
+                resetTransientOffsets()
+            } else {
+                managedRootView?.let(ViewCompat::requestApplyInsets)
+            }
+        }
 
     init {
         val root = LayoutInflater.from(context).inflate(R.layout.view_advanced_symbol_input, this, true)
@@ -105,9 +124,15 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
 
     fun setupWithBottomSheet(rootView: View, bottomSheet: View, followView: View? = null) {
         val behavior = BottomSheetBehavior.from(bottomSheet)
+        bottomSheetBehavior?.let { previousBehavior ->
+            registeredBottomSheetCallback?.let { previousCallback ->
+                previousBehavior.removeBottomSheetCallback(previousCallback)
+            }
+        }
         bottomSheetBehavior = behavior
         managedBottomSheet = bottomSheet
         managedFollowView = followView
+        managedRootView = rootView
         behavior.saveFlags = BottomSheetBehavior.SAVE_NONE
         behavior.isHideable = false
         behavior.isDraggable = true
@@ -116,7 +141,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         bottomSheet.post {
             behavior.state = BottomSheetBehavior.STATE_COLLAPSED
         }
-        behavior.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
+        val sheetCallback = object : BottomSheetBehavior.BottomSheetCallback() {
             override fun onStateChanged(bottomSheet: View, newState: Int) {
                 when (newState) {
                     BottomSheetBehavior.STATE_COLLAPSED -> setExpansionFraction(0f)
@@ -131,7 +156,9 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
             override fun onSlide(bottomSheet: View, slideOffset: Float) {
                 setExpansionFraction(slideOffset.coerceIn(0f, 1f))
             }
-        })
+        }
+        behavior.addBottomSheetCallback(sheetCallback)
+        registeredBottomSheetCallback = sheetCallback
 
         val bottomSheetLp = bottomSheet.layoutParams as? MarginLayoutParams
         val followLp = followView?.layoutParams as? MarginLayoutParams
@@ -139,24 +166,67 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         initialFollowBottomMargin = followLp?.bottomMargin ?: 0
         ViewCompat.setOnApplyWindowInsetsListener(rootView) { _, insets ->
             val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
-            if (imeBottom != lastImeBottomInset) {
-                bottomSheetLp?.let {
-                    it.bottomMargin = initialSheetBottomMargin + imeBottom
-                    bottomSheet.layoutParams = it
-                }
-                followLp?.let {
-                    it.bottomMargin = initialFollowBottomMargin + imeBottom
-                    followView?.layoutParams = it
-                }
+            if (abs(imeBottom - imeBottomInsetLast) > 1 && followSystemIme) {
+                applyImeInsetInternal(bottomSheet, followView, bottomSheetLp, followLp, imeBottom)
                 if (imeBottom == 0 && behavior.state == BottomSheetBehavior.STATE_HIDDEN) {
                     behavior.state = BottomSheetBehavior.STATE_COLLAPSED
                 }
-                lastImeBottomInset = imeBottom
             }
+            lastStableImeBottomInset = imeBottom
+            imeBottomInsetLast = imeBottom
             insets
         }
+        ViewCompat.setWindowInsetsAnimationCallback(
+            rootView,
+            object : WindowInsetsAnimationCompat.Callback(DISPATCH_MODE_STOP) {
+                override fun onProgress(
+                    insets: WindowInsetsCompat,
+                    runningAnimations: MutableList<WindowInsetsAnimationCompat>
+                ): WindowInsetsCompat {
+                    if (!followSystemIme) {
+                        return insets
+                    }
+                    val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+                    if (abs(imeBottom - imeBottomInsetLast) > 1) {
+                        applyImeInsetInternal(bottomSheet, followView, bottomSheetLp, followLp, imeBottom)
+                        imeBottomInsetLast = imeBottom
+                    }
+                    return insets
+                }
+
+                override fun onEnd(animation: WindowInsetsAnimationCompat) {
+                    if (followSystemIme) {
+                        applyImeInsetInternal(
+                            bottomSheet,
+                            followView,
+                            bottomSheetLp,
+                            followLp,
+                            lastStableImeBottomInset
+                        )
+                        imeBottomInsetLast = lastStableImeBottomInset
+                    }
+                }
+            }
+        )
         ViewCompat.requestApplyInsets(rootView)
         ViewCompat.requestApplyInsets(bottomSheet)
+    }
+
+    private fun applyImeInsetInternal(
+        bottomSheet: View,
+        followView: View?,
+        bottomSheetLp: MarginLayoutParams?,
+        followLp: MarginLayoutParams?,
+        imeBottom: Int
+    ) {
+        bottomSheetLp?.let {
+            it.bottomMargin = initialSheetBottomMargin + imeBottom
+            bottomSheet.layoutParams = it
+        }
+        followLp?.let {
+            it.bottomMargin = initialFollowBottomMargin + imeBottom
+            followView?.layoutParams = it
+        }
     }
 
     fun onHostResume() {
@@ -177,7 +247,8 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
                 managedFollowView?.layoutParams = it
             }
         }
-        lastImeBottomInset = 0
+        imeBottomInsetLast = 0
+        lastStableImeBottomInset = 0
     }
 
     private fun buildFallbackGroups(): List<SymbolGroup> {
@@ -256,6 +327,18 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     override fun onDetachedFromWindow() {
         tabMediator?.detach()
         tabMediator = null
+        managedRootView?.let {
+            ViewCompat.setOnApplyWindowInsetsListener(it, null)
+            ViewCompat.setWindowInsetsAnimationCallback(it, null)
+        }
+        managedRootView = null
+        bottomSheetBehavior?.let { behavior ->
+            registeredBottomSheetCallback?.let { callback ->
+                behavior.removeBottomSheetCallback(callback)
+            }
+        }
+        registeredBottomSheetCallback = null
+        bottomSheetBehavior = null
         managedBottomSheet = null
         managedFollowView = null
         super.onDetachedFromWindow()
