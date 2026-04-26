@@ -4,14 +4,17 @@ import android.app.AlertDialog
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuItem
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.EditText
+import android.widget.PopupMenu
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
@@ -33,11 +36,16 @@ class SymbolManagerActivity : AppCompatActivity() {
     private lateinit var tabLayout: TabLayout
     private lateinit var viewPager: ViewPager
     private lateinit var appBarLayout: AppBarLayout
+    private lateinit var multiActionBar: View
     private var symbolGroups = mutableListOf<SymbolGroup>()
     private lateinit var pagerAdapter: GroupPagerAdapter
 
     private lateinit var actionValues: IntArray
     private lateinit var actionNames: Array<String>
+
+    private var isBatchMode = false
+    private var batchGroupIndex = -1
+    private val selectedItems = linkedSetOf<SymbolItem>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,9 +54,16 @@ class SymbolManagerActivity : AppCompatActivity() {
 
         val toolbar = findViewById<Toolbar>(R.id.toolbar)
         appBarLayout = findViewById(R.id.app_bar_layout)
+        multiActionBar = findViewById(R.id.multi_action_bar)
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        toolbar.setNavigationOnClickListener { finish() }
+        toolbar.setNavigationOnClickListener {
+            if (isBatchMode) {
+                exitBatchMode()
+            } else {
+                finish()
+            }
+        }
 
         ViewCompat.setOnApplyWindowInsetsListener(appBarLayout) { view, insets ->
             val topInset = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top
@@ -64,9 +79,26 @@ class SymbolManagerActivity : AppCompatActivity() {
 
         symbolGroups = SymbolDataManager.loadData(this)
 
+        setupBatchActionBar()
+
         pagerAdapter = GroupPagerAdapter()
         viewPager.adapter = pagerAdapter
         tabLayout.setupWithViewPager(viewPager)
+        viewPager.addOnPageChangeListener(object : ViewPager.SimpleOnPageChangeListener() {
+            override fun onPageSelected(position: Int) {
+                if (isBatchMode && position != batchGroupIndex) {
+                    exitBatchMode()
+                }
+            }
+        })
+    }
+
+    private fun setupBatchActionBar() {
+        findViewById<View>(R.id.action_batch_copy).setOnClickListener { performBatchCopyOrCut(isCut = false) }
+        findViewById<View>(R.id.action_batch_cut).setOnClickListener { performBatchCopyOrCut(isCut = true) }
+        findViewById<View>(R.id.action_batch_invert).setOnClickListener { invertBatchSelection() }
+        findViewById<View>(R.id.action_batch_delete).setOnClickListener { confirmDeleteSelected() }
+        findViewById<View>(R.id.action_batch_close).setOnClickListener { exitBatchMode() }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -100,7 +132,7 @@ class SymbolManagerActivity : AppCompatActivity() {
         return super.onOptionsItemSelected(item)
     }
 
-    private fun showAddGroupDialog() {
+    private fun showAddGroupDialog(onCreated: ((Int) -> Unit)? = null) {
         val editText = EditText(this).apply {
             hint = getString(R.string.group_name)
         }
@@ -115,7 +147,9 @@ class SymbolManagerActivity : AppCompatActivity() {
                 }
                 symbolGroups.add(SymbolGroup(name = name, items = mutableListOf()))
                 SymbolDataManager.saveData(this, symbolGroups)
-                onGroupsChanged(targetGroupIndex = symbolGroups.lastIndex)
+                val newIndex = symbolGroups.lastIndex
+                onGroupsChanged(targetGroupIndex = newIndex)
+                onCreated?.invoke(newIndex)
                 Toast.makeText(this, R.string.toast_success, Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton(R.string.dialog_cancel, null)
@@ -141,13 +175,66 @@ class SymbolManagerActivity : AppCompatActivity() {
                 SymbolDataManager.saveData(this, symbolGroups)
                 onGroupsChanged()
                 Toast.makeText(this, R.string.toast_success, Toast.LENGTH_SHORT).show()
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 Toast.makeText(this, R.string.toast_fail, Toast.LENGTH_SHORT).show()
             }
         }
     }
 
     private fun showEditDialog(group: SymbolGroup, itemToEdit: SymbolItem?) {
+        showSymbolDialog(
+            title = if (itemToEdit == null) "添加符号" else "编辑符号",
+            initialItem = itemToEdit,
+            showDeleteButton = itemToEdit != null,
+            onSave = { newItem ->
+                if (itemToEdit == null) {
+                    group.items.add(newItem)
+                } else {
+                    val index = group.items.indexOf(itemToEdit)
+                    if (index >= 0) {
+                        group.items[index] = newItem
+                    }
+                }
+                SymbolDataManager.saveData(this, symbolGroups)
+                onGroupsChanged()
+            },
+            onDelete = {
+                if (itemToEdit != null) {
+                    group.items.remove(itemToEdit)
+                    selectedItems.remove(itemToEdit)
+                    SymbolDataManager.saveData(this, symbolGroups)
+                    onGroupsChanged()
+                }
+            }
+        )
+    }
+
+    private fun showCopyDialog(group: SymbolGroup, sourceItem: SymbolItem) {
+        showSymbolDialog(
+            title = getString(R.string.menu_item_copy),
+            initialItem = sourceItem,
+            showDeleteButton = false,
+            onSave = { newItem ->
+                val index = group.items.indexOf(sourceItem)
+                if (index >= 0) {
+                    group.items.add(index + 1, newItem)
+                } else {
+                    group.items.add(newItem)
+                }
+                SymbolDataManager.saveData(this, symbolGroups)
+                onGroupsChanged()
+            },
+            onDelete = null
+        )
+    }
+
+    private fun showSymbolDialog(
+        title: String,
+        initialItem: SymbolItem?,
+        showDeleteButton: Boolean,
+        onSave: (SymbolItem) -> Unit,
+        onDelete: (() -> Unit)?
+    ) {
         val view = LayoutInflater.from(this).inflate(R.layout.dialog_symbol_edit, null)
         val etDisplay = view.findViewById<EditText>(R.id.et_display)
         val spShortAction = view.findViewById<Spinner>(R.id.sp_short_action)
@@ -159,18 +246,18 @@ class SymbolManagerActivity : AppCompatActivity() {
         spShortAction.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, actionNames)
         spLongAction.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, longNames)
 
-        if (itemToEdit != null) {
-            etDisplay.setText(itemToEdit.display)
-            etShortText.setText(itemToEdit.shortText)
-            etLongText.setText(itemToEdit.longText)
-            spShortAction.setSelection(actionValues.indexOf(itemToEdit.shortAction).coerceAtLeast(0))
-            if (itemToEdit.longAction != null) {
-                spLongAction.setSelection(actionValues.indexOf(itemToEdit.longAction!!) + 1)
+        if (initialItem != null) {
+            etDisplay.setText(initialItem.display)
+            etShortText.setText(initialItem.shortText)
+            etLongText.setText(initialItem.longText)
+            spShortAction.setSelection(actionValues.indexOf(initialItem.shortAction).coerceAtLeast(0))
+            initialItem.longAction?.let {
+                spLongAction.setSelection(actionValues.indexOf(it).coerceAtLeast(0) + 1)
             }
         }
 
-        AlertDialog.Builder(this)
-            .setTitle(if (itemToEdit == null) "添加符号" else "编辑符号")
+        val builder = AlertDialog.Builder(this)
+            .setTitle(title)
             .setView(view)
             .setPositiveButton(R.string.dialog_save) { _, _ ->
                 val shortAct = actionValues[spShortAction.selectedItemPosition]
@@ -184,24 +271,165 @@ class SymbolManagerActivity : AppCompatActivity() {
                     longAction = longAct,
                     longText = etLongText.text.toString().takeIf { longAct == 0 }
                 )
+                onSave(newItem)
+            }
+            .setNegativeButton(R.string.dialog_cancel, null)
 
-                if (itemToEdit == null) {
-                    group.items.add(newItem)
-                } else {
-                    val index = group.items.indexOf(itemToEdit)
-                    group.items[index] = newItem
+        if (showDeleteButton && onDelete != null) {
+            builder.setNeutralButton(R.string.dialog_delete) { _, _ -> onDelete() }
+        }
+
+        builder.show()
+    }
+
+    private fun showItemMenu(anchor: View, group: SymbolGroup, item: SymbolItem) {
+        PopupMenu(this, anchor).apply {
+            menuInflater.inflate(R.menu.menu_symbol_item_actions, menu)
+            setOnMenuItemClickListener { menuItem ->
+                when (menuItem.itemId) {
+                    R.id.action_item_edit -> showEditDialog(group, item)
+                    R.id.action_item_copy -> showCopyDialog(group, item)
+                    R.id.action_item_delete -> confirmDeleteSingle(group, item)
+                    R.id.action_item_batch -> enterBatchMode(viewPager.currentItem, item)
                 }
+                true
+            }
+            show()
+        }
+    }
+
+    private fun confirmDeleteSingle(group: SymbolGroup, item: SymbolItem) {
+        AlertDialog.Builder(this)
+            .setMessage(R.string.dialog_confirm_delete_symbol)
+            .setPositiveButton(R.string.dialog_delete) { _, _ ->
+                group.items.remove(item)
+                selectedItems.remove(item)
                 SymbolDataManager.saveData(this, symbolGroups)
                 onGroupsChanged()
             }
-            .setNeutralButton(R.string.dialog_delete) { _, _ ->
-                if (itemToEdit != null) {
-                    group.items.remove(itemToEdit)
-                    SymbolDataManager.saveData(this, symbolGroups)
-                    onGroupsChanged()
-                }
-            }
+            .setNegativeButton(R.string.dialog_cancel, null)
             .show()
+    }
+
+    private fun enterBatchMode(groupIndex: Int, seedItem: SymbolItem) {
+        isBatchMode = true
+        batchGroupIndex = groupIndex
+        selectedItems.clear()
+        selectedItems.add(seedItem)
+        tabLayout.visibility = View.GONE
+        multiActionBar.visibility = View.VISIBLE
+        pagerAdapter.notifyDataSetChanged()
+    }
+
+    private fun exitBatchMode() {
+        isBatchMode = false
+        batchGroupIndex = -1
+        selectedItems.clear()
+        multiActionBar.visibility = View.GONE
+        tabLayout.visibility = View.VISIBLE
+        pagerAdapter.notifyDataSetChanged()
+    }
+
+    private fun toggleSelected(item: SymbolItem) {
+        if (!selectedItems.add(item)) {
+            selectedItems.remove(item)
+        }
+        pagerAdapter.notifyDataSetChanged()
+    }
+
+    private fun invertBatchSelection() {
+        if (!isBatchMode || batchGroupIndex !in symbolGroups.indices) return
+        val group = symbolGroups[batchGroupIndex]
+        val newSelected = linkedSetOf<SymbolItem>()
+        group.items.forEach { if (!selectedItems.contains(it)) newSelected.add(it) }
+        selectedItems.clear()
+        selectedItems.addAll(newSelected)
+        pagerAdapter.notifyDataSetChanged()
+    }
+
+    private fun confirmDeleteSelected() {
+        if (selectedItems.isEmpty()) {
+            Toast.makeText(this, R.string.toast_no_selection, Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (batchGroupIndex !in symbolGroups.indices) return
+
+        AlertDialog.Builder(this)
+            .setMessage(R.string.dialog_confirm_delete_selected)
+            .setPositiveButton(R.string.dialog_delete) { _, _ ->
+                val group = symbolGroups[batchGroupIndex]
+                group.items.removeAll(selectedItems.toSet())
+                SymbolDataManager.saveData(this, symbolGroups)
+                exitBatchMode()
+                onGroupsChanged(targetGroupIndex = batchGroupIndex)
+            }
+            .setNegativeButton(R.string.dialog_cancel, null)
+            .show()
+    }
+
+    private fun performBatchCopyOrCut(isCut: Boolean) {
+        if (selectedItems.isEmpty()) {
+            Toast.makeText(this, R.string.toast_no_selection, Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (batchGroupIndex !in symbolGroups.indices) return
+
+        val titleRes = if (isCut) R.string.dialog_move_to else R.string.dialog_copy_to
+        showTargetGroupDialog(getString(titleRes)) { targetGroupIndex ->
+            val sourceGroup = symbolGroups[batchGroupIndex]
+            if (isCut && targetGroupIndex == batchGroupIndex) {
+                Toast.makeText(this, R.string.toast_same_group_move, Toast.LENGTH_SHORT).show()
+                return@showTargetGroupDialog
+            }
+
+            val orderedSelected = sourceGroup.items.filter { selectedItems.contains(it) }
+            val copiedItems = orderedSelected.map {
+                SymbolItem(
+                    shortAction = it.shortAction,
+                    display = it.display,
+                    shortText = it.shortText,
+                    longAction = it.longAction,
+                    longText = it.longText
+                )
+            }
+
+            symbolGroups[targetGroupIndex].items.addAll(copiedItems)
+            if (isCut) {
+                sourceGroup.items.removeAll(selectedItems.toSet())
+            }
+
+            SymbolDataManager.saveData(this, symbolGroups)
+            exitBatchMode()
+            onGroupsChanged(targetGroupIndex = targetGroupIndex)
+        }
+    }
+
+    private fun showTargetGroupDialog(title: String, onTargetSelected: (Int) -> Unit) {
+        if (symbolGroups.isEmpty()) return
+
+        var selectedIndex = viewPager.currentItem.coerceIn(0, symbolGroups.lastIndex)
+
+        fun showChooser() {
+            val names = symbolGroups.map { it.name }.toTypedArray()
+            AlertDialog.Builder(this)
+                .setTitle(title)
+                .setSingleChoiceItems(names, selectedIndex) { _, which ->
+                    selectedIndex = which
+                }
+                .setPositiveButton(R.string.dialog_save) { _, _ ->
+                    onTargetSelected(selectedIndex)
+                }
+                .setNeutralButton(R.string.dialog_new_group) { _, _ ->
+                    showAddGroupDialog { newIndex ->
+                        selectedIndex = newIndex
+                        showChooser()
+                    }
+                }
+                .setNegativeButton(R.string.dialog_cancel, null)
+                .show()
+        }
+
+        showChooser()
     }
 
     private fun onGroupsChanged(targetGroupIndex: Int? = null) {
@@ -223,7 +451,7 @@ class SymbolManagerActivity : AppCompatActivity() {
 
         override fun instantiateItem(container: ViewGroup, position: Int): Any {
             val group = symbolGroups[position]
-            val itemsAdapter = ItemsAdapter(group)
+            val itemsAdapter = ItemsAdapter(position, group)
             val rv = RecyclerView(this@SymbolManagerActivity).apply {
                 layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
                 layoutManager = LinearLayoutManager(this@SymbolManagerActivity)
@@ -239,6 +467,7 @@ class SymbolManagerActivity : AppCompatActivity() {
                     viewHolder: RecyclerView.ViewHolder,
                     target: RecyclerView.ViewHolder
                 ): Boolean {
+                    if (isBatchMode) return false
                     val fromPosition = viewHolder.bindingAdapterPosition
                     val toPosition = target.bindingAdapterPosition
                     if (fromPosition == RecyclerView.NO_POSITION || toPosition == RecyclerView.NO_POSITION) {
@@ -256,9 +485,11 @@ class SymbolManagerActivity : AppCompatActivity() {
                     // no-op
                 }
 
-                override fun isLongPressDragEnabled(): Boolean = true
+                override fun isLongPressDragEnabled(): Boolean = false
             }
-            ItemTouchHelper(callback).attachToRecyclerView(rv)
+            val touchHelper = ItemTouchHelper(callback)
+            touchHelper.attachToRecyclerView(rv)
+            itemsAdapter.attachTouchHelper(touchHelper)
 
             container.addView(rv)
             return rv
@@ -271,10 +502,21 @@ class SymbolManagerActivity : AppCompatActivity() {
         override fun getItemPosition(`object`: Any): Int = POSITION_NONE
     }
 
-    private inner class ItemsAdapter(private val group: SymbolGroup) : RecyclerView.Adapter<ItemsAdapter.ItemViewHolder>() {
+    private inner class ItemsAdapter(
+        private val groupIndex: Int,
+        private val group: SymbolGroup
+    ) : RecyclerView.Adapter<ItemsAdapter.ItemViewHolder>() {
+
+        private var touchHelper: ItemTouchHelper? = null
+
+        fun attachTouchHelper(helper: ItemTouchHelper) {
+            touchHelper = helper
+        }
+
         inner class ItemViewHolder(view: View) : RecyclerView.ViewHolder(view) {
             val tvTitle: TextView = view.findViewById(R.id.tv_title)
             val tvSubtitle: TextView = view.findViewById(R.id.tv_subtitle)
+            val dragHandle: View = view.findViewById(R.id.iv_drag_handle)
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ItemViewHolder {
@@ -290,8 +532,31 @@ class SymbolManagerActivity : AppCompatActivity() {
             val longDesc = item.longAction?.let { ", 长按: ${SymbolDataManager.getActionDesc(this@SymbolManagerActivity, it, item.longText)}" } ?: ""
             holder.tvSubtitle.text = shortDesc + longDesc
 
+            val selected = isBatchMode && groupIndex == batchGroupIndex && selectedItems.contains(item)
+            holder.itemView.setBackgroundColor(if (selected) Color.parseColor("#66BEEB") else Color.TRANSPARENT)
+
             holder.itemView.setOnClickListener {
-                showEditDialog(group, item)
+                if (isBatchMode && groupIndex == batchGroupIndex) {
+                    toggleSelected(item)
+                } else {
+                    showEditDialog(group, item)
+                }
+            }
+
+            holder.itemView.setOnLongClickListener {
+                if (isBatchMode && groupIndex == batchGroupIndex) {
+                    toggleSelected(item)
+                } else {
+                    showItemMenu(holder.itemView, group, item)
+                }
+                true
+            }
+
+            holder.dragHandle.setOnTouchListener { _, event ->
+                if (event.actionMasked == MotionEvent.ACTION_DOWN && !isBatchMode) {
+                    touchHelper?.startDrag(holder)
+                }
+                false
             }
         }
 
