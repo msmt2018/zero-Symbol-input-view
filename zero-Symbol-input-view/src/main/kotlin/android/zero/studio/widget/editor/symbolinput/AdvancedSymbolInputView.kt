@@ -18,6 +18,7 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import io.github.rosemoe.sora.widget.CodeEditor
+import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.roundToInt
 
@@ -46,8 +47,10 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     private var bottomSheetBehavior: BottomSheetBehavior<View>? = null
     private var managedBottomSheet: View? = null
     private var managedFollowView: View? = null
+    private var managedRootView: View? = null
     private var initialSheetBottomMargin = 0
     private var initialFollowBottomMargin = 0
+    private var bottomSheetCallback: BottomSheetBehavior.BottomSheetCallback? = null
 
     init {
         val root = LayoutInflater.from(context).inflate(R.layout.view_advanced_symbol_input, this, true)
@@ -105,9 +108,11 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
 
     fun setupWithBottomSheet(rootView: View, bottomSheet: View, followView: View? = null) {
         val behavior = BottomSheetBehavior.from(bottomSheet)
+        bottomSheetCallback?.let(behavior::removeBottomSheetCallback)
         bottomSheetBehavior = behavior
         managedBottomSheet = bottomSheet
         managedFollowView = followView
+        managedRootView = rootView
         behavior.saveFlags = BottomSheetBehavior.SAVE_NONE
         behavior.isHideable = false
         behavior.isDraggable = true
@@ -116,7 +121,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         bottomSheet.post {
             behavior.state = BottomSheetBehavior.STATE_COLLAPSED
         }
-        behavior.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
+        val callback = object : BottomSheetBehavior.BottomSheetCallback() {
             override fun onStateChanged(bottomSheet: View, newState: Int) {
                 when (newState) {
                     BottomSheetBehavior.STATE_COLLAPSED -> setExpansionFraction(0f)
@@ -131,7 +136,9 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
             override fun onSlide(bottomSheet: View, slideOffset: Float) {
                 setExpansionFraction(slideOffset.coerceIn(0f, 1f))
             }
-        })
+        }
+        behavior.addBottomSheetCallback(callback)
+        bottomSheetCallback = callback
 
         val bottomSheetLp = bottomSheet.layoutParams as? MarginLayoutParams
         val followLp = followView?.layoutParams as? MarginLayoutParams
@@ -139,7 +146,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         initialFollowBottomMargin = followLp?.bottomMargin ?: 0
         ViewCompat.setOnApplyWindowInsetsListener(rootView) { _, insets ->
             val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
-            if (imeBottom != lastImeBottomInset) {
+            if (abs(imeBottom - lastImeBottomInset) > 1) {
                 bottomSheetLp?.let {
                     it.bottomMargin = initialSheetBottomMargin + imeBottom
                     bottomSheet.layoutParams = it
@@ -256,6 +263,15 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     override fun onDetachedFromWindow() {
         tabMediator?.detach()
         tabMediator = null
+        managedRootView?.let {
+            ViewCompat.setOnApplyWindowInsetsListener(it, null)
+        }
+        managedRootView = null
+        bottomSheetBehavior?.let { behavior ->
+            bottomSheetCallback?.let(behavior::removeBottomSheetCallback)
+        }
+        bottomSheetCallback = null
+        bottomSheetBehavior = null
         managedBottomSheet = null
         managedFollowView = null
         super.onDetachedFromWindow()
