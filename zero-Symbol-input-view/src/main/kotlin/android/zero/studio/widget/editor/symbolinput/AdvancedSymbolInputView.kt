@@ -219,7 +219,6 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     }
 
     private inner class GroupPagerAdapter : RecyclerView.Adapter<GroupPagerAdapter.GroupViewHolder>() {
-        private val pageAdapters = mutableMapOf<Int, SymbolAdapter>()
 
         inner class GroupViewHolder(val rv: RecyclerView) : RecyclerView.ViewHolder(rv)
 
@@ -240,18 +239,17 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
 
         override fun onBindViewHolder(holder: GroupViewHolder, position: Int) {
             val group = groups.getOrNull(position) ?: return
-            val adapter = pageAdapters.getOrPut(position) { SymbolAdapter(group.items) }
-            holder.rv.adapter = adapter
+            holder.rv.adapter = SymbolAdapter(group.items)
         }
 
         override fun getItemCount(): Int = groups.size
 
-        fun clearPageAdapters() {
-            pageAdapters.clear()
-        }
+        fun clearPageAdapters() = Unit
 
         fun notifyVisibleRowsChanged() {
-            pageAdapters.values.forEach { it.notifyDataSetChanged() }
+            if (itemCount > 0) {
+                notifyItemRangeChanged(0, itemCount)
+            }
         }
     }
 
