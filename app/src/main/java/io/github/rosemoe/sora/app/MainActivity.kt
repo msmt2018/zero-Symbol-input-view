@@ -120,9 +120,6 @@ import java.util.regex.PatternSyntaxException
 
 import android.zero.studio.widget.editor.symbolinput.*
 
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
-
 
 /**
  * Demo and debug Activity for the code editor
@@ -203,6 +200,11 @@ class MainActivity : AppCompatActivity() {
             symbolInputView.onOpenManagerListener = {
             startActivity(Intent(this, SymbolManagerActivity::class.java))
         }
+        symbolInputView.setupWithBottomSheet(
+            binding.root,
+            findViewById(R.id.main_bottom_sheet),
+            findViewById(R.id.position_display)
+        )
 
             // 读取数据并绑定
             // val prefs = getSharedPreferences("symbol_input_prefs", MODE_PRIVATE)
@@ -1191,9 +1193,12 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-override fun onResume() {
-    super.onResume()
-    findViewById<AdvancedSymbolInputView>(R.id.advanced_symbol_input)?.refreshData()
-}
+    override fun onResume() {
+        super.onResume()
+        findViewById<AdvancedSymbolInputView>(R.id.advanced_symbol_input)?.apply {
+            refreshData()
+            onHostResume()
+        }
+    }
 
 }
