@@ -8,7 +8,6 @@
         android:id="@+id/main_layout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:paddingBottom="136dp"
         android:orientation="vertical">
 
         <com.google.android.material.appbar.AppBarLayout
@@ -107,7 +106,6 @@
         android:layout_width="match_parent"
         android:layout_height="360dp"
         android:layout_gravity="bottom"
-        android:layout_marginBottom="24dp"
         android:background="?attr/colorSurface"
         android:elevation="6dp"
         app:behavior_fitToContents="true"

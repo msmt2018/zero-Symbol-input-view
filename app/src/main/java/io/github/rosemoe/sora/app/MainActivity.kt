@@ -357,9 +357,12 @@ class MainActivity : AppCompatActivity() {
         symbolSheetBehavior = behavior
         behavior.saveFlags = BottomSheetBehavior.SAVE_NONE
         behavior.isHideable = false
+        behavior.isDraggable = true
         behavior.skipCollapsed = false
         behavior.isFitToContents = true
-        behavior.state = BottomSheetBehavior.STATE_COLLAPSED
+        bottomSheet.post {
+            behavior.state = BottomSheetBehavior.STATE_COLLAPSED
+        }
         behavior.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
             override fun onStateChanged(bottomSheet: View, newState: Int) {
                 when (newState) {
