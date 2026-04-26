@@ -124,11 +124,21 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
             }
         })
 
-        ViewCompat.setOnApplyWindowInsetsListener(rootView) { _, insets ->
+        val bottomSheetLp = bottomSheet.layoutParams as? MarginLayoutParams
+        val followLp = followView?.layoutParams as? MarginLayoutParams
+        val initialSheetBottomMargin = bottomSheetLp?.bottomMargin ?: 0
+        val initialFollowBottomMargin = followLp?.bottomMargin ?: 0
+        ViewCompat.setOnApplyWindowInsetsListener(bottomSheet) { _, insets ->
             val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
             if (imeBottom != lastImeBottomInset) {
-                bottomSheet.translationY = -imeBottom.toFloat()
-                followView?.translationY = -imeBottom.toFloat()
+                bottomSheetLp?.let {
+                    it.bottomMargin = initialSheetBottomMargin + imeBottom
+                    bottomSheet.layoutParams = it
+                }
+                followLp?.let {
+                    it.bottomMargin = initialFollowBottomMargin + imeBottom
+                    followView?.layoutParams = it
+                }
                 if (imeBottom == 0 && behavior.state == BottomSheetBehavior.STATE_HIDDEN) {
                     behavior.state = BottomSheetBehavior.STATE_COLLAPSED
                 }
@@ -136,6 +146,8 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
             }
             insets
         }
+        ViewCompat.requestApplyInsets(rootView)
+        ViewCompat.requestApplyInsets(bottomSheet)
     }
 
     fun onHostResume() {
