@@ -9,9 +9,12 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.TextView
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
+import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import io.github.rosemoe.sora.widget.CodeEditor
@@ -39,6 +42,8 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     private val spanCount = 8
     private var visibleRows = minRows
     private val fullTabHeight by lazy { (44 * resources.displayMetrics.density).roundToInt() }
+    private var lastImeBottomInset = 0
+    private var bottomSheetBehavior: BottomSheetBehavior<View>? = null
 
     init {
         val root = LayoutInflater.from(context).inflate(R.layout.view_advanced_symbol_input, this, true)
@@ -89,8 +94,52 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         if (viewPager.currentItem >= groups.size) {
             viewPager.setCurrentItem(0, false)
         }
+        groupAdapter.clearPageAdapters()
         groupAdapter.notifyDataSetChanged()
         bindTabs()
+    }
+
+    fun setupWithBottomSheet(rootView: View, bottomSheet: View, followView: View? = null) {
+        val behavior = BottomSheetBehavior.from(bottomSheet)
+        bottomSheetBehavior = behavior
+        behavior.saveFlags = BottomSheetBehavior.SAVE_NONE
+        behavior.isHideable = false
+        behavior.isDraggable = true
+        behavior.skipCollapsed = false
+        behavior.isFitToContents = true
+        bottomSheet.post {
+            behavior.state = BottomSheetBehavior.STATE_COLLAPSED
+        }
+        behavior.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
+            override fun onStateChanged(bottomSheet: View, newState: Int) {
+                when (newState) {
+                    BottomSheetBehavior.STATE_COLLAPSED -> setExpansionFraction(0f)
+                    BottomSheetBehavior.STATE_EXPANDED -> setExpansionFraction(1f)
+                    BottomSheetBehavior.STATE_HIDDEN -> behavior.state = BottomSheetBehavior.STATE_COLLAPSED
+                }
+            }
+
+            override fun onSlide(bottomSheet: View, slideOffset: Float) {
+                setExpansionFraction(slideOffset.coerceIn(0f, 1f))
+            }
+        })
+
+        ViewCompat.setOnApplyWindowInsetsListener(rootView) { _, insets ->
+            val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+            if (imeBottom != lastImeBottomInset) {
+                bottomSheet.translationY = -imeBottom.toFloat()
+                followView?.translationY = -imeBottom.toFloat()
+                if (imeBottom == 0 && behavior.state == BottomSheetBehavior.STATE_HIDDEN) {
+                    behavior.state = BottomSheetBehavior.STATE_COLLAPSED
+                }
+                lastImeBottomInset = imeBottom
+            }
+            insets
+        }
+    }
+
+    fun onHostResume() {
+        bottomSheetBehavior?.state = BottomSheetBehavior.STATE_COLLAPSED
     }
 
     private fun buildFallbackGroups(): List<SymbolGroup> {
@@ -159,9 +208,8 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
 
         override fun getItemCount(): Int = groups.size
 
-        override fun notifyDataSetChanged() {
+        fun clearPageAdapters() {
             pageAdapters.clear()
-            super.notifyDataSetChanged()
         }
 
         fun notifyVisibleRowsChanged() {
