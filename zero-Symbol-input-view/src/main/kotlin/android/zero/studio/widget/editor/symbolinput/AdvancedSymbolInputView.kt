@@ -212,14 +212,12 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
 
     private fun updatePagerHeight(height: Int) {
         val clamped = height.coerceIn(collapsedHeightPx, expandedHeightPx)
-        if (clamped != panelHeightPx) {
-            val params = viewPager.layoutParams
-            if (params.height != clamped) {
-                params.height = clamped
-                viewPager.layoutParams = params
-            }
-            panelHeightPx = clamped
+        val params = viewPager.layoutParams
+        if (params.height != clamped) {
+            params.height = clamped
+            viewPager.layoutParams = params
         }
+        panelHeightPx = clamped
         val range = (expandedHeightPx - collapsedHeightPx).coerceAtLeast(1)
         val fraction = (clamped - collapsedHeightPx).toFloat() / range.toFloat()
         applyTabRowByFraction(fraction)
