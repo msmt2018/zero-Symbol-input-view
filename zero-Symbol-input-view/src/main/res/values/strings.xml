@@ -21,4 +21,19 @@
     <string name="short_action">短按动作</string>
     <string name="long_action">长按动作</string>
     <string name="insert_text">插入的文本</string>
+    <string name="action_batch_copy">复制</string>
+    <string name="action_batch_cut">剪切</string>
+    <string name="action_batch_invert">反选</string>
+    <string name="action_batch_close">关闭</string>
+    <string name="menu_item_edit">编辑</string>
+    <string name="menu_item_copy">复制</string>
+    <string name="menu_item_delete">删除</string>
+    <string name="menu_item_batch">批量</string>
+    <string name="dialog_confirm_delete_symbol">确认删除该符号？</string>
+    <string name="dialog_confirm_delete_selected">确认删除选中的符号？</string>
+    <string name="dialog_move_to">移动到…</string>
+    <string name="dialog_copy_to">复制到…</string>
+    <string name="dialog_new_group">新建分组</string>
+    <string name="toast_no_selection">请先选择符号</string>
+    <string name="toast_same_group_move">目标分组与当前分组相同</string>
 </resources>
