@@ -78,7 +78,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
                 if (uiSettings.rememberLastPage) {
                     SymbolDataManager.setLastPageIndex(context, position)
                 }
-                recalculateHeights()
+                recalculateHeights(animate = true)
             }
         })
 
@@ -115,6 +115,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         recalculateHeights()
         pagerAdapter.notifyDataSetChanged()
         if (groups.isNotEmpty()) {
+            viewPager.offscreenPageLimit = groups.size.coerceIn(1, 4)
             val target = if (uiSettings.rememberLastPage) {
                 SymbolDataManager.getLastPageIndex(context).coerceIn(0, groups.lastIndex)
             } else {
@@ -240,13 +241,19 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
 
 
 
-    private fun recalculateHeights() {
+    private fun recalculateHeights(animate: Boolean = false) {
         collapsedHeightPx = rowHeightPx * uiSettings.collapsedRows.coerceAtLeast(1) + (20 * resources.displayMetrics.density).roundToInt()
         val baseExpanded = (220 * resources.displayMetrics.density).roundToInt()
         val current = groups.getOrNull(viewPager.currentItem)
         expandedHeightPx = (current?.let(::calculateExpandedHeightForGroup) ?: baseExpanded).coerceAtLeast(baseExpanded)
         val currentHeight = panelHeightPx
-        updatePagerHeight(currentHeight.coerceIn(collapsedHeightPx, expandedHeightPx))
+        val targetHeight = currentHeight.coerceIn(collapsedHeightPx, expandedHeightPx)
+        val shouldAnimate = animate && currentHeight > collapsedHeightPx && targetHeight != currentHeight
+        if (shouldAnimate) {
+            animateToHeight(targetHeight)
+        } else {
+            updatePagerHeight(targetHeight)
+        }
     }
 
     private fun calculateExpandedHeightForGroup(group: SymbolGroup): Int {
