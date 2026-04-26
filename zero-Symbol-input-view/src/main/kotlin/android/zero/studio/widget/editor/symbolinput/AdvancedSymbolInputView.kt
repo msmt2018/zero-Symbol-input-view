@@ -53,6 +53,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     private val fullTabHeightPx by lazy { (44 * resources.displayMetrics.density).roundToInt() }
     private var collapsedHeightPx = rowHeightPx * 2 + (20 * resources.displayMetrics.density).roundToInt()
     private var expandedHeightPx = (220 * resources.displayMetrics.density).roundToInt()
+    private var panelHeightPx = collapsedHeightPx
     private val touchSlop by lazy { ViewConfiguration.get(context).scaledTouchSlop }
 
     private var initialY = 0f
@@ -77,9 +78,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
                 if (uiSettings.rememberLastPage) {
                     SymbolDataManager.setLastPageIndex(context, position)
                 }
-                if (!uiSettings.uniformGroupHeight) {
-                    recalculateHeights()
-                }
+                recalculateHeights()
             }
         })
 
@@ -177,7 +176,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
             MotionEvent.ACTION_MOVE -> {
                 if (!isDragging) return super.onTouchEvent(event)
                 val deltaY = event.rawY - lastY
-                val currentHeight = viewPager.layoutParams.height.coerceAtLeast(collapsedHeightPx)
+                val currentHeight = panelHeightPx.coerceAtLeast(collapsedHeightPx)
                 val nextHeight = (currentHeight - deltaY.toInt()).coerceIn(collapsedHeightPx, expandedHeightPx)
                 updatePagerHeight(nextHeight)
                 lastY = event.rawY
@@ -186,7 +185,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
 
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 if (isDragging) {
-                    val currentHeight = viewPager.layoutParams.height.coerceAtLeast(collapsedHeightPx)
+                    val currentHeight = panelHeightPx.coerceAtLeast(collapsedHeightPx)
                     val midpoint = (collapsedHeightPx + expandedHeightPx) / 2
                     val targetHeight = if (currentHeight >= midpoint) expandedHeightPx else collapsedHeightPx
                     if (uiSettings.rememberExpanded) {
@@ -202,7 +201,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     }
 
     private fun animateToHeight(targetHeight: Int) {
-        val currentHeight = viewPager.layoutParams.height.coerceAtLeast(collapsedHeightPx)
+        val currentHeight = panelHeightPx.coerceAtLeast(collapsedHeightPx)
         val animator = ValueAnimator.ofInt(currentHeight, targetHeight)
         animator.duration = 200
         animator.addUpdateListener { animation ->
@@ -212,11 +211,17 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     }
 
     private fun updatePagerHeight(height: Int) {
-        val params = viewPager.layoutParams
         val clamped = height.coerceIn(collapsedHeightPx, expandedHeightPx)
-        params.height = clamped
-        viewPager.layoutParams = params
-        val fraction = (clamped - collapsedHeightPx).toFloat() / (expandedHeightPx - collapsedHeightPx).toFloat()
+        if (clamped != panelHeightPx) {
+            val params = viewPager.layoutParams
+            if (params.height != clamped) {
+                params.height = clamped
+                viewPager.layoutParams = params
+            }
+            panelHeightPx = clamped
+        }
+        val range = (expandedHeightPx - collapsedHeightPx).coerceAtLeast(1)
+        val fraction = (clamped - collapsedHeightPx).toFloat() / range.toFloat()
         applyTabRowByFraction(fraction)
     }
 
@@ -240,22 +245,18 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     private fun recalculateHeights() {
         collapsedHeightPx = rowHeightPx * uiSettings.collapsedRows.coerceAtLeast(1) + (20 * resources.displayMetrics.density).roundToInt()
         val baseExpanded = (220 * resources.displayMetrics.density).roundToInt()
-        expandedHeightPx = if (uiSettings.uniformGroupHeight) {
-            groups.maxOfOrNull { calculateExpandedHeightForGroup(it) }?.coerceAtLeast(baseExpanded) ?: baseExpanded
-        } else {
-            val current = groups.getOrNull(viewPager.currentItem)
-            (current?.let(::calculateExpandedHeightForGroup) ?: baseExpanded).coerceAtLeast(baseExpanded)
-        }
-        val currentHeight = viewPager.layoutParams.height
+        val current = groups.getOrNull(viewPager.currentItem)
+        expandedHeightPx = (current?.let(::calculateExpandedHeightForGroup) ?: baseExpanded).coerceAtLeast(baseExpanded)
+        val currentHeight = panelHeightPx
         updatePagerHeight(currentHeight.coerceIn(collapsedHeightPx, expandedHeightPx))
     }
 
     private fun calculateExpandedHeightForGroup(group: SymbolGroup): Int {
         val cols = uiSettings.symbolsPerRow.coerceIn(1, 20)
-        val rows = (group.items.size + cols - 1) / cols
+        val rows = ((group.items.size + cols - 1) / cols).coerceAtLeast(1)
         val itemHeight = (44 * resources.displayMetrics.density).roundToInt()
-        val verticalPadding = (20 * resources.displayMetrics.density).roundToInt()
-        return (rows.coerceAtLeast(2) * itemHeight) + verticalPadding + fullTabHeightPx
+        val verticalPadding = (12 * resources.displayMetrics.density).roundToInt()
+        return rows * itemHeight + verticalPadding
     }
 
     private fun applyIndicatorStyle() {
