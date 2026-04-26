@@ -36,6 +36,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     var onOpenManagerListener: (() -> Unit)? = null
 
     private val groups = mutableListOf<SymbolGroup>()
+    private val groupPageIds = mutableListOf<Long>()
     private val groupAdapter = GroupPagerAdapter()
     private var tabMediator: TabLayoutMediator? = null
 
@@ -131,6 +132,12 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         if (groups.isEmpty()) {
             groups.addAll(buildFallbackGroups())
         }
+        groupPageIds.clear()
+        groupPageIds.addAll(groups.mapIndexed { index, group ->
+            ((group.name.hashCode().toLong() and 0xFFFFFFFFL) shl 32) or
+                ((index.toLong() and 0xFFFFL) shl 16) or
+                (group.items.size.toLong() and 0xFFFFL)
+        })
         if (viewPager.currentItem >= groups.size) {
             viewPager.setCurrentItem(0, false)
         }
@@ -140,6 +147,12 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     }
 
     fun setupWithBottomSheet(rootView: View, bottomSheet: View, followView: View? = null) {
+        if (managedRootView !== rootView) {
+            managedRootView?.let {
+                ViewCompat.setOnApplyWindowInsetsListener(it, null)
+                ViewCompat.setWindowInsetsAnimationCallback(it, null)
+            }
+        }
         val behavior = BottomSheetBehavior.from(bottomSheet)
         bottomSheetBehavior?.let { previousBehavior ->
             registeredBottomSheetCallback?.let { previousCallback ->
@@ -147,7 +160,6 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
             }
         }
         bottomSheetBehavior = behavior
-        managedRootView = rootView
         managedBottomSheet = bottomSheet
         managedFollowView = followView
         managedRootView = rootView
@@ -184,12 +196,18 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         initialFollowBottomMargin = followLp?.bottomMargin ?: 0
         val updateImeFollowMargins: (Int) -> Unit = { imeBottom ->
             bottomSheetLp?.let {
-                it.bottomMargin = initialSheetBottomMargin + imeBottom
-                bottomSheet.layoutParams = it
+                val target = initialSheetBottomMargin + imeBottom
+                if (it.bottomMargin != target) {
+                    it.bottomMargin = target
+                    bottomSheet.layoutParams = it
+                }
             }
             followLp?.let {
-                it.bottomMargin = initialFollowBottomMargin + imeBottom
-                followView?.layoutParams = it
+                val target = initialFollowBottomMargin + imeBottom
+                if (it.bottomMargin != target) {
+                    it.bottomMargin = target
+                    followView?.layoutParams = it
+                }
             }
         }
         ViewCompat.setOnApplyWindowInsetsListener(rootView) { _, insets ->
@@ -308,6 +326,10 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
 
         private val pageAdapters = mutableMapOf<Int, SymbolAdapter>()
 
+        init {
+            setHasStableIds(true)
+        }
+
         inner class GroupViewHolder(val rv: RecyclerView) : RecyclerView.ViewHolder(rv)
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): GroupViewHolder {
@@ -334,6 +356,10 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         }
 
         override fun getItemCount(): Int = groups.size
+
+        override fun getItemId(position: Int): Long {
+            return groupPageIds.getOrNull(position) ?: RecyclerView.NO_ID
+        }
 
         fun clearPageAdapters() {
             pageAdapters.clear()
