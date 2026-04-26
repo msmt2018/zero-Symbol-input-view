@@ -182,10 +182,20 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         val followLp = followView?.layoutParams as? MarginLayoutParams
         initialSheetBottomMargin = bottomSheetLp?.bottomMargin ?: 0
         initialFollowBottomMargin = followLp?.bottomMargin ?: 0
+        val applyImeBottomMargins: (Int) -> Unit = { imeBottom ->
+            bottomSheetLp?.let {
+                it.bottomMargin = initialSheetBottomMargin + imeBottom
+                bottomSheet.layoutParams = it
+            }
+            followLp?.let {
+                it.bottomMargin = initialFollowBottomMargin + imeBottom
+                followView?.layoutParams = it
+            }
+        }
         ViewCompat.setOnApplyWindowInsetsListener(rootView) { _, insets ->
             val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
             if (abs(imeBottom - imeBottomInsetLast) > 1 && followSystemIme) {
-                applyImeInsetInternal(bottomSheet, followView, bottomSheetLp, followLp, imeBottom)
+                applyImeBottomMargins(imeBottom)
                 if (imeBottom == 0 && behavior.state == BottomSheetBehavior.STATE_HIDDEN) {
                     behavior.state = BottomSheetBehavior.STATE_COLLAPSED
                 }
@@ -206,7 +216,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
                     }
                     val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
                     if (abs(imeBottom - imeBottomInsetLast) > 1) {
-                        applyImeInsetInternal(bottomSheet, followView, bottomSheetLp, followLp, imeBottom)
+                        applyImeBottomMargins(imeBottom)
                         imeBottomInsetLast = imeBottom
                     }
                     return insets
@@ -214,13 +224,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
 
                 override fun onEnd(animation: WindowInsetsAnimationCompat) {
                     if (followSystemIme) {
-                        applyImeInsetInternal(
-                            bottomSheet,
-                            followView,
-                            bottomSheetLp,
-                            followLp,
-                            lastStableImeBottomInset
-                        )
+                        applyImeBottomMargins(lastStableImeBottomInset)
                         imeBottomInsetLast = lastStableImeBottomInset
                     }
                 }
