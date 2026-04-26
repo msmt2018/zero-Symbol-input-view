@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
 import android.graphics.drawable.ColorDrawable
+import android.text.TextUtils
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.Gravity
@@ -16,7 +17,8 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.GridLayout
 import android.widget.LinearLayout
-import android.widget.TextView
+import androidx.appcompat.widget.AppCompatTextView
+import androidx.core.widget.TextViewCompat
 import androidx.core.widget.NestedScrollView
 import androidx.viewpager.widget.PagerAdapter
 import androidx.viewpager.widget.ViewPager
@@ -341,7 +343,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
             }
 
             for (item in group.items) {
-                val tv = TextView(context).apply {
+                val tv = AppCompatTextView(context).apply {
                     layoutParams = GridLayout.LayoutParams().apply {
                         width = 0
                         height = ViewGroup.LayoutParams.WRAP_CONTENT
@@ -352,8 +354,17 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
                     gravity = Gravity.CENTER
                     setTextSize(TypedValue.COMPLEX_UNIT_SP, uiSettings.symbolTextSizeSp.toFloat())
                     text = item.display
+                    maxLines = 1
+                    ellipsize = TextUtils.TruncateAt.END
                     isClickable = true
                     isFocusable = true
+                    TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(
+                        this,
+                        10,
+                        uiSettings.symbolTextSizeSp.coerceAtLeast(12),
+                        1,
+                        TypedValue.COMPLEX_UNIT_SP
+                    )
 
                     val tvColor = TypedValue()
                     context.theme.resolveAttribute(android.R.attr.textColorPrimary, tvColor, true)
