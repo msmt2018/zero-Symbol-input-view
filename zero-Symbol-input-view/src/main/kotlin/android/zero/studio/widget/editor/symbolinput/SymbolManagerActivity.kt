@@ -103,6 +103,10 @@ class SymbolManagerActivity : AppCompatActivity() {
         viewPager = findViewById(R.id.view_pager)
 
         symbolGroups = SymbolDataManager.loadData(this)
+        if (symbolGroups.isEmpty()) {
+            symbolGroups = buildFallbackSymbolGroups()
+            SymbolDataManager.saveData(this, symbolGroups)
+        }
 
         setupBatchActionBar()
 
