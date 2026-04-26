@@ -16,6 +16,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.PopupMenu
 import android.widget.Spinner
 import android.widget.TextView
@@ -26,11 +27,13 @@ import androidx.appcompat.widget.Toolbar
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.widget.NestedScrollView
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager.widget.PagerAdapter
 import androidx.viewpager.widget.ViewPager
+import androidx.appcompat.widget.SwitchCompat
 import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.tabs.TabLayout
 import java.text.SimpleDateFormat
@@ -52,6 +55,16 @@ class SymbolManagerActivity : AppCompatActivity() {
     private var isBatchMode = false
     private var batchGroupIndex = -1
     private val selectedItems = linkedSetOf<SymbolItem>()
+    private val settingsTabTitle by lazy { getString(R.string.settings_tab_title) }
+    private val indicatorStyleNames by lazy {
+        arrayOf(
+            getString(R.string.settings_style_standard),
+            getString(R.string.settings_style_simple),
+            getString(R.string.settings_style_hidden),
+            getString(R.string.settings_style_top_line),
+            getString(R.string.settings_style_block)
+        )
+    }
     private val importFileLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let(::importFromUri)
     }
@@ -98,7 +111,7 @@ class SymbolManagerActivity : AppCompatActivity() {
         tabLayout.setupWithViewPager(viewPager)
         viewPager.addOnPageChangeListener(object : ViewPager.SimpleOnPageChangeListener() {
             override fun onPageSelected(position: Int) {
-                if (isBatchMode && position != batchGroupIndex) {
+                if (isBatchMode && (position != batchGroupIndex || isSettingsPosition(position))) {
                     exitBatchMode()
                 }
             }
@@ -125,6 +138,10 @@ class SymbolManagerActivity : AppCompatActivity() {
                     Toast.makeText(this, "请先导入数据或拥有至少一个分组", Toast.LENGTH_SHORT).show()
                 } else {
                     val currentGroup = viewPager.currentItem
+                    if (isSettingsPosition(currentGroup)) {
+                        Toast.makeText(this, R.string.toast_fail, Toast.LENGTH_SHORT).show()
+                        return true
+                    }
                     showEditDialog(symbolGroups[currentGroup], null)
                 }
                 return true
@@ -527,24 +544,127 @@ class SymbolManagerActivity : AppCompatActivity() {
         showChooser()
     }
 
+    private fun isSettingsPosition(position: Int): Boolean = position == symbolGroups.size
+
+    private fun createSettingsPage(container: ViewGroup): View {
+        val scrollView = NestedScrollView(this).apply {
+            layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+        }
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            val p = (16 * resources.displayMetrics.density).toInt()
+            setPadding(p, p, p, p)
+        }
+        scrollView.addView(content)
+
+        fun createEntry(title: String, subtitle: String): View {
+            val item = LayoutInflater.from(this).inflate(R.layout.item_symbol_manage, content, false)
+            val tvTitle = item.findViewById<TextView>(R.id.tv_title)
+            val tvSubtitle = item.findViewById<TextView>(R.id.tv_subtitle)
+            item.findViewById<View>(R.id.iv_drag_handle).visibility = View.GONE
+            tvTitle.text = title
+            tvSubtitle.text = subtitle
+            return item
+        }
+
+        val settings = SymbolDataManager.getUiSettings(this)
+        val lineItem = createEntry(getString(R.string.settings_lines_title), "${settings.collapsedRows} - ${settings.symbolsPerRow}")
+        lineItem.setOnClickListener { showLineSettingDialog() }
+        content.addView(lineItem)
+
+        val indicatorText = indicatorStyleNames[settings.indicatorStyle.coerceIn(0, indicatorStyleNames.lastIndex)]
+        val indicatorItem = createEntry(getString(R.string.settings_indicator_title), indicatorText)
+        indicatorItem.setOnClickListener { showIndicatorStyleDialog() }
+        content.addView(indicatorItem)
+
+        val rememberItem = createEntry(getString(R.string.settings_remember_title), getString(R.string.settings_remember_desc))
+        val rememberSwitch = SwitchCompat(this).apply { isChecked = settings.rememberExpanded }
+        (rememberItem as ViewGroup).addView(rememberSwitch)
+        rememberSwitch.setOnCheckedChangeListener { _, isChecked ->
+            val old = SymbolDataManager.getUiSettings(this)
+            SymbolDataManager.saveUiSettings(this, old.copy(rememberExpanded = isChecked))
+            if (!isChecked) {
+                SymbolDataManager.setLastExpanded(this, false)
+            }
+        }
+        content.addView(rememberItem)
+
+        val uniformItem = createEntry(getString(R.string.settings_uniform_title), getString(R.string.settings_uniform_desc))
+        val uniformSwitch = SwitchCompat(this).apply { isChecked = settings.uniformGroupHeight }
+        (uniformItem as ViewGroup).addView(uniformSwitch)
+        uniformSwitch.setOnCheckedChangeListener { _, isChecked ->
+            val old = SymbolDataManager.getUiSettings(this)
+            SymbolDataManager.saveUiSettings(this, old.copy(uniformGroupHeight = isChecked))
+        }
+        content.addView(uniformItem)
+
+        return scrollView
+    }
+
+    private fun showLineSettingDialog() {
+        val settings = SymbolDataManager.getUiSettings(this)
+        val view = LayoutInflater.from(this).inflate(R.layout.dialog_line_settings, null)
+        val minEdit = view.findViewById<EditText>(R.id.et_min_rows)
+        val maxEdit = view.findViewById<EditText>(R.id.et_max_cols)
+        minEdit.setText(settings.collapsedRows.toString())
+        maxEdit.setText(settings.symbolsPerRow.toString())
+
+        AlertDialog.Builder(this)
+            .setTitle(R.string.settings_lines_title)
+            .setView(view)
+            .setPositiveButton(R.string.dialog_save) { _, _ ->
+                val minRows = minEdit.text.toString().toIntOrNull()?.coerceIn(1, 10) ?: settings.collapsedRows
+                val maxCols = maxEdit.text.toString().toIntOrNull()?.coerceIn(1, 20) ?: settings.symbolsPerRow
+                SymbolDataManager.saveUiSettings(
+                    this,
+                    settings.copy(collapsedRows = minRows, symbolsPerRow = maxCols)
+                )
+                pagerAdapter.notifyDataSetChanged()
+            }
+            .setNegativeButton(R.string.dialog_cancel, null)
+            .show()
+    }
+
+    private fun showIndicatorStyleDialog() {
+        val settings = SymbolDataManager.getUiSettings(this)
+        var checked = settings.indicatorStyle.coerceIn(0, indicatorStyleNames.lastIndex)
+        AlertDialog.Builder(this)
+            .setTitle(R.string.settings_indicator_title)
+            .setSingleChoiceItems(indicatorStyleNames, checked) { _, which ->
+                checked = which
+            }
+            .setPositiveButton(R.string.dialog_save) { _, _ ->
+                SymbolDataManager.saveUiSettings(this, settings.copy(indicatorStyle = checked))
+                pagerAdapter.notifyDataSetChanged()
+            }
+            .setNegativeButton(R.string.dialog_cancel, null)
+            .show()
+    }
+
     private fun onGroupsChanged(targetGroupIndex: Int? = null) {
         pagerAdapter.notifyDataSetChanged()
         tabLayout.post {
-            val target = targetGroupIndex ?: viewPager.currentItem.coerceAtMost(symbolGroups.lastIndex)
-            if (symbolGroups.isNotEmpty() && target >= 0) {
+            val maxIndex = pagerAdapter.count - 1
+            val target = targetGroupIndex ?: viewPager.currentItem.coerceAtMost(maxIndex)
+            if (maxIndex >= 0 && target >= 0) {
                 viewPager.currentItem = target
             }
         }
     }
 
     private inner class GroupPagerAdapter : PagerAdapter() {
-        override fun getCount(): Int = symbolGroups.size
+        override fun getCount(): Int = symbolGroups.size + 1
 
         override fun isViewFromObject(view: View, `object`: Any): Boolean = view === `object`
 
-        override fun getPageTitle(position: Int): CharSequence = symbolGroups[position].name
+        override fun getPageTitle(position: Int): CharSequence {
+            return if (isSettingsPosition(position)) settingsTabTitle else symbolGroups[position].name
+        }
 
         override fun instantiateItem(container: ViewGroup, position: Int): Any {
+            if (isSettingsPosition(position)) {
+                return createSettingsPage(container).also { container.addView(it) }
+            }
             val group = symbolGroups[position]
             val itemsAdapter = ItemsAdapter(position, group)
             val rv = RecyclerView(this@SymbolManagerActivity).apply {

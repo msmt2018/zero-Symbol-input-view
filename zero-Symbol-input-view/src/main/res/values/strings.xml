@@ -36,4 +36,16 @@
     <string name="dialog_new_group">新建分组</string>
     <string name="toast_no_selection">请先选择符号</string>
     <string name="toast_same_group_move">目标分组与当前分组相同</string>
+    <string name="settings_tab_title">⚙</string>
+    <string name="settings_lines_title">功能栏行数</string>
+    <string name="settings_indicator_title">分组指示器</string>
+    <string name="settings_remember_title">记忆展开状态</string>
+    <string name="settings_remember_desc">重新进入编辑器是否恢复上次展开状态</string>
+    <string name="settings_uniform_title">统一分组高度</string>
+    <string name="settings_uniform_desc">保持各分组高度一致，避免切换时跳动</string>
+    <string name="settings_style_standard">标准</string>
+    <string name="settings_style_simple">简洁</string>
+    <string name="settings_style_hidden">隐藏</string>
+    <string name="settings_style_top_line">顶部线</string>
+    <string name="settings_style_block">块状</string>
 </resources>

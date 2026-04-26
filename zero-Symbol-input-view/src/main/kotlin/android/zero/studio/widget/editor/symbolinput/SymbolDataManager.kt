@@ -9,6 +9,12 @@ import java.io.InputStreamReader
 object SymbolDataManager {
     private const val PREFS_NAME = "advanced_symbol_prefs"
     private const val KEY_DATA = "symbol_json_data"
+    private const val KEY_COLLAPSED_ROWS = "symbol_collapsed_rows"
+    private const val KEY_SYMBOLS_PER_ROW = "symbol_per_row"
+    private const val KEY_INDICATOR_STYLE = "symbol_indicator_style"
+    private const val KEY_REMEMBER_EXPANDED = "symbol_remember_expanded"
+    private const val KEY_UNIFORM_GROUP_HEIGHT = "symbol_uniform_group_height"
+    private const val KEY_LAST_EXPANDED = "symbol_last_expanded"
     val gson = Gson()
 
     /**
@@ -50,6 +56,38 @@ object SymbolDataManager {
     fun saveData(context: Context, data: List<SymbolGroup>) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit().putString(KEY_DATA, gson.toJson(data)).apply()
+    }
+
+    fun getUiSettings(context: Context): SymbolUiSettings {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return SymbolUiSettings(
+            collapsedRows = prefs.getInt(KEY_COLLAPSED_ROWS, 2).coerceIn(1, 10),
+            symbolsPerRow = prefs.getInt(KEY_SYMBOLS_PER_ROW, 10).coerceIn(1, 20),
+            indicatorStyle = prefs.getInt(KEY_INDICATOR_STYLE, 0).coerceIn(0, 4),
+            rememberExpanded = prefs.getBoolean(KEY_REMEMBER_EXPANDED, false),
+            uniformGroupHeight = prefs.getBoolean(KEY_UNIFORM_GROUP_HEIGHT, true)
+        )
+    }
+
+    fun saveUiSettings(context: Context, settings: SymbolUiSettings) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit()
+            .putInt(KEY_COLLAPSED_ROWS, settings.collapsedRows.coerceIn(1, 10))
+            .putInt(KEY_SYMBOLS_PER_ROW, settings.symbolsPerRow.coerceIn(1, 20))
+            .putInt(KEY_INDICATOR_STYLE, settings.indicatorStyle.coerceIn(0, 4))
+            .putBoolean(KEY_REMEMBER_EXPANDED, settings.rememberExpanded)
+            .putBoolean(KEY_UNIFORM_GROUP_HEIGHT, settings.uniformGroupHeight)
+            .apply()
+    }
+
+    fun setLastExpanded(context: Context, expanded: Boolean) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().putBoolean(KEY_LAST_EXPANDED, expanded).apply()
+    }
+
+    fun getLastExpanded(context: Context): Boolean {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getBoolean(KEY_LAST_EXPANDED, false)
     }
 
     /**
