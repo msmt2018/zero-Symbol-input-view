@@ -116,8 +116,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.eclipse.tm4e.core.registry.IGrammarSource
 import org.eclipse.tm4e.core.registry.IThemeSource
+import java.io.FileOutputStream
+import java.lang.ref.WeakReference
+import java.util.zip.ZipFile
 import java.util.regex.PatternSyntaxException
-
 import android.zero.studio.widget.editor.symbolinput.*
 
 
@@ -194,28 +196,15 @@ class MainActivity : AppCompatActivity() {
         // inputView.addSymbols(SYMBOLS, SYMBOL_INSERT_TEXT)
         // inputView.forEachButton { it.typeface = typeface }
         val symbolInputView = findViewById<AdvancedSymbolInputView>(R.id.advanced_symbol_input)
-            symbolInputView.bindEditor(binding.editor)
-            symbolInputView.followSystemIme = true
+        symbolInputView.bindEditor(binding.editor)
+        symbolInputView.followSystemIme = true
 
-            // 设置点击 “...” (动作22) 的监听器，跳转到管理界面
-            symbolInputView.onOpenManagerListener = {
+        // 设置点击 “...” (动作22) 的监听器，跳转到管理界面
+        symbolInputView.onOpenManagerListener = {
             startActivity(Intent(this, SymbolManagerActivity::class.java))
         }
-        symbolInputView.setupWithBottomSheet(
-            binding.root,
-            findViewById(R.id.main_bottom_sheet),
-            findViewById(R.id.position_display)
-        )
-
-            // 读取数据并绑定
-            // val prefs = getSharedPreferences("symbol_input_prefs", MODE_PRIVATE)
-            // val json = prefs.getString("symbol_data", "[]")
-            // val listType = object : TypeToken<MutableList<SymbolGroup>>() {}.type
-            // val groups: MutableList<SymbolGroup> = Gson().fromJson(json, listType)
-            // symbolInputView.bindData(groups)
-            
-            
         
+
         // Commit search when text changed
         binding.searchEditor.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(charSequence: CharSequence, i: Int, i1: Int, i2: Int) {}

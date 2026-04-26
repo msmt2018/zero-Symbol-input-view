@@ -19,19 +19,16 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import androidx.viewpager2.widget.ViewPager2
+import androidx.viewpager.widget.PagerAdapter
+import androidx.viewpager.widget.ViewPager
 import com.google.android.material.tabs.TabLayout
-import com.google.android.material.tabs.TabLayoutMediator
-
-// @author android_zero
 
 class SymbolManagerActivity : AppCompatActivity() {
 
     private lateinit var tabLayout: TabLayout
-    private lateinit var viewPager: ViewPager2
+    private lateinit var viewPager: ViewPager
     private var symbolGroups = mutableListOf<SymbolGroup>()
-    private lateinit var groupAdapter: GroupPagerAdapter
-    private var tabMediator: TabLayoutMediator? = null
+    private lateinit var pagerAdapter: GroupPagerAdapter
 
     private lateinit var actionValues: IntArray
     private lateinit var actionNames: Array<String>
@@ -40,7 +37,6 @@ class SymbolManagerActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_symbol_manager)
 
-        // Toolbar setup
         val toolbar = findViewById<Toolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
@@ -54,12 +50,9 @@ class SymbolManagerActivity : AppCompatActivity() {
 
         symbolGroups = SymbolDataManager.loadData(this)
         
-        groupAdapter = GroupPagerAdapter()
-        viewPager.adapter = groupAdapter
-
-        tabMediator = TabLayoutMediator(tabLayout, viewPager) { tab, position ->
-            tab.text = symbolGroups[position].name
-        }.apply { attach() }
+        pagerAdapter = GroupPagerAdapter()
+        viewPager.adapter = pagerAdapter
+        tabLayout.setupWithViewPager(viewPager)
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -81,7 +74,7 @@ class SymbolManagerActivity : AppCompatActivity() {
             R.id.action_import_clipboard -> importFromClipboard()
             R.id.action_export_clipboard -> exportToClipboard()
             R.id.action_import_file, R.id.action_export_file -> {
-                Toast.makeText(this, "文件 I/O 留作以后扩展，目前已完美支持剪贴板标准格式", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "预留接口，支持标准格式", Toast.LENGTH_SHORT).show()
             }
         }
         return super.onOptionsItemSelected(item)
@@ -120,12 +113,10 @@ class SymbolManagerActivity : AppCompatActivity() {
         val spLongAction = view.findViewById<Spinner>(R.id.sp_long_action)
         val etLongText = view.findViewById<EditText>(R.id.et_long_text)
 
-        // Setup Spinners
         val longNames = mutableListOf("无长按动作").apply { addAll(actionNames) }
         spShortAction.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, actionNames)
         spLongAction.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, longNames)
 
-        // Pre-fill
         if (itemToEdit != null) {
             etDisplay.setText(itemToEdit.display)
             etShortText.setText(itemToEdit.shortText)
@@ -172,53 +163,31 @@ class SymbolManagerActivity : AppCompatActivity() {
     }
 
     private fun onGroupsChanged() {
-        groupAdapter.notifyDataSetChanged()
-        detachMediatorSafely()
-        if (symbolGroups.isEmpty()) {
-            tabLayout.removeAllTabs()
-            return
-        }
-        val safeCurrent = viewPager.currentItem.coerceIn(0, symbolGroups.lastIndex)
-        if (viewPager.currentItem != safeCurrent) {
-            viewPager.setCurrentItem(safeCurrent, false)
-        }
-        tabMediator = TabLayoutMediator(tabLayout, viewPager) { tab, position ->
-            tab.text = symbolGroups.getOrNull(position)?.name ?: "Group ${position + 1}"
-        }.apply { attach() }
+        pagerAdapter.notifyDataSetChanged()
     }
 
-    override fun onDestroy() {
-        detachMediatorSafely()
-        super.onDestroy()
-    }
+    private inner class GroupPagerAdapter : PagerAdapter() {
+        override fun getCount(): Int = symbolGroups.size
 
-    private fun detachMediatorSafely() {
-        val mediator = tabMediator ?: return
-        try {
-            mediator.detach()
-        } catch (_: IllegalStateException) {
-            // Can happen if host is being recreated while mediator is already detached.
-        }
-        tabMediator = null
-    }
+        override fun isViewFromObject(view: View, `object`: Any): Boolean = view === `object`
 
-    private inner class GroupPagerAdapter : RecyclerView.Adapter<GroupPagerAdapter.GroupViewHolder>() {
+        override fun getPageTitle(position: Int): CharSequence = symbolGroups[position].name
 
-        inner class GroupViewHolder(val rv: RecyclerView) : RecyclerView.ViewHolder(rv)
-
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): GroupViewHolder {
+        override fun instantiateItem(container: ViewGroup, position: Int): Any {
             val rv = RecyclerView(this@SymbolManagerActivity).apply {
                 layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
                 layoutManager = LinearLayoutManager(this@SymbolManagerActivity)
+                adapter = ItemsAdapter(symbolGroups[position])
             }
-            return GroupViewHolder(rv)
+            container.addView(rv)
+            return rv
         }
 
-        override fun onBindViewHolder(holder: GroupViewHolder, position: Int) {
-            holder.rv.adapter = ItemsAdapter(symbolGroups.getOrNull(position) ?: return)
+        override fun destroyItem(container: ViewGroup, position: Int, `object`: Any) {
+            container.removeView(`object` as View)
         }
-
-        override fun getItemCount() = symbolGroups.size
+        
+        override fun getItemPosition(`object`: Any): Int = POSITION_NONE
     }
 
     private inner class ItemsAdapter(val group: SymbolGroup) : RecyclerView.Adapter<ItemsAdapter.ItemViewHolder>() {
@@ -236,12 +205,10 @@ class SymbolManagerActivity : AppCompatActivity() {
             val item = group.items[position]
             holder.tvTitle.text = item.display
             
-            // 构建副标题："短按: xxx, 长按: xxx"
             val shortDesc = "短按: ${SymbolDataManager.getActionDesc(this@SymbolManagerActivity, item.shortAction, item.shortText)}"
             val longDesc = item.longAction?.let { ", 长按: ${SymbolDataManager.getActionDesc(this@SymbolManagerActivity, it, item.longText)}" } ?: ""
             holder.tvSubtitle.text = shortDesc + longDesc
 
-            // 点击编辑
             holder.itemView.setOnClickListener {
                 showEditDialog(group, item)
             }
