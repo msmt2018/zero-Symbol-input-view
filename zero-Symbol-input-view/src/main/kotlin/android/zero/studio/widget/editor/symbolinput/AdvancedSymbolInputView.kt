@@ -46,6 +46,23 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     private val fullTabHeight by lazy { (44 * resources.displayMetrics.density).roundToInt() }
     private var imeBottomInsetLast = 0
     private var bottomSheetBehavior: BottomSheetBehavior<View>? = null
+    private val bottomSheetCallback = object : BottomSheetBehavior.BottomSheetCallback() {
+        override fun onStateChanged(bottomSheet: View, newState: Int) {
+            val behavior = bottomSheetBehavior ?: return
+            when (newState) {
+                BottomSheetBehavior.STATE_COLLAPSED -> setExpansionFraction(0f)
+                BottomSheetBehavior.STATE_EXPANDED -> setExpansionFraction(1f)
+                BottomSheetBehavior.STATE_HIDDEN -> {
+                    resetTransientOffsets()
+                    behavior.state = BottomSheetBehavior.STATE_COLLAPSED
+                }
+            }
+        }
+
+        override fun onSlide(bottomSheet: View, slideOffset: Float) {
+            setExpansionFraction(slideOffset.coerceIn(0f, 1f))
+        }
+    }
     private var managedBottomSheet: View? = null
     private var managedFollowView: View? = null
     private var managedRootView: View? = null
@@ -130,6 +147,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
             }
         }
         bottomSheetBehavior = behavior
+        managedRootView = rootView
         managedBottomSheet = bottomSheet
         managedFollowView = followView
         managedRootView = rootView
@@ -214,10 +232,61 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         )
         ViewCompat.requestApplyInsets(rootView)
         ViewCompat.requestApplyInsets(bottomSheet)
+        followView?.let { ViewCompat.requestApplyInsets(it) }
+    }
+
+    private fun applyImeInset(
+        bottomSheet: View,
+        followView: View?,
+        bottomSheetLp: MarginLayoutParams?,
+        followLp: MarginLayoutParams?,
+        imeBottom: Int
+    ) {
+        bottomSheetLp?.let {
+            it.bottomMargin = initialSheetBottomMargin + imeBottom
+            bottomSheet.layoutParams = it
+        }
+        followLp?.let {
+            it.bottomMargin = initialFollowBottomMargin + imeBottom
+            followView?.layoutParams = it
+        }
+    }
+
+    private fun applyImeInset(
+        bottomSheet: View,
+        followView: View?,
+        bottomSheetLp: MarginLayoutParams?,
+        followLp: MarginLayoutParams?,
+        imeBottom: Int
+    ) {
+        bottomSheetLp?.let {
+            it.bottomMargin = initialSheetBottomMargin + imeBottom
+            bottomSheet.layoutParams = it
+        }
+        followLp?.let {
+            it.bottomMargin = initialFollowBottomMargin + imeBottom
+            followView?.layoutParams = it
+        }
+    }
+
+    private fun applyImeInsetInternal(
+        bottomSheet: View,
+        followView: View?,
+        bottomSheetLp: MarginLayoutParams?,
+        followLp: MarginLayoutParams?,
+        imeBottom: Int
+    ) {
+        bottomSheetLp?.let {
+            it.bottomMargin = initialSheetBottomMargin + imeBottom
+            bottomSheet.layoutParams = it
+        }
+        followLp?.let {
+            it.bottomMargin = initialFollowBottomMargin + imeBottom
+            followView?.layoutParams = it
+        }
     }
 
     fun onHostResume() {
-        resetTransientOffsets()
         bottomSheetBehavior?.state = BottomSheetBehavior.STATE_COLLAPSED
     }
 
@@ -266,7 +335,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     }
 
     private fun bindTabs() {
-        tabMediator?.detach()
+        detachTabMediatorSafely()
         if (groups.isEmpty()) {
             tabLayout.removeAllTabs()
             return
@@ -276,7 +345,19 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         }.apply { attach() }
     }
 
+    private fun detachTabMediatorSafely() {
+        val mediator = tabMediator ?: return
+        try {
+            mediator.detach()
+        } catch (_: IllegalStateException) {
+            // TabLayoutMediator may already be detached during transient host lifecycle changes.
+        }
+        tabMediator = null
+    }
+
     private inner class GroupPagerAdapter : RecyclerView.Adapter<GroupPagerAdapter.GroupViewHolder>() {
+
+        private val pageAdapters = mutableMapOf<Int, SymbolAdapter>()
 
         inner class GroupViewHolder(val rv: RecyclerView) : RecyclerView.ViewHolder(rv)
 
@@ -297,17 +378,20 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
 
         override fun onBindViewHolder(holder: GroupViewHolder, position: Int) {
             val group = groups.getOrNull(position) ?: return
-            holder.rv.adapter = SymbolAdapter(group.items)
+            val symbolAdapter = pageAdapters.getOrPut(position) { SymbolAdapter(group.items) }
+            if (holder.rv.adapter !== symbolAdapter) {
+                holder.rv.adapter = symbolAdapter
+            }
         }
 
         override fun getItemCount(): Int = groups.size
 
-        fun clearPageAdapters() = Unit
+        fun clearPageAdapters() {
+            pageAdapters.clear()
+        }
 
         fun notifyVisibleRowsChanged() {
-            if (itemCount > 0) {
-                notifyItemRangeChanged(0, itemCount)
-            }
+            pageAdapters.values.forEach { it.notifyDataSetChanged() }
         }
     }
 
@@ -329,6 +413,15 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         managedBottomSheet = null
         managedFollowView = null
         super.onDetachedFromWindow()
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        if (tabMediator == null && groups.isNotEmpty()) {
+            bindTabs()
+        }
+        managedRootView?.let { ViewCompat.requestApplyInsets(it) }
+        managedBottomSheet?.let { ViewCompat.requestApplyInsets(it) }
     }
 
     private inner class SymbolAdapter(private val items: List<SymbolItem>) : RecyclerView.Adapter<SymbolAdapter.SymbolViewHolder>() {
