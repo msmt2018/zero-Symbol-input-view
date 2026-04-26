@@ -3,6 +3,8 @@ package android.zero.studio.widget.editor.symbolinput
 import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.SharedPreferences
+import android.graphics.drawable.ColorDrawable
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.Gravity
@@ -37,11 +39,17 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
 
     private val groups = mutableListOf<SymbolGroup>()
     private val pagerAdapter = SymbolPagerAdapter()
+    private var uiSettings = SymbolUiSettings()
+    private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key?.startsWith("symbol_") == true) {
+            refreshData()
+        }
+    }
 
     private val rowHeightPx by lazy { (36 * resources.displayMetrics.density).roundToInt() }
     private val fullTabHeightPx by lazy { (44 * resources.displayMetrics.density).roundToInt() }
-    private val collapsedHeightPx by lazy { rowHeightPx * 2 + (20 * resources.displayMetrics.density).roundToInt() }
-    private val expandedHeightPx by lazy { (220 * resources.displayMetrics.density).roundToInt() }
+    private var collapsedHeightPx = rowHeightPx * 2 + (20 * resources.displayMetrics.density).roundToInt()
+    private var expandedHeightPx = (220 * resources.displayMetrics.density).roundToInt()
     private val touchSlop by lazy { ViewConfiguration.get(context).scaledTouchSlop }
 
     private var initialY = 0f
@@ -61,6 +69,16 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
 
         viewPager.adapter = pagerAdapter
         tabLayout.setupWithViewPager(viewPager)
+        viewPager.addOnPageChangeListener(object : ViewPager.SimpleOnPageChangeListener() {
+            override fun onPageSelected(position: Int) {
+                if (uiSettings.rememberLastPage) {
+                    SymbolDataManager.setLastPageIndex(context, position)
+                }
+                if (!uiSettings.uniformGroupHeight) {
+                    recalculateHeights()
+                }
+            }
+        })
 
         updatePagerHeight(collapsedHeightPx)
         applyTabRowByFraction(0f)
@@ -75,8 +93,8 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     }
 
     fun onHostResume() {
-        // 恢复时自动折叠
-        animateToHeight(collapsedHeightPx)
+        val shouldExpand = uiSettings.rememberExpanded && SymbolDataManager.getLastExpanded(context)
+        animateToHeight(if (shouldExpand) expandedHeightPx else collapsedHeightPx)
     }
 
     fun bindEditor(editor: CodeEditor) {
@@ -84,13 +102,36 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     }
 
     fun refreshData() {
+        uiSettings = SymbolDataManager.getUiSettings(context)
         val newData = SymbolDataManager.loadData(context)
         groups.clear()
         groups.addAll(newData.filter { it.items.isNotEmpty() })
         if (groups.isEmpty()) {
             groups.addAll(buildFallbackGroups())
         }
+        applyIndicatorStyle()
+        recalculateHeights()
         pagerAdapter.notifyDataSetChanged()
+        if (groups.isNotEmpty()) {
+            val target = if (uiSettings.rememberLastPage) {
+                SymbolDataManager.getLastPageIndex(context).coerceIn(0, groups.lastIndex)
+            } else {
+                0
+            }
+            viewPager.currentItem = target
+        }
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        context.getSharedPreferences("advanced_symbol_prefs", Context.MODE_PRIVATE)
+            .registerOnSharedPreferenceChangeListener(prefsListener)
+    }
+
+    override fun onDetachedFromWindow() {
+        context.getSharedPreferences("advanced_symbol_prefs", Context.MODE_PRIVATE)
+            .unregisterOnSharedPreferenceChangeListener(prefsListener)
+        super.onDetachedFromWindow()
     }
 
     override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
@@ -143,6 +184,9 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
                     val currentHeight = viewPager.layoutParams.height.coerceAtLeast(collapsedHeightPx)
                     val midpoint = (collapsedHeightPx + expandedHeightPx) / 2
                     val targetHeight = if (currentHeight >= midpoint) expandedHeightPx else collapsedHeightPx
+                    if (uiSettings.rememberExpanded) {
+                        SymbolDataManager.setLastExpanded(context, targetHeight == expandedHeightPx)
+                    }
                     animateToHeight(targetHeight)
                 }
                 isDragging = false
@@ -196,6 +240,70 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         )
     }
 
+    private fun recalculateHeights() {
+        collapsedHeightPx = rowHeightPx * uiSettings.collapsedRows.coerceAtLeast(1) + (20 * resources.displayMetrics.density).roundToInt()
+        val baseExpanded = (220 * resources.displayMetrics.density).roundToInt()
+        expandedHeightPx = if (uiSettings.uniformGroupHeight) {
+            groups.maxOfOrNull { calculateExpandedHeightForGroup(it) }?.coerceAtLeast(baseExpanded) ?: baseExpanded
+        } else {
+            val current = groups.getOrNull(viewPager.currentItem)
+            (current?.let(::calculateExpandedHeightForGroup) ?: baseExpanded).coerceAtLeast(baseExpanded)
+        }
+        val currentHeight = viewPager.layoutParams.height
+        updatePagerHeight(currentHeight.coerceIn(collapsedHeightPx, expandedHeightPx))
+    }
+
+    private fun calculateExpandedHeightForGroup(group: SymbolGroup): Int {
+        val cols = uiSettings.symbolsPerRow.coerceIn(1, 20)
+        val rows = (group.items.size + cols - 1) / cols
+        val itemHeight = (44 * resources.displayMetrics.density).roundToInt()
+        val verticalPadding = (20 * resources.displayMetrics.density).roundToInt()
+        return (rows.coerceAtLeast(2) * itemHeight) + verticalPadding + fullTabHeightPx
+    }
+
+    private fun applyIndicatorStyle() {
+        tabLayout.setSelectedTabIndicatorColor(fetchColor(android.R.attr.colorAccent))
+        tabLayout.setSelectedTabIndicatorHeight((2 * resources.displayMetrics.density).roundToInt())
+        tabLayout.setSelectedTabIndicator(ColorDrawable(fetchColor(android.R.attr.colorAccent)))
+        tabLayout.tabIndicatorGravity = TabLayout.INDICATOR_GRAVITY_BOTTOM
+        tabLayout.isInlineLabel = false
+
+        when (uiSettings.indicatorStyle) {
+            0 -> {
+                // 标准
+                tabLayout.setSelectedTabIndicatorHeight((2 * resources.displayMetrics.density).roundToInt())
+                tabLayout.tabIndicatorGravity = TabLayout.INDICATOR_GRAVITY_BOTTOM
+            }
+            1 -> {
+                // 简洁胶囊
+                tabLayout.setSelectedTabIndicatorResource(R.drawable.bg_indicator_capsule)
+                tabLayout.setSelectedTabIndicatorHeight((6 * resources.displayMetrics.density).roundToInt())
+                tabLayout.tabIndicatorGravity = TabLayout.INDICATOR_GRAVITY_BOTTOM
+            }
+            2 -> {
+                // 隐藏
+                tabLayout.setSelectedTabIndicatorHeight(0)
+                tabLayout.setSelectedTabIndicator(ColorDrawable(0))
+            }
+            3 -> {
+                // 顶部线条
+                tabLayout.setSelectedTabIndicatorHeight((3 * resources.displayMetrics.density).roundToInt())
+                tabLayout.tabIndicatorGravity = TabLayout.INDICATOR_GRAVITY_TOP
+            }
+            4 -> {
+                // 块状
+                tabLayout.setSelectedTabIndicatorResource(R.drawable.bg_indicator_block)
+                tabLayout.tabIndicatorGravity = TabLayout.INDICATOR_GRAVITY_STRETCH
+            }
+        }
+    }
+
+    private fun fetchColor(attr: Int): Int {
+        val value = TypedValue()
+        context.theme.resolveAttribute(attr, value, true)
+        return if (value.resourceId != 0) context.getColor(value.resourceId) else value.data
+    }
+
     private inner class SymbolPagerAdapter : PagerAdapter() {
 
         override fun getCount(): Int = groups.size
@@ -225,7 +333,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
                     FrameLayout.LayoutParams.MATCH_PARENT,
                     FrameLayout.LayoutParams.WRAP_CONTENT
                 )
-                columnCount = 8
+                columnCount = group.items.size.coerceAtMost(uiSettings.symbolsPerRow.coerceIn(1, 20)).coerceAtLeast(1)
                 val padding = (6 * resources.displayMetrics.density).roundToInt()
                 setPadding(padding, padding, padding, padding)
             }
@@ -240,7 +348,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
                     }
                     minHeight = (36 * resources.displayMetrics.density).roundToInt()
                     gravity = Gravity.CENTER
-                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, uiSettings.symbolTextSizeSp.toFloat())
                     text = item.display
                     isClickable = true
                     isFocusable = true
