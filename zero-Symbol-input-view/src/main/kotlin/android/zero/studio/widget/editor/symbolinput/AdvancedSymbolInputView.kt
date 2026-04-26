@@ -9,6 +9,7 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.GridLayout
@@ -30,7 +31,6 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     private val viewPager: ViewPager
     private val tabLayout: TabLayout
     private val tabRow: View
-    private val dragIndicator: View
 
     private var editor: CodeEditor? = null
     var onOpenManagerListener: (() -> Unit)? = null
@@ -38,11 +38,14 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     private val groups = mutableListOf<SymbolGroup>()
     private val pagerAdapter = SymbolPagerAdapter()
 
+    private val rowHeightPx by lazy { (36 * resources.displayMetrics.density).roundToInt() }
+    private val collapsedHeightPx by lazy { rowHeightPx * 2 + (20 * resources.displayMetrics.density).roundToInt() }
     private val expandedHeightPx by lazy { (220 * resources.displayMetrics.density).roundToInt() }
-    private var isExpanded = false
+    private val touchSlop by lazy { ViewConfiguration.get(context).scaledTouchSlop }
 
-    // 手势状态记录
     private var initialY = 0f
+    private var initialX = 0f
+    private var lastY = 0f
     private var isDragging = false
 
     // 为兼容 MainActivity 旧代码提供空实现
@@ -54,12 +57,12 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         viewPager = root.findViewById(R.id.symbol_view_pager)
         tabLayout = root.findViewById(R.id.symbol_tab_layout)
         tabRow = root.findViewById(R.id.tab_row)
-        dragIndicator = root.findViewById(R.id.drag_indicator)
 
         viewPager.adapter = pagerAdapter
         tabLayout.setupWithViewPager(viewPager)
-        
-        setupDragBehavior()
+
+        updatePagerHeight(collapsedHeightPx)
+        applyTabRowByFraction(0f)
         refreshData()
     }
 
@@ -72,7 +75,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
 
     fun onHostResume() {
         // 恢复时自动折叠
-        animateToHeight(0)
+        animateToHeight(collapsedHeightPx)
     }
 
     fun bindEditor(editor: CodeEditor) {
@@ -89,74 +92,88 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         pagerAdapter.notifyDataSetChanged()
     }
 
-    @SuppressLint("ClickableViewAccessibility")
-    private fun setupDragBehavior() {
-        // 点击整个 Header 也可切换展开/收起
-        tabRow.setOnClickListener {
-            toggleExpansion()
-        }
+    override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
+        when (ev.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                initialY = ev.rawY
+                lastY = ev.rawY
+                initialX = ev.rawX
+                isDragging = false
+            }
 
-        tabRow.setOnTouchListener { _, event ->
-            when (event.action) {
-                MotionEvent.ACTION_DOWN -> {
-                    initialY = event.rawY
-                    isDragging = false
-                    true
+            MotionEvent.ACTION_MOVE -> {
+                val deltaY = ev.rawY - initialY
+                val deltaX = ev.rawX - initialX
+                if (!isDragging && kotlin.math.abs(deltaY) > touchSlop && kotlin.math.abs(deltaY) > kotlin.math.abs(deltaX)) {
+                    isDragging = true
+                    parent?.requestDisallowInterceptTouchEvent(true)
+                    return true
                 }
-                MotionEvent.ACTION_MOVE -> {
-                    val deltaY = event.rawY - initialY
-                    if (Math.abs(deltaY) > 10) {
-                        isDragging = true
-                        val currentHeight = viewPager.layoutParams.height
-                        var newHeight = currentHeight - deltaY.toInt()
-                        newHeight = newHeight.coerceIn(0, expandedHeightPx)
-                        updatePagerHeight(newHeight)
-                        initialY = event.rawY
-                    }
-                    true
-                }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    if (!isDragging) {
-                        toggleExpansion()
-                    } else {
-                        // 拖拽结束，判断是吸附到顶部还是底部
-                        val currentHeight = viewPager.layoutParams.height
-                        if (currentHeight > expandedHeightPx / 2) {
-                            animateToHeight(expandedHeightPx)
-                        } else {
-                            animateToHeight(0)
-                        }
-                    }
-                    true
-                }
-                else -> false
+            }
+
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                isDragging = false
             }
         }
+        return super.onInterceptTouchEvent(ev)
     }
 
-    private fun toggleExpansion() {
-        if (isExpanded) {
-            animateToHeight(0)
-        } else {
-            animateToHeight(expandedHeightPx)
+    @SuppressLint("ClickableViewAccessibility")
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                initialY = event.rawY
+                lastY = event.rawY
+                return true
+            }
+
+            MotionEvent.ACTION_MOVE -> {
+                if (!isDragging) return super.onTouchEvent(event)
+                val deltaY = event.rawY - lastY
+                val currentHeight = viewPager.layoutParams.height.coerceAtLeast(collapsedHeightPx)
+                val nextHeight = (currentHeight - deltaY.toInt()).coerceIn(collapsedHeightPx, expandedHeightPx)
+                updatePagerHeight(nextHeight)
+                lastY = event.rawY
+                return true
+            }
+
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                if (isDragging) {
+                    val currentHeight = viewPager.layoutParams.height.coerceAtLeast(collapsedHeightPx)
+                    val midpoint = (collapsedHeightPx + expandedHeightPx) / 2
+                    val targetHeight = if (currentHeight >= midpoint) expandedHeightPx else collapsedHeightPx
+                    animateToHeight(targetHeight)
+                }
+                isDragging = false
+                return true
+            }
         }
+        return super.onTouchEvent(event)
     }
 
     private fun animateToHeight(targetHeight: Int) {
-        val currentHeight = viewPager.layoutParams.height
+        val currentHeight = viewPager.layoutParams.height.coerceAtLeast(collapsedHeightPx)
         val animator = ValueAnimator.ofInt(currentHeight, targetHeight)
         animator.duration = 200
         animator.addUpdateListener { animation ->
             updatePagerHeight(animation.animatedValue as Int)
         }
         animator.start()
-        isExpanded = targetHeight > 0
     }
 
     private fun updatePagerHeight(height: Int) {
         val params = viewPager.layoutParams
-        params.height = height
+        val clamped = height.coerceIn(collapsedHeightPx, expandedHeightPx)
+        params.height = clamped
         viewPager.layoutParams = params
+        val fraction = (clamped - collapsedHeightPx).toFloat() / (expandedHeightPx - collapsedHeightPx).toFloat()
+        applyTabRowByFraction(fraction)
+    }
+
+    private fun applyTabRowByFraction(fraction: Float) {
+        val clamped = fraction.coerceIn(0f, 1f)
+        tabRow.alpha = 0.55f + (0.45f * clamped)
+        tabRow.translationY = (1f - clamped) * -6f * resources.displayMetrics.density
     }
 
     private fun buildFallbackGroups(): List<SymbolGroup> {
