@@ -44,6 +44,10 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     private val fullTabHeight by lazy { (44 * resources.displayMetrics.density).roundToInt() }
     private var lastImeBottomInset = 0
     private var bottomSheetBehavior: BottomSheetBehavior<View>? = null
+    private var managedBottomSheet: View? = null
+    private var managedFollowView: View? = null
+    private var initialSheetBottomMargin = 0
+    private var initialFollowBottomMargin = 0
 
     init {
         val root = LayoutInflater.from(context).inflate(R.layout.view_advanced_symbol_input, this, true)
@@ -102,6 +106,8 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     fun setupWithBottomSheet(rootView: View, bottomSheet: View, followView: View? = null) {
         val behavior = BottomSheetBehavior.from(bottomSheet)
         bottomSheetBehavior = behavior
+        managedBottomSheet = bottomSheet
+        managedFollowView = followView
         behavior.saveFlags = BottomSheetBehavior.SAVE_NONE
         behavior.isHideable = false
         behavior.isDraggable = true
@@ -115,7 +121,10 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
                 when (newState) {
                     BottomSheetBehavior.STATE_COLLAPSED -> setExpansionFraction(0f)
                     BottomSheetBehavior.STATE_EXPANDED -> setExpansionFraction(1f)
-                    BottomSheetBehavior.STATE_HIDDEN -> behavior.state = BottomSheetBehavior.STATE_COLLAPSED
+                    BottomSheetBehavior.STATE_HIDDEN -> {
+                        resetTransientOffsets()
+                        behavior.state = BottomSheetBehavior.STATE_COLLAPSED
+                    }
                 }
             }
 
@@ -126,9 +135,9 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
 
         val bottomSheetLp = bottomSheet.layoutParams as? MarginLayoutParams
         val followLp = followView?.layoutParams as? MarginLayoutParams
-        val initialSheetBottomMargin = bottomSheetLp?.bottomMargin ?: 0
-        val initialFollowBottomMargin = followLp?.bottomMargin ?: 0
-        ViewCompat.setOnApplyWindowInsetsListener(bottomSheet) { _, insets ->
+        initialSheetBottomMargin = bottomSheetLp?.bottomMargin ?: 0
+        initialFollowBottomMargin = followLp?.bottomMargin ?: 0
+        ViewCompat.setOnApplyWindowInsetsListener(rootView) { _, insets ->
             val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
             if (imeBottom != lastImeBottomInset) {
                 bottomSheetLp?.let {
@@ -151,7 +160,24 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     }
 
     fun onHostResume() {
+        resetTransientOffsets()
         bottomSheetBehavior?.state = BottomSheetBehavior.STATE_COLLAPSED
+    }
+
+    private fun resetTransientOffsets() {
+        (managedBottomSheet?.layoutParams as? MarginLayoutParams)?.let {
+            if (it.bottomMargin != initialSheetBottomMargin) {
+                it.bottomMargin = initialSheetBottomMargin
+                managedBottomSheet?.layoutParams = it
+            }
+        }
+        (managedFollowView?.layoutParams as? MarginLayoutParams)?.let {
+            if (it.bottomMargin != initialFollowBottomMargin) {
+                it.bottomMargin = initialFollowBottomMargin
+                managedFollowView?.layoutParams = it
+            }
+        }
+        lastImeBottomInset = 0
     }
 
     private fun buildFallbackGroups(): List<SymbolGroup> {
@@ -232,6 +258,8 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     override fun onDetachedFromWindow() {
         tabMediator?.detach()
         tabMediator = null
+        managedBottomSheet = null
+        managedFollowView = null
         super.onDetachedFromWindow()
     }
 
