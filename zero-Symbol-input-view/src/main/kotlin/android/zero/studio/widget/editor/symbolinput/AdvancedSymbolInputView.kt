@@ -67,6 +67,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     private var managedBottomSheet: View? = null
     private var managedFollowView: View? = null
     private var managedRootView: View? = null
+    private var managedInsetsHost: View? = null
     private var initialSheetBottomMargin = 0
     private var initialFollowBottomMargin = 0
     private var registeredBottomSheetCallback: BottomSheetBehavior.BottomSheetCallback? = null
@@ -82,7 +83,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
             if (!value) {
                 resetTransientOffsets()
             } else {
-                managedRootView?.let(ViewCompat::requestApplyInsets)
+                managedInsetsHost?.let(ViewCompat::requestApplyInsets)
             }
         }
 
@@ -147,8 +148,9 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     }
 
     fun setupWithBottomSheet(rootView: View, bottomSheet: View, followView: View? = null) {
-        if (managedRootView !== rootView) {
-            managedRootView?.let {
+        val insetsHost = bottomSheet
+        if (managedInsetsHost !== insetsHost) {
+            managedInsetsHost?.let {
                 ViewCompat.setOnApplyWindowInsetsListener(it, null)
                 ViewCompat.setWindowInsetsAnimationCallback(it, null)
             }
@@ -210,7 +212,8 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
                 }
             }
         }
-        ViewCompat.setOnApplyWindowInsetsListener(rootView) { _, insets ->
+        managedInsetsHost = insetsHost
+        ViewCompat.setOnApplyWindowInsetsListener(insetsHost) { _, insets ->
             val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
             if (abs(imeBottom - imeBottomInsetLast) > 1 && followSystemIme) {
                 updateImeFollowMargins(imeBottom)
@@ -223,7 +226,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
             insets
         }
         ViewCompat.setWindowInsetsAnimationCallback(
-            rootView,
+            insetsHost,
             object : WindowInsetsAnimationCompat.Callback(DISPATCH_MODE_STOP) {
                 override fun onProgress(
                     insets: WindowInsetsCompat,
@@ -248,7 +251,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
                 }
             }
         )
-        ViewCompat.requestApplyInsets(rootView)
+        ViewCompat.requestApplyInsets(insetsHost)
         ViewCompat.requestApplyInsets(bottomSheet)
         followView?.let { ViewCompat.requestApplyInsets(it) }
     }
@@ -373,10 +376,11 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     override fun onDetachedFromWindow() {
         tabMediator?.detach()
         tabMediator = null
-        managedRootView?.let {
+        managedInsetsHost?.let {
             ViewCompat.setOnApplyWindowInsetsListener(it, null)
             ViewCompat.setWindowInsetsAnimationCallback(it, null)
         }
+        managedInsetsHost = null
         managedRootView = null
         bottomSheetBehavior?.let { behavior ->
             registeredBottomSheetCallback?.let { callback ->
@@ -395,7 +399,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         if (tabMediator == null && groups.isNotEmpty()) {
             bindTabs()
         }
-        managedRootView?.let { ViewCompat.requestApplyInsets(it) }
+        managedInsetsHost?.let { ViewCompat.requestApplyInsets(it) }
         managedBottomSheet?.let { ViewCompat.requestApplyInsets(it) }
     }
 
