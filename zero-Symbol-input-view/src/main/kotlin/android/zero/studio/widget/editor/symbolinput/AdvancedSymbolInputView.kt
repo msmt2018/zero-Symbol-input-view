@@ -20,7 +20,6 @@ import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import io.github.rosemoe.sora.widget.CodeEditor
 import kotlin.math.abs
-import kotlin.math.max
 import kotlin.math.roundToInt
 
 class AdvancedSymbolInputView @JvmOverloads constructor(
@@ -44,7 +43,6 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     private val maxRows = 5
     private val spanCount = 8
     private var visibleRows = minRows
-    private val fullTabHeight by lazy { (44 * resources.displayMetrics.density).roundToInt() }
     private var imeBottomInsetLast = 0
     private var bottomSheetBehavior: BottomSheetBehavior<View>? = null
     private val bottomSheetCallback = object : BottomSheetBehavior.BottomSheetCallback() {
@@ -110,12 +108,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
      */
     fun setExpansionFraction(fraction: Float) {
         val clamped = fraction.coerceIn(0f, 1f)
-        val targetHeight = max(0, (fullTabHeight * clamped).roundToInt())
-        val layoutParams = tabRow.layoutParams
-        if (layoutParams.height != targetHeight) {
-            layoutParams.height = targetHeight
-            tabRow.layoutParams = layoutParams
-        }
+        tabRow.visibility = if (clamped <= 0f) View.GONE else View.VISIBLE
         tabRow.alpha = clamped
         tabRow.translationY = (1f - clamped) * -8f * resources.displayMetrics.density
 
@@ -139,12 +132,14 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
                 ((index.toLong() and 0xFFFFL) shl 16) or
                 (group.items.size.toLong() and 0xFFFFL)
         })
-        if (viewPager.currentItem >= groups.size) {
-            viewPager.setCurrentItem(0, false)
+        viewPager.post {
+            if (viewPager.currentItem >= groups.size) {
+                viewPager.setCurrentItem(0, false)
+            }
+            groupAdapter.clearPageAdapters()
+            groupAdapter.notifyDataSetChanged()
+            bindTabs()
         }
-        groupAdapter.clearPageAdapters()
-        groupAdapter.notifyDataSetChanged()
-        bindTabs()
     }
 
     fun setupWithBottomSheet(rootView: View, bottomSheet: View, followView: View? = null) {
@@ -337,7 +332,10 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): GroupViewHolder {
             val rv = RecyclerView(context).apply {
-                layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
+                layoutParams = RecyclerView.LayoutParams(
+                    RecyclerView.LayoutParams.MATCH_PARENT,
+                    RecyclerView.LayoutParams.MATCH_PARENT
+                )
                 setHasFixedSize(true)
                 overScrollMode = OVER_SCROLL_NEVER
                 isNestedScrollingEnabled = true
@@ -369,7 +367,9 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         }
 
         fun notifyVisibleRowsChanged() {
-            pageAdapters.values.forEach { it.notifyDataSetChanged() }
+            viewPager.post {
+                pageAdapters.values.forEach { it.notifyDataSetChanged() }
+            }
         }
     }
 
@@ -409,7 +409,10 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SymbolViewHolder {
             val tv = TextView(context).apply {
-                layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+                layoutParams = RecyclerView.LayoutParams(
+                    RecyclerView.LayoutParams.MATCH_PARENT,
+                    RecyclerView.LayoutParams.WRAP_CONTENT
+                )
                 minHeight = (34 * resources.displayMetrics.density).roundToInt()
                 gravity = Gravity.CENTER
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
