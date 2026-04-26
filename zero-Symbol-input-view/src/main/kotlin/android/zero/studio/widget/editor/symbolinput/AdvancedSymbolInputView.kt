@@ -9,9 +9,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.TextView
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsAnimationCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
@@ -19,9 +16,10 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import io.github.rosemoe.sora.widget.CodeEditor
-import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.roundToInt
+
+// @author android_zero
 
 class AdvancedSymbolInputView @JvmOverloads constructor(
     context: Context,
@@ -33,59 +31,27 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     private val tabLayout: TabLayout
     private val tabRow: View
     private var editor: CodeEditor? = null
+    
+    /**
+     * 打开管理器界面回调监听器
+     */
     var onOpenManagerListener: (() -> Unit)? = null
 
     private val groups = mutableListOf<SymbolGroup>()
-    private val groupPageIds = mutableListOf<Long>()
     private val groupAdapter = GroupPagerAdapter()
     private var tabMediator: TabLayoutMediator? = null
 
-    private val minRows = 2
-    private val maxRows = 5
     private val spanCount = 8
-    private var visibleRows = minRows
     private val fullTabHeight by lazy { (44 * resources.displayMetrics.density).roundToInt() }
-    private var imeBottomInsetLast = 0
+    
     private var bottomSheetBehavior: BottomSheetBehavior<View>? = null
-    private val bottomSheetCallback = object : BottomSheetBehavior.BottomSheetCallback() {
-        override fun onStateChanged(bottomSheet: View, newState: Int) {
-            val behavior = bottomSheetBehavior ?: return
-            when (newState) {
-                BottomSheetBehavior.STATE_COLLAPSED -> setExpansionFraction(0f)
-                BottomSheetBehavior.STATE_EXPANDED -> setExpansionFraction(1f)
-                BottomSheetBehavior.STATE_HIDDEN -> {
-                    resetTransientOffsets()
-                    behavior.state = BottomSheetBehavior.STATE_COLLAPSED
-                }
-            }
-        }
-
-        override fun onSlide(bottomSheet: View, slideOffset: Float) {
-            setExpansionFraction(slideOffset.coerceIn(0f, 1f))
-        }
-    }
-    private var managedBottomSheet: View? = null
-    private var managedFollowView: View? = null
-    private var managedRootView: View? = null
-    private var managedInsetsHost: View? = null
-    private var initialSheetBottomMargin = 0
-    private var initialFollowBottomMargin = 0
     private var registeredBottomSheetCallback: BottomSheetBehavior.BottomSheetCallback? = null
-    private var lastStableImeBottomInset = 0
 
     /**
-     * Whether this view should follow IME top edge when keyboard expands/collapses.
-     * Set true in Activity if bottom sheet needs to move with system IME animation.
+     * 是否跟随系统输入法的动画而变动。
+     * 当前实现下依赖外部 CoordinatorLayout 通过 applyEdgeToEdge 的 Padding 自动将其撑起，
      */
     var followSystemIme: Boolean = false
-        set(value) {
-            field = value
-            if (!value) {
-                resetTransientOffsets()
-            } else {
-                managedInsetsHost?.let(ViewCompat::requestApplyInsets)
-            }
-        }
 
     init {
         val root = LayoutInflater.from(context).inflate(R.layout.view_advanced_symbol_input, this, true)
@@ -100,13 +66,16 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         refreshData()
     }
 
+    /**
+     * 绑定代码编辑器实例以响应符号动作
+     */
     fun bindEditor(editor: CodeEditor) {
         this.editor = editor
     }
 
     /**
-     * Called by parent BottomSheetBehavior callback.
-     * 0f = collapsed, 1f = expanded.
+     * 在抽屉伸缩期间动态处理顶端 TabRow 的隐藏与展示动作。
+     * 取消对可见行数的反复重建更新，避免滑动被打断及引发适配器崩溃。
      */
     fun setExpansionFraction(fraction: Float) {
         val clamped = fraction.coerceIn(0f, 1f)
@@ -118,14 +87,11 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         }
         tabRow.alpha = clamped
         tabRow.translationY = (1f - clamped) * -8f * resources.displayMetrics.density
-
-        val newRows = minRows + ((maxRows - minRows) * clamped).roundToInt()
-        if (newRows != visibleRows) {
-            visibleRows = newRows
-            groupAdapter.notifyVisibleRowsChanged()
-        }
     }
 
+    /**
+     * 重新从本地存储加载符号配置数据并刷新适配器
+     */
     fun refreshData() {
         val newData = SymbolDataManager.loadData(context)
         groups.clear()
@@ -133,28 +99,19 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         if (groups.isEmpty()) {
             groups.addAll(buildFallbackGroups())
         }
-        groupPageIds.clear()
-        groupPageIds.addAll(groups.mapIndexed { index, group ->
-            ((group.name.hashCode().toLong() and 0xFFFFFFFFL) shl 32) or
-                ((index.toLong() and 0xFFFFL) shl 16) or
-                (group.items.size.toLong() and 0xFFFFL)
-        })
-        if (viewPager.currentItem >= groups.size) {
-            viewPager.setCurrentItem(0, false)
+        val newCount = groups.size
+        if (viewPager.currentItem >= newCount) {
+            viewPager.setCurrentItem(max(0, newCount - 1), false)
         }
         groupAdapter.clearPageAdapters()
         groupAdapter.notifyDataSetChanged()
         bindTabs()
     }
 
+    /**
+     * 设置底栏相关的控制行为逻辑
+     */
     fun setupWithBottomSheet(rootView: View, bottomSheet: View, followView: View? = null) {
-        val insetsHost = bottomSheet
-        if (managedInsetsHost !== insetsHost) {
-            managedInsetsHost?.let {
-                ViewCompat.setOnApplyWindowInsetsListener(it, null)
-                ViewCompat.setWindowInsetsAnimationCallback(it, null)
-            }
-        }
         val behavior = BottomSheetBehavior.from(bottomSheet)
         bottomSheetBehavior?.let { previousBehavior ->
             registeredBottomSheetCallback?.let { previousCallback ->
@@ -162,14 +119,12 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
             }
         }
         bottomSheetBehavior = behavior
-        managedBottomSheet = bottomSheet
-        managedFollowView = followView
-        managedRootView = rootView
         behavior.saveFlags = BottomSheetBehavior.SAVE_NONE
         behavior.isHideable = false
         behavior.isDraggable = true
         behavior.skipCollapsed = false
         behavior.isFitToContents = true
+        
         bottomSheet.post {
             behavior.state = BottomSheetBehavior.STATE_COLLAPSED
         }
@@ -179,7 +134,6 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
                     BottomSheetBehavior.STATE_COLLAPSED -> setExpansionFraction(0f)
                     BottomSheetBehavior.STATE_EXPANDED -> setExpansionFraction(1f)
                     BottomSheetBehavior.STATE_HIDDEN -> {
-                        resetTransientOffsets()
                         behavior.state = BottomSheetBehavior.STATE_COLLAPSED
                     }
                 }
@@ -191,90 +145,13 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         }
         behavior.addBottomSheetCallback(sheetCallback)
         registeredBottomSheetCallback = sheetCallback
-
-        val bottomSheetLp = bottomSheet.layoutParams as? MarginLayoutParams
-        val followLp = followView?.layoutParams as? MarginLayoutParams
-        initialSheetBottomMargin = bottomSheetLp?.bottomMargin ?: 0
-        initialFollowBottomMargin = followLp?.bottomMargin ?: 0
-        val updateImeFollowMargins: (Int) -> Unit = { imeBottom ->
-            bottomSheetLp?.let {
-                val target = initialSheetBottomMargin + imeBottom
-                if (it.bottomMargin != target) {
-                    it.bottomMargin = target
-                    bottomSheet.layoutParams = it
-                }
-            }
-            followLp?.let {
-                val target = initialFollowBottomMargin + imeBottom
-                if (it.bottomMargin != target) {
-                    it.bottomMargin = target
-                    followView?.layoutParams = it
-                }
-            }
-        }
-        managedInsetsHost = insetsHost
-        ViewCompat.setOnApplyWindowInsetsListener(insetsHost) { _, insets ->
-            val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
-            if (abs(imeBottom - imeBottomInsetLast) > 1 && followSystemIme) {
-                updateImeFollowMargins(imeBottom)
-                if (imeBottom == 0 && behavior.state == BottomSheetBehavior.STATE_HIDDEN) {
-                    behavior.state = BottomSheetBehavior.STATE_COLLAPSED
-                }
-            }
-            lastStableImeBottomInset = imeBottom
-            imeBottomInsetLast = imeBottom
-            insets
-        }
-        ViewCompat.setWindowInsetsAnimationCallback(
-            insetsHost,
-            object : WindowInsetsAnimationCompat.Callback(DISPATCH_MODE_STOP) {
-                override fun onProgress(
-                    insets: WindowInsetsCompat,
-                    runningAnimations: MutableList<WindowInsetsAnimationCompat>
-                ): WindowInsetsCompat {
-                    if (!followSystemIme) {
-                        return insets
-                    }
-                    val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
-                    if (abs(imeBottom - imeBottomInsetLast) > 1) {
-                        updateImeFollowMargins(imeBottom)
-                        imeBottomInsetLast = imeBottom
-                    }
-                    return insets
-                }
-
-                override fun onEnd(animation: WindowInsetsAnimationCompat) {
-                    if (followSystemIme) {
-                        updateImeFollowMargins(lastStableImeBottomInset)
-                        imeBottomInsetLast = lastStableImeBottomInset
-                    }
-                }
-            }
-        )
-        ViewCompat.requestApplyInsets(insetsHost)
-        ViewCompat.requestApplyInsets(bottomSheet)
-        followView?.let { ViewCompat.requestApplyInsets(it) }
     }
 
+    /**
+     * 生命周期在应用切回前台时折叠菜单
+     */
     fun onHostResume() {
         bottomSheetBehavior?.state = BottomSheetBehavior.STATE_COLLAPSED
-    }
-
-    private fun resetTransientOffsets() {
-        (managedBottomSheet?.layoutParams as? MarginLayoutParams)?.let {
-            if (it.bottomMargin != initialSheetBottomMargin) {
-                it.bottomMargin = initialSheetBottomMargin
-                managedBottomSheet?.layoutParams = it
-            }
-        }
-        (managedFollowView?.layoutParams as? MarginLayoutParams)?.let {
-            if (it.bottomMargin != initialFollowBottomMargin) {
-                it.bottomMargin = initialFollowBottomMargin
-                managedFollowView?.layoutParams = it
-            }
-        }
-        imeBottomInsetLast = 0
-        lastStableImeBottomInset = 0
     }
 
     private fun buildFallbackGroups(): List<SymbolGroup> {
@@ -320,7 +197,6 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         try {
             mediator.detach()
         } catch (_: IllegalStateException) {
-            // TabLayoutMediator may already be detached during transient host lifecycle changes.
         }
         tabMediator = null
     }
@@ -328,10 +204,6 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     private inner class GroupPagerAdapter : RecyclerView.Adapter<GroupPagerAdapter.GroupViewHolder>() {
 
         private val pageAdapters = mutableMapOf<Int, SymbolAdapter>()
-
-        init {
-            setHasStableIds(true)
-        }
 
         inner class GroupViewHolder(val rv: RecyclerView) : RecyclerView.ViewHolder(rv)
 
@@ -360,28 +232,14 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
 
         override fun getItemCount(): Int = groups.size
 
-        override fun getItemId(position: Int): Long {
-            return groupPageIds.getOrNull(position) ?: RecyclerView.NO_ID
-        }
-
         fun clearPageAdapters() {
             pageAdapters.clear()
-        }
-
-        fun notifyVisibleRowsChanged() {
-            pageAdapters.values.forEach { it.notifyDataSetChanged() }
         }
     }
 
     override fun onDetachedFromWindow() {
         tabMediator?.detach()
         tabMediator = null
-        managedInsetsHost?.let {
-            ViewCompat.setOnApplyWindowInsetsListener(it, null)
-            ViewCompat.setWindowInsetsAnimationCallback(it, null)
-        }
-        managedInsetsHost = null
-        managedRootView = null
         bottomSheetBehavior?.let { behavior ->
             registeredBottomSheetCallback?.let { callback ->
                 behavior.removeBottomSheetCallback(callback)
@@ -389,8 +247,6 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         }
         registeredBottomSheetCallback = null
         bottomSheetBehavior = null
-        managedBottomSheet = null
-        managedFollowView = null
         super.onDetachedFromWindow()
     }
 
@@ -399,8 +255,6 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         if (tabMediator == null && groups.isNotEmpty()) {
             bindTabs()
         }
-        managedInsetsHost?.let { ViewCompat.requestApplyInsets(it) }
-        managedBottomSheet?.let { ViewCompat.requestApplyInsets(it) }
     }
 
     private inner class SymbolAdapter(private val items: List<SymbolItem>) : RecyclerView.Adapter<SymbolAdapter.SymbolViewHolder>() {
@@ -449,6 +303,6 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
             }
         }
 
-        override fun getItemCount(): Int = items.size.coerceAtMost(spanCount * visibleRows)
+        override fun getItemCount(): Int = items.size
     }
 }

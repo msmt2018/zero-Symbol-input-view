@@ -23,12 +23,13 @@ import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 
+// @author android_zero
+
 class SymbolManagerActivity : AppCompatActivity() {
 
     private lateinit var tabLayout: TabLayout
     private lateinit var viewPager: ViewPager2
     private var symbolGroups = mutableListOf<SymbolGroup>()
-    private val groupPageIds = mutableListOf<Long>()
     private lateinit var groupAdapter: GroupPagerAdapter
     private var tabMediator: TabLayoutMediator? = null
 
@@ -52,7 +53,6 @@ class SymbolManagerActivity : AppCompatActivity() {
         viewPager = findViewById(R.id.view_pager)
 
         symbolGroups = SymbolDataManager.loadData(this)
-        rebuildGroupPageIds()
         
         groupAdapter = GroupPagerAdapter()
         viewPager.adapter = groupAdapter
@@ -172,7 +172,6 @@ class SymbolManagerActivity : AppCompatActivity() {
     }
 
     private fun onGroupsChanged() {
-        rebuildGroupPageIds()
         groupAdapter.notifyDataSetChanged()
         detachMediatorSafely()
         if (symbolGroups.isEmpty()) {
@@ -193,15 +192,6 @@ class SymbolManagerActivity : AppCompatActivity() {
         super.onDestroy()
     }
 
-    private fun rebuildGroupPageIds() {
-        groupPageIds.clear()
-        groupPageIds.addAll(symbolGroups.mapIndexed { index, group ->
-            ((group.name.hashCode().toLong() and 0xFFFFFFFFL) shl 32) or
-                ((index.toLong() and 0xFFFFL) shl 16) or
-                (group.items.size.toLong() and 0xFFFFL)
-        })
-    }
-
     private fun detachMediatorSafely() {
         val mediator = tabMediator ?: return
         try {
@@ -213,9 +203,6 @@ class SymbolManagerActivity : AppCompatActivity() {
     }
 
     private inner class GroupPagerAdapter : RecyclerView.Adapter<GroupPagerAdapter.GroupViewHolder>() {
-        init {
-            setHasStableIds(true)
-        }
 
         inner class GroupViewHolder(val rv: RecyclerView) : RecyclerView.ViewHolder(rv)
 
@@ -232,10 +219,6 @@ class SymbolManagerActivity : AppCompatActivity() {
         }
 
         override fun getItemCount() = symbolGroups.size
-
-        override fun getItemId(position: Int): Long {
-            return groupPageIds.getOrNull(position) ?: RecyclerView.NO_ID
-        }
     }
 
     private inner class ItemsAdapter(val group: SymbolGroup) : RecyclerView.Adapter<ItemsAdapter.ItemViewHolder>() {
