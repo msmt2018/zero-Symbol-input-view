@@ -44,6 +44,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     private val spanCount = 8
     private var visibleRows = minRows
     private val fullTabHeight by lazy { (44 * resources.displayMetrics.density).roundToInt() }
+    private var imeBottomInsetLast = 0
     private var bottomSheetBehavior: BottomSheetBehavior<View>? = null
     private val bottomSheetCallback = object : BottomSheetBehavior.BottomSheetCallback() {
         override fun onStateChanged(bottomSheet: View, newState: Int) {
@@ -183,14 +184,14 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         initialFollowBottomMargin = followLp?.bottomMargin ?: 0
         ViewCompat.setOnApplyWindowInsetsListener(rootView) { _, insets ->
             val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
-            if (abs(imeBottom - lastImeBottomInset) > 1 && followSystemIme) {
-                applyImeInset(bottomSheet, followView, bottomSheetLp, followLp, imeBottom)
+            if (abs(imeBottom - imeBottomInsetLast) > 1 && followSystemIme) {
+                applyImeInsetInternal(bottomSheet, followView, bottomSheetLp, followLp, imeBottom)
                 if (imeBottom == 0 && behavior.state == BottomSheetBehavior.STATE_HIDDEN) {
                     behavior.state = BottomSheetBehavior.STATE_COLLAPSED
                 }
             }
             lastStableImeBottomInset = imeBottom
-            lastImeBottomInset = imeBottom
+            imeBottomInsetLast = imeBottom
             insets
         }
         ViewCompat.setWindowInsetsAnimationCallback(
@@ -204,23 +205,23 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
                         return insets
                     }
                     val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
-                    if (abs(imeBottom - lastImeBottomInset) > 1) {
-                        applyImeInset(bottomSheet, followView, bottomSheetLp, followLp, imeBottom)
-                        lastImeBottomInset = imeBottom
+                    if (abs(imeBottom - imeBottomInsetLast) > 1) {
+                        applyImeInsetInternal(bottomSheet, followView, bottomSheetLp, followLp, imeBottom)
+                        imeBottomInsetLast = imeBottom
                     }
                     return insets
                 }
 
                 override fun onEnd(animation: WindowInsetsAnimationCompat) {
                     if (followSystemIme) {
-                        applyImeInset(
+                        applyImeInsetInternal(
                             bottomSheet,
                             followView,
                             bottomSheetLp,
                             followLp,
                             lastStableImeBottomInset
                         )
-                        lastImeBottomInset = lastStableImeBottomInset
+                        imeBottomInsetLast = lastStableImeBottomInset
                     }
                 }
             }
@@ -264,6 +265,23 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         }
     }
 
+    private fun applyImeInsetInternal(
+        bottomSheet: View,
+        followView: View?,
+        bottomSheetLp: MarginLayoutParams?,
+        followLp: MarginLayoutParams?,
+        imeBottom: Int
+    ) {
+        bottomSheetLp?.let {
+            it.bottomMargin = initialSheetBottomMargin + imeBottom
+            bottomSheet.layoutParams = it
+        }
+        followLp?.let {
+            it.bottomMargin = initialFollowBottomMargin + imeBottom
+            followView?.layoutParams = it
+        }
+    }
+
     fun onHostResume() {
         bottomSheetBehavior?.state = BottomSheetBehavior.STATE_COLLAPSED
     }
@@ -281,7 +299,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
                 managedFollowView?.layoutParams = it
             }
         }
-        lastImeBottomInset = 0
+        imeBottomInsetLast = 0
         lastStableImeBottomInset = 0
     }
 
