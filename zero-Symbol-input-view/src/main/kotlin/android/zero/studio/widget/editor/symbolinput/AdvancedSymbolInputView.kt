@@ -67,7 +67,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     private var managedRootView: View? = null
     private var initialSheetBottomMargin = 0
     private var initialFollowBottomMargin = 0
-    private var bottomSheetCallback: BottomSheetBehavior.BottomSheetCallback? = null
+    private var registeredBottomSheetCallback: BottomSheetBehavior.BottomSheetCallback? = null
     private var lastStableImeBottomInset = 0
 
     /**
@@ -75,6 +75,14 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
      * Set true in Activity if bottom sheet needs to move with system IME animation.
      */
     var followSystemIme: Boolean = false
+        set(value) {
+            field = value
+            if (!value) {
+                resetTransientOffsets()
+            } else {
+                managedRootView?.let(ViewCompat::requestApplyInsets)
+            }
+        }
 
     init {
         val root = LayoutInflater.from(context).inflate(R.layout.view_advanced_symbol_input, this, true)
@@ -133,7 +141,9 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     fun setupWithBottomSheet(rootView: View, bottomSheet: View, followView: View? = null) {
         val behavior = BottomSheetBehavior.from(bottomSheet)
         bottomSheetBehavior?.let { previousBehavior ->
-            bottomSheetCallback?.let(previousBehavior::removeBottomSheetCallback)
+            registeredBottomSheetCallback?.let { previousCallback ->
+                previousBehavior.removeBottomSheetCallback(previousCallback)
+            }
         }
         bottomSheetBehavior = behavior
         managedRootView = rootView
@@ -148,7 +158,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         bottomSheet.post {
             behavior.state = BottomSheetBehavior.STATE_COLLAPSED
         }
-        val callback = object : BottomSheetBehavior.BottomSheetCallback() {
+        val sheetCallback = object : BottomSheetBehavior.BottomSheetCallback() {
             override fun onStateChanged(bottomSheet: View, newState: Int) {
                 when (newState) {
                     BottomSheetBehavior.STATE_COLLAPSED -> setExpansionFraction(0f)
@@ -164,8 +174,8 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
                 setExpansionFraction(slideOffset.coerceIn(0f, 1f))
             }
         }
-        behavior.addBottomSheetCallback(callback)
-        bottomSheetCallback = callback
+        behavior.addBottomSheetCallback(sheetCallback)
+        registeredBottomSheetCallback = sheetCallback
 
         val bottomSheetLp = bottomSheet.layoutParams as? MarginLayoutParams
         val followLp = followView?.layoutParams as? MarginLayoutParams
@@ -237,13 +247,42 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         }
     }
 
+    private fun applyImeInset(
+        bottomSheet: View,
+        followView: View?,
+        bottomSheetLp: MarginLayoutParams?,
+        followLp: MarginLayoutParams?,
+        imeBottom: Int
+    ) {
+        bottomSheetLp?.let {
+            it.bottomMargin = initialSheetBottomMargin + imeBottom
+            bottomSheet.layoutParams = it
+        }
+        followLp?.let {
+            it.bottomMargin = initialFollowBottomMargin + imeBottom
+            followView?.layoutParams = it
+        }
+    }
+
     fun onHostResume() {
         bottomSheetBehavior?.state = BottomSheetBehavior.STATE_COLLAPSED
     }
 
     private fun resetTransientOffsets() {
-        // Intentionally no-op.
-        // IME/system bar insets are handled by host edge-to-edge integration.
+        (managedBottomSheet?.layoutParams as? MarginLayoutParams)?.let {
+            if (it.bottomMargin != initialSheetBottomMargin) {
+                it.bottomMargin = initialSheetBottomMargin
+                managedBottomSheet?.layoutParams = it
+            }
+        }
+        (managedFollowView?.layoutParams as? MarginLayoutParams)?.let {
+            if (it.bottomMargin != initialFollowBottomMargin) {
+                it.bottomMargin = initialFollowBottomMargin
+                managedFollowView?.layoutParams = it
+            }
+        }
+        lastImeBottomInset = 0
+        lastStableImeBottomInset = 0
     }
 
     private fun buildFallbackGroups(): List<SymbolGroup> {
@@ -343,9 +382,11 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         }
         managedRootView = null
         bottomSheetBehavior?.let { behavior ->
-            bottomSheetCallback?.let(behavior::removeBottomSheetCallback)
+            registeredBottomSheetCallback?.let { callback ->
+                behavior.removeBottomSheetCallback(callback)
+            }
         }
-        bottomSheetCallback = null
+        registeredBottomSheetCallback = null
         bottomSheetBehavior = null
         managedBottomSheet = null
         managedFollowView = null
