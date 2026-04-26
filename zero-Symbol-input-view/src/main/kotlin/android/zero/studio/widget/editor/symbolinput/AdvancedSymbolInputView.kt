@@ -15,6 +15,7 @@ import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import io.github.rosemoe.sora.widget.CodeEditor
+import kotlin.math.max
 import kotlin.math.roundToInt
 
 class AdvancedSymbolInputView @JvmOverloads constructor(
@@ -37,6 +38,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     private val maxRows = 5
     private val spanCount = 8
     private var visibleRows = minRows
+    private val fullTabHeight by lazy { (44 * resources.displayMetrics.density).roundToInt() }
 
     init {
         val root = LayoutInflater.from(context).inflate(R.layout.view_advanced_symbol_input, this, true)
@@ -60,18 +62,19 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
      */
     fun setExpansionFraction(fraction: Float) {
         val clamped = fraction.coerceIn(0f, 1f)
-        if (clamped <= 0.02f) {
-            tabRow.visibility = View.GONE
-        } else {
-            tabRow.visibility = View.VISIBLE
-            tabRow.alpha = clamped
-            tabRow.translationY = (1f - clamped) * -12f * resources.displayMetrics.density
+        val targetHeight = max(0, (fullTabHeight * clamped).roundToInt())
+        val layoutParams = tabRow.layoutParams
+        if (layoutParams.height != targetHeight) {
+            layoutParams.height = targetHeight
+            tabRow.layoutParams = layoutParams
         }
+        tabRow.alpha = clamped
+        tabRow.translationY = (1f - clamped) * -8f * resources.displayMetrics.density
 
         val newRows = minRows + ((maxRows - minRows) * clamped).roundToInt()
         if (newRows != visibleRows) {
             visibleRows = newRows
-            groupAdapter.notifyDataSetChanged()
+            groupAdapter.notifyVisibleRowsChanged()
         }
     }
 
@@ -82,6 +85,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         if (groups.isEmpty()) {
             groups.addAll(buildFallbackGroups())
         }
+        viewPager.setCurrentItem(0, false)
         groupAdapter.notifyDataSetChanged()
         bindTabs()
     }
@@ -115,12 +119,17 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
 
     private fun bindTabs() {
         tabMediator?.detach()
+        if (groups.isEmpty()) {
+            tabLayout.removeAllTabs()
+            return
+        }
         tabMediator = TabLayoutMediator(tabLayout, viewPager) { tab, position ->
             tab.text = groups.getOrNull(position)?.name ?: "Tab ${position + 1}"
         }.apply { attach() }
     }
 
     private inner class GroupPagerAdapter : RecyclerView.Adapter<GroupPagerAdapter.GroupViewHolder>() {
+        private val pageAdapters = mutableMapOf<Int, SymbolAdapter>()
 
         inner class GroupViewHolder(val rv: RecyclerView) : RecyclerView.ViewHolder(rv)
 
@@ -139,10 +148,21 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         }
 
         override fun onBindViewHolder(holder: GroupViewHolder, position: Int) {
-            holder.rv.adapter = SymbolAdapter(groups[position].items)
+            val group = groups.getOrNull(position) ?: return
+            val adapter = pageAdapters.getOrPut(position) { SymbolAdapter(group.items) }
+            holder.rv.adapter = adapter
         }
 
         override fun getItemCount(): Int = groups.size
+
+        override fun notifyDataSetChanged() {
+            pageAdapters.clear()
+            super.notifyDataSetChanged()
+        }
+
+        fun notifyVisibleRowsChanged() {
+            pageAdapters.values.forEach { it.notifyDataSetChanged() }
+        }
     }
 
     private inner class SymbolAdapter(private val items: List<SymbolItem>) : RecyclerView.Adapter<SymbolAdapter.SymbolViewHolder>() {
