@@ -135,7 +135,7 @@ class SymbolManagerActivity : AppCompatActivity() {
         when (item.itemId) {
             R.id.action_add -> {
                 if (symbolGroups.isEmpty()) {
-                    Toast.makeText(this, "请先导入数据或拥有至少一个分组", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, R.string.toast_need_group_first, Toast.LENGTH_SHORT).show()
                 } else {
                     val currentGroup = viewPager.currentItem
                     if (isSettingsPosition(currentGroup)) {
@@ -284,7 +284,7 @@ class SymbolManagerActivity : AppCompatActivity() {
 
     private fun showEditDialog(group: SymbolGroup, itemToEdit: SymbolItem?) {
         showSymbolDialog(
-            title = if (itemToEdit == null) "添加符号" else "编辑符号",
+            title = if (itemToEdit == null) getString(R.string.dialog_title_add_symbol) else getString(R.string.dialog_title_edit_symbol),
             initialItem = itemToEdit,
             showDeleteButton = itemToEdit != null,
             onSave = { newItem ->
@@ -343,7 +343,7 @@ class SymbolManagerActivity : AppCompatActivity() {
         val spLongAction = view.findViewById<Spinner>(R.id.sp_long_action)
         val etLongText = view.findViewById<EditText>(R.id.et_long_text)
 
-        val longNames = mutableListOf("无长按动作").apply { addAll(actionNames) }
+        val longNames = mutableListOf(getString(R.string.action_no_long_press)).apply { addAll(actionNames) }
         spShortAction.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, actionNames)
         spLongAction.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, longNames)
 
@@ -743,8 +743,16 @@ class SymbolManagerActivity : AppCompatActivity() {
             val item = group.items[position]
             holder.tvTitle.text = item.display
 
-            val shortDesc = "短按: ${SymbolDataManager.getActionDesc(this@SymbolManagerActivity, item.shortAction, item.shortText)}"
-            val longDesc = item.longAction?.let { ", 长按: ${SymbolDataManager.getActionDesc(this@SymbolManagerActivity, it, item.longText)}" } ?: ""
+            val shortDesc = getString(
+                R.string.symbol_desc_short,
+                SymbolDataManager.getActionDesc(this@SymbolManagerActivity, item.shortAction, item.shortText)
+            )
+            val longDesc = item.longAction?.let {
+                getString(
+                    R.string.symbol_desc_long,
+                    SymbolDataManager.getActionDesc(this@SymbolManagerActivity, it, item.longText)
+                )
+            } ?: ""
             holder.tvSubtitle.text = shortDesc + longDesc
 
             val selected = isBatchMode && groupIndex == batchGroupIndex && selectedItems.contains(item)

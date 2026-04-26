@@ -97,7 +97,7 @@ object SymbolDataManager {
         val values = context.resources.getIntArray(R.array.symbol_action_values)
         val names = context.resources.getStringArray(R.array.symbol_action_names)
         val index = values.indexOf(actionId)
-        val baseName = if (index >= 0) names[index] else "未知"
+        val baseName = if (index >= 0) names[index] else context.getString(R.string.action_unknown)
         return if (actionId == 0) "$baseName: ${text?.replace("\n", "\\n")}" else baseName
     }
 }
