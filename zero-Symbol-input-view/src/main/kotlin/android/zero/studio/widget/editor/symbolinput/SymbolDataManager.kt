@@ -2,9 +2,7 @@ package android.zero.studio.widget.editor.symbolinput
 
 import android.content.Context
 import com.google.gson.Gson
-import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
-import java.io.InputStreamReader
 
 object SymbolDataManager {
     private const val PREFS_NAME = "advanced_symbol_prefs"
@@ -23,39 +21,31 @@ object SymbolDataManager {
     val gson = Gson()
 
     /**
-     * 从 assets 目录读取默认的符号配置文件
-     */
-    private fun loadDefaultJsonFromAssets(context: Context): String {
-        return try {
-            val inputStream = context.assets.open("editor/symbolinput/Default-Symbol-input.json")
-            InputStreamReader(inputStream).use { it.readText() }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            "[]" // 如果由于某种原因找不到该文件，则返回空数组，防止应用崩溃
-        }
-    }
-
-    /**
-     * 加载符号数据。优先从 SharedPreferences(用户自定义存储) 读取，
-     * 若未找到(例如首次启动)，则回退到加载 Assets 里的默认 JSON。
+     * 加载符号数据。优先从 SharedPreferences(用户自定义存储) 读取。
+     * 若未找到（例如首次启动）则使用内置默认配置，并主动写入缓存，避免后续 I/O。
      */
     fun loadData(context: Context): MutableList<SymbolGroup> {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val json = prefs.getString(KEY_DATA, null)
-        
-        // 若没有用户修改的数据，加载 Assets 的默认配置
-        val finalJson = if (json.isNullOrEmpty()) loadDefaultJsonFromAssets(context) else json
-        
+
+        if (json.isNullOrEmpty()) {
+            val defaults = SymbolDefaults.createFallbackGroups()
+            saveData(context, defaults)
+            return SymbolDefaults.deepCopy(defaults)
+        }
+
         return try {
             val listType = object : TypeToken<MutableList<SymbolGroup>>() {}.type
-            gson.fromJson(finalJson, listType) ?: mutableListOf()
+            gson.fromJson<MutableList<SymbolGroup>>(json, listType)
+                ?.takeIf { it.isNotEmpty() }
+                ?: SymbolDefaults.createFallbackGroups().also { saveData(context, it) }
         } catch (e: Exception) {
             e.printStackTrace()
-            mutableListOf()
+            SymbolDefaults.createFallbackGroups().also { saveData(context, it) }
         }
     }
 
-    /**
+/**
      * 保存用户修改后的数据
      */
     fun saveData(context: Context, data: List<SymbolGroup>) {
@@ -111,6 +101,23 @@ object SymbolDataManager {
     fun getLastPageIndex(context: Context): Int {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         return prefs.getInt(KEY_LAST_PAGE_INDEX, 0).coerceAtLeast(0)
+    }
+
+
+    fun shouldTriggerUiRefresh(key: String?): Boolean {
+        if (key.isNullOrEmpty()) return false
+        return key in setOf(
+            KEY_DATA,
+            KEY_COLLAPSED_ROWS,
+            KEY_SYMBOLS_PER_ROW,
+            KEY_INDICATOR_STYLE,
+            KEY_REMEMBER_EXPANDED,
+            KEY_UNIFORM_GROUP_HEIGHT,
+            KEY_TEXT_SIZE,
+            KEY_SHOW_DRAG_HANDLE,
+            KEY_ADVANCED_ACTIONS,
+            KEY_REMEMBER_LAST_PAGE
+        )
     }
 
     /**

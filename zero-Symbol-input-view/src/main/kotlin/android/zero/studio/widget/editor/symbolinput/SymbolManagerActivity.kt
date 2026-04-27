@@ -1,6 +1,5 @@
 package android.zero.studio.widget.editor.symbolinput
 
-import android.app.AlertDialog
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -18,7 +17,6 @@ import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.PopupMenu
-import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -35,6 +33,8 @@ import androidx.viewpager.widget.PagerAdapter
 import androidx.viewpager.widget.ViewPager
 import androidx.appcompat.widget.SwitchCompat
 import com.google.android.material.appbar.AppBarLayout
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import com.google.android.material.tabs.TabLayout
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -109,6 +109,7 @@ class SymbolManagerActivity : AppCompatActivity() {
         pagerAdapter = GroupPagerAdapter()
         viewPager.adapter = pagerAdapter
         tabLayout.setupWithViewPager(viewPager)
+        applyIndicatorStyle()
         bindGroupTabLongPressMenus()
         viewPager.addOnPageChangeListener(object : ViewPager.SimpleOnPageChangeListener() {
             override fun onPageSelected(position: Int) {
@@ -181,7 +182,7 @@ class SymbolManagerActivity : AppCompatActivity() {
             setText(group.name)
             setSelection(text.length)
         }
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(R.string.dialog_title_rename_group)
             .setView(editText)
             .setPositiveButton(R.string.dialog_save) { _, _ ->
@@ -198,7 +199,7 @@ class SymbolManagerActivity : AppCompatActivity() {
 
     private fun deleteGroup(groupIndex: Int) {
         if (groupIndex !in symbolGroups.indices) return
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setMessage(R.string.dialog_confirm_delete_group)
             .setPositiveButton(R.string.dialog_delete) { _, _ ->
                 symbolGroups.removeAt(groupIndex)
@@ -262,7 +263,7 @@ class SymbolManagerActivity : AppCompatActivity() {
         val editText = EditText(this).apply {
             hint = getString(R.string.group_name)
         }
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(R.string.action_add_group)
             .setView(editText)
             .setPositiveButton(R.string.dialog_save) { _, _ ->
@@ -334,7 +335,7 @@ class SymbolManagerActivity : AppCompatActivity() {
             setText(defaultName)
             setSelection(text.length)
         }
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(R.string.menu_export_file)
             .setView(editText)
             .setPositiveButton(R.string.dialog_save) { _, _ ->
@@ -429,32 +430,39 @@ class SymbolManagerActivity : AppCompatActivity() {
     ) {
         val view = LayoutInflater.from(this).inflate(R.layout.dialog_symbol_edit, null)
         val etDisplay = view.findViewById<EditText>(R.id.et_display)
-        val spShortAction = view.findViewById<Spinner>(R.id.sp_short_action)
+        val acShortAction = view.findViewById<MaterialAutoCompleteTextView>(R.id.ac_short_action)
         val etShortText = view.findViewById<EditText>(R.id.et_short_text)
-        val spLongAction = view.findViewById<Spinner>(R.id.sp_long_action)
+        val acLongAction = view.findViewById<MaterialAutoCompleteTextView>(R.id.ac_long_action)
         val etLongText = view.findViewById<EditText>(R.id.et_long_text)
 
-        val longNames = mutableListOf(getString(R.string.action_no_long_press)).apply { addAll(actionNames) }
-        spShortAction.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, actionNames)
-        spLongAction.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, longNames)
+        val shortActionItems = actionNames.toList()
+        val longActionItems = listOf(getString(R.string.action_no_long_press)) + actionNames.toList()
+        acShortAction.setSimpleItems(shortActionItems.toTypedArray())
+        acLongAction.setSimpleItems(longActionItems.toTypedArray())
+
+        var shortIndex = 0
+        var longIndex = 0
 
         if (initialItem != null) {
             etDisplay.setText(initialItem.display)
             etShortText.setText(initialItem.shortText)
             etLongText.setText(initialItem.longText)
-            spShortAction.setSelection(actionValues.indexOf(initialItem.shortAction).coerceAtLeast(0))
-            initialItem.longAction?.let {
-                spLongAction.setSelection(actionValues.indexOf(it).coerceAtLeast(0) + 1)
-            }
+            shortIndex = actionValues.indexOf(initialItem.shortAction).coerceAtLeast(0)
+            longIndex = initialItem.longAction?.let { actionValues.indexOf(it).coerceAtLeast(0) + 1 } ?: 0
         }
 
-        val builder = AlertDialog.Builder(this)
+        acShortAction.setText(shortActionItems[shortIndex], false)
+        acLongAction.setText(longActionItems[longIndex], false)
+
+        acShortAction.setOnItemClickListener { _, _, position, _ -> shortIndex = position }
+        acLongAction.setOnItemClickListener { _, _, position, _ -> longIndex = position }
+
+        val builder = MaterialAlertDialogBuilder(this)
             .setTitle(title)
             .setView(view)
             .setPositiveButton(R.string.dialog_save) { _, _ ->
-                val shortAct = actionValues[spShortAction.selectedItemPosition]
-                val longPos = spLongAction.selectedItemPosition
-                val longAct = if (longPos > 0) actionValues[longPos - 1] else null
+                val shortAct = actionValues.getOrElse(shortIndex) { actionValues.firstOrNull() ?: 0 }
+                val longAct = if (longIndex > 0) actionValues.getOrNull(longIndex - 1) else null
 
                 val newItem = SymbolItem(
                     shortAction = shortAct,
@@ -491,7 +499,7 @@ class SymbolManagerActivity : AppCompatActivity() {
     }
 
     private fun confirmDeleteSingle(group: SymbolGroup, item: SymbolItem) {
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setMessage(R.string.dialog_confirm_delete_symbol)
             .setPositiveButton(R.string.dialog_delete) { _, _ ->
                 group.items.remove(item)
@@ -557,7 +565,7 @@ class SymbolManagerActivity : AppCompatActivity() {
         }
         if (batchGroupIndex !in symbolGroups.indices) return
 
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setMessage(R.string.dialog_confirm_delete_selected)
             .setPositiveButton(R.string.dialog_delete) { _, _ ->
                 val group = symbolGroups[batchGroupIndex]
@@ -614,7 +622,7 @@ class SymbolManagerActivity : AppCompatActivity() {
 
         fun showChooser() {
             val names = symbolGroups.map { it.name }.toTypedArray()
-            AlertDialog.Builder(this)
+            MaterialAlertDialogBuilder(this)
                 .setTitle(title)
                 .setSingleChoiceItems(names, selectedIndex) { _, which ->
                     selectedIndex = which
@@ -636,6 +644,38 @@ class SymbolManagerActivity : AppCompatActivity() {
     }
 
     private fun isSettingsPosition(position: Int): Boolean = position == symbolGroups.size
+
+    private fun applyIndicatorStyle() {
+        val settings = SymbolDataManager.getUiSettings(this)
+        val accent = getColor(android.R.color.holo_blue_light)
+        tabLayout.setTabIndicatorFullWidth(false)
+        tabLayout.setSelectedTabIndicator(android.graphics.drawable.ColorDrawable(accent))
+        tabLayout.setSelectedTabIndicatorColor(accent)
+        tabLayout.setSelectedTabIndicatorHeight((2 * resources.displayMetrics.density).toInt())
+        tabLayout.setSelectedTabIndicatorGravity(TabLayout.INDICATOR_GRAVITY_BOTTOM)
+
+        when (settings.indicatorStyle) {
+            0 -> Unit
+            1 -> {
+                tabLayout.setSelectedTabIndicator(R.drawable.bg_indicator_capsule)
+                tabLayout.setSelectedTabIndicatorHeight((6 * resources.displayMetrics.density).toInt())
+            }
+            2 -> {
+                tabLayout.setSelectedTabIndicatorHeight(0)
+                tabLayout.setSelectedTabIndicator(android.graphics.drawable.ColorDrawable(0))
+            }
+            3 -> {
+                tabLayout.setSelectedTabIndicator(android.graphics.drawable.ColorDrawable(accent))
+                tabLayout.setSelectedTabIndicatorHeight((3 * resources.displayMetrics.density).toInt())
+                tabLayout.setSelectedTabIndicatorGravity(TabLayout.INDICATOR_GRAVITY_TOP)
+            }
+            4 -> {
+                tabLayout.setTabIndicatorFullWidth(true)
+                tabLayout.setSelectedTabIndicator(R.drawable.bg_indicator_block)
+                tabLayout.setSelectedTabIndicatorGravity(TabLayout.INDICATOR_GRAVITY_STRETCH)
+            }
+        }
+    }
 
     private fun createSettingsPage(container: ViewGroup): View {
         val scrollView = NestedScrollView(this).apply {
@@ -732,7 +772,7 @@ class SymbolManagerActivity : AppCompatActivity() {
         minEdit.setText(settings.collapsedRows.toString())
         maxEdit.setText(settings.symbolsPerRow.toString())
 
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(R.string.settings_lines_title)
             .setView(view)
             .setPositiveButton(R.string.dialog_save) { _, _ ->
@@ -751,7 +791,7 @@ class SymbolManagerActivity : AppCompatActivity() {
     private fun showIndicatorStyleDialog() {
         val settings = SymbolDataManager.getUiSettings(this)
         var checked = settings.indicatorStyle.coerceIn(0, indicatorStyleNames.lastIndex)
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(R.string.settings_indicator_title)
             .setSingleChoiceItems(indicatorStyleNames, checked) { _, which ->
                 checked = which
@@ -770,7 +810,7 @@ class SymbolManagerActivity : AppCompatActivity() {
             inputType = android.text.InputType.TYPE_CLASS_NUMBER
             setText(settings.symbolTextSizeSp.toString())
         }
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(R.string.settings_symbol_text_size)
             .setView(editText)
             .setPositiveButton(R.string.dialog_save) { _, _ ->
