@@ -7,6 +7,7 @@ import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.provider.DocumentsContract
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuItem
@@ -55,6 +56,7 @@ class SymbolManagerActivity : AppCompatActivity() {
     private var isBatchMode = false
     private var batchGroupIndex = -1
     private val selectedItems = linkedSetOf<SymbolItem>()
+    private var dotTabListenerAttached = false
     private val settingsTabTitle by lazy { getString(R.string.settings_tab_title) }
     private val indicatorStyleNames by lazy {
         arrayOf(
@@ -109,6 +111,7 @@ class SymbolManagerActivity : AppCompatActivity() {
         pagerAdapter = GroupPagerAdapter()
         viewPager.adapter = pagerAdapter
         tabLayout.setupWithViewPager(viewPager)
+        ensureDotTabSelectionListener()
         applyIndicatorStyle()
         bindGroupTabLongPressMenus()
         viewPager.addOnPageChangeListener(object : ViewPager.SimpleOnPageChangeListener() {
@@ -648,6 +651,7 @@ class SymbolManagerActivity : AppCompatActivity() {
     private fun applyIndicatorStyle() {
         val settings = SymbolDataManager.getUiSettings(this)
         val accent = getColor(android.R.color.holo_blue_light)
+        tabLayout.tabMode = TabLayout.MODE_SCROLLABLE
         tabLayout.setTabIndicatorFullWidth(false)
         tabLayout.setSelectedTabIndicator(android.graphics.drawable.ColorDrawable(accent))
         tabLayout.setSelectedTabIndicatorColor(accent)
@@ -657,8 +661,9 @@ class SymbolManagerActivity : AppCompatActivity() {
         when (settings.indicatorStyle) {
             0 -> Unit
             1 -> {
-                tabLayout.setSelectedTabIndicator(R.drawable.bg_indicator_capsule)
-                tabLayout.setSelectedTabIndicatorHeight((6 * resources.displayMetrics.density).toInt())
+                tabLayout.tabMode = TabLayout.MODE_FIXED
+                tabLayout.setSelectedTabIndicator(android.graphics.drawable.ColorDrawable(0))
+                tabLayout.setSelectedTabIndicatorHeight(0)
             }
             2 -> {
                 tabLayout.setSelectedTabIndicatorHeight(0)
@@ -675,7 +680,59 @@ class SymbolManagerActivity : AppCompatActivity() {
                 tabLayout.setSelectedTabIndicatorGravity(TabLayout.INDICATOR_GRAVITY_STRETCH)
             }
         }
+        applyTabItemPresentation(settings.indicatorStyle == 1)
     }
+
+    private fun ensureDotTabSelectionListener() {
+        if (dotTabListenerAttached) return
+        tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab) = updateDotTabState(tab, true)
+            override fun onTabUnselected(tab: TabLayout.Tab) = updateDotTabState(tab, false)
+            override fun onTabReselected(tab: TabLayout.Tab) = Unit
+        })
+        dotTabListenerAttached = true
+    }
+
+    private fun applyTabItemPresentation(simpleDots: Boolean) {
+        for (index in 0 until tabLayout.tabCount) {
+            val tab = tabLayout.getTabAt(index) ?: continue
+            if (simpleDots) {
+                if (tab.customView == null) {
+                    tab.customView = createDotTabView()
+                }
+                updateDotTabState(tab, tab.isSelected)
+                tab.contentDescription = tab.text
+            } else {
+                tab.customView = null
+            }
+        }
+    }
+
+    private fun createDotTabView(): View {
+        val dot = View(this)
+        dot.layoutParams = LinearLayout.LayoutParams(dp(8), dp(8)).apply {
+            leftMargin = dp(4)
+            rightMargin = dp(4)
+            gravity = Gravity.CENTER
+        }
+        dot.setBackgroundResource(R.drawable.bg_page_indicator_dot)
+        return dot
+    }
+
+    private fun updateDotTabState(tab: TabLayout.Tab, selected: Boolean) {
+        if (SymbolDataManager.getUiSettings(this).indicatorStyle != 1) return
+        val dot = tab.customView ?: return
+        val params = dot.layoutParams as? LinearLayout.LayoutParams ?: return
+        val width = if (selected) dp(18) else dp(8)
+        if (params.width != width) {
+            params.width = width
+            dot.layoutParams = params
+        }
+        dot.alpha = if (selected) 1f else 0.65f
+        dot.setBackgroundResource(if (selected) R.drawable.bg_page_indicator_capsule else R.drawable.bg_page_indicator_dot)
+    }
+
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
     private fun createSettingsPage(container: ViewGroup): View {
         val scrollView = NestedScrollView(this).apply {

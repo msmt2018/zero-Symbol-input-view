@@ -60,6 +60,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     private var isDragging = false
     private var heightAnimator: ValueAnimator? = null
     private var lastSavedPageIndex = -1
+    private var dotTabListenerAttached = false
 
     // 为兼容 MainActivity 旧代码提供空实现
     var followSystemIme: Boolean = false
@@ -73,6 +74,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
 
         viewPager.adapter = pagerAdapter
         tabLayout.setupWithViewPager(viewPager)
+        ensureDotTabSelectionListener()
         viewPager.addOnPageChangeListener(object : ViewPager.SimpleOnPageChangeListener() {
             override fun onPageSelected(position: Int) {
                 if (uiSettings.rememberLastPage && lastSavedPageIndex != position) {
@@ -280,6 +282,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     private fun applyIndicatorStyle() {
         val accent = fetchColor(android.R.attr.colorAccent)
         tabLayout.isInlineLabel = false
+        tabLayout.tabMode = TabLayout.MODE_SCROLLABLE
         tabLayout.setTabIndicatorFullWidth(false)
         tabLayout.setSelectedTabIndicator(ColorDrawable(accent))
         tabLayout.setSelectedTabIndicatorColor(accent)
@@ -289,9 +292,10 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         when (uiSettings.indicatorStyle) {
             0 -> Unit // 标准
             1 -> {
-                tabLayout.setSelectedTabIndicator(R.drawable.bg_indicator_capsule)
-                tabLayout.setSelectedTabIndicatorHeight((6 * resources.displayMetrics.density).roundToInt())
-                tabLayout.setSelectedTabIndicatorGravity(TabLayout.INDICATOR_GRAVITY_BOTTOM)
+                // 简洁风格：采用页码点样式，不显示 Tab 文本与默认 TabLayout 指示条
+                tabLayout.tabMode = TabLayout.MODE_FIXED
+                tabLayout.setSelectedTabIndicator(ColorDrawable(0))
+                tabLayout.setSelectedTabIndicatorHeight(0)
             }
             2 -> {
                 tabLayout.setSelectedTabIndicator(ColorDrawable(0))
@@ -308,6 +312,62 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
                 tabLayout.setSelectedTabIndicatorGravity(TabLayout.INDICATOR_GRAVITY_STRETCH)
             }
         }
+        applyTabItemPresentation()
+    }
+
+    private fun ensureDotTabSelectionListener() {
+        if (dotTabListenerAttached) return
+        tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab) = updateDotTabState(tab, true)
+            override fun onTabUnselected(tab: TabLayout.Tab) = updateDotTabState(tab, false)
+            override fun onTabReselected(tab: TabLayout.Tab) = Unit
+        })
+        dotTabListenerAttached = true
+    }
+
+    private fun applyTabItemPresentation() {
+        val isSimpleDots = uiSettings.indicatorStyle == 1
+        for (index in 0 until tabLayout.tabCount) {
+            val tab = tabLayout.getTabAt(index) ?: continue
+            if (isSimpleDots) {
+                if (tab.customView == null) {
+                    tab.customView = createDotTabView()
+                }
+                updateDotTabState(tab, tab.isSelected)
+                tab.contentDescription = groups.getOrNull(index)?.name
+            } else {
+                tab.customView = null
+            }
+        }
+    }
+
+    private fun createDotTabView(): View {
+        val dot = View(context)
+        dot.layoutParams = LinearLayout.LayoutParams(
+            (8 * resources.displayMetrics.density).roundToInt(),
+            (8 * resources.displayMetrics.density).roundToInt()
+        ).apply {
+            leftMargin = (4 * resources.displayMetrics.density).roundToInt()
+            rightMargin = (4 * resources.displayMetrics.density).roundToInt()
+            gravity = Gravity.CENTER
+        }
+        dot.setBackgroundResource(R.drawable.bg_page_indicator_dot)
+        return dot
+    }
+
+    private fun updateDotTabState(tab: TabLayout.Tab, selected: Boolean) {
+        if (uiSettings.indicatorStyle != 1) return
+        val dot = tab.customView ?: return
+        val params = dot.layoutParams as? LinearLayout.LayoutParams ?: return
+        val width = ((if (selected) 18 else 8) * resources.displayMetrics.density).roundToInt()
+        if (params.width != width) {
+            params.width = width
+            dot.layoutParams = params
+        }
+        dot.alpha = if (selected) 1f else 0.65f
+        dot.setBackgroundResource(
+            if (selected) R.drawable.bg_page_indicator_capsule else R.drawable.bg_page_indicator_dot
+        )
     }
 
     private fun fetchColor(attr: Int): Int {
