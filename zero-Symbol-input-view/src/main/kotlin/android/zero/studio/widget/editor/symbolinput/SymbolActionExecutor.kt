@@ -75,7 +75,9 @@ object SymbolActionExecutor {
             val caret = editor.cursor.left().index
             val delta = selectionEnd - insertCursor
             val target = (caret + delta).coerceIn(0, editor.text.length)
-            editor.setSelectionRegion(caret, target)
+            val start = editor.text.indexer.getCharPosition(caret.coerceAtMost(target))
+            val end = editor.text.indexer.getCharPosition(caret.coerceAtLeast(target))
+            editor.setSelectionRegion(start.line, start.column, end.line, end.column)
         }
     }
 
