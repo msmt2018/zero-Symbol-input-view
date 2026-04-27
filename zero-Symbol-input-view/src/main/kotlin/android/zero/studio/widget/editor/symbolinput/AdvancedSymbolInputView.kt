@@ -43,7 +43,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     private val pagerAdapter = SymbolPagerAdapter()
     private var uiSettings = SymbolUiSettings()
     private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-        if (key?.startsWith("symbol_") == true) {
+        if (SymbolDataManager.shouldTriggerUiRefresh(key)) {
             refreshData()
         }
     }
@@ -58,6 +58,8 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     private var initialX = 0f
     private var lastY = 0f
     private var isDragging = false
+    private var heightAnimator: ValueAnimator? = null
+    private var lastSavedPageIndex = -1
 
     // 为兼容 MainActivity 旧代码提供空实现
     var followSystemIme: Boolean = false
@@ -73,7 +75,8 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         tabLayout.setupWithViewPager(viewPager)
         viewPager.addOnPageChangeListener(object : ViewPager.SimpleOnPageChangeListener() {
             override fun onPageSelected(position: Int) {
-                if (uiSettings.rememberLastPage) {
+                if (uiSettings.rememberLastPage && lastSavedPageIndex != position) {
+                    lastSavedPageIndex = position
                     SymbolDataManager.setLastPageIndex(context, position)
                 }
                 if (!uiSettings.uniformGroupHeight) {
@@ -109,7 +112,9 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         groups.clear()
         groups.addAll(newData.filter { it.items.isNotEmpty() })
         if (groups.isEmpty()) {
-            groups.addAll(buildFallbackGroups())
+            val defaults = SymbolDefaults.createFallbackGroups()
+            groups.addAll(defaults)
+            SymbolDataManager.saveData(context, defaults)
         }
         applyIndicatorStyle()
         recalculateHeights()
@@ -121,6 +126,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
                 0
             }
             viewPager.currentItem = target
+            lastSavedPageIndex = target
         }
         tabLayout.post { applyIndicatorStyle() }
     }
@@ -168,6 +174,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
+                heightAnimator?.cancel()
                 initialY = event.rawY
                 lastY = event.rawY
                 return true
@@ -202,79 +209,51 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
 
     private fun animateToHeight(targetHeight: Int) {
         val currentHeight = viewPager.layoutParams.height.coerceAtLeast(collapsedHeightPx)
-        val animator = ValueAnimator.ofInt(currentHeight, targetHeight)
-        animator.duration = 200
-        animator.addUpdateListener { animation ->
-            updatePagerHeight(animation.animatedValue as Int)
+        if (currentHeight == targetHeight) return
+        heightAnimator?.cancel()
+        heightAnimator = ValueAnimator.ofInt(currentHeight, targetHeight).apply {
+            duration = 200
+            addUpdateListener { animation ->
+                updatePagerHeight(animation.animatedValue as Int)
+            }
+            start()
         }
-        animator.start()
     }
 
     private fun updatePagerHeight(height: Int) {
-        val params = viewPager.layoutParams
         val clamped = height.coerceIn(collapsedHeightPx, expandedHeightPx)
-        params.height = clamped
-        viewPager.layoutParams = params
-        val fraction = (clamped - collapsedHeightPx).toFloat() / (expandedHeightPx - collapsedHeightPx).toFloat()
+        val params = viewPager.layoutParams
+        if (params.height != clamped) {
+            params.height = clamped
+            viewPager.layoutParams = params
+        }
+        val range = (expandedHeightPx - collapsedHeightPx).coerceAtLeast(1)
+        val fraction = (clamped - collapsedHeightPx).toFloat() / range.toFloat()
         applyTabRowByFraction(fraction)
     }
 
     private fun applyTabRowByFraction(fraction: Float) {
         val clamped = fraction.coerceIn(0f, 1f)
-        val targetHeight = (fullTabHeightPx * clamped).roundToInt()
+        // Material 风格下采用“延迟开始、提前完成”的跟随曲线，避免 0%/100% 的突兀感
+        // 例如抽屉到 10% 时，Tab 大约出现 4% 左右；到 55% 时基本完成显现
+        val revealStart = 0.08f
+        val revealEnd = 0.55f
+        val revealProgress = ((clamped - revealStart) / (revealEnd - revealStart)).coerceIn(0f, 1f)
+
         val params = tabRow.layoutParams
+        val rawHeight = (fullTabHeightPx * revealProgress).roundToInt()
+        val quantizeStep = (2 * resources.displayMetrics.density).roundToInt().coerceAtLeast(1)
+        val targetHeight = (rawHeight / quantizeStep) * quantizeStep
         if (params.height != targetHeight) {
             params.height = targetHeight
             tabRow.layoutParams = params
         }
-        tabRow.alpha = clamped
-        tabRow.translationY = (1f - clamped) * -6f * resources.displayMetrics.density
-        tabRow.visibility = if (clamped == 0f) View.INVISIBLE else View.VISIBLE
+        tabRow.alpha = revealProgress
+        tabRow.translationY = (1f - revealProgress) * -6f * resources.displayMetrics.density
+        tabRow.visibility = if (targetHeight == 0) View.INVISIBLE else View.VISIBLE
     }
 
-private fun buildFallbackGroups(): List<SymbolGroup> {
-    return listOf(
 
-        SymbolGroup("commonlyUsed", mutableListOf(
-            SymbolItem(18, "←", null, 16, null),
-            SymbolItem(20, "↑", null, 23, null),
-            SymbolItem(19, "→", null, 17, null),
-            SymbolItem(0, "\"", "\""),
-            SymbolItem(0, "'", "'"),
-            SymbolItem(0, ".", "."),
-            SymbolItem(0, ",", ","),
-            SymbolItem(0, "/", "/"),
-            SymbolItem(0, "//", "//"),
-            SymbolItem(21, "↓", null, 24, null),
-            SymbolItem(0, ":", ":"),
-            SymbolItem(0, ";", ";"),
-            SymbolItem(0, "#", "#"),
-            SymbolItem(0, "+", "+"),
-            SymbolItem(0, "-", "-"),
-            SymbolItem(0, "*", "*"),
-            SymbolItem(0, "=", "="),
-            SymbolItem(0, "|", "|"),
-            SymbolItem(0, "~", "~"),
-            SymbolItem(0, "(", "("),
-            SymbolItem(0, ")", ")"),
-            SymbolItem(0, "(\"", "(\""),
-            SymbolItem(0, "\")", "\")"),
-            SymbolItem(0, "{", "{"),
-            SymbolItem(0, "}", "}"),
-            SymbolItem(0, "()", "()", 0, "()"),
-            SymbolItem(0, "[]", "[]", 0, "[]"),
-            SymbolItem(0, "{}", "{}", 0, "{}"),
-            SymbolItem(0, "<", "<"),
-            SymbolItem(0, ">", ">"),
-            SymbolItem(0, "\\", "\\"),
-            SymbolItem(0, "$", "$"),
-            SymbolItem(0, "&", "&"),
-            SymbolItem(0, "/*", "/**"),
-            SymbolItem(0, "*/", "*/"),
-            SymbolItem(22, "settings")
-        ))
-    )
-}
 
 
     private fun recalculateHeights() {
@@ -299,36 +278,32 @@ private fun buildFallbackGroups(): List<SymbolGroup> {
     }
 
     private fun applyIndicatorStyle() {
-        tabLayout.setSelectedTabIndicatorColor(fetchColor(android.R.attr.colorAccent))
-        tabLayout.setSelectedTabIndicatorHeight((2 * resources.displayMetrics.density).roundToInt())
-        tabLayout.setSelectedTabIndicator(ColorDrawable(fetchColor(android.R.attr.colorAccent)))
-        tabLayout.setSelectedTabIndicatorGravity(TabLayout.INDICATOR_GRAVITY_BOTTOM)
+        val accent = fetchColor(android.R.attr.colorAccent)
         tabLayout.isInlineLabel = false
+        tabLayout.setTabIndicatorFullWidth(false)
+        tabLayout.setSelectedTabIndicator(ColorDrawable(accent))
+        tabLayout.setSelectedTabIndicatorColor(accent)
+        tabLayout.setSelectedTabIndicatorHeight((2 * resources.displayMetrics.density).roundToInt())
+        tabLayout.setSelectedTabIndicatorGravity(TabLayout.INDICATOR_GRAVITY_BOTTOM)
 
         when (uiSettings.indicatorStyle) {
-            0 -> {
-                // 标准
-                tabLayout.setSelectedTabIndicatorHeight((2 * resources.displayMetrics.density).roundToInt())
-                tabLayout.setSelectedTabIndicatorGravity(TabLayout.INDICATOR_GRAVITY_BOTTOM)
-            }
+            0 -> Unit // 标准
             1 -> {
-                // 简洁胶囊
                 tabLayout.setSelectedTabIndicator(R.drawable.bg_indicator_capsule)
                 tabLayout.setSelectedTabIndicatorHeight((6 * resources.displayMetrics.density).roundToInt())
                 tabLayout.setSelectedTabIndicatorGravity(TabLayout.INDICATOR_GRAVITY_BOTTOM)
             }
             2 -> {
-                // 隐藏
-                tabLayout.setSelectedTabIndicatorHeight(0)
                 tabLayout.setSelectedTabIndicator(ColorDrawable(0))
+                tabLayout.setSelectedTabIndicatorHeight(0)
             }
             3 -> {
-                // 顶部线条
+                tabLayout.setSelectedTabIndicator(ColorDrawable(accent))
                 tabLayout.setSelectedTabIndicatorHeight((3 * resources.displayMetrics.density).roundToInt())
                 tabLayout.setSelectedTabIndicatorGravity(TabLayout.INDICATOR_GRAVITY_TOP)
             }
             4 -> {
-                // 块状
+                tabLayout.setTabIndicatorFullWidth(true)
                 tabLayout.setSelectedTabIndicator(R.drawable.bg_indicator_block)
                 tabLayout.setSelectedTabIndicatorGravity(TabLayout.INDICATOR_GRAVITY_STRETCH)
             }
