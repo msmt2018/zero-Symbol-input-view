@@ -126,4 +126,5 @@
     <string name="tab_action_delete">Delete</string>
     <string name="dialog_title_rename_group">Rename Group</string>
     <string name="dialog_confirm_delete_group">Delete this group and all symbols permanently?</string>
+    <string name="symbol_macro_help">$$ என்பது $ ஐ குறிக்கும் \n $S தேர்வின் தொடக்க இடத்தை அமைக்கும் \n $E தேர்வின் முடிவு இடத்தை அமைக்கும் \n $T தற்போது தேர்ந்தெடுக்கப்பட்ட உரையை குறிக்கும் \n உதாரணம்: {$S$T$E}</string>
 </resources>

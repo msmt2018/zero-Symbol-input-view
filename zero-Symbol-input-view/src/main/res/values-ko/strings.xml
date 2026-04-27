@@ -126,4 +126,5 @@
     <string name="tab_action_delete">Delete</string>
     <string name="dialog_title_rename_group">Rename Group</string>
     <string name="dialog_confirm_delete_group">Delete this group and all symbols permanently?</string>
+    <string name="symbol_macro_help">$$ 는 $ 를 의미합니다 \n $S 는 선택 시작 위치를 설정합니다 \n $E 는 선택 종료 위치를 설정합니다 \n $T 는 현재 선택된 텍스트를 의미합니다 \n 예시: {$S$T$E}</string>
 </resources>
