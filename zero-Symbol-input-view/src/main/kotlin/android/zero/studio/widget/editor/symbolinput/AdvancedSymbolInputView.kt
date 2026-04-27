@@ -257,6 +257,14 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         } else {
             updatePagerHeight(targetHeight)
         }
+        val panelHeightNow = panelHeightPx
+        val clampedTargetHeight = panelHeightNow.coerceIn(collapsedHeightPx, expandedHeightPx)
+        val animateResize = animate && panelHeightNow > collapsedHeightPx && clampedTargetHeight != panelHeightNow
+        if (animateResize) {
+            animateToHeight(clampedTargetHeight)
+        } else {
+            updatePagerHeight(clampedTargetHeight)
+        }
     }
 
     private fun calculateExpandedHeightForGroup(group: SymbolGroup): Int {
