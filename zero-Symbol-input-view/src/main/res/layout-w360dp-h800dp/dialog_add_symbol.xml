@@ -7,7 +7,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="20dp">
+        android:padding="18dp">
 
         <EditText
             android:id="@+id/et_group_name"
@@ -32,7 +32,7 @@
         <Spinner
             android:id="@+id/spinner_short_action"
             android:layout_width="match_parent"
-            android:layout_height="48dp"
+            android:layout_height="46dp"
             android:entries="@array/symbol_action_names"/>
 
         <EditText
@@ -51,7 +51,7 @@
         <Spinner
             android:id="@+id/spinner_long_action"
             android:layout_width="match_parent"
-            android:layout_height="48dp" />
+            android:layout_height="46dp" />
 
         <EditText
             android:id="@+id/et_long_text"

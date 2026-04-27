@@ -27,8 +27,8 @@
             android:background="?attr/colorSurface"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingHorizontal="12dp"
-            android:paddingVertical="8dp"
+            android:paddingHorizontal="24dp"
+            android:paddingVertical="16dp"
             android:visibility="gone">
 
             <TextView
@@ -80,7 +80,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:gravity="center"
-                android:paddingHorizontal="12dp"
+                android:paddingHorizontal="24dp"
                 android:paddingVertical="10dp"
                 android:text="@string/action_batch_close"
                 android:textColor="?android:attr/textColorPrimary" />

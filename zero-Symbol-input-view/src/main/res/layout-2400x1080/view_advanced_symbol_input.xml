@@ -8,11 +8,11 @@
     <LinearLayout
         android:id="@+id/tab_row"
         android:layout_width="match_parent"
-        android:layout_height="44dp"
+        android:layout_height="46dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="8dp"
-        android:paddingEnd="8dp">
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp">
 
         <!-- <ImageView -->
             <!-- android:id="@+id/drag_indicator" -->
