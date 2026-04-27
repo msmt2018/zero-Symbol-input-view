@@ -174,6 +174,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
+                heightAnimator?.cancel()
                 initialY = event.rawY
                 lastY = event.rawY
                 return true
@@ -220,18 +221,21 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     }
 
     private fun updatePagerHeight(height: Int) {
-        val params = viewPager.layoutParams
         val clamped = height.coerceIn(collapsedHeightPx, expandedHeightPx)
-        params.height = clamped
-        viewPager.layoutParams = params
-        val fraction = (clamped - collapsedHeightPx).toFloat() / (expandedHeightPx - collapsedHeightPx).toFloat()
+        val params = viewPager.layoutParams
+        if (params.height != clamped) {
+            params.height = clamped
+            viewPager.layoutParams = params
+        }
+        val range = (expandedHeightPx - collapsedHeightPx).coerceAtLeast(1)
+        val fraction = (clamped - collapsedHeightPx).toFloat() / range.toFloat()
         applyTabRowByFraction(fraction)
     }
 
     private fun applyTabRowByFraction(fraction: Float) {
         val clamped = fraction.coerceIn(0f, 1f)
-        val targetHeight = (fullTabHeightPx * clamped).roundToInt()
         val params = tabRow.layoutParams
+        val targetHeight = if (clamped == 0f) 0 else fullTabHeightPx
         if (params.height != targetHeight) {
             params.height = targetHeight
             tabRow.layoutParams = params
