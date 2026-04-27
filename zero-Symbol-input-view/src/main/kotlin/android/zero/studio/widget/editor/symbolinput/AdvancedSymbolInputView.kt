@@ -50,7 +50,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
 
     private val rowHeightPx by lazy { (36 * resources.displayMetrics.density).roundToInt() }
     private val itemHeightPx by lazy { (44 * resources.displayMetrics.density).roundToInt() }
-    private val fullTabHeightPx by lazy { (44 * resources.displayMetrics.density).roundToInt() }
+    private var fullTabHeightPx = (44 * resources.displayMetrics.density).roundToInt()
     private val collapsedExtraPaddingPx by lazy { (20 * resources.displayMetrics.density).roundToInt() }
     private val gridVerticalPaddingPx by lazy { (12 * resources.displayMetrics.density).roundToInt() }
     private var collapsedHeightPx = rowHeightPx * 2 + collapsedExtraPaddingPx
@@ -81,6 +81,9 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         viewPager = root.findViewById(R.id.symbol_view_pager)
         tabLayout = root.findViewById(R.id.symbol_tab_layout)
         tabRow = root.findViewById(R.id.tab_row)
+        fullTabHeightPx = tabRow.layoutParams.height
+            .takeIf { it > 0 }
+            ?: fullTabHeightPx
 
         viewPager.adapter = pagerAdapter
         tabLayout.setupWithViewPager(viewPager)
@@ -286,7 +289,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         )
         expandedHeightCache[key]?.let { return it }
         val rows = (group.items.size + cols - 1) / cols
-        return ((rows.coerceAtLeast(2) * itemHeightPx) + gridVerticalPaddingPx + fullTabHeightPx)
+        return ((rows.coerceAtLeast(2) * itemHeightPx) + gridVerticalPaddingPx)
             .also { expandedHeightCache[key] = it }
     }
 

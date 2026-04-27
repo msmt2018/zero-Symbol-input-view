@@ -8,7 +8,7 @@
     <LinearLayout
         android:id="@+id/tab_row"
         android:layout_width="match_parent"
-        android:layout_height="44dp"
+        android:layout_height="42dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingStart="8dp"
