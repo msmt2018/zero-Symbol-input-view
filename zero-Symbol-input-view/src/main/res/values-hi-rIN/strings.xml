@@ -126,4 +126,5 @@
     <string name="tab_action_delete">Delete</string>
     <string name="dialog_title_rename_group">Rename Group</string>
     <string name="dialog_confirm_delete_group">Delete this group and all symbols permanently?</string>
+    <string name="symbol_macro_help">$$ का मतलब $ है \n $S चयन की शुरुआत की स्थिति सेट करता है \n $E चयन की समाप्ति की स्थिति सेट करता है \n $T वर्तमान चयनित पाठ को दर्शाता है \n उदाहरण: {$S$T$E}</string>
 </resources>

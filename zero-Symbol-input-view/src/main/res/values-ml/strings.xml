@@ -126,4 +126,5 @@
     <string name="tab_action_delete">Delete</string>
     <string name="dialog_title_rename_group">Rename Group</string>
     <string name="dialog_confirm_delete_group">Delete this group and all symbols permanently?</string>
+    <string name="symbol_macro_help">$$ എന്നത് $ നെ സൂചിപ്പിക്കുന്നു \n $S തിരഞ്ഞെടുപ്പിന്റെ ആരംഭ സ്ഥാനം സജ്ജമാക്കുന്നു \n $E തിരഞ്ഞെടുപ്പിന്റെ അവസാന സ്ഥാനം സജ്ജമാക്കുന്നു \n $T നിലവിൽ തെരഞ്ഞെടുത്ത ടെക്സ്റ്റിനെ സൂചിപ്പിക്കുന്നു \n ഉദാഹരണം: {$S$T$E}</string>
 </resources>

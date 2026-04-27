@@ -126,4 +126,5 @@
     <string name="tab_action_delete">Delete</string>
     <string name="dialog_title_rename_group">Rename Group</string>
     <string name="dialog_confirm_delete_group">Delete this group and all symbols permanently?</string>
+    <string name="symbol_macro_help">$$ nghĩa là $ \n $S đặt vị trí bắt đầu chọn \n $E đặt vị trí kết thúc chọn \n $T nghĩa là văn bản đang được chọn \n Ví dụ: {$S$T$E}</string>
 </resources>
