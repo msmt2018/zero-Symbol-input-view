@@ -239,11 +239,23 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     private fun recalculateHeights(animate: Boolean = false) {
         collapsedHeightPx = rowHeightPx * uiSettings.collapsedRows.coerceAtLeast(1) + (20 * resources.displayMetrics.density).roundToInt()
         val baseExpanded = (220 * resources.displayMetrics.density).roundToInt()
-        expandedHeightPx = if (uiSettings.uniformGroupHeight) {
-            groups.maxOfOrNull { calculateExpandedHeightForGroup(it) }?.coerceAtLeast(baseExpanded) ?: baseExpanded
+        val current = groups.getOrNull(viewPager.currentItem)
+        expandedHeightPx = (current?.let(::calculateExpandedHeightForGroup) ?: baseExpanded).coerceAtLeast(baseExpanded)
+        val currentHeight = panelHeightPx
+        val targetHeight = currentHeight.coerceIn(collapsedHeightPx, expandedHeightPx)
+        val shouldAnimate = animate && currentHeight > collapsedHeightPx && targetHeight != currentHeight
+        if (shouldAnimate) {
+            animateToHeight(targetHeight)
         } else {
-            val current = groups.getOrNull(viewPager.currentItem)
-            (current?.let(::calculateExpandedHeightForGroup) ?: baseExpanded).coerceAtLeast(baseExpanded)
+            updatePagerHeight(targetHeight)
+        }
+        val currentHeight = panelHeightPx
+        val targetHeight = currentHeight.coerceIn(collapsedHeightPx, expandedHeightPx)
+        val shouldAnimate = animate && currentHeight > collapsedHeightPx && targetHeight != currentHeight
+        if (shouldAnimate) {
+            animateToHeight(targetHeight)
+        } else {
+            updatePagerHeight(targetHeight)
         }
         val panelHeightNow = panelHeightPx
         val clampedTargetHeight = panelHeightNow.coerceIn(collapsedHeightPx, expandedHeightPx)
