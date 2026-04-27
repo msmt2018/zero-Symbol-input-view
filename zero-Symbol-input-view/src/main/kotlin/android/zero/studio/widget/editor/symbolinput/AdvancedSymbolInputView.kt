@@ -241,6 +241,7 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         val baseExpanded = (220 * resources.displayMetrics.density).roundToInt()
         val current = groups.getOrNull(viewPager.currentItem)
         expandedHeightPx = (current?.let(::calculateExpandedHeightForGroup) ?: baseExpanded).coerceAtLeast(baseExpanded)
+
         val currentHeight = panelHeightPx
         val targetHeight = currentHeight.coerceIn(collapsedHeightPx, expandedHeightPx)
         val shouldAnimate = animate && currentHeight > collapsedHeightPx && targetHeight != currentHeight
@@ -248,22 +249,6 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
             animateToHeight(targetHeight)
         } else {
             updatePagerHeight(targetHeight)
-        }
-        val currentHeight = panelHeightPx
-        val targetHeight = currentHeight.coerceIn(collapsedHeightPx, expandedHeightPx)
-        val shouldAnimate = animate && currentHeight > collapsedHeightPx && targetHeight != currentHeight
-        if (shouldAnimate) {
-            animateToHeight(targetHeight)
-        } else {
-            updatePagerHeight(targetHeight)
-        }
-        val panelHeightNow = panelHeightPx
-        val clampedTargetHeight = panelHeightNow.coerceIn(collapsedHeightPx, expandedHeightPx)
-        val animateResize = animate && panelHeightNow > collapsedHeightPx && clampedTargetHeight != panelHeightNow
-        if (animateResize) {
-            animateToHeight(clampedTargetHeight)
-        } else {
-            updatePagerHeight(clampedTargetHeight)
         }
     }
 
