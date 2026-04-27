@@ -47,13 +47,35 @@ object SymbolActionExecutor {
     }
 
     private fun insertTextWithMacro(editor: CodeEditor, text: String) {
-        val cursorToken = "\$T"
-        if (text.contains(cursorToken)) {
-            val parts = text.split(cursorToken, limit = 2)
-            val insertStr = parts[0] + parts[1]
-            editor.insertText(insertStr, parts[0].length)
+        val selectedText = if (editor.cursor.isSelected) {
+            val left = editor.cursor.left().index
+            val right = editor.cursor.right().index
+            editor.text.subSequence(left, right).toString()
         } else {
-            editor.insertText(text, text.length)
+            ""
+        }
+
+        val placeholder = "\u0000"
+        val normalized = text.replace("$$", placeholder)
+
+        val startIndex = normalized.indexOf("\$S").takeIf { it >= 0 }
+        val endIndex = normalized.indexOf("\$E").takeIf { it >= 0 }
+
+        var output = normalized
+            .replace("\$S", "")
+            .replace("\$E", "")
+            .replace("\$T", selectedText)
+            .replace(placeholder, "$")
+
+        val insertCursor = startIndex?.coerceIn(0, output.length) ?: output.length
+        val selectionEnd = endIndex?.coerceIn(0, output.length) ?: insertCursor
+
+        editor.insertText(output, insertCursor)
+        if (selectionEnd != insertCursor) {
+            val caret = editor.cursor.left().index
+            val delta = selectionEnd - insertCursor
+            val target = (caret + delta).coerceIn(0, editor.text.length)
+            editor.setSelectionRegion(caret, target)
         }
     }
 
