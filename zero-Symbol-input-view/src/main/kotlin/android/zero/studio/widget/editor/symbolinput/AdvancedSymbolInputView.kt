@@ -50,7 +50,6 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
     }
 
     private val rowHeightPx by lazy { (36 * resources.displayMetrics.density).roundToInt() }
-    private val fullTabHeightPx by lazy { (44 * resources.displayMetrics.density).roundToInt() }
     private var collapsedHeightPx = rowHeightPx * 2 + (20 * resources.displayMetrics.density).roundToInt()
     private var expandedHeightPx = (220 * resources.displayMetrics.density).roundToInt()
     private var panelHeightPx = collapsedHeightPx
@@ -78,7 +77,9 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
                 if (uiSettings.rememberLastPage) {
                     SymbolDataManager.setLastPageIndex(context, position)
                 }
-                recalculateHeights(animate = true)
+                if (!uiSettings.uniformGroupHeight) {
+                    recalculateHeights(animate = false)
+                }
             }
         })
 
@@ -226,15 +227,9 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
 
     private fun applyTabRowByFraction(fraction: Float) {
         val clamped = fraction.coerceIn(0f, 1f)
-        val targetHeight = (fullTabHeightPx * clamped).roundToInt()
-        val params = tabRow.layoutParams
-        if (params.height != targetHeight) {
-            params.height = targetHeight
-            tabRow.layoutParams = params
-        }
         tabRow.alpha = clamped
         tabRow.translationY = (1f - clamped) * -6f * resources.displayMetrics.density
-        tabRow.visibility = if (clamped == 0f) View.INVISIBLE else View.VISIBLE
+        tabRow.visibility = if (clamped <= 0.01f) View.INVISIBLE else View.VISIBLE
     }
 
     private fun buildFallbackGroups(): List<SymbolGroup> = buildFallbackSymbolGroups()
@@ -246,6 +241,14 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
         val baseExpanded = (220 * resources.displayMetrics.density).roundToInt()
         val current = groups.getOrNull(viewPager.currentItem)
         expandedHeightPx = (current?.let(::calculateExpandedHeightForGroup) ?: baseExpanded).coerceAtLeast(baseExpanded)
+        val currentHeight = panelHeightPx
+        val targetHeight = currentHeight.coerceIn(collapsedHeightPx, expandedHeightPx)
+        val shouldAnimate = animate && currentHeight > collapsedHeightPx && targetHeight != currentHeight
+        if (shouldAnimate) {
+            animateToHeight(targetHeight)
+        } else {
+            updatePagerHeight(targetHeight)
+        }
         val currentHeight = panelHeightPx
         val targetHeight = currentHeight.coerceIn(collapsedHeightPx, expandedHeightPx)
         val shouldAnimate = animate && currentHeight > collapsedHeightPx && targetHeight != currentHeight
