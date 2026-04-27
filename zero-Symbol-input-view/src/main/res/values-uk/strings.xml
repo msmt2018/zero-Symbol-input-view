@@ -126,4 +126,5 @@
     <string name="tab_action_delete">Delete</string>
     <string name="dialog_title_rename_group">Rename Group</string>
     <string name="dialog_confirm_delete_group">Delete this group and all symbols permanently?</string>
+    <string name="symbol_macro_help">$$ означає $ \n $S задає початкову позицію виділення \n $E задає кінцеву позицію виділення \n $T означає поточний виділений текст \n Приклад: {$S$T$E}</string>
 </resources>
