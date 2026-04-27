@@ -25,6 +25,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.widget.NestedScrollView
 import androidx.recyclerview.widget.ItemTouchHelper
@@ -34,6 +35,7 @@ import androidx.viewpager.widget.PagerAdapter
 import androidx.viewpager.widget.ViewPager
 import androidx.appcompat.widget.SwitchCompat
 import com.google.android.material.appbar.AppBarLayout
+import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import com.google.android.material.tabs.TabLayout
@@ -58,15 +60,6 @@ class SymbolManagerActivity : AppCompatActivity() {
     private val selectedItems = linkedSetOf<SymbolItem>()
     private var dotTabListenerAttached = false
     private val settingsTabTitle by lazy { getString(R.string.settings_tab_title) }
-    private val indicatorStyleNames by lazy {
-        arrayOf(
-            getString(R.string.settings_style_standard),
-            getString(R.string.settings_style_simple),
-            getString(R.string.settings_style_hidden),
-            getString(R.string.settings_style_top_line),
-            getString(R.string.settings_style_block)
-        )
-    }
     private val importFileLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let(::importFromUri)
     }
@@ -78,6 +71,7 @@ class SymbolManagerActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, true)
         setContentView(R.layout.activity_symbol_manager)
+        setupStatusBar()
 
         val toolbar = findViewById<Toolbar>(R.id.toolbar)
         appBarLayout = findViewById(R.id.app_bar_layout)
@@ -649,38 +643,16 @@ class SymbolManagerActivity : AppCompatActivity() {
     private fun isSettingsPosition(position: Int): Boolean = position == symbolGroups.size
 
     private fun applyIndicatorStyle() {
-        val settings = SymbolDataManager.getUiSettings(this)
-        val accent = getColor(android.R.color.holo_blue_light)
+        val accent = MaterialColors.getColor(tabLayout, com.google.android.material.R.attr.colorPrimary, Color.GRAY)
         tabLayout.tabMode = TabLayout.MODE_SCROLLABLE
         tabLayout.setTabIndicatorFullWidth(false)
         tabLayout.setSelectedTabIndicator(android.graphics.drawable.ColorDrawable(accent))
         tabLayout.setSelectedTabIndicatorColor(accent)
         tabLayout.setSelectedTabIndicatorHeight((2 * resources.displayMetrics.density).toInt())
         tabLayout.setSelectedTabIndicatorGravity(TabLayout.INDICATOR_GRAVITY_BOTTOM)
-
-        when (settings.indicatorStyle) {
-            0 -> Unit
-            1 -> {
-                tabLayout.tabMode = TabLayout.MODE_FIXED
-                tabLayout.setSelectedTabIndicator(android.graphics.drawable.ColorDrawable(0))
-                tabLayout.setSelectedTabIndicatorHeight(0)
-            }
-            2 -> {
-                tabLayout.setSelectedTabIndicatorHeight(0)
-                tabLayout.setSelectedTabIndicator(android.graphics.drawable.ColorDrawable(0))
-            }
-            3 -> {
-                tabLayout.setSelectedTabIndicator(android.graphics.drawable.ColorDrawable(accent))
-                tabLayout.setSelectedTabIndicatorHeight((3 * resources.displayMetrics.density).toInt())
-                tabLayout.setSelectedTabIndicatorGravity(TabLayout.INDICATOR_GRAVITY_TOP)
-            }
-            4 -> {
-                tabLayout.setTabIndicatorFullWidth(true)
-                tabLayout.setSelectedTabIndicator(R.drawable.bg_indicator_block)
-                tabLayout.setSelectedTabIndicatorGravity(TabLayout.INDICATOR_GRAVITY_STRETCH)
-            }
-        }
-        applyTabItemPresentation(settings.indicatorStyle == 1)
+        applyTabItemPresentation(false)
+        // 分组栏增加阴影，和内容区分层
+        tabLayout.elevation = 6f * resources.displayMetrics.density
     }
 
     private fun ensureDotTabSelectionListener() {
@@ -759,11 +731,6 @@ class SymbolManagerActivity : AppCompatActivity() {
         val lineItem = createEntry(getString(R.string.settings_lines_title), "${settings.collapsedRows} - ${settings.symbolsPerRow}")
         lineItem.setOnClickListener { showLineSettingDialog() }
         content.addView(lineItem)
-
-        val indicatorText = indicatorStyleNames[settings.indicatorStyle.coerceIn(0, indicatorStyleNames.lastIndex)]
-        val indicatorItem = createEntry(getString(R.string.settings_indicator_title), indicatorText)
-        indicatorItem.setOnClickListener { showIndicatorStyleDialog() }
-        content.addView(indicatorItem)
 
         val rememberItem = createEntry(getString(R.string.settings_remember_title), getString(R.string.settings_remember_desc))
         val rememberSwitch = SwitchCompat(this).apply { isChecked = settings.rememberExpanded }
@@ -845,20 +812,12 @@ class SymbolManagerActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun showIndicatorStyleDialog() {
-        val settings = SymbolDataManager.getUiSettings(this)
-        var checked = settings.indicatorStyle.coerceIn(0, indicatorStyleNames.lastIndex)
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.settings_indicator_title)
-            .setSingleChoiceItems(indicatorStyleNames, checked) { _, which ->
-                checked = which
-            }
-            .setPositiveButton(R.string.dialog_save) { _, _ ->
-                SymbolDataManager.saveUiSettings(this, settings.copy(indicatorStyle = checked))
-                pagerAdapter.notifyDataSetChanged()
-            }
-            .setNegativeButton(R.string.dialog_cancel, null)
-            .show()
+    private fun setupStatusBar() {
+        val surface = MaterialColors.getColor(this, com.google.android.material.R.attr.colorSurface, Color.WHITE)
+        window.statusBarColor = surface
+        val controller = WindowInsetsControllerCompat(window, window.decorView)
+        val isLightSurface = androidx.core.graphics.ColorUtils.calculateLuminance(surface) > 0.5
+        controller.isAppearanceLightStatusBars = isLightSurface
     }
 
     private fun showTextSizeDialog() {
