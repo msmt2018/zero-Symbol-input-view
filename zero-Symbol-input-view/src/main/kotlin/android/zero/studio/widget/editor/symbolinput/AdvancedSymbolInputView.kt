@@ -234,15 +234,23 @@ class AdvancedSymbolInputView @JvmOverloads constructor(
 
     private fun applyTabRowByFraction(fraction: Float) {
         val clamped = fraction.coerceIn(0f, 1f)
+        // Material 风格下采用“延迟开始、提前完成”的跟随曲线，避免 0%/100% 的突兀感
+        // 例如抽屉到 10% 时，Tab 大约出现 4% 左右；到 55% 时基本完成显现
+        val revealStart = 0.08f
+        val revealEnd = 0.55f
+        val revealProgress = ((clamped - revealStart) / (revealEnd - revealStart)).coerceIn(0f, 1f)
+
         val params = tabRow.layoutParams
-        val targetHeight = if (clamped == 0f) 0 else fullTabHeightPx
+        val rawHeight = (fullTabHeightPx * revealProgress).roundToInt()
+        val quantizeStep = (2 * resources.displayMetrics.density).roundToInt().coerceAtLeast(1)
+        val targetHeight = (rawHeight / quantizeStep) * quantizeStep
         if (params.height != targetHeight) {
             params.height = targetHeight
             tabRow.layoutParams = params
         }
-        tabRow.alpha = clamped
-        tabRow.translationY = (1f - clamped) * -6f * resources.displayMetrics.density
-        tabRow.visibility = if (clamped == 0f) View.INVISIBLE else View.VISIBLE
+        tabRow.alpha = revealProgress
+        tabRow.translationY = (1f - revealProgress) * -6f * resources.displayMetrics.density
+        tabRow.visibility = if (targetHeight == 0) View.INVISIBLE else View.VISIBLE
     }
 
 
