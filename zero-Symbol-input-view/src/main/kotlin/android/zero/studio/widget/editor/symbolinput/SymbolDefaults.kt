@@ -18,6 +18,9 @@ object SymbolDefaults {
                     SymbolItem(21, "↓", null, 24, null),
                     SymbolItem(0, ":", ":"),
                     SymbolItem(0, ";", ";"),
+                    SymbolItem(0, ":", ":"),
+                    SymbolItem(0, ";", ";"),
+                    SymbolItem(21, "↓", null, 24, null),
                     SymbolItem(0, "#", "#"),
                     SymbolItem(0, "+", "+"),
                     SymbolItem(0, "-", "-"),
@@ -41,6 +44,11 @@ object SymbolDefaults {
                     SymbolItem(0, "&", "&"),
                     SymbolItem(0, "/*", "/**"),
                     SymbolItem(0, "*/", "*/"),
+                    SymbolItem(0, "\n", "\n"),
+                    SymbolItem(0, "\t", "\t"),
+                    SymbolItem(0, "\"\", "\"\"),
+                    SymbolItem(0, "\'\", "\'\"),
+                    SymbolItem(0, "\\", "\\"),
                     SymbolItem(22, "settings")
                 )
             )
