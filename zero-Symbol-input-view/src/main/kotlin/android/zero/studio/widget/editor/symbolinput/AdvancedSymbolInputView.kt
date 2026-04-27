@@ -421,20 +421,20 @@ private fun buildFallbackGroups(): List<SymbolGroup> {
         tabLayout.setSelectedTabIndicatorColor(fetchColor(android.R.attr.colorAccent))
         tabLayout.setSelectedTabIndicatorHeight((2 * resources.displayMetrics.density).roundToInt())
         tabLayout.setSelectedTabIndicator(ColorDrawable(fetchColor(android.R.attr.colorAccent)))
-        tabLayout.tabIndicatorGravity = TabLayout.INDICATOR_GRAVITY_BOTTOM
+        tabLayout.setSelectedTabIndicatorGravity(TabLayout.INDICATOR_GRAVITY_BOTTOM)
         tabLayout.isInlineLabel = false
 
         when (uiSettings.indicatorStyle) {
             0 -> {
                 // 标准
                 tabLayout.setSelectedTabIndicatorHeight((2 * resources.displayMetrics.density).roundToInt())
-                tabLayout.tabIndicatorGravity = TabLayout.INDICATOR_GRAVITY_BOTTOM
+                tabLayout.setSelectedTabIndicatorGravity(TabLayout.INDICATOR_GRAVITY_BOTTOM)
             }
             1 -> {
                 // 简洁胶囊
-                tabLayout.setSelectedTabIndicatorResource(R.drawable.bg_indicator_capsule)
+                tabLayout.setSelectedTabIndicator(R.drawable.bg_indicator_capsule)
                 tabLayout.setSelectedTabIndicatorHeight((6 * resources.displayMetrics.density).roundToInt())
-                tabLayout.tabIndicatorGravity = TabLayout.INDICATOR_GRAVITY_BOTTOM
+                tabLayout.setSelectedTabIndicatorGravity(TabLayout.INDICATOR_GRAVITY_BOTTOM)
             }
             2 -> {
                 // 隐藏
@@ -444,12 +444,12 @@ private fun buildFallbackGroups(): List<SymbolGroup> {
             3 -> {
                 // 顶部线条
                 tabLayout.setSelectedTabIndicatorHeight((3 * resources.displayMetrics.density).roundToInt())
-                tabLayout.tabIndicatorGravity = TabLayout.INDICATOR_GRAVITY_TOP
+                tabLayout.setSelectedTabIndicatorGravity(TabLayout.INDICATOR_GRAVITY_TOP)
             }
             4 -> {
                 // 块状
-                tabLayout.setSelectedTabIndicatorResource(R.drawable.bg_indicator_block)
-                tabLayout.tabIndicatorGravity = TabLayout.INDICATOR_GRAVITY_STRETCH
+                tabLayout.setSelectedTabIndicator(R.drawable.bg_indicator_block)
+                tabLayout.setSelectedTabIndicatorGravity(TabLayout.INDICATOR_GRAVITY_STRETCH)
             }
         }
     }
