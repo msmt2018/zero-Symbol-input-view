@@ -120,4 +120,5 @@
     <string name="tab_action_delete">刪除</string>
     <string name="dialog_title_rename_group">重新命名分組</string>
     <string name="dialog_confirm_delete_group">確認永久刪除此分組與其全部符號？</string>
+    <string name="symbol_macro_help">$$ 表示$ \n $S 設定開始選取的位置 \n $E 設定結束選取的位置 \n $T 表示目前選取文字 \n 示例：{$S$T$E}</string>
 </resources>

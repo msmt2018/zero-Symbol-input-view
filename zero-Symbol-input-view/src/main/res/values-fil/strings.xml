@@ -126,4 +126,5 @@
     <string name="tab_action_delete">Delete</string>
     <string name="dialog_title_rename_group">Rename Group</string>
     <string name="dialog_confirm_delete_group">Delete this group and all symbols permanently?</string>
+    <string name="symbol_macro_help">$$ ay nangangahulugang $ \n $S itinatakda ang simula ng napiling posisyon \n $E itinatakda ang dulo ng napiling posisyon \n $T ay tumutukoy sa kasalukuyang napiling teksto \n Halimbawa: {$S$T$E}</string>
 </resources>
