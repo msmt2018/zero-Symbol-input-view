@@ -202,7 +202,7 @@ public class LspTestJavaActivity extends BaseEditorActivity {
 
         } catch (Exception e) {
             connected = false;
-            e.printStackTrace();
+            
         }
 
         boolean finalConnected = connected;
