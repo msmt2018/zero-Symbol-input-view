@@ -30,7 +30,10 @@ object DrawerGeometry {
         return safeRows * cell + (safeRows - 1) * gap + padding * 2
     }
 
+    /**
+     * Linear reveal keeps the rendered height equal to the finger-controlled
+     * drawer height: grid interpolation + indicator interpolation share one fraction.
+     */
     fun indicatorReveal(expansion: Float, config: DrawerConfig): Float =
-        ((expansion.coerceIn(0f, 1f) - config.indicatorRevealStart) /
-            (config.indicatorRevealEnd - config.indicatorRevealStart)).coerceIn(0f, 1f)
+        expansion.coerceIn(0f, 1f)
 }
