@@ -68,11 +68,11 @@ class SymbolDrawerSettingsScreen(
         content.addView(LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(18), dp(20), dp(18), dp(20))
-            background = surfaceBackground(primaryColor(), 0.10f, 22)
+            background = surfaceBackground(surfaceColor(), 0.10f, 22)
             addView(TextView(context).apply {
                 text = "符号抽屉"
                 textSize = 25f
-                setTextColor(onSurfaceColor())
+                setTextColor(primaryColor())
                 setTypeface(typeface, Typeface.BOLD)
             }, matchWrap())
             addView(TextView(context).apply {
@@ -305,7 +305,7 @@ class SymbolDrawerSettingsScreen(
     private fun surfaceBackground(fill: Int, strokeAlpha: Float, radius: Int) = GradientDrawable().apply {
         setColor(fill)
         cornerRadius = dp(radius).toFloat()
-        setStroke(dp(1), (0x33000000).toInt())
+        setStroke(dp(1), Color.argb((strokeAlpha.coerceIn(0f, 1f) * 255).toInt(), 96, 96, 110))
     }
 
     private fun matchWrap() = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
