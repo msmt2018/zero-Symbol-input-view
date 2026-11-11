@@ -30,6 +30,7 @@ class SymbolGroupManager(
 
     fun renameGroup(groupId: String, title: String) {
         require(title.isNotBlank()) { "Group title cannot be blank" }
+        require(groups.any { it.id == groupId }) { "Group not found: $groupId" }
         commit(groups.map { if (it.id == groupId) it.copy(title = title.trim()) else it })
     }
 
@@ -46,7 +47,9 @@ class SymbolGroupManager(
     }
 
     fun addSymbol(groupId: String, symbol: SymbolEntry, index: Int? = null) {
-        val safeSymbol = if (symbol.id == 0L) symbol.copy(id = newSymbolId()) else symbol
+        val safeSymbol = if (symbol.id == 0L) {
+            symbol.copy(id = newSymbolId().takeIf { it != 0L } ?: 1L)
+        } else symbol
         updateGroup(groupId) { group ->
             val items = group.symbols.toMutableList()
             items.add((index ?: items.size).coerceIn(0, items.size), safeSymbol)
@@ -109,6 +112,12 @@ class SymbolGroupManager(
     }
 
     private fun commit(next: List<SymbolGroup>) {
+        require(next.map { it.id }.distinct().size == next.size) { "Group IDs must be unique" }
+        next.forEach { group ->
+            require(group.symbols.map { it.id }.distinct().size == group.symbols.size) {
+                "Symbol IDs must be unique within group ${group.id}"
+            }
+        }
         groups = next.toList()
         repository.saveGroups(groups)
     }
