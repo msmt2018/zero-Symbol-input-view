@@ -3,6 +3,7 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.ui
 import android.content.Context
 import android.graphics.Color
 import android.view.Gravity
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
@@ -100,11 +101,76 @@ internal class SymbolPageAdapter(
                 val current = holder.bindingAdapterPosition
                 if (current != RecyclerView.NO_POSITION) onSymbolAction(getItem(current), false)
             }
-            holder.label.setOnLongClickListener {
-                val current = holder.bindingAdapterPosition
-                if (current != RecyclerView.NO_POSITION) onSymbolAction(getItem(current), true)
-                true
+            holder.label.setOnTouchListener(SymbolCellTouchListener(
+                view = holder.label,
+                longPressTimeoutMs = settings.longPressTimeoutMs,
+                hasLongAction = item.longAction != null,
+                onLongPress = {
+                    val current = holder.bindingAdapterPosition
+                    if (current != RecyclerView.NO_POSITION) onSymbolAction(getItem(current), true)
+                }
+            ))
+        }
+    }
+
+
+    /**
+     * Uses the configured timeout rather than the platform-global long-press
+     * timeout. The touch stream is owned by this listener so a completed long
+     * press cannot also dispatch the short action on ACTION_UP.
+     */
+    private class SymbolCellTouchListener(
+        private val view: View,
+        private val longPressTimeoutMs: Int,
+        private val hasLongAction: Boolean,
+        private val onLongPress: () -> Unit
+    ) : View.OnTouchListener {
+        private val touchSlop = android.view.ViewConfiguration.get(view.context).scaledTouchSlop
+        private var downX = 0f
+        private var downY = 0f
+        private var cancelled = false
+        private var longPressed = false
+        private val longPressTask = Runnable {
+            if (!cancelled && view.isPressed && hasLongAction) {
+                longPressed = true
+                onLongPress()
             }
+        }
+
+        override fun onTouch(v: View, event: MotionEvent): Boolean {
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    downX = event.x
+                    downY = event.y
+                    cancelled = false
+                    longPressed = false
+                    view.isPressed = true
+                    if (hasLongAction) view.postDelayed(longPressTask, longPressTimeoutMs.toLong())
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    if (!cancelled && (
+                        kotlin.math.abs(event.x - downX) > touchSlop ||
+                            kotlin.math.abs(event.y - downY) > touchSlop
+                    )) {
+                        cancelled = true
+                        view.removeCallbacks(longPressTask)
+                        view.isPressed = false
+                    }
+                }
+                MotionEvent.ACTION_UP -> {
+                    view.removeCallbacks(longPressTask)
+                    val shouldClick = !cancelled && !longPressed
+                    view.isPressed = false
+                    if (shouldClick) view.performClick()
+                    cancelled = true
+                }
+                MotionEvent.ACTION_CANCEL, MotionEvent.ACTION_POINTER_DOWN -> {
+                    view.removeCallbacks(longPressTask)
+                    view.isPressed = false
+                    cancelled = true
+                }
+            }
+            return true
         }
     }
 
