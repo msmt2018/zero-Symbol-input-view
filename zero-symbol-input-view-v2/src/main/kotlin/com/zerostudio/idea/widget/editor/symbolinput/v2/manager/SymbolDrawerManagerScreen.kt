@@ -40,7 +40,8 @@ private class SymbolHolder(val title: TextView) : RecyclerView.ViewHolder(title)
  */
 class SymbolDrawerManagerScreen(
     context: Context,
-    repository: SymbolGroupRepository = SharedPreferencesSymbolGroupRepository(context)
+    repository: SymbolGroupRepository = SharedPreferencesSymbolGroupRepository(context),
+    private val embeddedInSettings: Boolean = false
 ) : LinearLayout(context) {
 
     var onGroupsChanged: ((List<SymbolGroup>) -> Unit)? = null
@@ -155,7 +156,12 @@ class SymbolDrawerManagerScreen(
             itemAnimator = null
             overScrollMode = RecyclerView.OVER_SCROLL_NEVER
         }
-        addView(list, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
+        if (embeddedInSettings) {
+            list.isNestedScrollingEnabled = false
+            addView(list, LayoutParams(LayoutParams.MATCH_PARENT, dp(320)))
+        } else {
+            addView(list, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
+        }
     }
 
     private fun buildUndoBar() {

@@ -18,6 +18,9 @@ import android.text.InputType
 import android.widget.SeekBar
 import android.widget.Spinner
 import android.widget.Switch
+import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SharedPreferencesSymbolGroupRepository
+import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupRepository
+import com.zerostudio.idea.widget.editor.symbolinput.v2.manager.SymbolDrawerManagerScreen
 
 /**
  * First-party programmatic settings screen. It can be embedded by any host
@@ -26,7 +29,8 @@ import android.widget.Switch
 class SymbolDrawerSettingsScreen(
     context: Context,
     private val repository: SymbolDrawerSettingsRepository =
-        SharedPreferencesSymbolDrawerSettingsRepository(context)
+        SharedPreferencesSymbolDrawerSettingsRepository(context),
+    groupRepository: SymbolGroupRepository = SharedPreferencesSymbolGroupRepository(context)
 ) : ScrollView(context) {
 
     var onSettingsChanged: ((SymbolDrawerSettings) -> Unit)? = null
@@ -36,6 +40,9 @@ class SymbolDrawerSettingsScreen(
     private val content = LinearLayout(context).apply {
         orientation = LinearLayout.VERTICAL
         setPadding(dp(20), dp(16), dp(20), dp(32))
+    }
+    private val symbolManager = SymbolDrawerManagerScreen(context, groupRepository, embeddedInSettings = true).apply {
+        onError = { onError?.invoke(it) }
     }
 
     init {
@@ -120,6 +127,15 @@ class SymbolDrawerSettingsScreen(
             setOnClickListener { promptImportBackup() }
         }, LinearLayout.LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
         content.addView(backupRow, matchWrap())
+
+        section("符号列表与动作")
+        content.addView(TextView(context).apply {
+            text = "每个符号均可分别配置短按动作、长按动作及插入文本；动作类型和编号沿用第一代定义。"
+            textSize = 13f
+            alpha = 0.72f
+            setPadding(0, 0, 0, dp(8))
+        }, matchWrap())
+        content.addView(symbolManager, matchWrap())
 
         content.addView(Button(context).apply {
             text = "恢复默认设置"
