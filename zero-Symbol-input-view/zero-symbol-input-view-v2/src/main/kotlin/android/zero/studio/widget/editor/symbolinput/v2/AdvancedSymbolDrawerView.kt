@@ -308,6 +308,7 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
     private fun resetGesture() {
         draggingDrawer = false
         gestureAxis = AXIS_UNDECIDED
+        super.requestDisallowInterceptTouchEvent(false)
         parent?.requestDisallowInterceptTouchEvent(false)
         velocityTracker?.recycle()
         velocityTracker = null
