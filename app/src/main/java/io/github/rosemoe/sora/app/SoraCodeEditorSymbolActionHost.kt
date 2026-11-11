@@ -20,13 +20,13 @@ class SoraCodeEditorSymbolActionHost(
     override fun insertText(template: String): Boolean {
         if (!editor.isEditable) return false
         val selected = selectedText()
-        val escapedDollar = "\\u0000"
-        val normalized = template.replace("$", escapedDollar)
-        val startMarker = normalized.indexOf("\\$S").takeIf { it >= 0 }
-        val endMarker = normalized.indexOf("\\$E").takeIf { it >= 0 }
-        val output = normalized.replace("\\$S", "")
-            .replace("\\$E", "")
-            .replace("\\$T", selected)
+        val escapedDollar = "\u0000"
+        val normalized = template.replace("\$\$", escapedDollar)
+        val startMarker = normalized.indexOf("\$S").takeIf { it >= 0 }
+        val endMarker = normalized.indexOf("\$E").takeIf { it >= 0 }
+        val output = normalized.replace("\$S", "")
+            .replace("\$E", "")
+            .replace("\$T", selected)
             .replace(escapedDollar, "$")
         val insertionCursor = startMarker?.coerceIn(0, output.length) ?: output.length
         val selectionEnd = endMarker?.coerceIn(0, output.length) ?: insertionCursor
@@ -179,7 +179,7 @@ class SoraCodeEditorSymbolActionHost(
         val line = editor.cursor.leftLine
         val content = text.getLineString(line)
         val insertionLine = (line + 1).coerceAtMost(text.lineCount)
-        text.insert(insertionLine, 0, content + "\\n")
+        text.insert(insertionLine, 0, content + "\n")
         return true
     }
 
