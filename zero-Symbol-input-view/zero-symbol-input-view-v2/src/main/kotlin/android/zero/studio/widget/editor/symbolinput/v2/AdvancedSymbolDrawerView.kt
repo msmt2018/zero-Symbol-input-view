@@ -104,7 +104,7 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
 
     fun submitGroups(value: List<SymbolGroup>, preserveSelectedGroup: Boolean = true) {
         val previousId = groups.getOrNull(pager.currentItem)?.id
-        groups = value.filter { it.symbols.isNotEmpty() }.map { it.copy(symbols = it.symbols.toList()) }
+        groups = value.map { it.copy(symbols = it.symbols.toList()) }
         val restored = if (preserveSelectedGroup && previousId != null) {
             groups.indexOfFirst { it.id == previousId }.takeIf { it >= 0 }
         } else null
