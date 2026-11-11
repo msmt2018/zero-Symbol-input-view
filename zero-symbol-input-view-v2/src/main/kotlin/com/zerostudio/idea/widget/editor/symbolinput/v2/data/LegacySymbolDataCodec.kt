@@ -10,16 +10,37 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.*
 object LegacySymbolDataCodec {
     private val gson = Gson()
 
-    fun encode(groups: List<SymbolGroup>): String = gson.toJson(groups.map { group ->
-        LegacySymbolGroup(group.title, group.symbols.map { symbol ->
-            val short = symbol.legacyShortActionId?.let { LegacySymbolAction(it, symbol.legacyShortText) }
-                ?: toLegacy(symbol.shortAction)
-            val long = symbol.longAction?.let { action ->
-                symbol.legacyLongActionId?.let { LegacySymbolAction(it, symbol.legacyLongText) } ?: toLegacy(action)
+    fun encode(groups: List<SymbolGroup>): String {
+        // Build the compact V1 wire shape explicitly. This avoids relying on
+        // reflective Kotlin data-class serialization for nullable payload fields.
+        val root = com.google.gson.JsonArray()
+        groups.forEach { group ->
+            val encodedGroup = com.google.gson.JsonObject().apply {
+                addProperty("n", group.title)
+                add("d", com.google.gson.JsonArray().apply {
+                    group.symbols.forEach { symbol ->
+                        val short = symbol.legacyShortActionId?.let {
+                            LegacySymbolAction(it, symbol.legacyShortText)
+                        } ?: toLegacy(symbol.shortAction)
+                        val long = symbol.longAction?.let { action ->
+                            symbol.legacyLongActionId?.let {
+                                LegacySymbolAction(it, symbol.legacyLongText)
+                            } ?: toLegacy(action)
+                        }
+                        add(com.google.gson.JsonObject().apply {
+                            addProperty("a", short.type)
+                            addProperty("b", symbol.label)
+                            short.payload?.let { addProperty("c", it) }
+                            long?.let { addProperty("d", it.type) }
+                            long?.payload?.let { addProperty("e", it) }
+                        })
+                    }
+                })
             }
-            LegacySymbolItem(short.type, symbol.label, short.payload, long?.type, long?.payload)
-        }.toMutableList())
-    })
+            root.add(encodedGroup)
+        }
+        return root.toString()
+    }
 
     fun decode(json: String): List<SymbolGroup> {
         val type = object : TypeToken<MutableList<LegacySymbolGroup>>() {}.type
