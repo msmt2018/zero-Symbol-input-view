@@ -32,26 +32,31 @@ object SymbolGroupStorageCodec {
             require(symbols.size() <= SymbolGroupBundleCodec.MAX_SYMBOLS_PER_GROUP) { "Too many symbols in group" }
             val converted = symbols.mapIndexed { index, rawSymbol ->
                 val symbol = rawSymbol.asJsonObject
+                val legacyShortId = symbol.get("shortType")?.takeUnless { it.isJsonNull }?.asInt
+                val legacyShortText = symbol.get("shortPayload")?.takeUnless { it.isJsonNull }?.asString
+                val legacyLongId = symbol.get("longType")?.takeUnless { it.isJsonNull }?.asInt
+                val legacyLongText = symbol.get("longPayload")?.takeUnless { it.isJsonNull }?.asString
                 val short = if (symbol.has("shortAction")) {
                     com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionJsonCodec.decode(symbol.getAsJsonObject("shortAction"))
                 } else LegacySymbolActionAdapter.convert(LegacySymbolAction(
-                    symbol.get("shortType").asInt,
-                    symbol.get("shortPayload")?.takeUnless { it.isJsonNull }?.asString
+                    legacyShortId ?: error("Short action type is missing"),
+                    legacyShortText
                 ))
                 val long = if (symbol.has("longAction") && !symbol.get("longAction").isJsonNull) {
                     com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionJsonCodec.decode(symbol.getAsJsonObject("longAction"))
-                } else if (symbol.has("longType") && !symbol.get("longType").isJsonNull) {
-                    LegacySymbolActionAdapter.convert(LegacySymbolAction(
-                        symbol.get("longType").asInt,
-                        symbol.get("longPayload")?.takeUnless { it.isJsonNull }?.asString
-                    ))
+                } else if (legacyLongId != null) {
+                    LegacySymbolActionAdapter.convert(LegacySymbolAction(legacyLongId, legacyLongText))
                 } else null
                 SymbolEntry(
                     id = symbol.get("id")?.asLong ?: index.toLong() + 1L,
                     label = symbol.get("label")?.asString ?: error("Symbol label is missing"),
                     shortAction = short,
                     longAction = long,
-                    icon = symbol.get("icon")?.takeUnless { it.isJsonNull }?.asString
+                    icon = symbol.get("icon")?.takeUnless { it.isJsonNull }?.asString,
+                    legacyShortActionId = legacyShortId,
+                    legacyShortText = legacyShortText,
+                    legacyLongActionId = legacyLongId,
+                    legacyLongText = legacyLongText
                 )
             }
             SymbolGroup(

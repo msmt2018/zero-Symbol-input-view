@@ -34,6 +34,7 @@ class SymbolDrawerSettingsScreen(
 ) : ScrollView(context) {
 
     var onSettingsChanged: ((SymbolDrawerSettings) -> Unit)? = null
+    var onGroupsChanged: ((List<com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup>) -> Unit)? = null
     var onError: ((Throwable) -> Unit)? = null
 
     private var current = repository.load().settings
@@ -43,6 +44,7 @@ class SymbolDrawerSettingsScreen(
     }
     private val symbolManager = SymbolDrawerManagerScreen(context, groupRepository, embeddedInSettings = true).apply {
         onError = { onError?.invoke(it) }
+        onGroupsChanged = { onGroupsChanged?.invoke(it) }
     }
 
     init {
