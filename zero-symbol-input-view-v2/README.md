@@ -84,7 +84,7 @@ manager screen and persists each successful command.
 
 ## Storage
 
-The default repository uses the isolated SharedPreferences namespace `symbol_drawer_v2` and key `groups_json_v2`. The legacy `advanced_symbol_prefs` store is not read or written.
+The default repository uses the isolated SharedPreferences namespace `symbol_drawer_v2` and key `groups_json_v2`. Values use the original V1 compact JSON model (`n`/`d` for groups and `a`/`b`/`c`/`d`/`e` for symbols); the legacy `advanced_symbol_prefs` store is only read during one-way migration and is never modified.
 
 ## Design notes
 
@@ -98,9 +98,7 @@ defaults for missing fields, validates enum values, and reports malformed
 storage so the host can surface a recovery notice. The settings screen and
 runtime application are being built on this contract.
 
-V2 actions use the sealed `SymbolAction` model (insert, replace, surround,
-cursor movement, deletion, selection transform, editor command, clipboard,
-manager, composite and extension). Implement `SymbolActionHost` to bridge the
+Runtime actions use the sealed `SymbolAction` model, while persistence and per-symbol editing retain the V1 numeric action IDs and text fields verbatim. Actions outside the V1 catalog are not silently serialized into a different schema. Implement `SymbolActionHost` to bridge the
 actions to a concrete editor. `SymbolActionExecutor` validates IDs, payload
 sizes and composite depth and returns structured execution results. Legacy
 integer actions are translated only by `LegacySymbolActionAdapter` during
@@ -125,8 +123,7 @@ setContentView(settingsScreen)
 
 The V2 manager screen provides group CRUD/reordering/duplication, symbol
 create/edit/delete/duplicate/move/reordering, search, and JSON backup import
-and export. Short and long actions are edited using the typed V2 action JSON
-format so the manager does not reintroduce numeric legacy action IDs.
+and export. Every symbol has its own V1-style short-action and optional long-action selector. The exact V1 numeric action IDs, ordering, text parameter behavior and macro syntax are used; editing does not require hand-written JSON.
 
 ```kotlin
 val managerScreen = SymbolDrawerManagerScreen(this)

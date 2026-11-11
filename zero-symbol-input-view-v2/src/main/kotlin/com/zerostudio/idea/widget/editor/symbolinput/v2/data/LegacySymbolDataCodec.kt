@@ -1,8 +1,9 @@
 package com.zerostudio.idea.widget.editor.symbolinput.v2.data
 
 import com.google.gson.Gson
-import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolGroup as LegacySymbolGroup
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolItem as LegacySymbolItem
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.*
 
 /** Persists the exact V1 compact JSON contract: group {n,d}, item {a,b,c,d,e}. */
@@ -10,19 +11,19 @@ object LegacySymbolDataCodec {
     private val gson = Gson()
 
     fun encode(groups: List<SymbolGroup>): String = gson.toJson(groups.map { group ->
-        LegacyGroup(group.title, group.symbols.map { symbol ->
+        LegacySymbolGroup(group.title, group.symbols.map { symbol ->
             val short = symbol.legacyShortActionId?.let { LegacySymbolAction(it, symbol.legacyShortText) }
                 ?: toLegacy(symbol.shortAction)
             val long = symbol.longAction?.let { action ->
                 symbol.legacyLongActionId?.let { LegacySymbolAction(it, symbol.legacyLongText) } ?: toLegacy(action)
             }
-            LegacyItem(short.type, symbol.label, short.payload, long?.type, long?.payload)
+            LegacySymbolItem(short.type, symbol.label, short.payload, long?.type, long?.payload)
         }.toMutableList())
     })
 
     fun decode(json: String): List<SymbolGroup> {
-        val type = object : TypeToken<MutableList<LegacyGroup>>() {}.type
-        val legacy: MutableList<LegacyGroup> = gson.fromJson(json, type) ?: mutableListOf()
+        val type = object : TypeToken<MutableList<LegacySymbolGroup>>() {}.type
+        val legacy: MutableList<LegacySymbolGroup> = gson.fromJson(json, type) ?: mutableListOf()
         require(legacy.size <= SymbolGroupBundleCodec.MAX_GROUPS) { "Too many groups" }
         var total = 0
         return legacy.mapIndexed { groupIndex, group ->
@@ -87,15 +88,4 @@ object LegacySymbolDataCodec {
         is SymbolAction.Composite -> error("Composite actions are not part of the V1 action catalog")
     }
 
-    private data class LegacyGroup(
-        @SerializedName("n") var name: String = "",
-        @SerializedName("d") var items: MutableList<LegacyItem> = mutableListOf()
-    )
-    private data class LegacyItem(
-        @SerializedName("a") var shortAction: Int = 0,
-        @SerializedName("b") var display: String = "",
-        @SerializedName("c") var shortText: String? = null,
-        @SerializedName("d") var longAction: Int? = null,
-        @SerializedName("e") var longText: String? = null
-    )
 }
