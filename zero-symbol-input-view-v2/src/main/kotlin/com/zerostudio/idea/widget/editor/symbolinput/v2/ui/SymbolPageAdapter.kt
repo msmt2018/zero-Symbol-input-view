@@ -31,6 +31,14 @@ internal class SymbolPageAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PageHolder {
         val grid = RecyclerView(parent.context).apply {
+            // ViewPager2 validates the direct page child's LayoutParams when it
+            // attaches it. RecyclerView's generated default is not guaranteed
+            // to be MATCH_PARENT in both dimensions, so declare the page
+            // contract explicitly instead of relying on its default params.
+            layoutParams = RecyclerView.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
             layoutManager = GridLayoutManager(context, config.columns)
             isNestedScrollingEnabled = false
             overScrollMode = RecyclerView.OVER_SCROLL_NEVER

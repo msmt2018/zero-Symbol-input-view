@@ -16,7 +16,7 @@ data class SymbolDrawerSettings(
     val cellHorizontalSpacingDp: Int = 2,
     val cellVerticalSpacingDp: Int = 2,
     val indicatorHeightDp: Int = 26,
-    val indicatorStyle: GroupIndicatorStyle = GroupIndicatorStyle.PILL,
+    val indicatorStyle: GroupIndicatorStyle = GroupIndicatorStyle.UNDERLINE,
     val showGroupTitles: Boolean = true,
     val showSymbolLabels: Boolean = true,
     val showActionHints: Boolean = false,
