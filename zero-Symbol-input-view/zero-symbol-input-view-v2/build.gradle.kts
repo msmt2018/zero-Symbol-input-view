@@ -12,4 +12,5 @@ dependencies {
     implementation("androidx.viewpager2:viewpager2:1.1.0")
     implementation(libs.gson)
     api(libs.androidx.annotation)
+    testImplementation(libs.junit)
 }
