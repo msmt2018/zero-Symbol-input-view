@@ -342,6 +342,19 @@ class SymbolDrawerManagerScreen(
             .show()
     }
 
+    private fun confirmDeleteSymbol(symbol: SymbolEntry) {
+        val group = currentGroup() ?: return
+        AlertDialog.Builder(context)
+            .setTitle("删除符号")
+            .setMessage("确定删除“${symbol.label}”吗？")
+            .setNegativeButton("取消", null)
+            .setPositiveButton("删除") { _, _ ->
+                manager.removeSymbol(group.id, symbol.id)
+                refresh()
+            }
+            .show()
+    }
+
     private fun moveSymbol(symbol: SymbolEntry, delta: Int) {
         val group = currentGroup() ?: return
         val index = group.symbols.indexOfFirst { it.id == symbol.id }

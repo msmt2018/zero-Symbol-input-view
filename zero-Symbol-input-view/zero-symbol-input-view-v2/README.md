@@ -143,3 +143,8 @@ setContentView(managerScreen)
 Import validates the bundle and asks for confirmation before replacing groups.
 Export also copies the JSON backup to the clipboard; hosts can use
 `onExportBundle` to save it to a file or cloud destination.
+
+The settings screen also supports exporting its versioned JSON settings snapshot
+and importing a validated snapshot. Export is copied to the clipboard and
+reported through `onExportJson`; import validates and persists before notifying
+the host through `onSettingsChanged`.
