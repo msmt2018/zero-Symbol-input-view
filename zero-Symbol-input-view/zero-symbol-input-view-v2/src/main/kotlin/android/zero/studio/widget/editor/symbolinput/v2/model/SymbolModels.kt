@@ -30,8 +30,6 @@ data class DrawerConfig(
     val cellHorizontalSpacingDp: Int = 2,
     val cellVerticalSpacingDp: Int = 2,
     val indicatorHeightDp: Int = 26,
-    val indicatorRevealStart: Float = 0.08f,
-    val indicatorRevealEnd: Float = 0.55f,
     val animationDurationMs: Long = 200L,
     val flingVelocityDpPerSecond: Int = 900
 ) {
@@ -40,8 +38,5 @@ data class DrawerConfig(
         require(collapsedRows in 1..10) { "collapsedRows must be in 1..10" }
         require(cellHeightDp in 20..96) { "cellHeightDp must be in 20..96" }
         require(indicatorHeightDp in 0..64) { "indicatorHeightDp must be in 0..64" }
-        require(indicatorRevealStart in 0f..1f)
-        require(indicatorRevealEnd in 0f..1f)
-        require(indicatorRevealEnd > indicatorRevealStart)
     }
 }
