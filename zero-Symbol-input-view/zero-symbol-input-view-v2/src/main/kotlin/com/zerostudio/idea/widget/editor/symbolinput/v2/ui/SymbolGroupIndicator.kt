@@ -31,7 +31,12 @@ internal class SymbolGroupIndicator(
         groupAdapter.submitGroups(groups)
     }
 
-    fun setSelectedIndex(index: Int) = groupAdapter.setSelectedIndex(index)
+    fun setSelectedIndex(index: Int) {
+        groupAdapter.setSelectedIndex(index)
+        if (index in 0 until groupAdapter.itemCount) {
+            (layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(index, 0)
+        }
+    }
 
     private class GroupAdapter(
         private val onGroupSelected: (Int) -> Unit
@@ -74,8 +79,6 @@ internal class SymbolGroupIndicator(
             if (previous in 0 until itemCount) notifyItemChanged(previous)
             if (selectedIndex in 0 until itemCount) {
                 notifyItemChanged(selectedIndex)
-                (layoutManager as? LinearLayoutManager)
-                    ?.scrollToPositionWithOffset(selectedIndex, 0)
             }
         }
 
