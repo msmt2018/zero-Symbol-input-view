@@ -50,12 +50,12 @@ object SymbolDrawerDefaults {
             entry(29, "<", SymbolAction.InsertText("<")),
             entry(30, ">", SymbolAction.InsertText(">")),
             entry(31, "\\", SymbolAction.InsertText("\\")),
-            entry(32, "$", SymbolAction.InsertText("\\$")),
+            entry(32, "$", SymbolAction.InsertText("\$\$")),
             entry(33, "&", SymbolAction.InsertText("&")),
             entry(34, "/*", SymbolAction.InsertText("/**")),
             entry(35, "*/", SymbolAction.InsertText("*/")),
-            entry(36, "\\n", SymbolAction.InsertText("\\n")),
-            entry(37, "\\t", SymbolAction.InsertText("\\t")),
+            entry(36, "\n", SymbolAction.InsertText("\n")),
+            entry(37, "\t", SymbolAction.InsertText("\t")),
             entry(38, "\\", SymbolAction.InsertText("\\")),
             entry(39, "settings", SymbolAction.OpenManager)
         ))
