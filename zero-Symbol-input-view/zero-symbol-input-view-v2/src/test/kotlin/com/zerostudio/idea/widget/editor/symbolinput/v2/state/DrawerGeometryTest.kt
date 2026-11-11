@@ -17,18 +17,21 @@ class DrawerGeometryTest {
 
     @Test
     fun expandedHeightUsesLargestGroup() {
-        val groups = listOf(
-            group("a", 5),
-            group("b", 9)
-        )
+        val groups = listOf(group("a", 5), group("b", 9))
         assertEquals(102, DrawerGeometry.expandedHeightPx(groups, config, 1f))
+    }
+
+    @Test
+    fun minimumTouchTargetContributesToGridHeight() {
+        val accessible = config.copy(minimumTouchTargetDp = 48)
+        assertEquals(106, DrawerGeometry.collapsedHeightPx(accessible, 1f))
     }
 
     @Test
     fun expandedHeightRespectsConfiguredMaximum() {
         val limited = config.copy(maxExpandedHeightDp = 120)
         val groups = listOf(group("large", 100))
-        assertEquals(120, DrawerGeometry.expandedHeightPx(groups, limited, 1f))
+        assertEquals(94, DrawerGeometry.expandedHeightPx(groups, limited, 1f))
     }
 
     @Test

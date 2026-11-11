@@ -113,11 +113,10 @@ host Activity or Fragment. It persists settings and reports each saved snapshot:
 
 ```kotlin
 val settingsScreen = SymbolDrawerSettingsScreen(this)
-settingsScreen.onSettingsChanged = { settings ->
-    // Apply the new settings to the active drawer instance.
-}
+settingsScreen.onSettingsChanged = drawer::applySettings
 settingsScreen.onError = { error ->
     // Show a host-level error message.
 }
+drawer.applySettings(settingsScreen.getSettings())
 setContentView(settingsScreen)
 ```

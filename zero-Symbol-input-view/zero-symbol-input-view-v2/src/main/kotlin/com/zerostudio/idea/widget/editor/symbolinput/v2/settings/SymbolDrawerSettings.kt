@@ -57,7 +57,8 @@ data class SymbolDrawerSettings(
         indicatorHeightDp = indicatorHeightDp,
         animationDurationMs = if (reduceMotion) 0L else animationDurationMs.toLong(),
         flingVelocityDpPerSecond = flingVelocityDpPerSecond,
-        maxExpandedHeightDp = maxExpandedHeightDp
+        maxExpandedHeightDp = maxExpandedHeightDp,
+        minimumTouchTargetDp = minimumTouchTargetDp
     )
 
     companion object {

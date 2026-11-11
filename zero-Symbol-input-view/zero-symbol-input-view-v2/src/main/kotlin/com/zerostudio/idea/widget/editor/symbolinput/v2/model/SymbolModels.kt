@@ -53,7 +53,8 @@ data class DrawerConfig(
     val indicatorHeightDp: Int = 26,
     val animationDurationMs: Long = 200L,
     val flingVelocityDpPerSecond: Int = 900,
-    val maxExpandedHeightDp: Int = 480
+    val maxExpandedHeightDp: Int = 480,
+    val minimumTouchTargetDp: Int = 28
 ) {
     init {
         require(columns in 1..20) { "columns must be in 1..20" }
@@ -65,5 +66,6 @@ data class DrawerConfig(
         require(animationDurationMs in 0L..1200L)
         require(flingVelocityDpPerSecond in 100..6000)
         require(maxExpandedHeightDp in 120..1200)
+        require(minimumTouchTargetDp in 20..80)
     }
 }

@@ -14,8 +14,11 @@ object DrawerGeometry {
             ceil(it.symbols.size.toDouble() / config.columns).toInt().coerceAtLeast(1)
         } ?: config.collapsedRows
         val naturalHeight = gridHeightPx(maxOf(config.collapsedRows, maxRows), config, density)
-        val maximum = (config.maxExpandedHeightDp * density).toInt()
-        return naturalHeight.coerceAtMost(maximum).coerceAtLeast(collapsedHeightPx(config, density))
+        val maximumGridHeight = (
+            (config.maxExpandedHeightDp - config.indicatorHeightDp).coerceAtLeast(0) * density
+        ).toInt()
+        return naturalHeight.coerceAtMost(maximumGridHeight)
+            .coerceAtLeast(collapsedHeightPx(config, density))
     }
 
     fun gridHeightPx(rows: Int, config: DrawerConfig, density: Float): Int {
