@@ -125,7 +125,7 @@ dependencies {
 ### 4.2 Layout
 
 ```xml
-<android.zero.studio.widget.editor.symbolinput.AdvancedSymbolInputView
+<com.zerostudio.idea.widget.editor.symbolinput.AdvancedSymbolInputView
     android:id="@+id/symbol_input_view"
     android:layout_width="match_parent"
     android:layout_height="wrap_content" />
@@ -134,12 +134,12 @@ dependencies {
 ### 4.3 Activity Usage
 
 ```kotlin
-val symbolInputView = findViewById<android.zero.studio.widget.editor.symbolinput.AdvancedSymbolInputView>(R.id.symbol_input_view)
+val symbolInputView = findViewById<com.zerostudio.idea.widget.editor.symbolinput.AdvancedSymbolInputView>(R.id.symbol_input_view)
 val editor = findViewById<io.github.rosemoe.sora.widget.CodeEditor>(R.id.editor)
 
 symbolInputView.bindEditor(editor)
 symbolInputView.onOpenManagerListener = {
-    startActivity(Intent(this, android.zero.studio.widget.editor.symbolinput.SymbolManagerActivity::class.java))
+    startActivity(Intent(this, com.zerostudio.idea.widget.editor.symbolinput.SymbolManagerActivity::class.java))
 }
 
 override fun onResume() {
@@ -171,7 +171,7 @@ Recommended practice:
 ```text
 zero-Symbol-input-view/
 └── src/main/
-    ├── kotlin/android/zero/studio/widget/editor/symbolinput/
+    ├── kotlin/com/zerostudio/idea/widget/editor/symbolinput/
     │   ├── AdvancedSymbolInputView.kt
     │   ├── SymbolManagerActivity.kt
     │   ├── SymbolData.kt

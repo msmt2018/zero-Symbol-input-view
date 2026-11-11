@@ -1,4 +1,4 @@
-package android.zero.studio.widget.editor.symbolinput
+package com.zerostudio.idea.widget.editor.symbolinput
 
 import android.content.Context
 import android.util.AttributeSet

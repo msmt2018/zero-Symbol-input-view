@@ -92,7 +92,7 @@ dependencies {
 ### 4.2 布局中放置控件
 
 ```xml
-<android.zero.studio.widget.editor.symbolinput.AdvancedSymbolInputView
+<com.zerostudio.idea.widget.editor.symbolinput.AdvancedSymbolInputView
     android:id="@+id/symbol_input_view"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"/>
@@ -102,13 +102,13 @@ dependencies {
 
 ```kotlin
 val editor = findViewById<io.github.rosemoe.sora.widget.CodeEditor>(R.id.editor)
-val symbolInputView = findViewById<android.zero.studio.widget.editor.symbolinput.AdvancedSymbolInputView>(R.id.symbol_input_view)
+val symbolInputView = findViewById<com.zerostudio.idea.widget.editor.symbolinput.AdvancedSymbolInputView>(R.id.symbol_input_view)
 
 symbolInputView.bindEditor(editor)
 
 // 可选：点击“管理”入口时跳转模块管理页
 symbolInputView.onOpenManagerListener = {
-    startActivity(Intent(this, android.zero.studio.widget.editor.symbolinput.SymbolManagerActivity::class.java))
+    startActivity(Intent(this, com.zerostudio.idea.widget.editor.symbolinput.SymbolManagerActivity::class.java))
 }
 ```
 
@@ -223,7 +223,7 @@ symbolInputView.refreshData()
 zero-Symbol-input-view/
 ├── build.gradle.kts
 └── src/main/
-    ├── kotlin/android/zero/studio/widget/editor/symbolinput/
+    ├── kotlin/com/zerostudio/idea/widget/editor/symbolinput/
     │   ├── AdvancedSymbolInputView.kt
     │   ├── SymbolManagerActivity.kt
     │   ├── SymbolDataManager.kt
