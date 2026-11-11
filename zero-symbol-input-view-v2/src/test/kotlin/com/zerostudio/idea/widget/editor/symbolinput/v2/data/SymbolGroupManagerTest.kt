@@ -10,8 +10,12 @@ import org.junit.Test
 class SymbolGroupManagerTest {
     private class MemoryRepository(initial: List<SymbolGroup>) : SymbolGroupRepository {
         var stored = initial
+        var failWrites = false
         override fun loadGroups() = stored
-        override fun saveGroups(groups: List<SymbolGroup>) { stored = groups }
+        override fun saveGroups(groups: List<SymbolGroup>) {
+            check(!failWrites) { "simulated persistence failure" }
+            stored = groups
+        }
     }
 
     @Test

@@ -75,12 +75,18 @@ class SymbolGroupManager(
 
     fun updateSymbol(groupId: String, symbol: SymbolEntry) {
         updateGroup(groupId) { group ->
+            require(group.symbols.any { it.id == symbol.id }) {
+                "Symbol not found: ${symbol.id}"
+            }
             group.copy(symbols = group.symbols.map { if (it.id == symbol.id) symbol else it })
         }
     }
 
     fun removeSymbol(groupId: String, symbolId: Long) {
         updateGroup(groupId) { group ->
+            require(group.symbols.any { it.id == symbolId }) {
+                "Symbol not found: $symbolId"
+            }
             group.copy(symbols = group.symbols.filterNot { it.id == symbolId })
         }
     }
@@ -140,7 +146,10 @@ class SymbolGroupManager(
                 "Symbol IDs must be unique within group ${group.id}"
             }
         }
-        groups = next.toList()
-        repository.saveGroups(groups)
+        // Persist first: a failed write must not publish an in-memory snapshot
+        // that the repository cannot reproduce after reload.
+        val snapshot = next.toList()
+        repository.saveGroups(snapshot)
+        groups = snapshot
     }
 }
