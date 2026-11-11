@@ -62,7 +62,7 @@ public class TextLayoutHelper {
                 field.setAccessible(true);
                 field.set(layout, TextDirectionHeuristics.FIRSTSTRONG_LTR);
             } catch (Exception e) {
-                e.printStackTrace();
+                
             }
         } else {
             layout = DynamicLayout.Builder.obtain(text, new TextPaint(), Integer.MAX_VALUE / 2)
