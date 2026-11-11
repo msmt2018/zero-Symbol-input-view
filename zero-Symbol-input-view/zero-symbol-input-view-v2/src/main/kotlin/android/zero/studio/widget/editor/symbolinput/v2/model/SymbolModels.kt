@@ -26,10 +26,10 @@ data class SymbolAction(
 data class DrawerConfig(
     val columns: Int = 10,
     val collapsedRows: Int = 2,
-    val cellHeightDp: Int = 36,
+    val cellHeightDp: Int = 28,
     val cellHorizontalSpacingDp: Int = 2,
     val cellVerticalSpacingDp: Int = 2,
-    val indicatorHeightDp: Int = 32,
+    val indicatorHeightDp: Int = 26,
     val indicatorRevealStart: Float = 0.08f,
     val indicatorRevealEnd: Float = 0.55f,
     val animationDurationMs: Long = 200L,
