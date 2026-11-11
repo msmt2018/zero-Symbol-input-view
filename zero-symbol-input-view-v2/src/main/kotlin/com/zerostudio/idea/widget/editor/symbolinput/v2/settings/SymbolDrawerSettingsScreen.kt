@@ -43,8 +43,8 @@ class SymbolDrawerSettingsScreen(
         setPadding(dp(20), dp(16), dp(20), dp(32))
     }
     private val symbolManager = SymbolDrawerManagerScreen(context, groupRepository, embeddedInSettings = true).apply {
-        onError = { onError?.invoke(it) }
-        onGroupsChanged = { onGroupsChanged?.invoke(it) }
+        onError = { this@SymbolDrawerSettingsScreen.onError?.invoke(it) }
+        onGroupsChanged = { this@SymbolDrawerSettingsScreen.onGroupsChanged?.invoke(it) }
     }
 
     init {
