@@ -29,6 +29,8 @@ AdvancedSymbolDrawerView
 - **AdvancedSymbolDrawerView**: owns the integrated interaction, height, indicator reveal, pager synchronization and public API. Its expansion geometry includes indicator height separately from grid height, so the indicator remains revealable even when every symbol group fits in the collapsed grid.
 - **DrawerGeometry**: pure row/height/reveal calculations; no View dependencies.
 - **SymbolGroupRepository**: persistence boundary. The default SharedPreferences implementation uses a V2-only namespace.
+- **LegacySymbolDataMigration**: one-way imports the legacy compact JSON preference when the V2 store is empty; it never writes to the legacy store.
+- **SymbolGroupManager**: repository-backed group/symbol commands that a dedicated manager UI can consume.
 - **SymbolGroupIndicator**: recycles group labels and only updates changed selection rows.
 - **SymbolPageAdapter**: pages are recycled by ViewPager2; each page uses a grid RecyclerView and shared recycled pool.
 - **SymbolAction callback**: no hard dependency on CodeEditor. Host applications adapt actions to Sora Editor or another editor.
@@ -65,6 +67,6 @@ The V2 interaction contract must continue to be validated against the legacy con
 
 ## Deliberate non-goals for this foundation
 
-- No automatic migration from legacy SharedPreferences yet. A dedicated importer should be added only after the legacy schema and action IDs have a versioned compatibility test.
+- The one-way legacy JSON importer preserves legacy action IDs and payloads, but deterministic IDs are synthesized because the old schema had no stable IDs. Validate real user configurations before treating migration as production-complete.
 - No new gesture semantics, nested vertical scrolling inside pages, or manager UI yet.
 - No replacement of the existing manager screen. The next phase should add a repository-backed manager contract and import/export adapter.
