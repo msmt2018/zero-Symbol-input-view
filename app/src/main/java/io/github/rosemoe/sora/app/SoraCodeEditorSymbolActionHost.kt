@@ -96,13 +96,17 @@ class SoraCodeEditorSymbolActionHost(
     override fun executeEditorCommand(commandId: String, payload: String?): Boolean {
         if (!editor.isEditable && commandId !in setOf("select_all", "copy", "undo", "redo")) return false
         when (commandId) {
-            "undo" -> editor.undo()
-            "redo" -> editor.redo()
-            "select_all" -> editor.selectAll()
-            "indent" -> editor.indentOrCommitTab()
-            "unindent" -> editor.unindentSelection()
-            "format" -> editor.formatCodeAsync()
+            "undo", "history.undo" -> editor.undo()
+            "redo", "history.redo" -> editor.redo()
+            "select_all", "selection.selectAll" -> editor.selectAll()
+            "indent", "editor.indent" -> editor.indentOrCommitTab()
+            "unindent", "editor.unindent" -> editor.unindentSelection()
+            "format", "editor.format" -> editor.formatCodeAsync()
+            "line.clear" -> return delete(DeleteKind.CURRENT_LINE)
             "insert_payload" -> editor.commitText(payload.orEmpty())
+            // These commands need language-aware/editor-specific services. Do not
+            // report success until the host has a real implementation.
+            "editor.toggleLineComment", "line.duplicate", "line.replace" -> return false
             else -> return false
         }
         return true
