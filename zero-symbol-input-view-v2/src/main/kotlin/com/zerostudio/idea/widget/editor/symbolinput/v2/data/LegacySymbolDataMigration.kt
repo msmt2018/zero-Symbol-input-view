@@ -41,7 +41,11 @@ object LegacySymbolDataMigration {
                         shortAction = LegacySymbolActionAdapter.convert(LegacySymbolAction(item.shortAction, item.shortText)),
                         longAction = item.longAction?.let {
                             LegacySymbolActionAdapter.convert(LegacySymbolAction(it, item.longText))
-                        }
+                        },
+                        legacyShortActionId = item.shortAction,
+                        legacyShortText = item.shortText,
+                        legacyLongActionId = item.longAction,
+                        legacyLongText = item.longText
                     )
                 }
                 if (symbols.isEmpty()) null else SymbolGroup(

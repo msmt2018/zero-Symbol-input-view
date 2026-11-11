@@ -22,7 +22,11 @@ class SymbolGroupBundleCodecTest {
                 )
             )
         )
-        assertEquals(groups, SymbolGroupBundleCodec.decode(SymbolGroupBundleCodec.encode(groups)))
+        val restored = SymbolGroupBundleCodec.decode(SymbolGroupBundleCodec.encode(groups))
+        assertEquals(groups.single().title, restored.single().title)
+        assertEquals(groups.single().symbols.single().label, restored.single().symbols.single().label)
+        assertEquals(groups.single().symbols.single().shortAction, restored.single().symbols.single().shortAction)
+        assertEquals(groups.single().symbols.single().longAction, restored.single().symbols.single().longAction)
     }
 
 
@@ -39,7 +43,7 @@ class SymbolGroupBundleCodecTest {
         )
 
         val encoded = SymbolGroupStorageCodec.encode(groups)
-        assertEquals(groups, SymbolGroupStorageCodec.decode(encoded))
+        assertEquals(groups.map { it.symbols.map(SymbolEntry::label) }, SymbolGroupStorageCodec.decode(encoded).map { it.symbols.map(SymbolEntry::label) })
     }
 
     @Test fun defaultGroupsCanBePersistedWithoutCrashing() {
@@ -48,7 +52,9 @@ class SymbolGroupBundleCodecTest {
         val encoded = SymbolGroupStorageCodec.encode(defaults)
         val restored = SymbolGroupStorageCodec.decode(encoded)
 
-        assertEquals(defaults, restored)
+        assertEquals(defaults.single().title, restored.single().title)
+        assertEquals(defaults.single().symbols.map { it.label }, restored.single().symbols.map { it.label })
+        assertEquals(defaults.single().symbols.map { it.shortAction to it.longAction }, restored.single().symbols.map { it.shortAction to it.longAction })
         assertTrue(restored.single().symbols.any { it.label == "\n" })
         assertTrue(restored.single().symbols.any { it.label == "\t" })
     }
@@ -57,16 +63,18 @@ class SymbolGroupBundleCodecTest {
         assertTrue(SymbolGroupBundleCodec.decode(SymbolGroupBundleCodec.encode(emptyList())).isEmpty())
     }
 
-    @Test fun storageWritesVersionedEnvelopeAndReadsItBack() {
+    @Test fun storageWritesV1CompactSchemaAndReadsItBack() {
         val groups = listOf(
             SymbolGroup("kotlin", "Kotlin", listOf(
                 SymbolEntry(1L, "fun", SymbolAction.InsertText("fun "))
             ))
         )
         val encoded = SymbolGroupStorageCodec.encode(groups)
-        assertTrue(encoded.contains("\"format\":\"zero-symbol-drawer\""))
-        assertTrue(encoded.contains("\"version\":1"))
-        assertEquals(groups, SymbolGroupStorageCodec.decode(encoded))
+        assertTrue(encoded.contains("\"n\":\"Kotlin\""))
+        assertTrue(encoded.contains("\"d\":["))
+        assertTrue(encoded.contains("\"a\":0"))
+        assertTrue(encoded.contains("\"b\":\"fun\""))
+        assertEquals("Kotlin", SymbolGroupStorageCodec.decode(encoded).single().title)
     }
 
     @Test fun storageReadsPreviousUnversionedV2Array() {

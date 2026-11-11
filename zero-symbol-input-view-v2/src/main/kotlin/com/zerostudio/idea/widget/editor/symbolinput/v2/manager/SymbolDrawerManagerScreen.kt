@@ -294,14 +294,19 @@ class SymbolDrawerManagerScreen(
             setSingleLine(true)
             setText(existing?.label.orEmpty())
         }
-        val shortIndex = LegacySymbolActionCatalog.values.indexOfFirst { value ->
-            existing?.shortAction == LegacySymbolActionAdapter.convert(LegacySymbolAction(value, null))
-        }.coerceAtLeast(0)
-        val longIndex = existing?.longAction?.let { action ->
-            LegacySymbolActionCatalog.values.indexOfFirst { value ->
-                LegacySymbolActionAdapter.convert(LegacySymbolAction(value, null)) == action
-            }.takeIf { it >= 0 }?.plus(1)
-        } ?: 0
+        val shortIndex = existing?.legacyShortActionId
+            ?.let { LegacySymbolActionCatalog.values.indexOf(it) }
+            ?.takeIf { it >= 0 }
+            ?: LegacySymbolActionCatalog.values.indexOfFirst { value ->
+                existing?.shortAction == LegacySymbolActionAdapter.convert(LegacySymbolAction(value, null))
+            }.coerceAtLeast(0)
+        val longIndex = existing?.legacyLongActionId?.let { LegacySymbolActionCatalog.values.indexOf(it) }
+            ?.takeIf { it >= 0 }?.plus(1)
+            ?: existing?.longAction?.let { action ->
+                LegacySymbolActionCatalog.values.indexOfFirst { value ->
+                    LegacySymbolActionAdapter.convert(LegacySymbolAction(value, null)) == action
+                }.takeIf { it >= 0 }?.plus(1)
+            } ?: 0
         val shortAction = Spinner(context).apply {
             adapter = ArrayAdapter(context, android.R.layout.simple_spinner_item, LegacySymbolActionCatalog.labels)
                 .also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
@@ -317,13 +322,15 @@ class SymbolDrawerManagerScreen(
             hint = "短按插入文本（仅“插入文本”动作使用）"
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
             minLines = 2
-            setText((existing?.shortAction as? com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.InsertText)?.template.orEmpty())
+            setText(existing?.legacyShortText
+                ?: (existing?.shortAction as? com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.InsertText)?.template.orEmpty())
         }
         val longText = EditText(context).apply {
             hint = "长按插入文本（仅“插入文本”动作使用）"
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
             minLines = 2
-            setText((existing?.longAction as? com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.InsertText)?.template.orEmpty())
+            setText(existing?.legacyLongText
+                ?: (existing?.longAction as? com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.InsertText)?.template.orEmpty())
         }
         val form = LinearLayout(context).apply {
             orientation = VERTICAL
@@ -336,7 +343,7 @@ class SymbolDrawerManagerScreen(
             addView(longAction, matchWrap())
             addView(longText, matchWrap())
             addView(TextView(context).apply {
-                text = "$$ 表示字面量 $；$S/$E 标记选区起止；$T 表示当前选中文本"
+                text = "\\$\\$ 表示字面量 \\$；\\$S/\\$E 标记选区起止；\\$T 表示当前选中文本"
                 textSize = 12f
                 alpha = 0.7f
             }, matchWrap())
@@ -358,7 +365,11 @@ class SymbolDrawerManagerScreen(
                         id = existing?.id ?: 0L,
                         label = display,
                         shortAction = LegacySymbolActionAdapter.convert(LegacySymbolAction(shortId, shortPayload)),
-                        longAction = longId?.let { LegacySymbolActionAdapter.convert(LegacySymbolAction(it, longPayload)) }
+                        longAction = longId?.let { LegacySymbolActionAdapter.convert(LegacySymbolAction(it, longPayload)) },
+                        legacyShortActionId = shortId,
+                        legacyShortText = shortPayload,
+                        legacyLongActionId = longId,
+                        legacyLongText = longPayload
                     )
                     if (existing == null) manager.addSymbol(group.id, symbol)
                     else manager.updateSymbol(group.id, symbol)

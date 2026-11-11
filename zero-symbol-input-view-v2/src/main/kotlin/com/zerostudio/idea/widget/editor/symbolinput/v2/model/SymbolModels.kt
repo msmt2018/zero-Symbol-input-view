@@ -15,8 +15,12 @@ data class SymbolEntry(
     val label: String,
     val shortAction: SymbolAction,
     val longAction: SymbolAction? = null,
-    /** Optional visual glyph used when the host chooses an icon-first cell style. */
-    val icon: String? = null
+    /** V1 numeric action IDs and payloads are retained verbatim for lossless JSON compatibility. */
+    val icon: String? = null,
+    val legacyShortActionId: Int? = null,
+    val legacyShortText: String? = null,
+    val legacyLongActionId: Int? = null,
+    val legacyLongText: String? = null
 )
 
 /** Typed V2 action contract, independent from legacy integer IDs and editor APIs. */

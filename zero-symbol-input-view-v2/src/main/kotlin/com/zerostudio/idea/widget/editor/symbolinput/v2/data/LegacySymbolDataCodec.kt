@@ -11,8 +11,11 @@ object LegacySymbolDataCodec {
 
     fun encode(groups: List<SymbolGroup>): String = gson.toJson(groups.map { group ->
         LegacyGroup(group.title, group.symbols.map { symbol ->
-            val short = toLegacy(symbol.shortAction)
-            val long = symbol.longAction?.let(::toLegacy)
+            val short = symbol.legacyShortActionId?.let { LegacySymbolAction(it, symbol.legacyShortText) }
+                ?: toLegacy(symbol.shortAction)
+            val long = symbol.longAction?.let { action ->
+                symbol.legacyLongActionId?.let { LegacySymbolAction(it, symbol.legacyLongText) } ?: toLegacy(action)
+            }
             LegacyItem(short.type, symbol.label, short.payload, long?.type, long?.payload)
         }.toMutableList())
     })
@@ -32,7 +35,11 @@ object LegacySymbolDataCodec {
                     id = itemIndex.toLong() + 1L,
                     label = item.display,
                     shortAction = LegacySymbolActionAdapter.convert(LegacySymbolAction(item.shortAction, item.shortText)),
-                    longAction = item.longAction?.let { LegacySymbolActionAdapter.convert(LegacySymbolAction(it, item.longText)) }
+                    longAction = item.longAction?.let { LegacySymbolActionAdapter.convert(LegacySymbolAction(it, item.longText)) },
+                    legacyShortActionId = item.shortAction,
+                    legacyShortText = item.shortText,
+                    legacyLongActionId = item.longAction,
+                    legacyLongText = item.longText
                 )
             }
             SymbolGroup("legacy-$groupIndex-${group.name.hashCode()}", group.name, symbols)
