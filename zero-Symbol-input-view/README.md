@@ -247,7 +247,7 @@ zero-Symbol-input-view/
 
 仓库同时提供独立的 V2 实验库，目录为：
 
-`zero-Symbol-input-view/zero-symbol-input-view-v2/`
+`zero-symbol-input-view-v2/`
 
 V2 不替换旧版 `AdvancedSymbolInputView`，两套实现并行维护。新架构采用：
 
@@ -260,6 +260,6 @@ V2 不替换旧版 `AdvancedSymbolInputView`，两套实现并行维护。新架
 - 符号动作通过回调交给宿主，避免强制绑定某个编辑器实现；
 - 独立的 `symbol_drawer_v2` 存储空间，不覆盖旧版配置。
 
-接入方式、API 示例和架构约束见 [V2 README](zero-symbol-input-view-v2/README.md) 与 [V2 架构说明](zero-symbol-input-view-v2/ARCHITECTURE.md)。
+接入方式、API 示例和架构约束见 [V2 README](../zero-symbol-input-view-v2/README.md) 与 [V2 架构说明](../zero-symbol-input-view-v2/ARCHITECTURE.md)。
 
 V2 当前处于并行开发阶段。完成符号管理界面、旧数据迁移、完整动作兼容及真机手势回归前，不应将旧版控件替换为 V2。

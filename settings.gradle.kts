@@ -73,5 +73,3 @@ include(
     ":oniguruma-native"
 )
 
-// Keep the experimental V2 library physically nested under the legacy module directory.
-project(":zero-symbol-input-view-v2").projectDir = file("zero-Symbol-input-view/zero-symbol-input-view-v2")
