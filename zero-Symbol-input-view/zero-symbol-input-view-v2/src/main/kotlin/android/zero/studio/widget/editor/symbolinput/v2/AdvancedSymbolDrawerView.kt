@@ -53,14 +53,20 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
         overScrollMode = View.OVER_SCROLL_NEVER
     }
     private val pageAdapter = SymbolPageAdapter(config) { symbol, longPress ->
-        onSymbolActionListener?.onAction(symbol, longPress)
+        val action = if (longPress) symbol.longAction else symbol.shortAction
+        if (action != null) {
+            if (action.type == MANAGER_ACTION_TYPE) onOpenManagerListener?.invoke()
+            else onSymbolActionListener?.onAction(symbol, longPress)
+        }
     }
 
     private var repository: SymbolGroupRepository =
         SharedPreferencesSymbolGroupRepository(context.applicationContext)
     private var groups: List<SymbolGroup> = emptyList()
     private var collapsedHeight = DrawerGeometry.collapsedHeightPx(config, resources.displayMetrics.density)
+    private var expandedGridHeight = collapsedHeight
     private var expandedHeight = collapsedHeight
+    private var drawerHeight = collapsedHeight
     private var pagerHeight = collapsedHeight
     private var expansion = 0f
     private var heightAnimator: ValueAnimator? = null
@@ -197,7 +203,7 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
                 if (!draggingDrawer) return false
                 val delta = lastY - event.rawY
                 lastY = event.rawY
-                setExpansionFromHeight((pagerHeight + delta.roundToInt()).coerceIn(collapsedHeight, expandedHeight))
+                setExpansionFromHeight((drawerHeight + delta.roundToInt()).coerceIn(collapsedHeight, expandedHeight))
                 return true
             }
             MotionEvent.ACTION_UP -> {
@@ -242,16 +248,23 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
         val density = resources.displayMetrics.density
         val oldFraction = expansion
         collapsedHeight = DrawerGeometry.collapsedHeightPx(config, density)
-        expandedHeight = DrawerGeometry.expandedHeightPx(groups, config, density)
+        expandedGridHeight = DrawerGeometry.expandedHeightPx(groups, config, density)
+        val indicatorHeight = (config.indicatorHeightDp * density).roundToInt()
+        // The indicator must still be revealable when every group fits in the
+        // collapsed grid; its height is part of the expanded drawer geometry.
+        expandedHeight = maxOf(collapsedHeight, expandedGridHeight) + indicatorHeight
         setExpansionFromHeight(
             (collapsedHeight + (expandedHeight - collapsedHeight) * oldFraction).roundToInt()
         )
     }
 
     private fun setExpansionFromHeight(height: Int) {
-        pagerHeight = height.coerceIn(collapsedHeight, expandedHeight)
-        expansion = (pagerHeight - collapsedHeight).toFloat() /
+        drawerHeight = height.coerceIn(collapsedHeight, expandedHeight)
+        expansion = (drawerHeight - collapsedHeight).toFloat() /
             (expandedHeight - collapsedHeight).coerceAtLeast(1)
+        pagerHeight = (
+            collapsedHeight + (expandedGridHeight - collapsedHeight) * expansion
+        ).roundToInt().coerceAtLeast(collapsedHeight)
         updateVisualState(expansion)
         requestLayout()
     }
@@ -268,6 +281,10 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
         indicator.translationY = -((1f - reveal) * config.indicatorHeightDp *
             resources.displayMetrics.density * 0.2f)
         indicator.visibility = if (indicatorHeight == 0) View.INVISIBLE else View.VISIBLE
+    }
+
+    private companion object {
+        const val MANAGER_ACTION_TYPE = 22
     }
 
     private fun animateTo(target: Float, animated: Boolean) {
