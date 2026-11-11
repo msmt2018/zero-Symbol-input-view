@@ -32,6 +32,8 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SharedPreferencesSymbolDrawerSettingsRepository
 
+private class SymbolHolder(val title: TextView) : RecyclerView.ViewHolder(title)
+
 /**
  * First-party manager screen for groups and symbols. The screen is intentionally
  * a View rather than an Activity so the host controls navigation and window policy.
@@ -342,19 +344,6 @@ class SymbolDrawerManagerScreen(
             .show()
     }
 
-    private fun confirmDeleteSymbol(symbol: SymbolEntry) {
-        val group = currentGroup() ?: return
-        AlertDialog.Builder(context)
-            .setTitle("删除符号")
-            .setMessage("确定删除“${symbol.label}”吗？")
-            .setNegativeButton("取消", null)
-            .setPositiveButton("删除") { _, _ ->
-                manager.removeSymbol(group.id, symbol.id)
-                refresh()
-            }
-            .show()
-    }
-
     private fun moveSymbol(symbol: SymbolEntry, delta: Int) {
         val group = currentGroup() ?: return
         val index = group.symbols.indexOfFirst { it.id == symbol.id }
@@ -427,8 +416,6 @@ class SymbolDrawerManagerScreen(
             holder.title.setOnClickListener { onClick(symbol) }
             holder.title.setOnLongClickListener { onLongClick(symbol, holder.title); true }
         }
-
-        private class SymbolHolder(val title: TextView) : RecyclerView.ViewHolder(title)
 
         companion object {
             private val DIFF = object : DiffUtil.ItemCallback<SymbolEntry>() {
