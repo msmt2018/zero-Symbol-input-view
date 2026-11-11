@@ -27,7 +27,7 @@ class SoraCodeEditorSymbolActionHost(
         val output = normalized.replace("\$S", "")
             .replace("\$E", "")
             .replace("\$T", selected)
-            .replace(escapedDollar, "$")
+            .replace(escapedDollar, "\$")
         val insertionCursor = startMarker?.coerceIn(0, output.length) ?: output.length
         val selectionEnd = endMarker?.coerceIn(0, output.length) ?: insertionCursor
         editor.insertText(output, insertionCursor)
