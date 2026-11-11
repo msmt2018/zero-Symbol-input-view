@@ -17,11 +17,18 @@ object LegacySymbolDataMigration {
     private const val LEGACY_DATA_KEY = "symbol_json_data"
 
     fun importIfV2Empty(context: Context, repository: SymbolGroupRepository): Boolean {
-        if (repository.loadGroups().isNotEmpty()) return false
+        if (repository.isLegacyMigrationComplete()) return false
+        if (repository.loadGroups().isNotEmpty()) {
+            repository.markLegacyMigrationComplete()
+            return false
+        }
         val json = context.applicationContext
             .getSharedPreferences(LEGACY_PREFS, Context.MODE_PRIVATE)
             .getString(LEGACY_DATA_KEY, null)
-            ?.takeIf { it.isNotBlank() } ?: return false
+            ?.takeIf { it.isNotBlank() } ?: run {
+                repository.markLegacyMigrationComplete()
+                return false
+            }
 
         val imported = runCatching {
             val type = object : TypeToken<List<LegacyGroup>>() {}.type
@@ -45,6 +52,7 @@ object LegacySymbolDataMigration {
 
         if (imported.isEmpty()) return false
         repository.saveGroups(imported)
+        repository.markLegacyMigrationComplete()
         return true
     }
 
