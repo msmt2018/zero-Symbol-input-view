@@ -4,6 +4,9 @@ import android.content.Context
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.graphics.Typeface
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
+import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.app.AlertDialog
@@ -40,7 +43,7 @@ class SymbolDrawerSettingsScreen(
     private var current = repository.load().settings
     private val content = LinearLayout(context).apply {
         orientation = LinearLayout.VERTICAL
-        setPadding(dp(20), dp(16), dp(20), dp(32))
+        setPadding(dp(16), dp(16), dp(16), dp(32))
     }
     private val symbolManager = SymbolDrawerManagerScreen(context, groupRepository, embeddedInSettings = true).apply {
         onError = { this@SymbolDrawerSettingsScreen.onError?.invoke(it) }
@@ -62,16 +65,23 @@ class SymbolDrawerSettingsScreen(
 
     private fun render() {
         content.removeAllViews()
-        content.addView(TextView(context).apply {
-            text = "符号抽屉设置"
-            textSize = 24f
-            setTypeface(typeface, Typeface.BOLD)
-        }, matchWrap())
-        content.addView(TextView(context).apply {
-            text = "设置会立即保存。宿主收到变更后可将新配置应用到抽屉。"
-            textSize = 13f
-            alpha = 0.72f
-            setPadding(0, dp(6), 0, dp(16))
+        content.addView(LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(18), dp(20), dp(18), dp(20))
+            background = surfaceBackground(primaryColor(), 0.10f, 22)
+            addView(TextView(context).apply {
+                text = "符号抽屉"
+                textSize = 25f
+                setTextColor(onSurfaceColor())
+                setTypeface(typeface, Typeface.BOLD)
+            }, matchWrap())
+            addView(TextView(context).apply {
+                text = "外观、布局、交互与符号动作管理"
+                textSize = 13f
+                setTextColor(onSurfaceColor())
+                alpha = 0.72f
+                setPadding(0, dp(6), 0, 0)
+            }, matchWrap())
         }, matchWrap())
 
         section("外观")
@@ -132,11 +142,15 @@ class SymbolDrawerSettingsScreen(
 
         section("符号列表与动作")
         content.addView(TextView(context).apply {
-            text = "每个符号均可分别配置短按动作、长按动作及插入文本；动作类型和编号沿用第一代定义。"
+            text = "每个符号独立设置短按与长按行为。动作编号和数据格式兼容第一代。"
             textSize = 13f
+            setTextColor(onSurfaceColor())
             alpha = 0.72f
-            setPadding(0, 0, 0, dp(8))
+            setPadding(dp(2), 0, dp(2), dp(10))
         }, matchWrap())
+        if (symbolManager.parent is android.view.ViewGroup) {
+            (symbolManager.parent as android.view.ViewGroup).removeView(symbolManager)
+        }
         content.addView(symbolManager, matchWrap())
 
         content.addView(Button(context).apply {
@@ -155,26 +169,35 @@ class SymbolDrawerSettingsScreen(
     private fun section(title: String) {
         content.addView(TextView(context).apply {
             text = title
-            textSize = 16f
+            textSize = 17f
+            setTextColor(onSurfaceColor())
             setTypeface(typeface, Typeface.BOLD)
-            setPadding(0, dp(18), 0, dp(8))
+            setPadding(dp(2), dp(22), dp(2), dp(10))
         }, matchWrap())
     }
 
     private fun addSwitch(title: String, checked: Boolean, changed: (Boolean) -> Unit) {
-        content.addView(Switch(context).apply {
-            text = title
-            isChecked = checked
-            textSize = 14f
-            setPadding(0, dp(8), 0, dp(8))
-            setOnCheckedChangeListener { _, value -> changed(value) }
-        }, matchWrap())
+        content.addView(LinearLayout(context).apply {
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(14), dp(5), dp(10), dp(5))
+            background = surfaceBackground(surfaceColor(), 0.08f, 14)
+            addView(TextView(context).apply {
+                text = title
+                textSize = 14f
+                setTextColor(onSurfaceColor())
+            }, LinearLayout.LayoutParams(0, dp(48), 1f))
+            addView(Switch(context).apply {
+                isChecked = checked
+                setOnCheckedChangeListener { _, value -> changed(value) }
+            }, LinearLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT))
+        }.withBottomSpace(), matchWrap())
     }
 
     private fun <T : Enum<T>> addChoice(title: String, values: List<T>, selected: T, changed: (T) -> Unit) {
         val row = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(0, dp(6), 0, dp(6))
+            setPadding(dp(14), dp(10), dp(14), dp(10))
+            background = surfaceBackground(surfaceColor(), 0.08f, 14)
         }
         row.addView(label(title), matchWrap())
         val spinner = Spinner(context)
@@ -196,7 +219,7 @@ class SymbolDrawerSettingsScreen(
             }
         }
         row.addView(spinner, matchWrap())
-        content.addView(row, matchWrap())
+        content.addView(row.withBottomSpace(), matchWrap())
     }
 
     private fun addSeek(title: String, value: Int, minimum: Int, maximum: Int, changed: (Int) -> Unit) {
@@ -217,7 +240,7 @@ class SymbolDrawerSettingsScreen(
                 override fun onStopTrackingTouch(bar: SeekBar?) { changed((bar?.progress ?: 0) + minimum) }
             })
         }, matchWrap())
-        content.addView(row, matchWrap())
+        content.addView(row.withBottomSpace(), matchWrap())
     }
 
     private fun promptImportBackup() {
@@ -257,7 +280,32 @@ class SymbolDrawerSettingsScreen(
     private fun label(value: String) = TextView(context).apply {
         text = value
         textSize = 14f
+        setTextColor(onSurfaceColor())
         gravity = Gravity.CENTER_VERTICAL
+    }
+
+    private fun LinearLayout.withBottomSpace(): LinearLayout = apply {
+        val lp = LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
+        lp.bottomMargin = dp(8)
+        layoutParams = lp
+    }
+
+    private fun themeColor(attribute: Int, fallback: Int): Int {
+        val value = TypedValue()
+        return if (context.theme.resolveAttribute(attribute, value, true)) {
+            if (value.resourceId != 0) runCatching { resources.getColor(value.resourceId, context.theme) }.getOrDefault(fallback)
+            else value.data
+        } else fallback
+    }
+
+    private fun surfaceColor() = themeColor(android.R.attr.colorBackground, Color.rgb(248, 248, 250))
+    private fun onSurfaceColor() = themeColor(android.R.attr.textColorPrimary, Color.rgb(28, 28, 30))
+    private fun primaryColor() = themeColor(android.R.attr.colorAccent, Color.rgb(103, 80, 164))
+
+    private fun surfaceBackground(fill: Int, strokeAlpha: Float, radius: Int) = GradientDrawable().apply {
+        setColor(fill)
+        cornerRadius = dp(radius).toFloat()
+        setStroke(dp(1), (0x33000000).toInt())
     }
 
     private fun matchWrap() = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
