@@ -34,6 +34,14 @@ drawer.onOpenManagerListener = {
 drawer.reloadGroups()
 drawer.setExpanded(expanded = true, animate = true)
 drawer.selectGroup(index = 1)
+
+// Optional manager command model (the UI can be implemented by the host).
+val manager = SymbolGroupManager(SharedPreferencesSymbolGroupRepository(this))
+val newGroup = manager.addGroup("Custom")
+manager.addSymbol(
+    newGroup.id,
+    SymbolEntry(0L, "=>", SymbolAction(type = 0, payload = " => "))
+)
 ```
 
 ## Data model
@@ -57,6 +65,21 @@ drawer.submitGroups(
     )
 )
 ```
+
+## Existing configuration migration
+
+On first V2 startup, if the V2 store is empty, the library checks the legacy
+`advanced_symbol_prefs/symbol_json_data` value and performs a one-way copy into
+the V2 repository. The legacy preference is never modified. The migration
+preserves action IDs and payloads; deterministic IDs are assigned because the
+legacy schema did not store stable IDs.
+
+## Symbol management
+
+`SymbolGroupManager` provides repository-backed group and symbol commands:
+create, rename, delete and reorder groups; add, edit, remove and reorder symbols;
+copy or move symbols between groups. It exposes immutable snapshots for a host
+manager screen and persists each successful command.
 
 ## Storage
 
