@@ -18,7 +18,6 @@ import android.text.InputType
 import android.widget.SeekBar
 import android.widget.Spinner
 import android.widget.Switch
-import android.widget.TextView
 
 /**
  * First-party programmatic settings screen. It can be embedded by any host
