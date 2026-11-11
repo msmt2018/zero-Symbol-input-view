@@ -26,9 +26,9 @@ class DrawerGeometryTest {
 
     @Test
     fun indicatorRevealIsClampedAndInterpolated() {
-        assertEquals(0f, DrawerGeometry.indicatorReveal(0f, config))
+        assertEquals(0f, DrawerGeometry.indicatorReveal(0f, config), 0.0001f)
         assertEquals(0.5f, DrawerGeometry.indicatorReveal(0.315f, config), 0.0001f)
-        assertEquals(1f, DrawerGeometry.indicatorReveal(1f, config))
+        assertEquals(1f, DrawerGeometry.indicatorReveal(1f, config), 0.0001f)
     }
 
     private fun group(id: String, count: Int) = SymbolGroup(
