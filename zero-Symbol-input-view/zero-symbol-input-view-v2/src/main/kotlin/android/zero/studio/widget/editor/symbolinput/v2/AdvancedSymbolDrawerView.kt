@@ -105,6 +105,14 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
     }
 
     fun submitGroups(value: List<SymbolGroup>, preserveSelectedGroup: Boolean = true) {
+        require(value.map { it.id }.distinct().size == value.size) {
+            "Symbol group IDs must be unique"
+        }
+        value.forEach { group ->
+            require(group.symbols.map { it.id }.distinct().size == group.symbols.size) {
+                "Symbol IDs must be unique within group ${group.id}"
+            }
+        }
         val previousId = groups.getOrNull(pager.currentItem)?.id
         groups = value.map { it.copy(symbols = it.symbols.toList()) }
         val restored = if (preserveSelectedGroup && previousId != null) {
