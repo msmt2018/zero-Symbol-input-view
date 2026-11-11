@@ -76,10 +76,10 @@ internal class SymbolPageAdapter(
                 textSize = 18f
                 isClickable = true
                 isFocusable = true
-                minHeight = dp(context, config.cellHeightDp)
+                minHeight = dp(context, maxOf(config.cellHeightDp, config.minimumTouchTargetDp))
                 layoutParams = RecyclerView.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
-                    dp(context, config.cellHeightDp)
+                    dp(context, maxOf(config.cellHeightDp, config.minimumTouchTargetDp))
                 ).apply {
                     marginStart = dp(context, config.cellHorizontalSpacingDp / 2)
                     marginEnd = dp(context, config.cellHorizontalSpacingDp / 2)
