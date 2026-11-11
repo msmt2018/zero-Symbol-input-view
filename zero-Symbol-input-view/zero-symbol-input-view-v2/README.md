@@ -105,3 +105,19 @@ actions to a concrete editor. `SymbolActionExecutor` validates IDs, payload
 sizes and composite depth and returns structured execution results. Legacy
 integer actions are translated only by `LegacySymbolActionAdapter` during
 migration; unknown IDs remain explicit extension actions.
+
+### Embedding the built-in settings screen
+
+The library provides a programmatic settings screen that can be embedded in a
+host Activity or Fragment. It persists settings and reports each saved snapshot:
+
+```kotlin
+val settingsScreen = SymbolDrawerSettingsScreen(this)
+settingsScreen.onSettingsChanged = { settings ->
+    // Apply the new settings to the active drawer instance.
+}
+settingsScreen.onError = { error ->
+    // Show a host-level error message.
+}
+setContentView(settingsScreen)
+```
