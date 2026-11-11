@@ -13,9 +13,31 @@ class SoraCodeEditorSymbolActionHost(
     private val editor: CodeEditor,
     private val onOpenManager: () -> Unit
 ) : SymbolActionHost {
+    /**
+     * V1-compatible insertion macros: $S = insertion cursor, $E = selection end,
+     * $T = selected text and $ = a literal dollar sign.
+     */
     override fun insertText(template: String): Boolean {
         if (!editor.isEditable) return false
-        editor.commitText(template)
+        val selected = selectedText()
+        val escapedDollar = "\\u0000"
+        val normalized = template.replace("$", escapedDollar)
+        val startMarker = normalized.indexOf("\\$S").takeIf { it >= 0 }
+        val endMarker = normalized.indexOf("\\$E").takeIf { it >= 0 }
+        val output = normalized.replace("\\$S", "")
+            .replace("\\$E", "")
+            .replace("\\$T", selected)
+            .replace(escapedDollar, "$")
+        val insertionCursor = startMarker?.coerceIn(0, output.length) ?: output.length
+        val selectionEnd = endMarker?.coerceIn(0, output.length) ?: insertionCursor
+        editor.insertText(output, insertionCursor)
+        if (selectionEnd != insertionCursor) {
+            val caret = editor.cursor.left().index
+            val target = (caret + selectionEnd - insertionCursor).coerceIn(0, editor.text.length)
+            val from = editor.text.indexer.getCharPosition(minOf(caret, target))
+            val to = editor.text.indexer.getCharPosition(maxOf(caret, target))
+            editor.setSelectionRegion(from.line, from.column, to.line, to.column)
+        }
         return true
     }
 
@@ -68,6 +90,7 @@ class SoraCodeEditorSymbolActionHost(
         val cursor = editor.cursor
         var start = cursor.left().index
         var end = cursor.right().index
+        if (kind == DeleteKind.CURRENT_LINE) return deleteCurrentLine()
         if (start == end) {
             when (kind) {
                 DeleteKind.BACKWARD -> start = (start - 1).coerceAtLeast(0)
@@ -118,12 +141,77 @@ class SoraCodeEditorSymbolActionHost(
             "indent", "editor.indent" -> editor.indentOrCommitTab()
             "unindent", "editor.unindent" -> editor.unindentSelection()
             "format", "editor.format" -> editor.formatCodeAsync()
-            "line.clear" -> return delete(DeleteKind.CURRENT_LINE)
+            "line.clear" -> return clearCurrentLine()
+            "editor.toggleLineComment" -> return toggleLineComment()
+            "line.duplicate" -> return duplicateCurrentLine()
+            "line.replace" -> return replaceCurrentLine(payload)
             "insert_payload" -> editor.commitText(payload.orEmpty())
-            // These commands need language-aware/editor-specific services. Do not
-            // report success until the host has a real implementation.
-            "editor.toggleLineComment", "line.duplicate", "line.replace" -> return false
             else -> return false
+        }
+        return true
+    }
+
+    /** Clear line contents but preserve its line separator. */
+    private fun clearCurrentLine(): Boolean {
+        if (!editor.isEditable) return false
+        val line = editor.cursor.leftLine
+        editor.text.delete(line, 0, line, editor.text.getColumnCount(line))
+        return true
+    }
+
+    /** Delete the current line and its separator, matching the V1 implementation. */
+    private fun deleteCurrentLine(): Boolean {
+        if (!editor.isEditable) return false
+        val text = editor.text
+        val line = editor.cursor.leftLine
+        text.delete(line, 0, line, text.getColumnCount(line))
+        if (line < text.lineCount - 1) {
+            text.delete(line, text.getColumnCount(line), line + 1, 0)
+        } else if (line > 0) {
+            text.delete(line - 1, text.getColumnCount(line - 1), line, 0)
+        }
+        return true
+    }
+
+    private fun duplicateCurrentLine(): Boolean {
+        if (!editor.isEditable) return false
+        val text = editor.text
+        val line = editor.cursor.leftLine
+        val content = text.getLineString(line)
+        val insertionLine = (line + 1).coerceAtMost(text.lineCount)
+        text.insert(insertionLine, 0, content + "\\n")
+        return true
+    }
+
+    private fun replaceCurrentLine(replacement: String?): Boolean {
+        if (!editor.isEditable) return false
+        val text = editor.text
+        val line = editor.cursor.leftLine
+        text.delete(line, 0, line, text.getColumnCount(line))
+        text.insert(line, 0, replacement.orEmpty())
+        return true
+    }
+
+    private fun toggleLineComment(): Boolean {
+        if (!editor.isEditable) return false
+        val text = editor.text
+        val startLine = editor.cursor.leftLine
+        val endLine = editor.cursor.rightLine
+        val marker = "//"
+        text.beginBatchEdit()
+        try {
+            for (line in startLine..endLine) {
+                val content = text.getLineString(line)
+                val trimmed = content.trimStart()
+                if (trimmed.startsWith(marker)) {
+                    val start = content.indexOf(marker)
+                    text.delete(line, start, line, start + marker.length)
+                } else {
+                    text.insert(line, content.length - trimmed.length, marker)
+                }
+            }
+        } finally {
+            text.endBatchEdit()
         }
         return true
     }
