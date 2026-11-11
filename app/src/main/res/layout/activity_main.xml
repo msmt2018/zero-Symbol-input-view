@@ -90,7 +90,7 @@
         android:background="?attr/colorSurface"
         android:elevation="8dp">
 
-        <android.zero.studio.widget.editor.symbolinput.AdvancedSymbolInputView
+        <com.zerostudio.idea.widget.editor.symbolinput.AdvancedSymbolInputView
             android:id="@+id/advanced_symbol_input"
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />

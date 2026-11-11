@@ -120,7 +120,7 @@ import java.io.FileOutputStream
 import java.lang.ref.WeakReference
 import java.util.zip.ZipFile
 import java.util.regex.PatternSyntaxException
-import android.zero.studio.widget.editor.symbolinput.*
+import com.zerostudio.idea.widget.editor.symbolinput.*
 
 
 /**
