@@ -52,8 +52,8 @@ class LegacySymbolActionAdapterTest {
             34 to SymbolAction.Delete(DeleteKind.CURRENT_LINE),
             35 to SymbolAction.EditorCommand("line.duplicate"),
             36 to SymbolAction.EditorCommand("line.replace", "payload"),
-            37 to SymbolAction.InsertText("\\n"),
-            38 to SymbolAction.InsertText("\\t"),
+            37 to SymbolAction.InsertText("\n"),
+            38 to SymbolAction.InsertText("\t"),
             39 to SymbolAction.EditorCommand("editor.unindent"),
             52 to SymbolAction.Clipboard(ClipboardOperation.COPY),
             53 to SymbolAction.Clipboard(ClipboardOperation.CUT),
@@ -73,8 +73,8 @@ class LegacySymbolActionAdapterTest {
 
     @Test fun preservesDollarMacroPayloadForLegacyInsert() {
         assertEquals(
-            SymbolAction.InsertText("val name = \\$Svalue\\$E"),
-            LegacySymbolActionAdapter.convert(LegacySymbolAction(0, "val name = \\$Svalue\\$E"))
+            SymbolAction.InsertText("val name = \$Svalue\$E"),
+            LegacySymbolActionAdapter.convert(LegacySymbolAction(0, "val name = \$Svalue\$E"))
         )
     }
 
