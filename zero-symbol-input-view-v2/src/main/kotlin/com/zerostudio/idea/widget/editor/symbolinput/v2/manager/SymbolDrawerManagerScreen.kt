@@ -14,6 +14,9 @@ import android.widget.LinearLayout
 import android.widget.PopupMenu
 import android.widget.Spinner
 import android.widget.TextView
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
+import android.util.TypedValue
 import android.widget.Toast
 import android.app.AlertDialog
 import android.text.InputType
@@ -34,7 +37,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.data.LegacySymbolActionC
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SharedPreferencesSymbolDrawerSettingsRepository
 
-private class SymbolHolder(val title: TextView) : RecyclerView.ViewHolder(title)
+private class SymbolHolder(val root: LinearLayout, val title: TextView, val detail: TextView) : RecyclerView.ViewHolder(root)
 
 /**
  * First-party manager screen for groups and symbols. The screen is intentionally
@@ -70,6 +73,7 @@ class SymbolDrawerManagerScreen(
     init {
         orientation = LinearLayout.VERTICAL
         setPadding(dp(12), dp(12), dp(12), dp(12))
+        background = roundedSurface(surfaceColor(), 18)
         if (manager.groups.isEmpty()) {
             manager.replaceAll(SymbolDrawerDefaults.createGroups())
         }
@@ -143,6 +147,9 @@ class SymbolDrawerManagerScreen(
     private fun buildSearch() {
         searchField.hint = "搜索符号名称"
         searchField.setSingleLine(true)
+        searchField.textSize = 14f
+        searchField.setPadding(dp(14), dp(10), dp(14), dp(10))
+        searchField.background = roundedSurface(surfaceColor(), 14)
         searchField.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = refreshSymbols()
@@ -154,7 +161,8 @@ class SymbolDrawerManagerScreen(
     private fun buildSymbolList() {
         emptyView.text = "当前分组暂无符号，点击“新建符号”添加"
         emptyView.textSize = 13f
-        emptyView.alpha = 0.65f
+        emptyView.setTextColor(secondaryTextColor())
+        emptyView.alpha = 0.75f
         emptyView.setPadding(dp(8), dp(16), dp(8), dp(16))
         addView(emptyView, matchWrap())
         val list = RecyclerView(context).apply {
@@ -468,6 +476,10 @@ class SymbolDrawerManagerScreen(
     private fun actionButton(title: String, action: () -> Unit) = Button(context).apply {
         text = title
         textSize = 12f
+        isAllCaps = false
+        setTextColor(primaryColor())
+        background = roundedSurface(surfaceColor(), 12)
+        setPadding(dp(8), dp(2), dp(8), dp(2))
         setOnClickListener { runCatching(action).onFailure(::reportError) }
     }
 
@@ -491,25 +503,50 @@ class SymbolDrawerManagerScreen(
         private val onLongClick: (SymbolEntry, View) -> Unit
     ) : ListAdapter<SymbolEntry, SymbolHolder>(DIFF) {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SymbolHolder {
-            val view = TextView(parent.context).apply {
-                textSize = 16f
-                setPadding(dp(context, 14), dp(context, 12), dp(context, 14), dp(context, 12))
+            val ctx = parent.context
+            val title = TextView(ctx).apply {
+                textSize = 15f
+                setTextColor(resolveColor(ctx, android.R.attr.textColorPrimary, Color.BLACK))
+                setTypeface(typeface, android.graphics.Typeface.BOLD)
+            }
+            val detail = TextView(ctx).apply {
+                textSize = 12f
+                setTextColor(resolveColor(ctx, android.R.attr.textColorSecondary, Color.DKGRAY))
+                setPadding(0, dp(ctx, 4), 0, 0)
+            }
+            val textColumn = LinearLayout(ctx).apply {
+                orientation = VERTICAL
+                gravity = android.view.Gravity.CENTER_VERTICAL
+                setPadding(dp(ctx, 12), dp(ctx, 10), dp(ctx, 12), dp(ctx, 10))
+                addView(title, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+                addView(detail, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+            }
+            val root = LinearLayout(ctx).apply {
+                orientation = HORIZONTAL
+                gravity = android.view.Gravity.CENTER_VERTICAL
+                background = roundedSurface(resolveColor(ctx, android.R.attr.colorBackground, Color.WHITE), dp(ctx, 12))
+                addView(View(ctx).apply {
+                    setBackgroundColor(resolveColor(ctx, android.R.attr.colorAccent, Color.rgb(103, 80, 164)))
+                }, LinearLayout.LayoutParams(dp(ctx, 3), ViewGroup.LayoutParams.MATCH_PARENT))
+                addView(textColumn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
                 isClickable = true
                 isFocusable = true
-                layoutParams = RecyclerView.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-                )
+                val lp = RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+                lp.bottomMargin = dp(ctx, 7)
+                layoutParams = lp
             }
-            return SymbolHolder(view)
+            return SymbolHolder(root, title, detail)
         }
 
         override fun onBindViewHolder(holder: SymbolHolder, position: Int) {
             val symbol = getItem(position)
             holder.title.text = if (symbol.icon.isNullOrEmpty()) symbol.label else "${symbol.icon}  ${symbol.label}"
-            holder.title.contentDescription = symbol.label
-            holder.title.setOnClickListener { onClick(symbol) }
-            holder.title.setOnLongClickListener { onLongClick(symbol, holder.title); true }
+            val shortName = symbol.legacyShortActionId?.let(::actionName) ?: symbol.shortAction.javaClass.simpleName
+            val longName = symbol.legacyLongActionId?.let(::actionName) ?: symbol.longAction?.javaClass?.simpleName ?: "无"
+            holder.detail.text = "短按  $shortName    ·    长按  $longName"
+            holder.root.contentDescription = "${symbol.label}，短按$shortName，长按$longName"
+            holder.root.setOnClickListener { onClick(symbol) }
+            holder.root.setOnLongClickListener { onLongClick(symbol, holder.root); true }
         }
 
         companion object {
@@ -517,8 +554,40 @@ class SymbolDrawerManagerScreen(
                 override fun areItemsTheSame(old: SymbolEntry, new: SymbolEntry) = old.id == new.id
                 override fun areContentsTheSame(old: SymbolEntry, new: SymbolEntry) = old == new
             }
-            private fun dp(context: Context, value: Int) =
-                (value * context.resources.displayMetrics.density).toInt()
+            private fun dp(context: Context, value: Int) = (value * context.resources.displayMetrics.density).toInt()
+            private fun actionName(id: Int): String {
+                val index = LegacySymbolActionCatalog.values.indexOf(id)
+                return LegacySymbolActionCatalog.labels.getOrNull(index) ?: "动作 $id"
+            }
+            private fun resolveColor(context: Context, attr: Int, fallback: Int): Int {
+                val value = TypedValue()
+                return if (context.theme.resolveAttribute(attr, value, true)) {
+                    if (value.resourceId != 0) runCatching { context.resources.getColor(value.resourceId, context.theme) }.getOrDefault(fallback)
+                    else value.data
+                } else fallback
+            }
+            private fun roundedSurface(color: Int, radius: Int) = GradientDrawable().apply {
+                setColor(color)
+                cornerRadius = radius.toFloat()
+                setStroke(1, 0x22000000)
+            }
         }
     }
+
+    private fun roundedSurface(color: Int, radiusDp: Int) = GradientDrawable().apply {
+        setColor(color)
+        cornerRadius = dp(radiusDp).toFloat()
+        setStroke(dp(1), 0x22000000)
+    }
+    private fun themeColor(attr: Int, fallback: Int): Int {
+        val value = TypedValue()
+        return if (context.theme.resolveAttribute(attr, value, true)) {
+            if (value.resourceId != 0) runCatching { resources.getColor(value.resourceId, context.theme) }.getOrDefault(fallback)
+            else value.data
+        } else fallback
+    }
+    private fun surfaceColor() = themeColor(android.R.attr.colorBackground, Color.rgb(248, 248, 250))
+    private fun primaryColor() = themeColor(android.R.attr.colorAccent, Color.rgb(103, 80, 164))
+    private fun secondaryTextColor() = themeColor(android.R.attr.textColorSecondary, Color.DKGRAY)
+
 }
