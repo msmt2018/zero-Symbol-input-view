@@ -202,9 +202,9 @@ class SymbolDrawerManagerScreen(
             query.isEmpty() ||
                 symbol.label.contains(query, ignoreCase = true) ||
                 (settings.searchIncludesActionPayload && (
-                    SymbolActionJsonCodec.encode(symbol.shortAction).toString().contains(query, ignoreCase = true) ||
+                    symbol.shortAction.toString().contains(query, ignoreCase = true) ||
                         symbol.longAction?.let {
-                            SymbolActionJsonCodec.encode(it).toString().contains(query, ignoreCase = true)
+                            it.toString().contains(query, ignoreCase = true)
                         } == true
                     ))
         }
@@ -294,33 +294,52 @@ class SymbolDrawerManagerScreen(
             setSingleLine(true)
             setText(existing?.label.orEmpty())
         }
-        val icon = EditText(context).apply {
-            hint = "可选图标 / Emoji"
-            setSingleLine(true)
-            setText(existing?.icon.orEmpty())
+        val shortIndex = LegacySymbolActionCatalog.values.indexOfFirst { value ->
+            existing?.shortAction == LegacySymbolActionAdapter.convert(LegacySymbolAction(value, null))
+        }.coerceAtLeast(0)
+        val longIndex = existing?.longAction?.let { action ->
+            LegacySymbolActionCatalog.values.indexOfFirst { value ->
+                LegacySymbolActionAdapter.convert(LegacySymbolAction(value, null)) == action
+            }.takeIf { it >= 0 }?.plus(1)
+        } ?: 0
+        val shortAction = Spinner(context).apply {
+            adapter = ArrayAdapter(context, android.R.layout.simple_spinner_item, LegacySymbolActionCatalog.labels)
+                .also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+            setSelection(shortIndex, false)
         }
-        val shortAction = EditText(context).apply {
-            hint = """短按动作 JSON，例如 {"kind":"insertText","template":"fun "}"""
-            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
-            minLines = 3
-            setText(existing?.shortAction?.let { SymbolActionJsonCodec.encode(it).toString() }
-                ?: SymbolActionJsonCodec.encode(SymbolAction.InsertText("")).toString())
+        val longLabels = listOf("无长按动作") + LegacySymbolActionCatalog.labels
+        val longAction = Spinner(context).apply {
+            adapter = ArrayAdapter(context, android.R.layout.simple_spinner_item, longLabels)
+                .also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+            setSelection(longIndex, false)
         }
-        val longAction = EditText(context).apply {
-            hint = "长按动作 JSON（可选）"
+        val shortText = EditText(context).apply {
+            hint = "短按插入文本（仅“插入文本”动作使用）"
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
             minLines = 2
-            setText(existing?.longAction?.let { SymbolActionJsonCodec.encode(it).toString() }.orEmpty())
+            setText((existing?.shortAction as? com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.InsertText)?.template.orEmpty())
+        }
+        val longText = EditText(context).apply {
+            hint = "长按插入文本（仅“插入文本”动作使用）"
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
+            minLines = 2
+            setText((existing?.longAction as? com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.InsertText)?.template.orEmpty())
         }
         val form = LinearLayout(context).apply {
             orientation = VERTICAL
             setPadding(dp(20), dp(8), dp(20), 0)
             addView(label, matchWrap())
-            addView(icon, matchWrap())
             addView(TextView(context).apply { text = "短按动作" }, matchWrap())
             addView(shortAction, matchWrap())
+            addView(shortText, matchWrap())
             addView(TextView(context).apply { text = "长按动作（可选）" }, matchWrap())
             addView(longAction, matchWrap())
+            addView(longText, matchWrap())
+            addView(TextView(context).apply {
+                text = "$$ 表示字面量 $；$S/$E 标记选区起止；$T 表示当前选中文本"
+                textSize = 12f
+                alpha = 0.7f
+            }, matchWrap())
         }
         AlertDialog.Builder(context)
             .setTitle(if (existing == null) "新建符号" else "编辑符号")
@@ -328,16 +347,18 @@ class SymbolDrawerManagerScreen(
             .setNegativeButton("取消", null)
             .setPositiveButton("保存") { _, _ ->
                 runCatching {
-                    val display = label.text.toString().trim()
+                    val display = label.text.toString()
                     require(display.isNotEmpty()) { "符号显示文本不能为空" }
-                    val short = parseAction(shortAction.text.toString())
-                    val long = longAction.text.toString().trim().takeIf { it.isNotEmpty() }?.let(::parseAction)
+                    val shortId = LegacySymbolActionCatalog.values[shortAction.selectedItemPosition]
+                    val longPosition = longAction.selectedItemPosition
+                    val longId = if (longPosition == 0) null else LegacySymbolActionCatalog.values[longPosition - 1]
+                    val shortPayload = shortText.text.toString().takeIf { shortId == 0 }
+                    val longPayload = longText.text.toString().takeIf { longId == 0 }
                     val symbol = SymbolEntry(
                         id = existing?.id ?: 0L,
                         label = display,
-                        shortAction = short,
-                        longAction = long,
-                        icon = icon.text.toString().trim().takeIf { it.isNotEmpty() }
+                        shortAction = LegacySymbolActionAdapter.convert(LegacySymbolAction(shortId, shortPayload)),
+                        longAction = longId?.let { LegacySymbolActionAdapter.convert(LegacySymbolAction(it, longPayload)) }
                     )
                     if (existing == null) manager.addSymbol(group.id, symbol)
                     else manager.updateSymbol(group.id, symbol)
@@ -345,11 +366,6 @@ class SymbolDrawerManagerScreen(
                 }.onFailure(::reportError)
             }
             .show()
-    }
-
-    private fun parseAction(raw: String): SymbolAction {
-        val json = JsonParser.parseString(raw).asJsonObject
-        return SymbolActionJsonCodec.decode(json)
     }
 
     private fun showSymbolMenu(symbol: SymbolEntry, anchor: View) {
