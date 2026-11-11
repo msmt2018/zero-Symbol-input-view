@@ -70,6 +70,26 @@ object SymbolDrawerDefaults {
         id = id,
         label = label,
         shortAction = shortAction,
-        longAction = longAction
+        longAction = longAction,
+        legacyShortActionId = legacyId(shortAction),
+        legacyShortText = (shortAction as? SymbolAction.InsertText)?.template,
+        legacyLongActionId = longAction?.let(::legacyId),
+        legacyLongText = (longAction as? SymbolAction.InsertText)?.template
     )
+
+    private fun legacyId(action: SymbolAction): Int = when (action) {
+        is SymbolAction.InsertText -> 0
+        is SymbolAction.MoveCursor -> when (action.target) {
+            CursorTarget.LEFT -> 18
+            CursorTarget.RIGHT -> 19
+            CursorTarget.UP -> 20
+            CursorTarget.DOWN -> 21
+            CursorTarget.LINE_START -> 16
+            CursorTarget.LINE_END -> 17
+            CursorTarget.DOCUMENT_START -> 23
+            CursorTarget.DOCUMENT_END -> 24
+        }
+        SymbolAction.OpenManager -> 22
+        else -> error("Default symbol action is not part of the V1 action catalog")
+    }
 }
