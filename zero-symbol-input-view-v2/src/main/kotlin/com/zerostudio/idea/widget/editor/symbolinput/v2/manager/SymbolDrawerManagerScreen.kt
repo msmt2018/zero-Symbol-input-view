@@ -343,7 +343,7 @@ class SymbolDrawerManagerScreen(
             addView(longAction, matchWrap())
             addView(longText, matchWrap())
             addView(TextView(context).apply {
-                text = "\\$\\$ 表示字面量 \\$；\\$S/\\$E 标记选区起止；\\$T 表示当前选中文本"
+                text = "\$\$ 表示字面量 \$；\$S/\$E 标记选区起止；\$T 表示当前选中文本"
                 textSize = 12f
                 alpha = 0.7f
             }, matchWrap())
