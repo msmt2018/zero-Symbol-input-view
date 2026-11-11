@@ -231,6 +231,8 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
                         // Lock this gesture to ViewPager2. The drawer must not
                         // steal a horizontal group swipe later in the gesture.
                         gestureAxis = AXIS_HORIZONTAL
+                        velocityTracker?.recycle()
+                        velocityTracker = null
                         super.requestDisallowInterceptTouchEvent(true)
                     } else if (abs(dy) > abs(dx) * 1.15f) {
                         gestureAxis = AXIS_VERTICAL
@@ -300,8 +302,7 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
     override fun onDetachedFromWindow() {
         heightAnimator?.cancel()
         heightAnimator = null
-        velocityTracker?.recycle()
-        velocityTracker = null
+        resetGesture()
         super.onDetachedFromWindow()
     }
 
