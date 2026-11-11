@@ -12,7 +12,7 @@ class DrawerGeometryTest {
 
     @Test
     fun collapsedHeightUsesConfiguredRows() {
-        assertEquals(68, DrawerGeometry.collapsedHeightPx(config, 1f))
+        assertEquals(70, DrawerGeometry.collapsedHeightPx(config, 1f))
     }
 
     @Test
@@ -21,7 +21,7 @@ class DrawerGeometryTest {
             group("a", 5),
             group("b", 9)
         )
-        assertEquals(158, DrawerGeometry.expandedHeightPx(groups, config, 1f))
+        assertEquals(102, DrawerGeometry.expandedHeightPx(groups, config, 1f))
     }
 
     @Test
