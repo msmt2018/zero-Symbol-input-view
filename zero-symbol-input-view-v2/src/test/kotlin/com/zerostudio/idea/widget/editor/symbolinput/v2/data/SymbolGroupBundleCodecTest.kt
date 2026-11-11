@@ -29,6 +29,25 @@ class SymbolGroupBundleCodecTest {
         assertTrue(SymbolGroupBundleCodec.decode(SymbolGroupBundleCodec.encode(emptyList())).isEmpty())
     }
 
+    @Test fun storageWritesVersionedEnvelopeAndReadsItBack() {
+        val groups = listOf(
+            SymbolGroup("kotlin", "Kotlin", listOf(
+                SymbolEntry(1L, "fun", SymbolAction.InsertText("fun "))
+            ))
+        )
+        val encoded = SymbolGroupStorageCodec.encode(groups)
+        assertTrue(encoded.contains("\"format\":\"zero-symbol-drawer\""))
+        assertTrue(encoded.contains("\"version\":1"))
+        assertEquals(groups, SymbolGroupStorageCodec.decode(encoded))
+    }
+
+    @Test fun storageReadsPreviousUnversionedV2Array() {
+        val legacy = """[{"id":"g","title":"Group","symbols":[{"id":1,"label":"x","shortAction":{"kind":"insertText","template":"x"}}]}]"""
+        val decoded = SymbolGroupStorageCodec.decode(legacy)
+        assertEquals("g", decoded.single().id)
+        assertEquals(SymbolAction.InsertText("x"), decoded.single().symbols.single().shortAction)
+    }
+
     @Test(expected = IllegalArgumentException::class)
     fun rejectsUnknownBackupVersion() {
         SymbolGroupBundleCodec.decode("""{"format":"zero-symbol-drawer","version":99,"groups":[]}""")
