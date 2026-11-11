@@ -3,6 +3,7 @@ package android.zero.studio.widget.editor.symbolinput.v2.ui
 import android.content.Context
 import android.graphics.Color
 import android.view.Gravity
+import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import android.zero.studio.widget.editor.symbolinput.v2.model.DrawerConfig
@@ -13,21 +14,18 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 
+/**
+ * ViewPager2 page adapter. Pages are diffed by stable group identity, and each
+ * page owns a RecyclerView grid that shares a recycled pool with sibling pages.
+ */
 internal class SymbolPageAdapter(
     private val config: DrawerConfig,
     private val onSymbolAction: (SymbolEntry, Boolean) -> Unit
-) : RecyclerView.Adapter<SymbolPageAdapter.PageHolder>() {
-    private var groups: List<SymbolGroup> = emptyList()
+) : ListAdapter<SymbolGroup, SymbolPageAdapter.PageHolder>(GROUP_DIFF) {
+
     private val recycledPool = RecyclerView.RecycledViewPool().apply {
         setMaxRecycledViews(0, config.columns * 4)
     }
-
-    init {
-        setHasStableIds(true)
-    }
-
-    override fun getItemCount() = groups.size
-    override fun getItemId(position: Int) = groups[position].id.hashCode().toLong()
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PageHolder {
         val grid = RecyclerView(parent.context).apply {
@@ -48,22 +46,17 @@ internal class SymbolPageAdapter(
     }
 
     override fun onBindViewHolder(holder: PageHolder, position: Int) {
-        holder.bind(groups[position].symbols)
+        holder.bind(getItem(position).symbols)
     }
 
     override fun onViewRecycled(holder: PageHolder) {
         holder.clear()
     }
 
-    fun submitGroups(next: List<SymbolGroup>) {
-        groups = next.toList()
-        notifyDataSetChanged()
-    }
-
     class PageHolder(
         private val grid: RecyclerView,
-        private val config: DrawerConfig,
-        private val onSymbolAction: (SymbolEntry, Boolean) -> Unit
+        config: DrawerConfig,
+        onSymbolAction: (SymbolEntry, Boolean) -> Unit
     ) : RecyclerView.ViewHolder(grid) {
         private val symbolsAdapter = SymbolAdapter(config, onSymbolAction)
 
@@ -78,7 +71,7 @@ internal class SymbolPageAdapter(
     private class SymbolAdapter(
         private val config: DrawerConfig,
         private val onSymbolAction: (SymbolEntry, Boolean) -> Unit
-    ) : ListAdapter<SymbolEntry, SymbolHolder>(DIFF) {
+    ) : ListAdapter<SymbolEntry, SymbolHolder>(SYMBOL_DIFF) {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SymbolHolder {
             val label = TextView(parent.context).apply {
                 gravity = Gravity.CENTER
@@ -105,19 +98,12 @@ internal class SymbolPageAdapter(
             holder.label.text = item.label
             holder.label.setOnClickListener {
                 val current = holder.bindingAdapterPosition
-                if (current != NO_POSITION) onSymbolAction(getItem(current), false)
+                if (current != RecyclerView.NO_POSITION) onSymbolAction(getItem(current), false)
             }
             holder.label.setOnLongClickListener {
                 val current = holder.bindingAdapterPosition
-                if (current != NO_POSITION) onSymbolAction(getItem(current), true)
+                if (current != RecyclerView.NO_POSITION) onSymbolAction(getItem(current), true)
                 true
-            }
-        }
-
-        private companion object {
-            val DIFF = object : DiffUtil.ItemCallback<SymbolEntry>() {
-                override fun areItemsTheSame(old: SymbolEntry, new: SymbolEntry) = old.id == new.id
-                override fun areContentsTheSame(old: SymbolEntry, new: SymbolEntry) = old == new
             }
         }
     }
@@ -126,11 +112,16 @@ internal class SymbolPageAdapter(
         val label: TextView = view
     }
 
-    companion object {
-        private fun dp(context: Context, value: Int) =
+    private companion object {
+        val GROUP_DIFF = object : DiffUtil.ItemCallback<SymbolGroup>() {
+            override fun areItemsTheSame(old: SymbolGroup, new: SymbolGroup) = old.id == new.id
+            override fun areContentsTheSame(old: SymbolGroup, new: SymbolGroup) = old == new
+        }
+        val SYMBOL_DIFF = object : DiffUtil.ItemCallback<SymbolEntry>() {
+            override fun areItemsTheSame(old: SymbolEntry, new: SymbolEntry) = old.id == new.id
+            override fun areContentsTheSame(old: SymbolEntry, new: SymbolEntry) = old == new
+        }
+        fun dp(context: Context, value: Int) =
             (value * context.resources.displayMetrics.density).toInt()
     }
 }
-
-private fun dp(context: Context, value: Int) =
-    (value * context.resources.displayMetrics.density).toInt()
