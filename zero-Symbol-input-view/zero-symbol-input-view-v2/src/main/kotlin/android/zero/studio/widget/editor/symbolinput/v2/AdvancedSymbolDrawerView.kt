@@ -141,6 +141,17 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
         reloadGroups()
     }
 
+    override fun generateDefaultLayoutParams(): LayoutParams =
+        LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
+
+    override fun generateLayoutParams(attrs: AttributeSet): LayoutParams =
+        LayoutParams(context, attrs)
+
+    override fun generateLayoutParams(params: LayoutParams): LayoutParams =
+        LayoutParams(params)
+
+    override fun checkLayoutParams(params: LayoutParams): Boolean = params is LayoutParams
+
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val width = MeasureSpec.getSize(widthMeasureSpec)
         val indicatorHeight = indicator.layoutParams.height.coerceAtLeast(0)
