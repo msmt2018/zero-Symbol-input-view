@@ -1,7 +1,7 @@
 package com.zerostudio.idea.widget.editor.symbolinput.v2.data
 
 import android.content.Context
-import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.LegacySymbolAction
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.google.gson.Gson
@@ -38,8 +38,10 @@ object LegacySymbolDataMigration {
                     SymbolEntry(
                         id = ((groupIndex.toLong() shl 32) or (symbolIndex.toLong() and 0xffffffffL)) + 1L,
                         label = item.display,
-                        shortAction = SymbolAction(item.shortAction, item.shortText),
-                        longAction = item.longAction?.let { SymbolAction(it, item.longText) }
+                        shortAction = LegacySymbolActionAdapter.convert(LegacySymbolAction(item.shortAction, item.shortText)),
+                        longAction = item.longAction?.let {
+                            LegacySymbolActionAdapter.convert(LegacySymbolAction(it, item.longText))
+                        }
                     )
                 }
                 if (symbols.isEmpty()) null else SymbolGroup(

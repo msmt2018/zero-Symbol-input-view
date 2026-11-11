@@ -17,6 +17,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.data.LegacySymbolDataMig
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SharedPreferencesSymbolGroupRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.DrawerConfig
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.state.DrawerGeometry
@@ -58,7 +59,7 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
     private val pageAdapter = SymbolPageAdapter(config) { symbol, longPress ->
         val action = if (longPress) symbol.longAction else symbol.shortAction
         if (action != null) {
-            if (action.type == MANAGER_ACTION_TYPE) onOpenManagerListener?.invoke()
+            if (action == SymbolAction.OpenManager) onOpenManagerListener?.invoke()
             else onSymbolActionListener?.onAction(symbol, longPress)
         }
     }
@@ -381,7 +382,6 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
     }
 
     private companion object {
-        const val MANAGER_ACTION_TYPE = 22
         const val AXIS_UNDECIDED = 0
         const val AXIS_HORIZONTAL = 1
         const val AXIS_VERTICAL = 2

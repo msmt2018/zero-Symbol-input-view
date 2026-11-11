@@ -35,7 +35,7 @@ class DrawerGeometryTest {
         id = id,
         title = id,
         symbols = (0 until count).map {
-            SymbolEntry(it.toLong(), it.toString(), SymbolAction(0, it.toString()))
+            SymbolEntry(it.toLong(), it.toString(), SymbolAction.InsertText(it.toString()))
         }
     )
 }

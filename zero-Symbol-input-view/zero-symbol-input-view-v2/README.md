@@ -41,7 +41,7 @@ val manager = SymbolGroupManager(SharedPreferencesSymbolGroupRepository(this))
 val newGroup = manager.addGroup("Custom")
 manager.addSymbol(
     newGroup.id,
-    SymbolEntry(0L, "=>", SymbolAction(type = 0, payload = " => "))
+    SymbolEntry(0L, "=>", SymbolAction.InsertText(" => "))
 )
 ```
 
@@ -59,7 +59,7 @@ drawer.submitGroups(
                 SymbolEntry(
                     id = 1L,
                     label = "fun",
-                    shortAction = SymbolAction(type = 0, payload = "fun ")
+                    shortAction = SymbolAction.InsertText("fun ")
                 )
             )
         )
@@ -89,3 +89,19 @@ The default repository uses the isolated SharedPreferences namespace `symbol_dra
 ## Design notes
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for responsibilities, gesture arbitration, performance strategy, and compatibility constraints.
+
+## Settings and typed actions
+
+V2 settings are represented by immutable `SymbolDrawerSettings` snapshots and
+persisted through `SymbolDrawerSettingsRepository`. The JSON codec supplies
+defaults for missing fields, validates enum values, and reports malformed
+storage so the host can surface a recovery notice. The settings screen and
+runtime application are being built on this contract.
+
+V2 actions use the sealed `SymbolAction` model (insert, replace, surround,
+cursor movement, deletion, selection transform, editor command, clipboard,
+manager, composite and extension). Implement `SymbolActionHost` to bridge the
+actions to a concrete editor. `SymbolActionExecutor` validates IDs, payload
+sizes and composite depth and returns structured execution results. Legacy
+integer actions are translated only by `LegacySymbolActionAdapter` during
+migration; unknown IDs remain explicit extension actions.

@@ -16,7 +16,7 @@ class SymbolGroupManagerTest {
 
     @Test
     fun moveSymbolBetweenGroupsPreservesSymbolIdentityAndAction() {
-        val symbol = SymbolEntry(7L, "{}", SymbolAction(0, "{}"))
+        val symbol = SymbolEntry(7L, "{}", SymbolAction.InsertText("{}"))
         val repository = MemoryRepository(
             listOf(
                 SymbolGroup("a", "A", listOf(symbol)),

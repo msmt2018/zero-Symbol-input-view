@@ -69,4 +69,4 @@ The V2 interaction contract must continue to be validated against the legacy con
 
 - The one-way legacy JSON importer preserves legacy action IDs and payloads, but deterministic IDs are synthesized because the old schema had no stable IDs. Validate real user configurations before treating migration as production-complete.
 - No new gesture semantics, nested vertical scrolling inside pages, or manager UI yet.
-- No replacement of the existing manager screen. The next phase should add a repository-backed manager contract and import/export adapter.
+- No replacement of the existing manager screen. The next phase should add the first-party manager and settings screens, wire settings into runtime rendering/gestures, and add import/export adapters.
