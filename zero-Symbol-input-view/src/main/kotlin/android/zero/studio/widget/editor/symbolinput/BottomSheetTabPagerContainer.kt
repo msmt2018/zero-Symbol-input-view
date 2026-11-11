@@ -31,6 +31,7 @@ abstract class BottomSheetTabPagerContainer @JvmOverloads constructor(
     protected val tabRow: View
 
     private var tabMediator: TabLayoutMediator? = null
+    private var boundTabTitles: List<String>? = null
     private var bottomSheetView: View? = null
     private var bottomSheetBehavior: BottomSheetBehavior<View>? = null
     private var registeredBottomSheetCallback: BottomSheetBehavior.BottomSheetCallback? = null
@@ -118,11 +119,21 @@ abstract class BottomSheetTabPagerContainer @JvmOverloads constructor(
 
     /** 将标题列表绑定到 `TabLayout` 与 `ViewPager2`。 */
     protected fun bindTabs(titles: List<String>) {
+        boundTabTitles = titles.toList()
+        attachTabMediatorIfPossible()
+    }
+
+    private fun attachTabMediatorIfPossible() {
         detachTabMediatorSafely()
+        val titles = boundTabTitles ?: return
         if (titles.isEmpty()) {
             tabLayout.removeAllTabs()
             return
         }
+        // TabLayoutMediator.attach() requires an adapter. A subclass may install
+        // its adapter after this view is reattached, then call bindTabs again.
+        if (viewPager.adapter == null) return
+
         tabMediator = TabLayoutMediator(tabLayout, viewPager) { tab, position ->
             tab.text = titles.getOrNull(position) ?: "Tab ${position + 1}"
         }.apply { attach() }
@@ -199,6 +210,7 @@ abstract class BottomSheetTabPagerContainer @JvmOverloads constructor(
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
+        attachTabMediatorIfPossible()
         registerBottomSheetCallbackIfNeeded()
         scheduleInitialCollapse()
     }
