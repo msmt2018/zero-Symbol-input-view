@@ -11,6 +11,8 @@ import com.google.gson.reflect.TypeToken
 interface SymbolGroupRepository {
     fun loadGroups(): List<SymbolGroup>
     fun saveGroups(groups: List<SymbolGroup>)
+    fun isLegacyMigrationComplete(): Boolean = loadGroups().isNotEmpty()
+    fun markLegacyMigrationComplete() = Unit
 }
 
 /**
@@ -47,6 +49,13 @@ class SharedPreferencesSymbolGroupRepository(
         }.getOrDefault(emptyList())
     }
 
+    override fun isLegacyMigrationComplete(): Boolean =
+        preferences.getBoolean(KEY_LEGACY_MIGRATION_COMPLETE, false)
+
+    override fun markLegacyMigrationComplete() {
+        preferences.edit().putBoolean(KEY_LEGACY_MIGRATION_COMPLETE, true).apply()
+    }
+
     override fun saveGroups(groups: List<SymbolGroup>) {
         val stored = groups.map { group ->
             StoredGroup(
@@ -79,5 +88,6 @@ class SharedPreferencesSymbolGroupRepository(
 
     private companion object {
         const val KEY_GROUPS = "groups_json_v2"
+        const val KEY_LEGACY_MIGRATION_COMPLETE = "legacy_migration_complete"
     }
 }
