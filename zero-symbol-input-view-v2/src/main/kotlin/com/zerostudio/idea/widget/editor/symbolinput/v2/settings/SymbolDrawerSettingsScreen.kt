@@ -68,7 +68,7 @@ class SymbolDrawerSettingsScreen(
         content.removeAllViews()
         activePage = null
 
-        activePage?.addView(LinearLayout(context).apply {
+        content.addView(LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(18), dp(16), dp(18), dp(16))
             background = surfaceBackground(surfaceColor(), 0.10f, 22)
@@ -222,7 +222,7 @@ class SymbolDrawerSettingsScreen(
     }
 
     private fun addSwitch(title: String, checked: Boolean, changed: (Boolean) -> Unit) {
-        content.addView(LinearLayout(context).apply {
+        activePage?.addView(LinearLayout(context).apply {
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(14), dp(5), dp(10), dp(5))
             background = surfaceBackground(surfaceColor(), 0.08f, 14)
@@ -235,7 +235,7 @@ class SymbolDrawerSettingsScreen(
                 isChecked = checked
                 setOnCheckedChangeListener { _, value -> changed(value) }
             }, LinearLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT))
-        }.withBottomSpace(), matchWrap())
+        }, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply { bottomMargin = dp(8) })
     }
 
     private fun <T : Enum<T>> addChoice(title: String, values: List<T>, selected: T, changed: (T) -> Unit) {
