@@ -21,6 +21,8 @@ import android.text.InputType
 import android.widget.SeekBar
 import android.widget.Spinner
 import android.widget.Switch
+import android.widget.FrameLayout
+import com.google.android.material.tabs.TabLayout
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SharedPreferencesSymbolGroupRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.manager.SymbolDrawerManagerScreen
@@ -34,25 +36,24 @@ class SymbolDrawerSettingsScreen(
     private val repository: SymbolDrawerSettingsRepository =
         SharedPreferencesSymbolDrawerSettingsRepository(context),
     groupRepository: SymbolGroupRepository = SharedPreferencesSymbolGroupRepository(context)
-) : ScrollView(context) {
+) : LinearLayout(context) {
 
     var onSettingsChanged: ((SymbolDrawerSettings) -> Unit)? = null
     var onGroupsChanged: ((List<com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup>) -> Unit)? = null
     var onError: ((Throwable) -> Unit)? = null
 
     private var current = repository.load().settings
-    private val content = LinearLayout(context).apply {
-        orientation = LinearLayout.VERTICAL
-        setPadding(dp(16), dp(16), dp(16), dp(32))
-    }
+    private val content = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
+    private var activePage: LinearLayout? = null
     private val symbolManager = SymbolDrawerManagerScreen(context, groupRepository, embeddedInSettings = true).apply {
         onError = { this@SymbolDrawerSettingsScreen.onError?.invoke(it) }
         onGroupsChanged = { this@SymbolDrawerSettingsScreen.onGroupsChanged?.invoke(it) }
     }
 
     init {
-        isFillViewport = true
-        addView(content, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
+        orientation = VERTICAL
+        setPadding(dp(12), dp(12), dp(12), dp(8))
+        addView(content, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
         render()
     }
 
@@ -65,109 +66,153 @@ class SymbolDrawerSettingsScreen(
 
     private fun render() {
         content.removeAllViews()
-        content.addView(LinearLayout(context).apply {
+        activePage = null
+
+        activePage?.addView(LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(18), dp(20), dp(18), dp(20))
+            setPadding(dp(18), dp(16), dp(18), dp(16))
             background = surfaceBackground(surfaceColor(), 0.10f, 22)
             addView(TextView(context).apply {
-                text = "符号抽屉"
-                textSize = 25f
+                text = "符号抽屉设置"
+                textSize = 23f
                 setTextColor(primaryColor())
                 setTypeface(typeface, Typeface.BOLD)
             }, matchWrap())
             addView(TextView(context).apply {
-                text = "外观、布局、交互与符号动作管理"
+                text = "按类别管理外观、布局、交互与符号动作"
                 textSize = 13f
                 setTextColor(onSurfaceColor())
                 alpha = 0.72f
-                setPadding(0, dp(6), 0, 0)
+                setPadding(0, dp(5), 0, 0)
             }, matchWrap())
-        }, matchWrap())
+        }, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
 
-        section("外观")
-        addChoice("主题模式", ThemeMode.values().toList(), current.themeMode) { update { copy(themeMode = it) } }
-        addChoice("分组指示器样式", GroupIndicatorStyle.values().toList(), current.indicatorStyle) { update { copy(indicatorStyle = it) } }
-        addSwitch("显示分组名称", current.showGroupTitles) { update { copy(showGroupTitles = it) } }
-        addSwitch("显示符号标签", current.showSymbolLabels) { update { copy(showSymbolLabels = it) } }
-        addSwitch("显示动作提示", current.showActionHints) { update { copy(showActionHints = it) } }
-
-        section("布局")
-        addSeek("每行列数", current.columns, 1, 20) { update { copy(columns = it) } }
-        addSeek("折叠时显示行数", current.collapsedRows, 1, 10) { update { copy(collapsedRows = it) } }
-        addSeek("单元格高度 (dp)", current.cellHeightDp, 20, 96) { update { copy(cellHeightDp = it) } }
-        addSeek("横向间距 (dp)", current.cellHorizontalSpacingDp, 0, 24) { update { copy(cellHorizontalSpacingDp = it) } }
-        addSeek("纵向间距 (dp)", current.cellVerticalSpacingDp, 0, 24) { update { copy(cellVerticalSpacingDp = it) } }
-        addSeek("分组栏高度 (dp)", current.indicatorHeightDp, 0, 64) { update { copy(indicatorHeightDp = it) } }
-        addSeek("最大展开高度 (dp)", current.maxExpandedHeightDp, 120, 1200) { update { copy(maxExpandedHeightDp = it) } }
-        addSeek("最小触摸目标 (dp)", current.minimumTouchTargetDp, 32, 80) { update { copy(minimumTouchTargetDp = it) } }
-
-        section("手势与动作")
-        addSeek("长按触发时间 (ms)", current.longPressTimeoutMs, 250, 1000) { update { copy(longPressTimeoutMs = it) } }
-        addSeek("展开甩动阈值 (dp/s)", current.flingVelocityDpPerSecond, 100, 6000) { update { copy(flingVelocityDpPerSecond = it) } }
-        addSwitch("执行动作后自动收起", current.autoCollapseAfterAction) { update { copy(autoCollapseAfterAction = it) } }
-
-        section("动画与触觉")
-        addSeek("动画时长 (ms)", current.animationDurationMs, 0, 1200) { update { copy(animationDurationMs = it) } }
-        addSwitch("减少动态效果", current.reduceMotion) { update { copy(reduceMotion = it) } }
-        addChoice("触觉反馈", HapticMode.values().toList(), current.hapticMode) { update { copy(hapticMode = it) } }
-
-        section("性能")
-        addSeek("页面缓存数量", current.pageCacheLimit, 1, 9) { update { copy(pageCacheLimit = it) } }
-        addSwitch("预加载相邻分组", current.prefetchAdjacentGroups) { update { copy(prefetchAdjacentGroups = it) } }
-
-        section("搜索")
-        addSwitch("搜索时包含动作内容", current.searchIncludesActionPayload) { update { copy(searchIncludesActionPayload = it) } }
-
-        section("数据与备份")
-        val backupRow = LinearLayout(context).apply {
-            orientation = LinearLayout.HORIZONTAL
+        val tabs = TabLayout(context).apply {
+            tabMode = TabLayout.MODE_SCROLLABLE
+            tabGravity = TabLayout.GRAVITY_START
+            setSelectedTabIndicatorColor(primaryColor())
+            setTabTextColors(onSurfaceColor(), primaryColor())
+            setBackgroundColor(surfaceColor())
         }
-        backupRow.addView(Button(context).apply {
-            text = "复制设置备份"
-            setOnClickListener {
-                runCatching {
-                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                    clipboard.setPrimaryClip(
-                        ClipData.newPlainText("Zero Symbol Drawer settings", SymbolDrawerSettingsCodec.encode(current))
-                    )
-                    Toast.makeText(context, "设置备份 JSON 已复制", Toast.LENGTH_SHORT).show()
-                }.onFailure { onError?.invoke(it) }
-            }
-        }, LinearLayout.LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
-        backupRow.addView(Button(context).apply {
-            text = "导入设置备份"
-            setOnClickListener { promptImportBackup() }
-        }, LinearLayout.LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
-        content.addView(backupRow, matchWrap())
+        content.addView(tabs, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, dp(48)))
 
-        section("符号列表与动作")
-        content.addView(TextView(context).apply {
-            text = "每个符号独立设置短按与长按行为。动作编号和数据格式兼容第一代。"
-            textSize = 13f
-            setTextColor(onSurfaceColor())
-            alpha = 0.72f
-            setPadding(dp(2), 0, dp(2), dp(10))
-        }, matchWrap())
-        if (symbolManager.parent is android.view.ViewGroup) {
-            (symbolManager.parent as android.view.ViewGroup).removeView(symbolManager)
+        val pageHost = FrameLayout(context)
+        content.addView(pageHost, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
+
+        val builders: List<Pair<String, () -> Unit>> = listOf(
+            "外观" to {
+                section("主题与显示")
+                addChoice("主题模式", ThemeMode.values().toList(), current.themeMode) { update { copy(themeMode = it) } }
+                addChoice("分组指示器样式", GroupIndicatorStyle.values().toList(), current.indicatorStyle) { update { copy(indicatorStyle = it) } }
+                addSwitch("显示分组名称", current.showGroupTitles) { update { copy(showGroupTitles = it) } }
+                addSwitch("显示符号标签", current.showSymbolLabels) { update { copy(showSymbolLabels = it) } }
+                addSwitch("显示动作提示", current.showActionHints) { update { copy(showActionHints = it) } }
+            },
+            "布局" to {
+                section("尺寸与间距")
+                addSeek("每行列数", current.columns, 1, 20) { update { copy(columns = it) } }
+                addSeek("折叠时显示行数", current.collapsedRows, 1, 10) { update { copy(collapsedRows = it) } }
+                addSeek("单元格高度 (dp)", current.cellHeightDp, 20, 96) { update { copy(cellHeightDp = it) } }
+                addSeek("横向间距 (dp)", current.cellHorizontalSpacingDp, 0, 24) { update { copy(cellHorizontalSpacingDp = it) } }
+                addSeek("纵向间距 (dp)", current.cellVerticalSpacingDp, 0, 24) { update { copy(cellVerticalSpacingDp = it) } }
+                addSeek("分组栏高度 (dp)", current.indicatorHeightDp, 0, 64) { update { copy(indicatorHeightDp = it) } }
+                addSeek("最大展开高度 (dp)", current.maxExpandedHeightDp, 120, 1200) { update { copy(maxExpandedHeightDp = it) } }
+                addSeek("最小触摸目标 (dp)", current.minimumTouchTargetDp, 32, 80) { update { copy(minimumTouchTargetDp = it) } }
+            },
+            "交互" to {
+                section("手势与动作")
+                addSeek("长按触发时间 (ms)", current.longPressTimeoutMs, 250, 1000) { update { copy(longPressTimeoutMs = it) } }
+                addSeek("展开甩动阈值 (dp/s)", current.flingVelocityDpPerSecond, 100, 6000) { update { copy(flingVelocityDpPerSecond = it) } }
+                addSwitch("执行动作后自动收起", current.autoCollapseAfterAction) { update { copy(autoCollapseAfterAction = it) } }
+                section("动画与触觉")
+                addSeek("动画时长 (ms)", current.animationDurationMs, 0, 1200) { update { copy(animationDurationMs = it) } }
+                addSwitch("减少动态效果", current.reduceMotion) { update { copy(reduceMotion = it) } }
+                addChoice("触觉反馈", HapticMode.values().toList(), current.hapticMode) { update { copy(hapticMode = it) } }
+            },
+            "性能与搜索" to {
+                section("性能")
+                addSeek("页面缓存数量", current.pageCacheLimit, 1, 9) { update { copy(pageCacheLimit = it) } }
+                addSwitch("预加载相邻分组", current.prefetchAdjacentGroups) { update { copy(prefetchAdjacentGroups = it) } }
+                section("搜索")
+                addSwitch("搜索时包含动作内容", current.searchIncludesActionPayload) { update { copy(searchIncludesActionPayload = it) } }
+            },
+            "数据管理" to {
+                section("设置备份")
+                val backupRow = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
+                backupRow.addView(Button(context).apply {
+                    text = "复制设置备份"
+                    setOnClickListener {
+                        runCatching {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            clipboard.setPrimaryClip(ClipData.newPlainText("Zero Symbol Drawer settings", SymbolDrawerSettingsCodec.encode(current)))
+                            Toast.makeText(context, "设置备份 JSON 已复制", Toast.LENGTH_SHORT).show()
+                        }.onFailure { onError?.invoke(it) }
+                    }
+                }, LinearLayout.LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
+                backupRow.addView(Button(context).apply {
+                    text = "导入设置备份"
+                    setOnClickListener { promptImportBackup() }
+                }, LinearLayout.LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
+                activePage?.addView(backupRow, matchWrap())
+                activePage?.addView(Button(context).apply {
+                    text = "恢复默认设置"
+                    setOnClickListener {
+                        runCatching {
+                            repository.reset()
+                            current = SymbolDrawerSettings()
+                            render()
+                            onSettingsChanged?.invoke(current)
+                        }.onFailure { onError?.invoke(it) }
+                    }
+                }, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
+                    topMargin = dp(18)
+                })
+            },
+            "符号管理" to {
+                section("符号列表与动作")
+                activePage?.addView(TextView(context).apply {
+                    text = "每个符号独立设置短按与长按行为。动作编号和数据格式兼容第一代。"
+                    textSize = 13f
+                    setTextColor(onSurfaceColor())
+                    alpha = 0.72f
+                    setPadding(dp(2), 0, dp(2), dp(10))
+                }, matchWrap())
+                if (symbolManager.parent is android.view.ViewGroup) {
+                    (symbolManager.parent as android.view.ViewGroup).removeView(symbolManager)
+                }
+                activePage?.addView(symbolManager, matchWrap())
+            }
+        )
+
+        builders.forEachIndexed { index, entry ->
+            tabs.addTab(tabs.newTab().setText(entry.first), index == 0)
+            val page = LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(dp(16), dp(8), dp(16), dp(28))
+            }
+            val scroll = ScrollView(context).apply {
+                isFillViewport = true
+                addView(page, ScrollView.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
+                visibility = if (index == 0) View.VISIBLE else View.GONE
+            }
+            pageHost.addView(scroll, FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+            activePage = page
+            entry.second.invoke()
         }
-        content.addView(symbolManager, matchWrap())
-
-        content.addView(Button(context).apply {
-            text = "恢复默认设置"
-            setOnClickListener {
-                runCatching {
-                    repository.reset()
-                    current = SymbolDrawerSettings()
-                    render()
-                    onSettingsChanged?.invoke(current)
-                }.onFailure { onError?.invoke(it) }
+        activePage = null
+        tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab) {
+                for (i in 0 until pageHost.childCount) {
+                    pageHost.getChildAt(i).visibility = if (i == tab.position) View.VISIBLE else View.GONE
+                }
             }
-        }, matchWrap())
+            override fun onTabUnselected(tab: TabLayout.Tab) = Unit
+            override fun onTabReselected(tab: TabLayout.Tab) = Unit
+        })
     }
 
     private fun section(title: String) {
-        content.addView(TextView(context).apply {
+        activePage?.addView(TextView(context).apply {
             text = title
             textSize = 17f
             setTextColor(onSurfaceColor())
@@ -219,7 +264,7 @@ class SymbolDrawerSettingsScreen(
             }
         }
         row.addView(spinner, matchWrap())
-        content.addView(row.withBottomSpace(), matchWrap())
+        activePage?.addView(row, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply { bottomMargin = dp(8) })
     }
 
     private fun addSeek(title: String, value: Int, minimum: Int, maximum: Int, changed: (Int) -> Unit) {
@@ -240,7 +285,7 @@ class SymbolDrawerSettingsScreen(
                 override fun onStopTrackingTouch(bar: SeekBar?) { changed((bar?.progress ?: 0) + minimum) }
             })
         }, matchWrap())
-        content.addView(row.withBottomSpace(), matchWrap())
+        activePage?.addView(row, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply { bottomMargin = dp(8) })
     }
 
     private fun promptImportBackup() {
@@ -282,12 +327,6 @@ class SymbolDrawerSettingsScreen(
         textSize = 14f
         setTextColor(onSurfaceColor())
         gravity = Gravity.CENTER_VERTICAL
-    }
-
-    private fun LinearLayout.withBottomSpace(): LinearLayout = apply {
-        val lp = LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
-        lp.bottomMargin = dp(8)
-        layoutParams = lp
     }
 
     private fun themeColor(attribute: Int, fallback: Int): Int {
