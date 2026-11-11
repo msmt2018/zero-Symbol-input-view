@@ -27,7 +27,23 @@ class SoraCodeEditorSymbolActionHost(
 
     override fun surroundSelection(prefix: String, suffix: String): Boolean {
         if (!editor.isEditable) return false
-        editor.commitText(prefix + selectedText() + suffix)
+        val selectionStart = editor.cursor.left().index
+        val selected = selectedText()
+        editor.commitText(prefix + selected + suffix)
+
+        // Keep the original text selected after wrapping. With an empty
+        // selection, place the caret between the inserted delimiters.
+        val innerStart = selectionStart + prefix.length
+        val innerEnd = innerStart + selected.length
+        val start = editor.text.indexer.getCharPosition(innerStart)
+        val end = editor.text.indexer.getCharPosition(innerEnd)
+        editor.setSelectionRegion(
+            start.line,
+            start.column,
+            end.line,
+            end.column,
+            false
+        )
         return true
     }
 
