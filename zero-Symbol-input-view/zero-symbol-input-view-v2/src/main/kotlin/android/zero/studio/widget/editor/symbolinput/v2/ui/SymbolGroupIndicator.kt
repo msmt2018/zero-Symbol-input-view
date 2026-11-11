@@ -27,13 +27,20 @@ internal class SymbolGroupIndicator(
         isHorizontalScrollBarEnabled = false
     }
 
-    fun submitGroups(groups: List<SymbolGroup>) = groupAdapter.submitList(groups.toList())
+    fun submitGroups(groups: List<SymbolGroup>) {
+        groupAdapter.submitGroups(groups)
+    }
+
     fun setSelectedIndex(index: Int) = groupAdapter.setSelectedIndex(index)
 
     private class GroupAdapter(
         private val onGroupSelected: (Int) -> Unit
     ) : ListAdapter<SymbolGroup, GroupHolder>(DIFF) {
         private var selectedIndex = 0
+
+        fun submitGroups(groups: List<SymbolGroup>) {
+            submitList(groups.toList()) { setSelectedIndex(selectedIndex) }
+        }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): GroupHolder {
             val view = TextView(parent.context).apply {
@@ -79,7 +86,7 @@ internal class SymbolGroupIndicator(
         }
     }
 
-    private class GroupHolder(view: View) : ViewHolder(view) {
+    private class GroupHolder(view: View) : RecyclerView.ViewHolder(view) {
         val title = view as TextView
     }
 }
