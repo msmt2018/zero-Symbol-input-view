@@ -34,6 +34,18 @@ class SymbolActionExecutorTest {
         assertTrue(result is SymbolActionResult.Invalid)
     }
 
+    @Test fun validatesCompositeBeforeExecutingAnyStep() {
+        val host = RecordingHost()
+        val result = SymbolActionExecutor().execute(
+            SymbolAction.Composite(listOf(
+                SymbolAction.InsertText("must-not-run"),
+                SymbolAction.EditorCommand("../invalid")
+            )), host
+        )
+        assertTrue(result is SymbolActionResult.Invalid)
+        assertTrue(host.calls.isEmpty())
+    }
+
     @Test fun rejectsOversizedEditorPayload() {
         val result = SymbolActionExecutor(maxTextLength = 3).execute(
             SymbolAction.EditorCommand("editor.custom", "four"), RecordingHost()

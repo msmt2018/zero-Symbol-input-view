@@ -108,7 +108,7 @@ internal class SymbolPageAdapter(
         }
     }
 
-    private class SymbolHolder(view: TextView) : RecyclerView.ViewHolder(view) { val label: TextView = view } {
+    private class SymbolHolder(view: TextView) : RecyclerView.ViewHolder(view) {
         val label: TextView = view
     }
 

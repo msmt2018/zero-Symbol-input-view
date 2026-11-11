@@ -43,8 +43,41 @@ class SymbolActionExecutor(
         require(maxTextLength in 1..4_194_304)
     }
 
-    fun execute(action: SymbolAction, host: SymbolActionHost): SymbolActionResult =
-        executeInternal(action, host, 0)
+    fun execute(action: SymbolAction, host: SymbolActionHost): SymbolActionResult {
+        val validationError = validate(action, 0)
+        if (validationError != null) return SymbolActionResult.Invalid(validationError)
+        return executeInternal(action, host, 0)
+    }
+
+    /** Validate the entire tree before invoking the host, preventing malformed
+     * later steps from leaving a partially applied composite action. */
+    private fun validate(action: SymbolAction, depth: Int): String? {
+        if (depth > maxNestingDepth) return "Composite action nesting limit exceeded"
+        return when (action) {
+            is SymbolAction.InsertText ->
+                if (action.template.length > maxTextLength) "Insert template is too large" else null
+            is SymbolAction.ReplaceSelection ->
+                if (action.text.length > maxTextLength) "Replacement text is too large" else null
+            is SymbolAction.SurroundSelection ->
+                if (action.prefix.length + action.suffix.length > maxTextLength) "Surround template is too large" else null
+            is SymbolAction.EditorCommand -> when {
+                !COMMAND_ID.matches(action.commandId) -> "Invalid editor command ID"
+                (action.payload?.length ?: 0) > maxTextLength -> "Editor command payload is too large"
+                else -> null
+            }
+            is SymbolAction.Extension -> when {
+                !EXTENSION_ID.matches(action.extensionId) -> "Invalid extension ID"
+                (action.payload?.length ?: 0) > maxTextLength -> "Extension payload is too large"
+                else -> null
+            }
+            is SymbolAction.Composite -> when {
+                action.actions.isEmpty() -> "Composite action cannot be empty"
+                action.actions.size > maxCompositeActions -> "Composite action contains too many steps"
+                else -> action.actions.firstNotNullOfOrNull { validate(it, depth + 1) }
+            }
+            else -> null
+        }
+    }
 
     private fun executeInternal(
         action: SymbolAction,

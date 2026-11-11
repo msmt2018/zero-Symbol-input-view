@@ -57,7 +57,7 @@ class SymbolDrawerManagerScreen(
     private var selectedGroupId: String? = manager.groups.firstOrNull()?.id
 
     init {
-        orientation = VERTICAL
+        orientation = LinearLayout.VERTICAL
         setPadding(dp(12), dp(12), dp(12), dp(12))
         buildHeader()
         buildGroupControls()
@@ -121,7 +121,7 @@ class SymbolDrawerManagerScreen(
 
     private fun buildSearch() {
         searchField.hint = "搜索符号名称"
-        searchField.singleLine = true
+        searchField.setSingleLine(true)
         searchField.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = refreshSymbols()
@@ -167,11 +167,15 @@ class SymbolDrawerManagerScreen(
         val symbols = group?.symbols.orEmpty().filter { symbol ->
             query.isEmpty() ||
                 symbol.label.contains(query, ignoreCase = true) ||
-                (settings.searchIncludesActionPayload &&
-                    SymbolActionJsonCodec.encode(symbol.shortAction).toString().contains(query, ignoreCase = true))
+                (settings.searchIncludesActionPayload && (
+                    SymbolActionJsonCodec.encode(symbol.shortAction).toString().contains(query, ignoreCase = true) ||
+                        symbol.longAction?.let {
+                            SymbolActionJsonCodec.encode(it).toString().contains(query, ignoreCase = true)
+                        } == true
+                    ))
         }
         symbolAdapter.submitList(symbols)
-        emptyView.visibility = if (symbols.isEmpty()) VISIBLE else GONE
+        emptyView.visibility = if (symbols.isEmpty()) View.VISIBLE else View.GONE
     }
 
     private fun currentGroup(): SymbolGroup? =
@@ -256,7 +260,7 @@ class SymbolDrawerManagerScreen(
             setText(existing?.icon.orEmpty())
         }
         val shortAction = EditText(context).apply {
-            hint = "短按动作 JSON，例如 {"kind":"insertText","template":"fun "}"
+            hint = """短按动作 JSON，例如 {"kind":"insertText","template":"fun "}"""
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
             minLines = 3
             setText(existing?.shortAction?.let { SymbolActionJsonCodec.encode(it).toString() }
@@ -319,10 +323,23 @@ class SymbolDrawerManagerScreen(
         menu.menu.add("上移").setOnMenuItemClickListener { moveSymbol(symbol, -1); true }
         menu.menu.add("下移").setOnMenuItemClickListener { moveSymbol(symbol, 1); true }
         menu.menu.add("删除").setOnMenuItemClickListener {
-            currentGroup()?.let { manager.removeSymbol(it.id, symbol.id); refresh() }
+            confirmDeleteSymbol(symbol)
             true
         }
         menu.show()
+    }
+
+    private fun confirmDeleteSymbol(symbol: SymbolEntry) {
+        val group = currentGroup() ?: return
+        AlertDialog.Builder(context)
+            .setTitle("删除符号")
+            .setMessage("确定删除“${symbol.label}”吗？")
+            .setNegativeButton("取消", null)
+            .setPositiveButton("删除") { _, _ ->
+                manager.removeSymbol(group.id, symbol.id)
+                refresh()
+            }
+            .show()
     }
 
     private fun moveSymbol(symbol: SymbolEntry, delta: Int) {
