@@ -23,7 +23,7 @@ object DrawerGeometry {
 
     fun gridHeightPx(rows: Int, config: DrawerConfig, density: Float): Int {
         val safeRows = rows.coerceAtLeast(1)
-        val cell = (config.cellHeightDp * density).toInt()
+        val cell = (maxOf(config.cellHeightDp, config.minimumTouchTargetDp) * density).toInt()
         val gap = (config.cellVerticalSpacingDp * density).toInt()
         val padding = (4f * density).toInt()
         return safeRows * cell + (safeRows - 1) * gap + padding * 2

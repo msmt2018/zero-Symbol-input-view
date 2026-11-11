@@ -88,6 +88,9 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
         addView(pager, LayoutParams(LayoutParams.MATCH_PARENT, collapsedHeight))
         pager.adapter = pageAdapter
         LegacySymbolDataMigration.importIfV2Empty(context, repository)
+        if (repository.loadGroups().isEmpty()) {
+            repository.saveGroups(com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolDrawerDefaults.createGroups())
+        }
         pager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 indicator.setSelectedIndex(position)
