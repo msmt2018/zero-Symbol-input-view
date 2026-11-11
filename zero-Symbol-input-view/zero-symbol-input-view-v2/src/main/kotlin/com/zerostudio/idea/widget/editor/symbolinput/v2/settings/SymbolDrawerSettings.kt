@@ -6,10 +6,7 @@ enum class ThemeMode { SYSTEM, LIGHT, DARK }
 enum class GroupIndicatorStyle { TEXT, PILL, UNDERLINE }
 enum class HapticMode { OFF, SELECTION, ALL }
 
-/**
- * Complete persisted preference snapshot. UI controls should edit a copy and
- * submit it through SymbolDrawerSettingsRepository; do not mutate settings in place.
- */
+/** Immutable, validated settings snapshot persisted by the V2 settings repository. */
 data class SymbolDrawerSettings(
     val schemaVersion: Int = CURRENT_SCHEMA_VERSION,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
@@ -59,7 +56,8 @@ data class SymbolDrawerSettings(
         cellVerticalSpacingDp = cellVerticalSpacingDp,
         indicatorHeightDp = indicatorHeightDp,
         animationDurationMs = if (reduceMotion) 0L else animationDurationMs.toLong(),
-        flingVelocityDpPerSecond = flingVelocityDpPerSecond
+        flingVelocityDpPerSecond = flingVelocityDpPerSecond,
+        maxExpandedHeightDp = maxExpandedHeightDp
     )
 
     companion object {

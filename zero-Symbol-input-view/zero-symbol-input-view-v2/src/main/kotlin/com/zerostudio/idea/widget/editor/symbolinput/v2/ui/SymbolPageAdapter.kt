@@ -6,20 +6,19 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import com.zerostudio.idea.widget.editor.symbolinput.v2.model.DrawerConfig
-import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
-import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.DrawerConfig
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
+import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
 
-/**
- * ViewPager2 page adapter. Pages are diffed by stable group identity, and each
- * page owns a RecyclerView grid that shares a recycled pool with sibling pages.
- */
+/** ViewPager2 page adapter backed by recycled grids and DiffUtil. */
 internal class SymbolPageAdapter(
     private val config: DrawerConfig,
+    private val settings: SymbolDrawerSettings,
     private val onSymbolAction: (SymbolEntry, Boolean) -> Unit
 ) : ListAdapter<SymbolGroup, SymbolPageAdapter.PageHolder>(GROUP_DIFF) {
 
@@ -42,7 +41,7 @@ internal class SymbolPageAdapter(
             )
             clipToPadding = false
         }
-        return PageHolder(grid, config, onSymbolAction)
+        return PageHolder(grid, config, settings, onSymbolAction)
     }
 
     override fun onBindViewHolder(holder: PageHolder, position: Int) {
@@ -56,20 +55,18 @@ internal class SymbolPageAdapter(
     class PageHolder(
         private val grid: RecyclerView,
         config: DrawerConfig,
+        settings: SymbolDrawerSettings,
         onSymbolAction: (SymbolEntry, Boolean) -> Unit
     ) : RecyclerView.ViewHolder(grid) {
-        private val symbolsAdapter = SymbolAdapter(config, onSymbolAction)
-
-        init {
-            grid.adapter = symbolsAdapter
-        }
-
+        private val symbolsAdapter = SymbolAdapter(config, settings, onSymbolAction)
+        init { grid.adapter = symbolsAdapter }
         fun bind(symbols: List<SymbolEntry>) = symbolsAdapter.submitList(symbols.toList())
         fun clear() = symbolsAdapter.submitList(emptyList())
     }
 
     private class SymbolAdapter(
         private val config: DrawerConfig,
+        private val settings: SymbolDrawerSettings,
         private val onSymbolAction: (SymbolEntry, Boolean) -> Unit
     ) : ListAdapter<SymbolEntry, SymbolHolder>(SYMBOL_DIFF) {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SymbolHolder {
@@ -95,7 +92,10 @@ internal class SymbolPageAdapter(
 
         override fun onBindViewHolder(holder: SymbolHolder, position: Int) {
             val item = getItem(position)
-            holder.label.text = item.label
+            holder.label.text = if (settings.showSymbolLabels) item.label else item.icon.orEmpty()
+            holder.label.contentDescription = if (settings.showActionHints) {
+                "${item.label}, ${item.shortAction}"
+            } else item.label
             holder.label.setOnClickListener {
                 val current = holder.bindingAdapterPosition
                 if (current != RecyclerView.NO_POSITION) onSymbolAction(getItem(current), false)

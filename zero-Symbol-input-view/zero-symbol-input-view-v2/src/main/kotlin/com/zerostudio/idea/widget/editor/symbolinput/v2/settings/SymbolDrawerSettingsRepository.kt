@@ -33,8 +33,10 @@ object SymbolDrawerSettingsCodec {
             root.get(name)?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isString }?.asString ?: default
 
         val d = SymbolDrawerSettings()
+        val version = int("schemaVersion", d.schemaVersion)
+        require(version in 1..SymbolDrawerSettings.CURRENT_SCHEMA_VERSION) { "Unsupported settings schema version: $version" }
         return SymbolDrawerSettings(
-            schemaVersion = int("schemaVersion", d.schemaVersion).coerceIn(1, SymbolDrawerSettings.CURRENT_SCHEMA_VERSION),
+            schemaVersion = version,
             themeMode = enumValue("themeMode", d.themeMode.name).let { runCatching { ThemeMode.valueOf(it) }.getOrDefault(d.themeMode) },
             columns = int("columns", d.columns),
             collapsedRows = int("collapsedRows", d.collapsedRows),

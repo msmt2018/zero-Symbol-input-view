@@ -54,7 +54,13 @@ class SharedPreferencesSymbolGroupRepository(
                                 LegacySymbolAction(symbol.get("longType").asInt, symbol.get("longPayload")?.takeUnless { it.isJsonNull }?.asString)
                             )
                         } else null
-                        SymbolEntry(symbol.get("id").asLong, symbol.get("label").asString, shortAction, longAction)
+                        SymbolEntry(
+                            id = symbol.get("id").asLong,
+                            label = symbol.get("label").asString,
+                            shortAction = shortAction,
+                            longAction = longAction,
+                            icon = symbol.get("icon")?.takeUnless { it.isJsonNull }?.asString
+                        )
                     }
                 )
             }
@@ -79,6 +85,7 @@ class SharedPreferencesSymbolGroupRepository(
                         symbols.add(JsonObject().apply {
                             addProperty("id", symbol.id)
                             addProperty("label", symbol.label)
+                            symbol.icon?.let { addProperty("icon", it) }
                             add("shortAction", SymbolActionJsonCodec.encode(symbol.shortAction))
                             symbol.longAction?.let { add("longAction", SymbolActionJsonCodec.encode(it)) }
                         })

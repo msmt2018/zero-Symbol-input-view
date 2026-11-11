@@ -2,7 +2,6 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.model
 
 /**
  * Immutable symbol data consumed by the drawer UI.
- *
  * IDs must remain stable across refreshes. The UI never mutates caller-owned lists.
  */
 data class SymbolGroup(
@@ -15,13 +14,12 @@ data class SymbolEntry(
     val id: Long,
     val label: String,
     val shortAction: SymbolAction,
-    val longAction: SymbolAction? = null
+    val longAction: SymbolAction? = null,
+    /** Optional visual glyph used when the host chooses an icon-first cell style. */
+    val icon: String? = null
 )
 
-/**
- * Typed V2 action contract. This is deliberately independent from legacy integer
- * action IDs and from any concrete editor implementation.
- */
+/** Typed V2 action contract, independent from legacy integer IDs and editor APIs. */
 sealed interface SymbolAction {
     data class InsertText(val template: String) : SymbolAction
     data class ReplaceSelection(val text: String) : SymbolAction
@@ -39,24 +37,12 @@ sealed interface SymbolAction {
 enum class CursorTarget {
     LEFT, RIGHT, UP, DOWN, LINE_START, LINE_END, DOCUMENT_START, DOCUMENT_END
 }
+enum class DeleteKind { BACKWARD, FORWARD, CURRENT_LINE, TO_LINE_START, TO_LINE_END }
+enum class SelectionTransform { UPPERCASE, LOWERCASE, TOGGLE_CASE }
+enum class ClipboardOperation { COPY, CUT, PASTE }
 
-enum class DeleteKind {
-    BACKWARD, FORWARD, CURRENT_LINE, TO_LINE_START, TO_LINE_END
-}
-
-enum class SelectionTransform {
-    UPPERCASE, LOWERCASE, TOGGLE_CASE
-}
-
-enum class ClipboardOperation {
-    COPY, CUT, PASTE
-}
-
-/** Versioned migration-only representation of the first-generation action schema. */
-data class LegacySymbolAction(
-    val type: Int,
-    val payload: String? = null
-)
+/** Migration-only representation of the first-generation action schema. */
+data class LegacySymbolAction(val type: Int, val payload: String? = null)
 
 data class DrawerConfig(
     val columns: Int = 10,
@@ -66,7 +52,8 @@ data class DrawerConfig(
     val cellVerticalSpacingDp: Int = 2,
     val indicatorHeightDp: Int = 26,
     val animationDurationMs: Long = 200L,
-    val flingVelocityDpPerSecond: Int = 900
+    val flingVelocityDpPerSecond: Int = 900,
+    val maxExpandedHeightDp: Int = 480
 ) {
     init {
         require(columns in 1..20) { "columns must be in 1..20" }
@@ -77,5 +64,6 @@ data class DrawerConfig(
         require(cellVerticalSpacingDp in 0..24)
         require(animationDurationMs in 0L..1200L)
         require(flingVelocityDpPerSecond in 100..6000)
+        require(maxExpandedHeightDp in 120..1200)
     }
 }

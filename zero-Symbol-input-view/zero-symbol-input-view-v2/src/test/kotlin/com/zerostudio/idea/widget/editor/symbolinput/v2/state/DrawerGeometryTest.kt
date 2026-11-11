@@ -25,6 +25,13 @@ class DrawerGeometryTest {
     }
 
     @Test
+    fun expandedHeightRespectsConfiguredMaximum() {
+        val limited = config.copy(maxExpandedHeightDp = 120)
+        val groups = listOf(group("large", 100))
+        assertEquals(120, DrawerGeometry.expandedHeightPx(groups, limited, 1f))
+    }
+
+    @Test
     fun indicatorRevealIsClampedAndInterpolated() {
         assertEquals(0f, DrawerGeometry.indicatorReveal(0f), 0.0001f)
         assertEquals(0.315f, DrawerGeometry.indicatorReveal(0.315f), 0.0001f)

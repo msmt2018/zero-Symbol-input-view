@@ -10,6 +10,7 @@ import android.view.VelocityTracker
 import android.view.View
 import android.view.ViewConfiguration
 import android.view.ViewGroup
+import android.view.HapticFeedbackConstants
 import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
 import androidx.viewpager2.widget.ViewPager2
@@ -20,6 +21,8 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.DrawerConfig
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
+import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.HapticMode
+import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
 import com.zerostudio.idea.widget.editor.symbolinput.v2.state.DrawerGeometry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.SymbolGroupIndicator
 import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.SymbolPageAdapter
@@ -38,7 +41,7 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0,
-    private val config: DrawerConfig = DrawerConfig()
+    private var config: DrawerConfig = DrawerConfig()
 ) : ViewGroup(context, attrs, defStyleAttr) {
 
     fun interface OnSymbolActionListener {
@@ -49,6 +52,7 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
     var onOpenManagerListener: (() -> Unit)? = null
     var onGroupChangedListener: ((Int, SymbolGroup?) -> Unit)? = null
 
+    private var settings = SymbolDrawerSettings()
     private val indicator = SymbolGroupIndicator(context) { selectGroup(it, true) }
     private val pager = ViewPager2(context).apply {
         orientation = ViewPager2.ORIENTATION_HORIZONTAL
@@ -56,13 +60,7 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
         isUserInputEnabled = true
         overScrollMode = View.OVER_SCROLL_NEVER
     }
-    private val pageAdapter = SymbolPageAdapter(config) { symbol, longPress ->
-        val action = if (longPress) symbol.longAction else symbol.shortAction
-        if (action != null) {
-            if (action == SymbolAction.OpenManager) onOpenManagerListener?.invoke()
-            else onSymbolActionListener?.onAction(symbol, longPress)
-        }
-    }
+    private var pageAdapter = createPageAdapter()
 
     private var repository: SymbolGroupRepository =
         SharedPreferencesSymbolGroupRepository(context.applicationContext)
@@ -98,6 +96,48 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
         })
         reloadGroups()
         updateVisualState(0f)
+    }
+
+    /**
+     * Applies a persisted settings snapshot to the live drawer. Rebuilds only the
+     * lightweight page adapter when grid geometry changes; group data is retained.
+     */
+    fun applySettings(value: SymbolDrawerSettings) {
+        val selectedGroupId = groups.getOrNull(pager.currentItem)?.id
+        settings = value
+        config = value.toDrawerConfig()
+        indicator.applySettings(value)
+        pager.offscreenPageLimit = if (value.prefetchAdjacentGroups) value.pageCacheLimit else 1
+        pageAdapter = createPageAdapter()
+        pager.adapter = pageAdapter
+        pageAdapter.submitList(groups) {
+            val restored = selectedGroupId?.let { id ->
+                groups.indexOfFirst { it.id == id }.takeIf { it >= 0 }
+            }
+            if (restored != null) pager.setCurrentItem(restored, false)
+            recalculateGeometry()
+        }
+    }
+
+    fun getSettings(): SymbolDrawerSettings = settings
+
+    private fun createPageAdapter() = SymbolPageAdapter(config, settings) { symbol, longPress ->
+        val action = if (longPress) symbol.longAction else symbol.shortAction
+        if (action != null) {
+            if (action == SymbolAction.OpenManager) {
+                onOpenManagerListener?.invoke()
+            } else {
+                when (settings.hapticMode) {
+                    HapticMode.OFF -> Unit
+                    HapticMode.SELECTION -> if (!longPress) {
+                        performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    }
+                    HapticMode.ALL -> performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                }
+                onSymbolActionListener?.onAction(symbol, longPress)
+                if (settings.autoCollapseAfterAction) setExpanded(false, true)
+            }
+        }
     }
 
     fun setRepository(value: SymbolGroupRepository, reload: Boolean = true) {
