@@ -21,6 +21,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.snackbar.Snackbar
 import com.google.gson.JsonParser
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SharedPreferencesSymbolGroupRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupBundleCodec
@@ -77,10 +78,16 @@ class SymbolDrawerManagerScreen(
     fun exportBundle(): String = SymbolGroupBundleCodec.encode(manager.groups)
 
     fun importBundle(json: String) {
+        val previous = manager.groups.toList()
+        val previousSelection = selectedGroupId
         val imported = SymbolGroupBundleCodec.decode(json)
         manager.replaceAll(imported)
         selectedGroupId = imported.firstOrNull()?.id
         refresh()
+        showUndo("已导入符号抽屉备份") {
+            manager.replaceAll(previous)
+            selectedGroupId = previousSelection
+        }
     }
 
     private fun buildHeader() {
@@ -199,9 +206,15 @@ class SymbolDrawerManagerScreen(
             .setMessage("删除“${group.title}”及其中全部符号？此操作无法撤销。")
             .setNegativeButton("取消", null)
             .setPositiveButton("删除") { _, _ ->
+                val previous = manager.groups.toList()
+                val previousSelection = selectedGroupId
                 manager.removeGroup(group.id)
                 selectedGroupId = manager.groups.firstOrNull()?.id
                 refresh()
+                showUndo("已删除分组“${group.title}”") {
+                    manager.replaceAll(previous)
+                    selectedGroupId = previousSelection
+                }
             }
             .show()
     }
@@ -338,8 +351,14 @@ class SymbolDrawerManagerScreen(
             .setMessage("确定删除“${symbol.label}”吗？")
             .setNegativeButton("取消", null)
             .setPositiveButton("删除") { _, _ ->
+                val previous = manager.groups.toList()
+                val previousSelection = selectedGroupId
                 manager.removeSymbol(group.id, symbol.id)
                 refresh()
+                showUndo("已删除符号“${symbol.label}”") {
+                    manager.replaceAll(previous)
+                    selectedGroupId = previousSelection
+                }
             }
             .show()
     }
@@ -380,6 +399,17 @@ class SymbolDrawerManagerScreen(
         text = title
         textSize = 12f
         setOnClickListener { runCatching(action).onFailure(::reportError) }
+    }
+
+    private fun showUndo(message: String, restore: () -> Unit) {
+        Snackbar.make(this, message, Snackbar.LENGTH_LONG)
+            .setAction("撤销") {
+                runCatching {
+                    restore()
+                    refresh()
+                }.onFailure(::reportError)
+            }
+            .show()
     }
 
     private fun toast(message: String) = Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
