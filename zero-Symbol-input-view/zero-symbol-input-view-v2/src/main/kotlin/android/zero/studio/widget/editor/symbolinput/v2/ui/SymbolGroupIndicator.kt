@@ -20,7 +20,7 @@ internal class SymbolGroupIndicator(
     private val groupAdapter = GroupAdapter(onGroupSelected)
 
     init {
-        layoutManager = LinearLayoutManager(context, HORIZONTAL, false)
+        layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
         adapter = groupAdapter
         itemAnimator = null
         overScrollMode = OVER_SCROLL_NEVER
