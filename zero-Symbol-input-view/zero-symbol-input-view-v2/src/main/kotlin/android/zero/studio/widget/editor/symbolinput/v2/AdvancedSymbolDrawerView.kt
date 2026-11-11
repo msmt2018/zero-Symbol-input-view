@@ -76,6 +76,7 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
     private var downY = 0f
     private var lastY = 0f
     private var draggingDrawer = false
+    private var gestureAxis = AXIS_UNDECIDED
     private var velocityTracker: VelocityTracker? = null
 
     init {
@@ -182,6 +183,8 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
                 downY = event.rawY
                 lastY = event.rawY
                 draggingDrawer = false
+                gestureAxis = AXIS_UNDECIDED
+                parent?.requestDisallowInterceptTouchEvent(true)
                 velocityTracker?.recycle()
                 velocityTracker = VelocityTracker.obtain().also { it.addMovement(event) }
             }
@@ -189,18 +192,37 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
                 velocityTracker?.addMovement(event)
                 val dx = event.x - downX
                 val dy = event.rawY - downY
-                if (!draggingDrawer && abs(dy) > touchSlop && abs(dy) > abs(dx) * 1.15f &&
-                    expandedHeight > collapsedHeight
-                ) {
-                    draggingDrawer = true
-                    heightAnimator?.cancel()
-                    parent?.requestDisallowInterceptTouchEvent(true)
-                    return true
+                if (gestureAxis == AXIS_UNDECIDED && maxOf(abs(dx), abs(dy)) > touchSlop) {
+                    if (abs(dx) > abs(dy) * 1.15f) {
+                        // Lock this gesture to ViewPager2. The drawer must not
+                        // steal a horizontal group swipe later in the gesture.
+                        gestureAxis = AXIS_HORIZONTAL
+                        super.requestDisallowInterceptTouchEvent(true)
+                    } else if (abs(dy) > abs(dx) * 1.15f) {
+                        gestureAxis = AXIS_VERTICAL
+                        if (expandedHeight > collapsedHeight) {
+                            draggingDrawer = true
+                            heightAnimator?.cancel()
+                            super.requestDisallowInterceptTouchEvent(true)
+                            return true
+                        }
+                    }
                 }
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> resetGesture()
         }
         return false
+    }
+
+    /**
+     * RecyclerView/ViewPager2 may request that ancestors do not intercept.
+     * Ignore that request until this container has identified the gesture axis;
+     * otherwise a child can accidentally disable the drawer's vertical drag.
+     */
+    override fun requestDisallowInterceptTouchEvent(disallowIntercept: Boolean) {
+        if (gestureAxis != AXIS_UNDECIDED) {
+            super.requestDisallowInterceptTouchEvent(disallowIntercept)
+        }
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
@@ -251,6 +273,8 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
 
     private fun resetGesture() {
         draggingDrawer = false
+        gestureAxis = AXIS_UNDECIDED
+        parent?.requestDisallowInterceptTouchEvent(false)
         velocityTracker?.recycle()
         velocityTracker = null
     }
@@ -296,6 +320,9 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
 
     private companion object {
         const val MANAGER_ACTION_TYPE = 22
+        const val AXIS_UNDECIDED = 0
+        const val AXIS_HORIZONTAL = 1
+        const val AXIS_VERTICAL = 2
     }
 
     private fun animateTo(target: Float, animated: Boolean) {
