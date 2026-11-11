@@ -101,31 +101,87 @@ class SymbolGroupManager(
         }
     }
 
-    fun copySymbol(sourceGroupId: String, symbolId: Long, targetGroupId: String): SymbolEntry {
+    fun copySymbol(sourceGroupId: String, symbolId: Long, targetGroupId: String): SymbolEntry =
+        copySymbols(sourceGroupId, setOf(symbolId), targetGroupId).single()
+
+    /** Copy a set of symbols in one validated, single-write transaction. */
+    fun copySymbols(sourceGroupId: String, symbolIds: Set<Long>, targetGroupId: String): List<SymbolEntry> {
+        require(symbolIds.isNotEmpty()) { "No symbols selected" }
         val source = groups.firstOrNull { it.id == sourceGroupId }
             ?: error("Source group not found: $sourceGroupId")
-        val symbol = source.symbols.firstOrNull { it.id == symbolId }
-            ?: error("Symbol not found: $symbolId")
-        val copy = symbol.copy(id = newSymbolId())
-        addSymbol(targetGroupId, copy)
-        return copy
+        val target = groups.firstOrNull { it.id == targetGroupId }
+            ?: error("Target group not found: $targetGroupId")
+        val selected = source.symbols.filter { it.id in symbolIds }
+        require(selected.size == symbolIds.size) { "One or more selected symbols no longer exist" }
+        val usedIds = target.symbols.mapTo(mutableSetOf()) { it.id }
+        val copies = selected.map { symbol ->
+            symbol.copy(id = nextUniqueSymbolId(usedIds)).also { usedIds += it.id }
+        }
+        commit(groups.map { if (it.id == targetGroupId) it.copy(symbols = it.symbols + copies) else it })
+        return copies
     }
 
-    fun moveSymbolToGroup(sourceGroupId: String, symbolId: Long, targetGroupId: String) {
+    /** Remove multiple symbols atomically; no write occurs for stale selection IDs. */
+    fun removeSymbols(groupId: String, symbolIds: Set<Long>): Int {
+        require(symbolIds.isNotEmpty()) { "No symbols selected" }
+        val group = groups.firstOrNull { it.id == groupId } ?: error("Group not found: $groupId")
+        require(group.symbols.count { it.id in symbolIds } == symbolIds.size) {
+            "One or more selected symbols no longer exist"
+        }
+        commit(groups.map { current ->
+            if (current.id == groupId) current.copy(symbols = current.symbols.filterNot { it.id in symbolIds })
+            else current
+        })
+        return symbolIds.size
+    }
+
+    /** Move multiple symbols atomically while retaining IDs when the target has no collision. */
+    fun moveSymbolsToGroup(sourceGroupId: String, symbolIds: Set<Long>, targetGroupId: String) {
         require(sourceGroupId != targetGroupId) { "Source and target groups must differ" }
+        require(symbolIds.isNotEmpty()) { "No symbols selected" }
         val source = groups.firstOrNull { it.id == sourceGroupId }
             ?: error("Source group not found: $sourceGroupId")
-        val symbol = source.symbols.firstOrNull { it.id == symbolId }
-            ?: error("Symbol not found: $symbolId")
-        val next = groups.map { group ->
+        val target = groups.firstOrNull { it.id == targetGroupId }
+            ?: error("Target group not found: $targetGroupId")
+        val moved = source.symbols.filter { it.id in symbolIds }
+        require(moved.size == symbolIds.size) { "One or more selected symbols no longer exist" }
+        val usedIds = target.symbols.mapTo(mutableSetOf()) { it.id }
+        val normalized = moved.map { symbol ->
+            if (symbol.id in usedIds) symbol.copy(id = nextUniqueSymbolId(usedIds))
+            else symbol.also { usedIds += it.id }
+        }
+        commit(groups.map { group ->
             when (group.id) {
-                sourceGroupId -> group.copy(symbols = group.symbols.filterNot { it.id == symbolId })
-                targetGroupId -> group.copy(symbols = group.symbols + symbol)
+                sourceGroupId -> group.copy(symbols = group.symbols.filterNot { it.id in symbolIds })
+                targetGroupId -> group.copy(symbols = group.symbols + normalized)
                 else -> group
             }
+        })
+    }
+
+    fun moveSymbolToGroup(sourceGroupId: String, symbolId: Long, targetGroupId: String) =
+        moveSymbolsToGroup(sourceGroupId, setOf(symbolId), targetGroupId)
+
+    /** Reorder by stable IDs; the supplied order must contain every symbol exactly once. */
+    fun reorderSymbols(groupId: String, orderedIds: List<Long>) {
+        val group = groups.firstOrNull { it.id == groupId } ?: error("Group not found: $groupId")
+        require(orderedIds.size == group.symbols.size &&
+            orderedIds.toSet().size == orderedIds.size &&
+            orderedIds.toSet() == group.symbols.mapTo(mutableSetOf()) { it.id }
+        ) { "Order must contain every symbol ID exactly once" }
+        val byId = group.symbols.associateBy { it.id }
+        commit(groups.map { current ->
+            if (current.id == groupId) current.copy(symbols = orderedIds.map { byId.getValue(it) })
+            else current
+        })
+    }
+
+    private fun nextUniqueSymbolId(usedIds: Set<Long>): Long {
+        repeat(32) {
+            val candidate = newSymbolId()
+            if (candidate != 0L && candidate !in usedIds) return candidate
         }
-        require(next.any { it.id == targetGroupId }) { "Target group not found: $targetGroupId" }
-        commit(next)
+        error("Unable to generate a unique symbol ID")
     }
 
     private fun updateGroup(groupId: String, transform: (SymbolGroup) -> SymbolGroup) {
