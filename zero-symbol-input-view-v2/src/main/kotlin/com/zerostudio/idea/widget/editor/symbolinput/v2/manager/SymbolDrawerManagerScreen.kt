@@ -21,7 +21,6 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.snackbar.Snackbar
 import com.google.gson.JsonParser
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SharedPreferencesSymbolGroupRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupBundleCodec
@@ -58,6 +57,10 @@ class SymbolDrawerManagerScreen(
         onLongClick = { symbol, anchor -> showSymbolMenu(symbol, anchor) }
     )
     private var selectedGroupId: String? = manager.groups.firstOrNull()?.id
+    private val undoBar = LinearLayout(context)
+    private val undoMessage = TextView(context)
+    private val undoButton = Button(context)
+    private var pendingUndo: (() -> Unit)? = null
 
     init {
         orientation = LinearLayout.VERTICAL
@@ -66,6 +69,7 @@ class SymbolDrawerManagerScreen(
         buildGroupControls()
         buildSearch()
         buildSymbolList()
+        buildUndoBar()
         refresh()
     }
 
@@ -152,6 +156,27 @@ class SymbolDrawerManagerScreen(
             overScrollMode = RecyclerView.OVER_SCROLL_NEVER
         }
         addView(list, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
+    }
+
+    private fun buildUndoBar() {
+        undoBar.orientation = HORIZONTAL
+        undoBar.gravity = android.view.Gravity.CENTER_VERTICAL
+        undoBar.setPadding(dp(8), dp(4), dp(4), dp(4))
+        undoBar.visibility = View.GONE
+        undoMessage.textSize = 13f
+        undoBar.addView(undoMessage, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
+        undoButton.text = "撤销"
+        undoButton.setOnClickListener {
+            val restore = pendingUndo ?: return@setOnClickListener
+            pendingUndo = null
+            undoBar.visibility = View.GONE
+            runCatching {
+                restore()
+                refresh()
+            }.onFailure(::reportError)
+        }
+        undoBar.addView(undoButton, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT))
+        addView(undoBar, matchWrap())
     }
 
     private fun refresh() {
@@ -402,14 +427,9 @@ class SymbolDrawerManagerScreen(
     }
 
     private fun showUndo(message: String, restore: () -> Unit) {
-        Snackbar.make(this, message, Snackbar.LENGTH_LONG)
-            .setAction("撤销") {
-                runCatching {
-                    restore()
-                    refresh()
-                }.onFailure(::reportError)
-            }
-            .show()
+        pendingUndo = restore
+        undoMessage.text = message
+        undoBar.visibility = View.VISIBLE
     }
 
     private fun toast(message: String) = Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
