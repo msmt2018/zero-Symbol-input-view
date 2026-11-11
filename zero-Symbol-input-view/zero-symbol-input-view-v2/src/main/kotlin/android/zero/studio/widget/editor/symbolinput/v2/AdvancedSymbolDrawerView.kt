@@ -11,6 +11,7 @@ import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
 import androidx.viewpager2.widget.ViewPager2
+import android.zero.studio.widget.editor.symbolinput.v2.data.LegacySymbolDataMigration
 import android.zero.studio.widget.editor.symbolinput.v2.data.SharedPreferencesSymbolGroupRepository
 import android.zero.studio.widget.editor.symbolinput.v2.data.SymbolGroupRepository
 import android.zero.studio.widget.editor.symbolinput.v2.model.DrawerConfig
@@ -85,6 +86,7 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
         addView(indicator, LayoutParams(LayoutParams.MATCH_PARENT, 0))
         addView(pager, LayoutParams(LayoutParams.MATCH_PARENT, collapsedHeight))
         pager.adapter = pageAdapter
+        LegacySymbolDataMigration.importIfV2Empty(context, repository)
         pager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 indicator.setSelectedIndex(position)
