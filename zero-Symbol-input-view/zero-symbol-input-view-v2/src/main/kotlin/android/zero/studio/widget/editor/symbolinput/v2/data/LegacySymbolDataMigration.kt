@@ -29,7 +29,7 @@ object LegacySymbolDataMigration {
             legacy.mapIndexedNotNull { groupIndex, group ->
                 val symbols = group.items.mapIndexed { symbolIndex, item ->
                     SymbolEntry(
-                        id = (groupIndex.toLong() shl 32) or (symbolIndex.toLong() and 0xffffffffL),
+                        id = ((groupIndex.toLong() shl 32) or (symbolIndex.toLong() and 0xffffffffL)) + 1L,
                         label = item.display,
                         shortAction = SymbolAction(item.shortAction, item.shortText),
                         longAction = item.longAction?.let { SymbolAction(it, item.longText) }
