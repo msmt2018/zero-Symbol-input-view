@@ -161,15 +161,17 @@ abstract class BottomSheetTabPagerContainer @JvmOverloads constructor(
         val behavior = bottomSheetBehavior ?: return
 
         cancelInitialCollapse()
-        val runnable = Runnable {
-            if (pendingInitialCollapse !== runnable) return@Runnable
-            if (bottomSheetView !== target || bottomSheetBehavior !== behavior || !isAttachedToWindow) {
-                return@Runnable
-            }
-            pendingInitialCollapse = null
-            if (target.isAttachedToWindow) {
-                behavior.state = BottomSheetBehavior.STATE_COLLAPSED
-                initialCollapsePending = false
+        val runnable = object : Runnable {
+            override fun run() {
+                if (pendingInitialCollapse !== this) return
+                if (bottomSheetView !== target || bottomSheetBehavior !== behavior || !isAttachedToWindow) {
+                    return
+                }
+                pendingInitialCollapse = null
+                if (target.isAttachedToWindow) {
+                    behavior.state = BottomSheetBehavior.STATE_COLLAPSED
+                    initialCollapsePending = false
+                }
             }
         }
         pendingInitialCollapse = runnable
