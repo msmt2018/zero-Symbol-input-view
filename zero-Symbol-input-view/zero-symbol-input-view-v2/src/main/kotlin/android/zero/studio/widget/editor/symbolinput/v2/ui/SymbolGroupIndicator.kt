@@ -66,14 +66,14 @@ internal class SymbolGroupIndicator(
         }
 
         fun setSelectedIndex(index: Int) {
-            val safe = index.coerceIn(0, (itemCount - 1).coerceAtLeast(0))
-            if (safe == selectedIndex) return
             val previous = selectedIndex
-            selectedIndex = safe
+            selectedIndex = index.coerceAtLeast(0)
             if (previous in 0 until itemCount) notifyItemChanged(previous)
-            if (safe in 0 until itemCount) notifyItemChanged(safe)
-            if (safe in 0 until itemCount) (layoutManager as? LinearLayoutManager)
-                ?.scrollToPositionWithOffset(safe, 0)
+            if (selectedIndex in 0 until itemCount) {
+                notifyItemChanged(selectedIndex)
+                (layoutManager as? LinearLayoutManager)
+                    ?.scrollToPositionWithOffset(selectedIndex, 0)
+            }
         }
 
         private fun TextView.dp(value: Int) = (value * resources.displayMetrics.density).toInt()
