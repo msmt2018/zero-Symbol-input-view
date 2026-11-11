@@ -26,7 +26,7 @@ AdvancedSymbolDrawerView
 
 ## Responsibilities
 
-- **AdvancedSymbolDrawerView**: owns the integrated interaction, height, indicator reveal, pager synchronization and public API.
+- **AdvancedSymbolDrawerView**: owns the integrated interaction, height, indicator reveal, pager synchronization and public API. Its expansion geometry includes indicator height separately from grid height, so the indicator remains revealable even when every symbol group fits in the collapsed grid.
 - **DrawerGeometry**: pure row/height/reveal calculations; no View dependencies.
 - **SymbolGroupRepository**: persistence boundary. The default SharedPreferences implementation uses a V2-only namespace.
 - **SymbolGroupIndicator**: recycles group labels and only updates changed selection rows.
