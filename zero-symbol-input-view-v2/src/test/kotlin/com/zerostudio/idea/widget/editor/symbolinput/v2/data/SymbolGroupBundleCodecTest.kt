@@ -148,7 +148,7 @@ class SymbolGroupBundleCodecTest {
         )
         val json = SymbolGroupStorageCodec.encode(source)
         assertTrue(json.contains("\"a\":0"))
-        assertTrue(json.contains("\\"c\\":\\"val x = \$S\$T\$E\\""))
+        assertTrue(json.contains("\"c\":\"val x = \$S\$T\$E\""))
         assertTrue(json.contains("\"d\":36"))
         assertTrue(json.contains("\"e\":\"replacement\""))
         assertTrue(json.contains("\"a\":33"))
