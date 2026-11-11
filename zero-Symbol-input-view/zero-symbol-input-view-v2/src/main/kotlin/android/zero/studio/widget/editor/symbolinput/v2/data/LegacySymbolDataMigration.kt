@@ -48,9 +48,12 @@ object LegacySymbolDataMigration {
                     symbols = symbols
                 )
             }
-        }.getOrDefault(emptyList())
+        }.getOrElse { return false }
 
-        if (imported.isEmpty()) return false
+        if (imported.isEmpty()) {
+            repository.markLegacyMigrationComplete()
+            return false
+        }
         repository.saveGroups(imported)
         repository.markLegacyMigrationComplete()
         return true
