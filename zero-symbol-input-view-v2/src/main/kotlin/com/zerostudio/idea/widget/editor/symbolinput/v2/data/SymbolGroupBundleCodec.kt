@@ -94,7 +94,7 @@ object SymbolGroupBundleCodec {
             require(group.symbols.size <= MAX_SYMBOLS_PER_GROUP) { "Too many symbols in group ${group.id}" }
             totalSymbols += group.symbols.size
             require(group.symbols.all {
-                it.id != 0L && it.label.isNotBlank() && it.label.length <= 4096 &&
+                it.id != 0L && it.label.isNotEmpty() && it.label.length <= 4096 &&
                     (it.icon?.length ?: 0) <= 256
             }) { "Symbol IDs, labels or icons are invalid in group ${group.id}" }
             require(group.symbols.map { it.id }.distinct().size == group.symbols.size) {

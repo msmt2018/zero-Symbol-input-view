@@ -25,6 +25,34 @@ class SymbolGroupBundleCodecTest {
         assertEquals(groups, SymbolGroupBundleCodec.decode(SymbolGroupBundleCodec.encode(groups)))
     }
 
+
+    @Test fun storageAcceptsWhitespaceOnlyLabelsForControlKeys() {
+        val groups = listOf(
+            SymbolGroup(
+                "controls",
+                "Controls",
+                listOf(
+                    SymbolEntry(1L, "\\n", SymbolAction.InsertText("\\n")),
+                    SymbolEntry(2L, "\\t", SymbolAction.InsertText("\\t"))
+                )
+            )
+        )
+
+        val encoded = SymbolGroupStorageCodec.encode(groups)
+        assertEquals(groups, SymbolGroupStorageCodec.decode(encoded))
+    }
+
+    @Test fun defaultGroupsCanBePersistedWithoutCrashing() {
+        val defaults = SymbolDrawerDefaults.createGroups()
+
+        val encoded = SymbolGroupStorageCodec.encode(defaults)
+        val restored = SymbolGroupStorageCodec.decode(encoded)
+
+        assertEquals(defaults, restored)
+        assertTrue(restored.single().symbols.any { it.label == "\\n" })
+        assertTrue(restored.single().symbols.any { it.label == "\\t" })
+    }
+
     @Test fun emptyBackupIsValid() {
         assertTrue(SymbolGroupBundleCodec.decode(SymbolGroupBundleCodec.encode(emptyList())).isEmpty())
     }
