@@ -39,4 +39,30 @@ class SymbolGroupBundleCodecTest {
         val group = SymbolGroup("same", "A", emptyList())
         SymbolGroupBundleCodec.encode(listOf(group, group.copy(title = "B")))
     }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun rejectsDuplicateSymbolIdsWithinGroup() {
+        val first = SymbolEntry(1L, "a", SymbolAction.InsertText("a"))
+        val second = SymbolEntry(1L, "b", SymbolAction.InsertText("b"))
+        SymbolGroupBundleCodec.encode(listOf(SymbolGroup("g", "Group", listOf(first, second))))
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun rejectsOversizedActionPayloadsBeforePersistence() {
+        val oversized = "x".repeat(SymbolGroupBundleCodec.MAX_ACTION_TEXT_CHARS + 1)
+        val group = SymbolGroup(
+            "g",
+            "Group",
+            listOf(SymbolEntry(1L, "large", SymbolAction.InsertText(oversized)))
+        )
+        SymbolGroupBundleCodec.encode(listOf(group))
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun rejectsCompositeActionsBeyondSupportedDepth() {
+        var action: SymbolAction = SymbolAction.InsertText("x")
+        repeat(10) { action = SymbolAction.Composite(listOf(action)) }
+        val group = SymbolGroup("g", "Group", listOf(SymbolEntry(1L, "nested", action)))
+        SymbolGroupBundleCodec.encode(listOf(group))
+    }
 }

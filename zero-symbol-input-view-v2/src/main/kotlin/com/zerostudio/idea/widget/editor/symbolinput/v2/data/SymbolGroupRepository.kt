@@ -31,13 +31,20 @@ class SharedPreferencesSymbolGroupRepository(
     override fun loadGroups(): List<SymbolGroup> {
         val json = preferences.getString(KEY_GROUPS, null) ?: return emptyList()
         return runCatching {
+            require(json.length <= SymbolGroupBundleCodec.MAX_BUNDLE_CHARS) {
+                "Stored symbol groups exceed the size limit"
+            }
             val root = JsonParser.parseString(json).asJsonArray
-            root.map { rawGroup ->
+            require(root.size() <= SymbolGroupBundleCodec.MAX_GROUPS) { "Too many stored groups" }
+            val groups = root.map { rawGroup ->
                 val group = rawGroup.asJsonObject
                 val symbols = group.getAsJsonArray("symbols") ?: JsonArray()
+                require(symbols.size() <= SymbolGroupBundleCodec.MAX_SYMBOLS_PER_GROUP) {
+                    "Too many symbols in group"
+                }
                 SymbolGroup(
-                    id = group.get("id").asString,
-                    title = group.get("title").asString,
+                    id = group.get("id")?.asString ?: error("Group ID is missing"),
+                    title = group.get("title")?.asString ?: error("Group title is missing"),
                     symbols = symbols.map { rawSymbol ->
                         val symbol = rawSymbol.asJsonObject
                         val shortAction = if (symbol.has("shortAction")) {
@@ -55,8 +62,8 @@ class SharedPreferencesSymbolGroupRepository(
                             )
                         } else null
                         SymbolEntry(
-                            id = symbol.get("id").asLong,
-                            label = symbol.get("label").asString,
+                            id = symbol.get("id")?.asLong ?: error("Symbol ID is missing"),
+                            label = symbol.get("label")?.asString ?: error("Symbol label is missing"),
                             shortAction = shortAction,
                             longAction = longAction,
                             icon = symbol.get("icon")?.takeUnless { it.isJsonNull }?.asString
@@ -64,7 +71,20 @@ class SharedPreferencesSymbolGroupRepository(
                     }
                 )
             }
-        }.getOrDefault(emptyList())
+            SymbolGroupBundleCodec.validateGroups(groups)
+            groups
+        }.getOrElse { error ->
+            // Keep the raw payload before the drawer seeds defaults or a user
+            // saves new groups. Recovery must never silently destroy the only
+            // copy of malformed persisted data.
+            if (!preferences.contains(KEY_CORRUPT_GROUPS_BACKUP)) {
+                preferences.edit()
+                    .putString(KEY_CORRUPT_GROUPS_BACKUP, json)
+                    .putString(KEY_CORRUPT_GROUPS_REASON, error.message?.take(512) ?: "Invalid stored data")
+                    .commit()
+            }
+            emptyList()
+        }
     }
 
     override fun isLegacyMigrationComplete(): Boolean =
@@ -75,6 +95,7 @@ class SharedPreferencesSymbolGroupRepository(
     }
 
     override fun saveGroups(groups: List<SymbolGroup>) {
+        SymbolGroupBundleCodec.validateGroups(groups)
         val root = JsonArray()
         groups.forEach { group ->
             val storedGroup = JsonObject().apply {
@@ -94,7 +115,9 @@ class SharedPreferencesSymbolGroupRepository(
             }
             root.add(storedGroup)
         }
-        check(preferences.edit().putString(KEY_GROUPS, root.toString()).commit()) {
+        val encoded = root.toString()
+        require(encoded.length <= SymbolGroupBundleCodec.MAX_BUNDLE_CHARS) { "Stored symbol groups exceed the size limit" }
+        check(preferences.edit().putString(KEY_GROUPS, encoded).commit()) {
             "Unable to persist symbol groups"
         }
     }
@@ -102,5 +125,7 @@ class SharedPreferencesSymbolGroupRepository(
     private companion object {
         const val KEY_GROUPS = "groups_json_v2"
         const val KEY_LEGACY_MIGRATION_COMPLETE = "legacy_migration_complete"
+        const val KEY_CORRUPT_GROUPS_BACKUP = "groups_corrupt_backup_v2"
+        const val KEY_CORRUPT_GROUPS_REASON = "groups_corrupt_reason_v2"
     }
 }
