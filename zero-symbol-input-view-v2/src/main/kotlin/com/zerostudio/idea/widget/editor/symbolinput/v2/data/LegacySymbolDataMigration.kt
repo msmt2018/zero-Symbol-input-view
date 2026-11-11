@@ -5,8 +5,8 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.LegacySymbolAction
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.google.gson.Gson
-import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolGroup as LegacySymbolGroup
 
 /**
  * One-way, non-destructive migration from the legacy compact JSON schema.
@@ -31,8 +31,8 @@ object LegacySymbolDataMigration {
             }
 
         val imported = runCatching {
-            val type = object : TypeToken<List<LegacyGroup>>() {}.type
-            val legacy: List<LegacyGroup> = Gson().fromJson(json, type) ?: emptyList()
+            val type = object : TypeToken<List<LegacySymbolGroup>>() {}.type
+            val legacy: List<LegacySymbolGroup> = Gson().fromJson(json, type) ?: emptyList()
             legacy.mapIndexedNotNull { groupIndex, group ->
                 val symbols = group.items.mapIndexed { symbolIndex, item ->
                     SymbolEntry(
@@ -65,16 +65,4 @@ object LegacySymbolDataMigration {
         return true
     }
 
-    private data class LegacyGroup(
-        @SerializedName("n") val name: String = "",
-        @SerializedName("d") val items: List<LegacySymbol> = emptyList()
-    )
-
-    private data class LegacySymbol(
-        @SerializedName("a") val shortAction: Int = 0,
-        @SerializedName("b") val display: String = "",
-        @SerializedName("c") val shortText: String? = null,
-        @SerializedName("d") val longAction: Int? = null,
-        @SerializedName("e") val longText: String? = null
-    )
 }
