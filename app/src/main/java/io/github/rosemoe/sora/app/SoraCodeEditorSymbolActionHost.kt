@@ -133,7 +133,11 @@ class SoraCodeEditorSymbolActionHost(
     }
 
     override fun executeEditorCommand(commandId: String, payload: String?): Boolean {
-        if (!editor.isEditable && commandId !in setOf("select_all", "copy", "undo", "redo")) return false
+        val readOnlySafeCommands = setOf(
+            "select_all", "selection.selectAll", "copy",
+            "undo", "history.undo", "redo", "history.redo"
+        )
+        if (!editor.isEditable && commandId !in readOnlySafeCommands) return false
         when (commandId) {
             "undo", "history.undo" -> editor.undo()
             "redo", "history.redo" -> editor.redo()
