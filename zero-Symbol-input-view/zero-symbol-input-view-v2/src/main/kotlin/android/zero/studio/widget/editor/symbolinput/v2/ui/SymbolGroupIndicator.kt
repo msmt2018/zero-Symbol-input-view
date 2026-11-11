@@ -49,7 +49,10 @@ internal class SymbolGroupIndicator(
                 textSize = 13f
                 maxLines = 1
                 setPadding(dp(12), dp(4), dp(12), dp(4))
-                layoutParams = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT)
+                layoutParams = RecyclerView.LayoutParams(
+                    RecyclerView.LayoutParams.WRAP_CONTENT,
+                    RecyclerView.LayoutParams.MATCH_PARENT
+                )
                 isFocusable = true
                 isClickable = true
             }
@@ -62,7 +65,7 @@ internal class SymbolGroupIndicator(
             val selected = position == selectedIndex
             holder.title.alpha = if (selected) 1f else 0.58f
             holder.title.setTypeface(null, if (selected) Typeface.BOLD else Typeface.NORMAL)
-            holder.title.setOnClickListener { onGroupSelected(holder.bindingAdapterPosition.takeIf { it != NO_POSITION } ?: return@setOnClickListener) }
+            holder.title.setOnClickListener { onGroupSelected(holder.bindingAdapterPosition.takeIf { it != RecyclerView.NO_POSITION } ?: return@setOnClickListener) }
         }
 
         fun setSelectedIndex(index: Int) {
