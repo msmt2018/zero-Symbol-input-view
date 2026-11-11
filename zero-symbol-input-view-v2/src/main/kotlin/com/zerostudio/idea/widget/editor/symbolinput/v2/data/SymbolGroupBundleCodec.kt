@@ -74,7 +74,12 @@ object SymbolGroupBundleCodec {
         groups.forEach { group ->
             require(group.symbols.size <= MAX_SYMBOLS_PER_GROUP) { "Too many symbols in group ${group.id}" }
             totalSymbols += group.symbols.size
-            require(group.symbols.all { it.id != 0L && it.label.isNotEmpty() && it.label.length <= 4096 && (it.icon?.length ?: 0) <= 256 }) {
+            require(group.symbols.all {
+                it.id != 0L && it.label.isNotEmpty() && it.label.length <= 4096 &&
+                    (it.icon?.length ?: 0) <= 256 &&
+                    (it.legacyShortText?.length ?: 0) <= MAX_ACTION_TEXT_CHARS &&
+                    (it.legacyLongText?.length ?: 0) <= MAX_ACTION_TEXT_CHARS
+            }) {
                 "Symbol IDs, labels or icons are invalid in group ${group.id}"
             }
             require(group.symbols.map { it.id }.distinct().size == group.symbols.size) { "Duplicate symbol IDs in group ${group.id}" }

@@ -44,7 +44,10 @@ object LegacySymbolDataCodec {
                 )
             }
             SymbolGroup("legacy-$groupIndex-${group.name.hashCode()}", group.name, symbols)
-        }.also { require(total <= SymbolGroupBundleCodec.MAX_TOTAL_SYMBOLS) { "Too many symbols" } }
+        }.also {
+            require(total <= SymbolGroupBundleCodec.MAX_TOTAL_SYMBOLS) { "Too many symbols" }
+            SymbolGroupBundleCodec.validateGroups(it)
+        }
     }
 
     private fun toLegacy(action: SymbolAction): LegacySymbolAction = when (action) {
