@@ -340,7 +340,7 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
     }
 
     private fun updateVisualState(fraction: Float) {
-        val reveal = DrawerGeometry.indicatorReveal(fraction, config)
+        val reveal = DrawerGeometry.indicatorReveal(fraction)
         val indicatorHeight = (config.indicatorHeightDp * resources.displayMetrics.density * reveal).roundToInt()
         val params = indicator.layoutParams
         if (params.height != indicatorHeight) {
