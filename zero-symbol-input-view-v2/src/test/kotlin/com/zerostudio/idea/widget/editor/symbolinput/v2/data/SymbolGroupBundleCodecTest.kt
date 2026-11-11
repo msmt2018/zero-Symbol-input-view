@@ -32,8 +32,8 @@ class SymbolGroupBundleCodecTest {
                 "controls",
                 "Controls",
                 listOf(
-                    SymbolEntry(1L, "\\n", SymbolAction.InsertText("\\n")),
-                    SymbolEntry(2L, "\\t", SymbolAction.InsertText("\\t"))
+                    SymbolEntry(1L, "\n", SymbolAction.InsertText("\n")),
+                    SymbolEntry(2L, "\t", SymbolAction.InsertText("\t"))
                 )
             )
         )
@@ -49,8 +49,8 @@ class SymbolGroupBundleCodecTest {
         val restored = SymbolGroupStorageCodec.decode(encoded)
 
         assertEquals(defaults, restored)
-        assertTrue(restored.single().symbols.any { it.label == "\\n" })
-        assertTrue(restored.single().symbols.any { it.label == "\\t" })
+        assertTrue(restored.single().symbols.any { it.label == "\n" })
+        assertTrue(restored.single().symbols.any { it.label == "\t" })
     }
 
     @Test fun emptyBackupIsValid() {
