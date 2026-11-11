@@ -91,6 +91,12 @@ internal class SymbolPageAdapter(
             return SymbolHolder(label)
         }
 
+        override fun onViewRecycled(holder: SymbolHolder) {
+            holder.touchListener?.cancel()
+            holder.label.setOnTouchListener(null)
+            super.onViewRecycled(holder)
+        }
+
         override fun onBindViewHolder(holder: SymbolHolder, position: Int) {
             val item = getItem(position)
             holder.label.text = if (settings.showSymbolLabels) item.label else item.icon.orEmpty()
@@ -101,15 +107,19 @@ internal class SymbolPageAdapter(
                 val current = holder.bindingAdapterPosition
                 if (current != RecyclerView.NO_POSITION) onSymbolAction(getItem(current), false)
             }
-            holder.label.setOnTouchListener(SymbolCellTouchListener(
+            holder.touchListener?.cancel()
+            holder.touchListener = SymbolCellTouchListener(
                 view = holder.label,
                 longPressTimeoutMs = settings.longPressTimeoutMs,
                 hasLongAction = item.longAction != null,
                 onLongPress = {
                     val current = holder.bindingAdapterPosition
-                    if (current != RecyclerView.NO_POSITION) onSymbolAction(getItem(current), true)
+                    if (current != RecyclerView.NO_POSITION && getItem(current).id == item.id) {
+                        onSymbolAction(getItem(current), true)
+                    }
                 }
-            ))
+            )
+            holder.label.setOnTouchListener(holder.touchListener)
         }
     }
 
@@ -135,6 +145,12 @@ internal class SymbolPageAdapter(
                 longPressed = true
                 onLongPress()
             }
+        }
+
+        fun cancel() {
+            view.removeCallbacks(longPressTask)
+            view.isPressed = false
+            cancelled = true
         }
 
         override fun onTouch(v: View, event: MotionEvent): Boolean {
@@ -176,6 +192,7 @@ internal class SymbolPageAdapter(
 
     private class SymbolHolder(view: TextView) : RecyclerView.ViewHolder(view) {
         val label: TextView = view
+        var touchListener: SymbolCellTouchListener? = null
     }
 
     private companion object {
