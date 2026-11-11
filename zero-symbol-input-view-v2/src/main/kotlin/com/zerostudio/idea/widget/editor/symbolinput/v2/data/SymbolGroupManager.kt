@@ -195,7 +195,7 @@ class SymbolGroupManager(
         }
         require(next.map { it.id }.distinct().size == next.size) { "Group IDs must be unique" }
         next.forEach { group ->
-            require(group.symbols.all { it.id != 0L && it.label.isNotBlank() }) {
+            require(group.symbols.all { it.id != 0L && it.label.isNotEmpty() }) {
                 "Symbol IDs and labels must not be blank in group ${group.id}"
             }
             require(group.symbols.map { it.id }.distinct().size == group.symbols.size) {

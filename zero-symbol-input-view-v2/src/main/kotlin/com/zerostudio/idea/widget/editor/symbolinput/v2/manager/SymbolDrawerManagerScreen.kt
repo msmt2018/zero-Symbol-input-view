@@ -25,6 +25,8 @@ import com.google.gson.JsonParser
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SharedPreferencesSymbolGroupRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupBundleCodec
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupManager
+import com.zerostudio.idea.widget.editor.symbolinput.v2.data.LegacySymbolDataMigration
+import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolDrawerDefaults
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionJsonCodec
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
@@ -48,7 +50,9 @@ class SymbolDrawerManagerScreen(
     var onExportBundle: ((String) -> Unit)? = null
     var onError: ((Throwable) -> Unit)? = null
 
-    private val manager = SymbolGroupManager(repository)
+    private val manager = SymbolGroupManager(repository.also {
+        LegacySymbolDataMigration.importIfV2Empty(context, it)
+    })
     private val settings = SharedPreferencesSymbolDrawerSettingsRepository(context).load().settings
     private val groupSpinner = Spinner(context)
     private val searchField = EditText(context)
@@ -66,6 +70,9 @@ class SymbolDrawerManagerScreen(
     init {
         orientation = LinearLayout.VERTICAL
         setPadding(dp(12), dp(12), dp(12), dp(12))
+        if (manager.groups.isEmpty()) {
+            manager.replaceAll(SymbolDrawerDefaults.createGroups())
+        }
         buildHeader()
         buildGroupControls()
         buildSearch()
