@@ -8,11 +8,30 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.CursorTarget
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.DeleteKind
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SelectionTransform
 
+/** Host callback for application-registered symbol action extensions. */
+fun interface SymbolActionExtensionHandler {
+    fun execute(payload: String?): Boolean
+}
+
 /** Sora CodeEditor adapter for the V2 typed symbol-action contract. */
 class SoraCodeEditorSymbolActionHost(
     private val editor: CodeEditor,
     private val onOpenManager: () -> Unit
 ) : SymbolActionHost {
+    private val extensionHandlers = LinkedHashMap<String, SymbolActionExtensionHandler>()
+
+    /** Register an app-defined extension action. Returns false for a blank ID. */
+    fun registerExtensionHandler(
+        extensionId: String,
+        handler: SymbolActionExtensionHandler
+    ): Boolean {
+        if (extensionId.isBlank()) return false
+        extensionHandlers[extensionId] = handler
+        return true
+    }
+
+    fun unregisterExtensionHandler(extensionId: String): Boolean =
+        extensionHandlers.remove(extensionId) != null
     /**
      * V1-compatible insertion macros: $S = insertion cursor, $E = selection end,
      * $T = selected text and $ = a literal dollar sign.
@@ -240,7 +259,8 @@ class SoraCodeEditorSymbolActionHost(
         return true
     }
 
-    override fun executeExtension(extensionId: String, payload: String?): Boolean = false
+    override fun executeExtension(extensionId: String, payload: String?): Boolean =
+        extensionHandlers[extensionId]?.execute(payload) ?: false
 
     private fun selectedText(): String =
         if (editor.cursor.isSelected) editor.text.subSequence(
