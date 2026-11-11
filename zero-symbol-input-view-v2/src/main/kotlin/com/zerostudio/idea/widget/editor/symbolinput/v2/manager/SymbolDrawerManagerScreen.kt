@@ -316,9 +316,14 @@ class SymbolDrawerManagerScreen(
         val longIndex = existing?.legacyLongActionId?.let { LegacySymbolActionCatalog.values.indexOf(it) }
             ?.takeIf { it >= 0 }?.plus(1)
             ?: existing?.longAction?.let { action ->
-                LegacySymbolActionCatalog.values.indexOfFirst { value ->
+                val found = LegacySymbolActionCatalog.values.indexOfFirst { value ->
                     LegacySymbolActionAdapter.convert(LegacySymbolAction(value, null)) == action
-                }.takeIf { it >= 0 }?.plus(1)
+                }
+                when {
+                    found >= 0 -> found + 1
+                    action is com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.InsertText -> 1
+                    else -> 0
+                }
             } ?: 0
         val shortAction = Spinner(context).apply {
             adapter = ArrayAdapter(context, android.R.layout.simple_spinner_item, LegacySymbolActionCatalog.labels)
