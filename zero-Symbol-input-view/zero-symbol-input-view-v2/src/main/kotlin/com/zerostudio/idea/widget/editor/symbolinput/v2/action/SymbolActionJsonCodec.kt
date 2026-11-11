@@ -44,7 +44,7 @@ object SymbolActionJsonCodec {
         fun required(name: String) = json.get(name)?.takeIf { !it.isJsonNull }?.asString
             ?: throw IllegalArgumentException("Missing action field: $name")
         fun optional(name: String) = json.get(name)?.takeIf { !it.isJsonNull }?.asString
-        fun <T : Enum<T>> enum(name: String, values: Array<T>): T =
+        fun <T : Enum<T>> enumValueOf(name: String, values: Array<T>): T =
             values.firstOrNull { it.name == required(name) }
                 ?: throw IllegalArgumentException("Invalid action enum: $name")
 
@@ -52,11 +52,11 @@ object SymbolActionJsonCodec {
             "insertText" -> SymbolAction.InsertText(required("template"))
             "replaceSelection" -> SymbolAction.ReplaceSelection(required("text"))
             "surroundSelection" -> SymbolAction.SurroundSelection(required("prefix"), required("suffix"))
-            "moveCursor" -> SymbolAction.MoveCursor(enum("target", CursorTarget.values()))
-            "delete" -> SymbolAction.Delete(enum("deleteKind", DeleteKind.values()))
-            "transformSelection" -> SymbolAction.TransformSelection(enum("transform", SelectionTransform.values()))
+            "moveCursor" -> SymbolAction.MoveCursor(enumValueOf("target", CursorTarget.values()))
+            "delete" -> SymbolAction.Delete(enumValueOf("deleteKind", DeleteKind.values()))
+            "transformSelection" -> SymbolAction.TransformSelection(enumValueOf("transform", SelectionTransform.values()))
             "editorCommand" -> SymbolAction.EditorCommand(required("commandId"), optional("payload"))
-            "clipboard" -> SymbolAction.Clipboard(enum("operation", ClipboardOperation.values()))
+            "clipboard" -> SymbolAction.Clipboard(enumValueOf("operation", ClipboardOperation.values()))
             "openManager" -> SymbolAction.OpenManager
             "composite" -> {
                 val array = json.getAsJsonArray("actions")
