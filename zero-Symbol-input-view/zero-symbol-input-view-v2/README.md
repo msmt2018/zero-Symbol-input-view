@@ -120,3 +120,26 @@ settingsScreen.onError = { error ->
 drawer.applySettings(settingsScreen.getSettings())
 setContentView(settingsScreen)
 ```
+
+## Built-in symbol manager
+
+The V2 manager screen provides group CRUD/reordering/duplication, symbol
+create/edit/delete/duplicate/move/reordering, search, and JSON backup import
+and export. Short and long actions are edited using the typed V2 action JSON
+format so the manager does not reintroduce numeric legacy action IDs.
+
+```kotlin
+val managerScreen = SymbolDrawerManagerScreen(this)
+managerScreen.onGroupsChanged = { groups -> drawer.submitGroups(groups) }
+managerScreen.onExportBundle = { json ->
+    // Optionally write the JSON to a document picked by the host.
+}
+managerScreen.onError = { error ->
+    // Show an application-level error.
+}
+setContentView(managerScreen)
+```
+
+Import validates the bundle and asks for confirmation before replacing groups.
+Export also copies the JSON backup to the clipboard; hosts can use
+`onExportBundle` to save it to a file or cloud destination.

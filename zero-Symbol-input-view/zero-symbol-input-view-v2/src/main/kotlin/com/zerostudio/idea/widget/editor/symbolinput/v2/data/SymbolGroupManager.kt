@@ -28,6 +28,22 @@ class SymbolGroupManager(
         return group
     }
 
+    fun replaceAll(value: List<SymbolGroup>) {
+        commit(value.toList())
+    }
+
+    fun duplicateGroup(groupId: String, index: Int = groups.size): SymbolGroup {
+        val source = groups.firstOrNull { it.id == groupId } ?: error("Group not found: $groupId")
+        val duplicate = source.copy(
+            id = newId(),
+            title = "${source.title} copy",
+            symbols = source.symbols.map { it.copy(id = newSymbolId()) }
+        )
+        val next = groups.toMutableList().apply { add(index.coerceIn(0, size), duplicate) }
+        commit(next)
+        return duplicate
+    }
+
     fun renameGroup(groupId: String, title: String) {
         require(title.isNotBlank()) { "Group title cannot be blank" }
         require(groups.any { it.id == groupId }) { "Group not found: $groupId" }
@@ -112,8 +128,14 @@ class SymbolGroupManager(
     }
 
     private fun commit(next: List<SymbolGroup>) {
+        require(next.all { it.id.isNotBlank() && it.title.isNotBlank() }) {
+            "Group IDs and titles must not be blank"
+        }
         require(next.map { it.id }.distinct().size == next.size) { "Group IDs must be unique" }
         next.forEach { group ->
+            require(group.symbols.all { it.id != 0L && it.label.isNotBlank() }) {
+                "Symbol IDs and labels must not be blank in group ${group.id}"
+            }
             require(group.symbols.map { it.id }.distinct().size == group.symbols.size) {
                 "Symbol IDs must be unique within group ${group.id}"
             }

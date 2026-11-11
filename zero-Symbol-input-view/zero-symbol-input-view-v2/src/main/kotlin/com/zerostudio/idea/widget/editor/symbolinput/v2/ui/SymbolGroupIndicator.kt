@@ -66,7 +66,7 @@ internal class SymbolGroupIndicator(
                 gravity = Gravity.CENTER
                 textSize = 13f
                 maxLines = 1
-                setPadding(dp(12), dp(4), dp(12), dp(4))
+                setPadding(dp(parent, 12), dp(parent, 4), dp(parent, 12), dp(parent, 4))
                 layoutParams = RecyclerView.LayoutParams(
                     RecyclerView.LayoutParams.WRAP_CONTENT,
                     RecyclerView.LayoutParams.MATCH_PARENT

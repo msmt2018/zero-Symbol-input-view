@@ -33,7 +33,9 @@ AdvancedSymbolDrawerView
 - **SymbolGroupManager**: repository-backed group/symbol commands that a dedicated manager UI can consume.
 - **SymbolGroupIndicator**: recycles group labels and only updates changed selection rows.
 - **SymbolPageAdapter**: pages are recycled by ViewPager2; each page uses a grid RecyclerView and shared recycled pool.
-- **SymbolAction callback**: no hard dependency on CodeEditor. Host applications adapt actions to Sora Editor or another editor.
+- **Typed action engine**: V2 sealed action definitions, explicit JSON discriminator codec, bounded composite executor and a host capability interface. The legacy integer action adapter exists only at the migration boundary.
+- **Settings repository and screen**: immutable schema-versioned settings snapshots persisted independently from symbol data; the programmatic settings screen exposes each setting and reports saved snapshots to the host. `AdvancedSymbolDrawerView.applySettings` applies grid geometry, expansion cap, indicator style, labels, touch targets, long-press timing, haptics, motion, cache and fling behavior.
+- **Bundle codec**: portable versioned JSON import/export with bounded sizes/counts, typed action serialization and identity validation before replacement.
 
 ## Gesture arbitration
 
@@ -68,5 +70,4 @@ The V2 interaction contract must continue to be validated against the legacy con
 ## Deliberate non-goals for this foundation
 
 - The one-way legacy JSON importer preserves legacy action IDs and payloads, but deterministic IDs are synthesized because the old schema had no stable IDs. Validate real user configurations before treating migration as production-complete.
-- No new gesture semantics, nested vertical scrolling inside pages, or manager UI yet.
-- No replacement of the existing manager screen. The next phase should add the first-party manager and settings screens, wire settings into runtime rendering/gestures, and add import/export adapters.
+- Nested vertical scrolling inside pages and a first-party symbol manager screen remain future work. The settings screen is now included; settings for manager-only search and discovery will become effective as those screens are implemented.

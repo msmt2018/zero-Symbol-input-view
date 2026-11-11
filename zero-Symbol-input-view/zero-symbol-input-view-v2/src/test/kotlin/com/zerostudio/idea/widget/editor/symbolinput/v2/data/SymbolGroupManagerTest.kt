@@ -32,6 +32,30 @@ class SymbolGroupManagerTest {
     }
 
     @Test
+    fun duplicateGroupCreatesNewGroupAndSymbolIdentities() {
+        val source = SymbolGroup("a", "A", listOf(SymbolEntry(1L, "x", SymbolAction.InsertText("x"))))
+        val repository = MemoryRepository(listOf(source))
+        val manager = SymbolGroupManager(repository, newId = { "copy" }, newSymbolId = { 2L })
+
+        val duplicate = manager.duplicateGroup("a")
+
+        assertEquals("copy", duplicate.id)
+        assertEquals(2L, duplicate.symbols.single().id)
+        assertEquals(2, repository.stored.size)
+    }
+
+    @Test
+    fun replaceAllPersistsValidatedSnapshot() {
+        val repository = MemoryRepository(emptyList())
+        val manager = SymbolGroupManager(repository)
+        val replacement = listOf(SymbolGroup("new", "New", emptyList()))
+
+        manager.replaceAll(replacement)
+
+        assertEquals(replacement, repository.stored)
+    }
+
+    @Test
     fun groupReorderingPersistsNewOrder() {
         val repository = MemoryRepository(
             listOf(

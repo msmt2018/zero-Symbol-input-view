@@ -70,14 +70,20 @@ class SymbolActionExecutor(
                 is SymbolAction.Delete -> supported(host.delete(action.kind), action)
                 is SymbolAction.TransformSelection -> supported(host.transformSelection(action.transform), action)
                 is SymbolAction.EditorCommand -> {
-                    if (!COMMAND_ID.matches(action.commandId)) invalid("Invalid editor command ID")
-                    else supported(host.executeEditorCommand(action.commandId, action.payload), action)
+                    when {
+                        !COMMAND_ID.matches(action.commandId) -> invalid("Invalid editor command ID")
+                        (action.payload?.length ?: 0) > maxTextLength -> invalid("Editor command payload is too large")
+                        else -> supported(host.executeEditorCommand(action.commandId, action.payload), action)
+                    }
                 }
                 is SymbolAction.Clipboard -> supported(host.performClipboard(action.operation), action)
                 SymbolAction.OpenManager -> supported(host.openManager(), action)
                 is SymbolAction.Extension -> {
-                    if (!EXTENSION_ID.matches(action.extensionId)) invalid("Invalid extension ID")
-                    else supported(host.executeExtension(action.extensionId, action.payload), action)
+                    when {
+                        !EXTENSION_ID.matches(action.extensionId) -> invalid("Invalid extension ID")
+                        (action.payload?.length ?: 0) > maxTextLength -> invalid("Extension payload is too large")
+                        else -> supported(host.executeExtension(action.extensionId, action.payload), action)
+                    }
                 }
                 is SymbolAction.Composite -> executeComposite(action, host, depth)
             }

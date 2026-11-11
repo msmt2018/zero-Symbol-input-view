@@ -34,6 +34,13 @@ class SymbolActionExecutorTest {
         assertTrue(result is SymbolActionResult.Invalid)
     }
 
+    @Test fun rejectsOversizedEditorPayload() {
+        val result = SymbolActionExecutor(maxTextLength = 3).execute(
+            SymbolAction.EditorCommand("editor.custom", "four"), RecordingHost()
+        )
+        assertTrue(result is SymbolActionResult.Invalid)
+    }
+
     @Test fun reportsPartialCompositeFailure() {
         val host = object : RecordingHost() {
             override fun insertText(template: String): Boolean {
