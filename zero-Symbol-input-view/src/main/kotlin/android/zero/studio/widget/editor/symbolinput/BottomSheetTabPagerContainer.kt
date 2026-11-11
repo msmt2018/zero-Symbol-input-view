@@ -178,11 +178,15 @@ abstract class BottomSheetTabPagerContainer @JvmOverloads constructor(
                 if (bottomSheetView !== target || bottomSheetBehavior !== behavior || !isAttachedToWindow) {
                     return
                 }
-                pendingInitialCollapse = null
-                if (target.isAttachedToWindow) {
-                    behavior.state = BottomSheetBehavior.STATE_COLLAPSED
-                    initialCollapsePending = false
+                if (!target.isAttachedToWindow) {
+                    // The sheet may have detached between posting and execution.
+                    // Re-posting while detached queues the task for its next attach.
+                    target.post(this)
+                    return
                 }
+                pendingInitialCollapse = null
+                behavior.state = BottomSheetBehavior.STATE_COLLAPSED
+                initialCollapsePending = false
             }
         }
         pendingInitialCollapse = runnable
