@@ -33,7 +33,8 @@ import kotlin.math.roundToInt
 class AdvancedSymbolDrawerView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
-    defStyleAttr: Int = 0
+    defStyleAttr: Int = 0,
+    private val config: DrawerConfig = DrawerConfig()
 ) : ViewGroup(context, attrs, defStyleAttr) {
 
     fun interface OnSymbolActionListener {
@@ -44,7 +45,6 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
     var onOpenManagerListener: (() -> Unit)? = null
     var onGroupChangedListener: ((Int, SymbolGroup?) -> Unit)? = null
 
-    private val config = DrawerConfig()
     private val indicator = SymbolGroupIndicator(context) { selectGroup(it, true) }
     private val pager = ViewPager2(context).apply {
         orientation = ViewPager2.ORIENTATION_HORIZONTAL
@@ -96,13 +96,16 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
     fun submitGroups(value: List<SymbolGroup>, preserveSelectedGroup: Boolean = true) {
         val previousId = groups.getOrNull(pager.currentItem)?.id
         groups = value.filter { it.symbols.isNotEmpty() }.map { it.copy(symbols = it.symbols.toList()) }
-        pageAdapter.submitGroups(groups)
-        indicator.submitGroups(groups)
         val restored = if (preserveSelectedGroup && previousId != null) {
             groups.indexOfFirst { it.id == previousId }.takeIf { it >= 0 }
         } else null
         val target = restored ?: pager.currentItem.coerceIn(0, (groups.size - 1).coerceAtLeast(0))
-        if (groups.isNotEmpty()) pager.setCurrentItem(target, false)
+        indicator.submitGroups(groups)
+        pageAdapter.submitList(groups) {
+            if (groups.isNotEmpty() && target in groups.indices) {
+                pager.setCurrentItem(target, false)
+            }
+        }
         recalculateGeometry()
     }
 
