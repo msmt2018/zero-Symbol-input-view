@@ -87,7 +87,7 @@ public class SpanRecycler {
                         }
                         Log.i(LOG_TAG, "Called recycle() on " + count + " spans");
                     } catch (InterruptedException e) {
-                        e.printStackTrace();
+                        
                         break;
                     }
                 }
