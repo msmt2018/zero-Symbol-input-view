@@ -2,6 +2,8 @@ package android.zero.studio.widget.editor.symbolinput.v2
 
 import android.animation.ValueAnimator
 import android.content.Context
+import android.os.Parcel
+import android.os.Parcelable
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.VelocityTracker
@@ -140,8 +142,30 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
     }
 
     fun onHostResume() {
-        // Kept explicit for hosts that want to restore state after returning from a manager.
+        // Kept explicit for hosts that want to refresh after returning from a manager.
         reloadGroups()
+    }
+
+    override fun onSaveInstanceState(): Parcelable {
+        return DrawerSavedState(super.onSaveInstanceState()).apply {
+            selectedGroupId = groups.getOrNull(pager.currentItem)?.id
+            expansion = this@AdvancedSymbolDrawerView.expansion
+        }
+    }
+
+    override fun onRestoreInstanceState(state: Parcelable?) {
+        if (state !is DrawerSavedState) {
+            super.onRestoreInstanceState(state)
+            return
+        }
+        super.onRestoreInstanceState(state.superState)
+        pageAdapter.submitList(groups) {
+            val selectedIndex = state.selectedGroupId?.let { id ->
+                groups.indexOfFirst { it.id == id }.takeIf { it >= 0 }
+            }
+            if (selectedIndex != null) pager.setCurrentItem(selectedIndex, false)
+            animateTo(state.expansion, animated = false)
+        }
     }
 
     override fun generateDefaultLayoutParams(): LayoutParams =
@@ -318,6 +342,32 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
         indicator.translationY = -((1f - reveal) * config.indicatorHeightDp *
             resources.displayMetrics.density * 0.2f)
         indicator.visibility = if (indicatorHeight == 0) View.INVISIBLE else View.VISIBLE
+    }
+
+    private class DrawerSavedState : View.BaseSavedState {
+        var selectedGroupId: String? = null
+        var expansion: Float = 0f
+
+        constructor(superState: Parcelable?) : super(superState)
+        constructor(source: Parcel) : super(source) {
+            selectedGroupId = source.readString()
+            expansion = source.readFloat().coerceIn(0f, 1f)
+        }
+
+        override fun writeToParcel(out: Parcel, flags: Int) {
+            super.writeToParcel(out, flags)
+            out.writeString(selectedGroupId)
+            out.writeFloat(expansion)
+        }
+
+        companion object {
+            @JvmField
+            val CREATOR: Parcelable.Creator<DrawerSavedState> =
+                object : Parcelable.Creator<DrawerSavedState> {
+                    override fun createFromParcel(source: Parcel) = DrawerSavedState(source)
+                    override fun newArray(size: Int): Array<DrawerSavedState?> = arrayOfNulls(size)
+                }
+        }
     }
 
     private companion object {
