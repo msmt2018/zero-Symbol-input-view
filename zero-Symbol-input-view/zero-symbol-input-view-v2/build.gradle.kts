@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace = "android.zero.studio.widget.editor.symbolinput.v2"
+    namespace = "com.zerostudio.idea.widget.editor.symbolinput.v2"
 }
 
 dependencies {

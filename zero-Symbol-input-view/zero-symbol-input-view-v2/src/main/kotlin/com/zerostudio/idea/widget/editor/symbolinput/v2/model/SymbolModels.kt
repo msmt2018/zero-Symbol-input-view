@@ -1,4 +1,4 @@
-package android.zero.studio.widget.editor.symbolinput.v2.model
+package com.zerostudio.idea.widget.editor.symbolinput.v2.model
 
 /**
  * Immutable symbol data consumed by the drawer UI.

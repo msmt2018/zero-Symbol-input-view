@@ -1,4 +1,4 @@
-package android.zero.studio.widget.editor.symbolinput.v2
+package com.zerostudio.idea.widget.editor.symbolinput.v2
 
 import android.animation.ValueAnimator
 import android.content.Context
@@ -13,15 +13,15 @@ import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
 import androidx.viewpager2.widget.ViewPager2
-import android.zero.studio.widget.editor.symbolinput.v2.data.LegacySymbolDataMigration
-import android.zero.studio.widget.editor.symbolinput.v2.data.SharedPreferencesSymbolGroupRepository
-import android.zero.studio.widget.editor.symbolinput.v2.data.SymbolGroupRepository
-import android.zero.studio.widget.editor.symbolinput.v2.model.DrawerConfig
-import android.zero.studio.widget.editor.symbolinput.v2.model.SymbolEntry
-import android.zero.studio.widget.editor.symbolinput.v2.model.SymbolGroup
-import android.zero.studio.widget.editor.symbolinput.v2.state.DrawerGeometry
-import android.zero.studio.widget.editor.symbolinput.v2.ui.SymbolGroupIndicator
-import android.zero.studio.widget.editor.symbolinput.v2.ui.SymbolPageAdapter
+import com.zerostudio.idea.widget.editor.symbolinput.v2.data.LegacySymbolDataMigration
+import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SharedPreferencesSymbolGroupRepository
+import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupRepository
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.DrawerConfig
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
+import com.zerostudio.idea.widget.editor.symbolinput.v2.state.DrawerGeometry
+import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.SymbolGroupIndicator
+import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.SymbolPageAdapter
 import kotlin.math.abs
 import kotlin.math.roundToInt
 

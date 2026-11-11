@@ -60,7 +60,7 @@ The V2 interaction contract must continue to be validated against the legacy con
 
 ## Compatibility and migration
 
-- Package: `android.zero.studio.widget.editor.symbolinput.v2`.
+- Package: `com.zerostudio.idea.widget.editor.symbolinput.v2`.
 - Persistence: `symbol_drawer_v2/groups_json_v2`; legacy keys are never written.
 - Editor integration is callback-based. A host can bridge the callback to the existing `SymbolActionExecutor`.
 - This is a parallel implementation. Do not remove or redirect the legacy widget until behavioural tests and an app-level comparison pass.

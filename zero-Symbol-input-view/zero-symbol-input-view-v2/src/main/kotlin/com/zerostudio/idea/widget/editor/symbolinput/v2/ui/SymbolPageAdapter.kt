@@ -1,4 +1,4 @@
-package android.zero.studio.widget.editor.symbolinput.v2.ui
+package com.zerostudio.idea.widget.editor.symbolinput.v2.ui
 
 import android.content.Context
 import android.graphics.Color
@@ -6,9 +6,9 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import android.zero.studio.widget.editor.symbolinput.v2.model.DrawerConfig
-import android.zero.studio.widget.editor.symbolinput.v2.model.SymbolEntry
-import android.zero.studio.widget.editor.symbolinput.v2.model.SymbolGroup
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.DrawerConfig
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.ListAdapter

@@ -1,9 +1,9 @@
-package android.zero.studio.widget.editor.symbolinput.v2.data
+package com.zerostudio.idea.widget.editor.symbolinput.v2.data
 
 import android.content.Context
-import android.zero.studio.widget.editor.symbolinput.v2.model.SymbolAction
-import android.zero.studio.widget.editor.symbolinput.v2.model.SymbolEntry
-import android.zero.studio.widget.editor.symbolinput.v2.model.SymbolGroup
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken

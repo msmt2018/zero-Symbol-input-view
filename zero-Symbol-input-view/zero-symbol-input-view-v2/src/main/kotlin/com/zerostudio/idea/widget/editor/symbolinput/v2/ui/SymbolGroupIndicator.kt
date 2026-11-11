@@ -1,4 +1,4 @@
-package android.zero.studio.widget.editor.symbolinput.v2.ui
+package com.zerostudio.idea.widget.editor.symbolinput.v2.ui
 
 import android.content.Context
 import android.graphics.Color
@@ -11,7 +11,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import android.zero.studio.widget.editor.symbolinput.v2.model.SymbolGroup
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 
 internal class SymbolGroupIndicator(
     context: Context,

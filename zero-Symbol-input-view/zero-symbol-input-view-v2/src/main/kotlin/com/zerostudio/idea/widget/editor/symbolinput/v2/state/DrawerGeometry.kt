@@ -1,6 +1,6 @@
-package android.zero.studio.widget.editor.symbolinput.v2.state
+package com.zerostudio.idea.widget.editor.symbolinput.v2.state
 
-import android.zero.studio.widget.editor.symbolinput.v2.model.DrawerConfig
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.DrawerConfig
 import kotlin.math.ceil
 
 /**
@@ -12,7 +12,7 @@ object DrawerGeometry {
         gridHeightPx(config.collapsedRows, config, density)
 
     fun expandedHeightPx(
-        groups: List<android.zero.studio.widget.editor.symbolinput.v2.model.SymbolGroup>,
+        groups: List<com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup>,
         config: DrawerConfig,
         density: Float
     ): Int {

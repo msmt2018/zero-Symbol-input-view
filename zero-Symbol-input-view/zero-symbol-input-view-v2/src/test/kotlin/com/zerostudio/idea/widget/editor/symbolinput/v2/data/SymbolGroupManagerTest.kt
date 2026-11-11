@@ -1,8 +1,8 @@
-package android.zero.studio.widget.editor.symbolinput.v2.data
+package com.zerostudio.idea.widget.editor.symbolinput.v2.data
 
-import android.zero.studio.widget.editor.symbolinput.v2.model.SymbolAction
-import android.zero.studio.widget.editor.symbolinput.v2.model.SymbolEntry
-import android.zero.studio.widget.editor.symbolinput.v2.model.SymbolGroup
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
