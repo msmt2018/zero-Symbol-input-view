@@ -61,6 +61,8 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
         overScrollMode = View.OVER_SCROLL_NEVER
     }
     private var pageAdapter = createPageAdapter()
+    private var suppressPageCallbacks = false
+    private var adapterSwapGeneration = 0
 
     private var repository: SymbolGroupRepository =
         SharedPreferencesSymbolGroupRepository(context.applicationContext)
@@ -93,6 +95,7 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
         }
         pager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
+                if (suppressPageCallbacks) return
                 indicator.setSelectedIndex(position)
                 onGroupChangedListener?.invoke(position, groups.getOrNull(position))
             }
@@ -106,18 +109,34 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
      * lightweight page adapter when grid geometry changes; group data is retained.
      */
     fun applySettings(value: SymbolDrawerSettings) {
-        val selectedGroupId = groups.getOrNull(pager.currentItem)?.id
         settings = value
         config = value.toDrawerConfig()
         indicator.applySettings(value)
         pager.offscreenPageLimit = if (value.prefetchAdjacentGroups) value.pageCacheLimit else 1
-        pageAdapter = createPageAdapter()
-        pager.adapter = pageAdapter
-        pageAdapter.submitList(groups) {
+
+        // Prepare the replacement adapter while the current adapter remains
+        // attached and interactive. Assigning a fresh ListAdapter immediately
+        // resets ViewPager2 to page zero; doing that before the new list is
+        // committed caused a visible jump back after a user swiped to another
+        // group. Swap only after the replacement has its complete data set.
+        val replacement = createPageAdapter()
+        val generation = ++adapterSwapGeneration
+        replacement.submitList(groups.toList()) {
+            if (generation != adapterSwapGeneration) return@submitList
+
+            val selectedGroupId = groups.getOrNull(pager.currentItem)?.id
             val restored = selectedGroupId?.let { id ->
                 groups.indexOfFirst { it.id == id }.takeIf { it >= 0 }
-            }
-            if (restored != null) pager.setCurrentItem(restored, false)
+            } ?: pager.currentItem.coerceIn(0, (groups.size - 1).coerceAtLeast(0))
+
+            suppressPageCallbacks = true
+            pageAdapter = replacement
+            pager.adapter = replacement
+            if (groups.isNotEmpty()) pager.setCurrentItem(restored, false)
+            suppressPageCallbacks = false
+
+            indicator.setSelectedIndex(restored)
+            onGroupChangedListener?.invoke(restored, groups.getOrNull(restored))
             recalculateGeometry()
         }
     }
