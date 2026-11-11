@@ -1,14 +1,20 @@
 package com.zerostudio.idea.widget.editor.symbolinput.v2.settings
 
 import android.content.Context
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.graphics.Typeface
 import android.view.Gravity
 import android.view.View
+import android.app.AlertDialog
 import android.widget.ArrayAdapter
 import android.widget.Button
+import android.widget.Toast
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.ScrollView
+import android.text.InputType
 import android.widget.SeekBar
 import android.widget.Spinner
 import android.widget.Switch
@@ -94,6 +100,28 @@ class SymbolDrawerSettingsScreen(
         section("搜索")
         addSwitch("搜索时包含动作内容", current.searchIncludesActionPayload) { update { copy(searchIncludesActionPayload = it) } }
 
+        section("数据与备份")
+        val backupRow = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+        }
+        backupRow.addView(Button(context).apply {
+            text = "复制设置备份"
+            setOnClickListener {
+                runCatching {
+                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    clipboard.setPrimaryClip(
+                        ClipData.newPlainText("Zero Symbol Drawer settings", SymbolDrawerSettingsCodec.encode(current))
+                    )
+                    Toast.makeText(context, "设置备份 JSON 已复制", Toast.LENGTH_SHORT).show()
+                }.onFailure { onError?.invoke(it) }
+            }
+        }, LinearLayout.LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
+        backupRow.addView(Button(context).apply {
+            text = "导入设置备份"
+            setOnClickListener { promptImportBackup() }
+        }, LinearLayout.LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
+        content.addView(backupRow, matchWrap())
+
         content.addView(Button(context).apply {
             text = "恢复默认设置"
             setOnClickListener {
@@ -173,6 +201,31 @@ class SymbolDrawerSettingsScreen(
             })
         }, matchWrap())
         content.addView(row, matchWrap())
+    }
+
+    private fun promptImportBackup() {
+        val input = EditText(context).apply {
+            hint = "粘贴设置备份 JSON"
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
+            minLines = 6
+            gravity = Gravity.TOP
+        }
+        AlertDialog.Builder(context)
+            .setTitle("导入符号抽屉设置")
+            .setMessage("导入会覆盖当前设置，符号分组和符号数据不会改变。")
+            .setView(input)
+            .setNegativeButton("取消", null)
+            .setPositiveButton("导入") { _, _ ->
+                runCatching {
+                    val next = SymbolDrawerSettingsCodec.decode(input.text.toString())
+                    repository.save(next)
+                    current = next
+                    render()
+                    onSettingsChanged?.invoke(next)
+                    Toast.makeText(context, "设置已导入", Toast.LENGTH_SHORT).show()
+                }.onFailure { onError?.invoke(it) }
+            }
+            .show()
     }
 
     private fun update(transform: SymbolDrawerSettings.() -> SymbolDrawerSettings) {
