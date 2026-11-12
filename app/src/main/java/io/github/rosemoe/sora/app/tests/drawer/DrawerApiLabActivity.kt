@@ -12,11 +12,6 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.slider.Slider
 import com.google.android.material.switchmaterial.SwitchMaterial
-import com.google.android.material.textfield.MaterialAutoCompleteTextView
-import com.google.android.material.textfield.TextInputLayout
-import com.google.android.material.textfield.MaterialAutoCompleteTextView
-import com.google.android.material.button.MaterialButtonToggleGroup
-import com.google.android.material.appbar.MaterialToolbar
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.DrawerContainer
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.config.DrawerConfig
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchor
@@ -56,6 +51,10 @@ class DrawerApiLabActivity : AppCompatActivity() {
         drawer.controller.addStateListener { state ->
             status.text = "Anchor: ${state.currentAnchorId}  ·  Height: ${state.currentHeightPx}px  ·  Dragging: ${state.isDragging}  ·  Animating: ${state.isAnimating}"
         }
+    }
+
+    override fun onBackPressed() {
+        if (!::drawer.isInitialized || !drawer.handleBack()) super.onBackPressed()
     }
 
     private fun buildDashboard(): View {

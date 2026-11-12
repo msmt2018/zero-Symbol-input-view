@@ -179,6 +179,10 @@ class DrawerContainer @JvmOverloads constructor(
 
     private fun updateNavigationVisibility() {
         val nav = currentConfig.navigationConfig
+        if (tabs.parent === sheet) sheet.removeView(tabs)
+        val tabIndex = if (nav.placement == DrawerNavigationPlacement.BOTTOM) sheet.childCount else 3
+        sheet.addView(tabs, tabIndex.coerceIn(0, sheet.childCount),
+            LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         tabs.visibility = if (nav.enabled && nav.placement != DrawerNavigationPlacement.HIDDEN &&
             pageHost.navigationController.pages().isNotEmpty()) VISIBLE else GONE
         tabs.isTabIndicatorFullWidth = nav.indicator.widthFraction >= 0.99f
@@ -289,6 +293,7 @@ class DrawerContainer @JvmOverloads constructor(
     }
 
     private fun onHandleTouch(view: View, event: MotionEvent): Boolean {
+        if (!currentConfig.enableDrag) return false
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 animator?.cancel()
@@ -346,6 +351,14 @@ class DrawerContainer @JvmOverloads constructor(
     private fun dp(value: Float): Int = (value * resources.displayMetrics.density + 0.5f).toInt()
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density + 0.5f).toInt()
 
+    override fun onDetachedFromWindow() {
+        animator?.cancel()
+        animator = null
+        velocityTracker?.recycle()
+        velocityTracker = null
+        super.onDetachedFromWindow()
+    }
+
     private inner class Controller : DrawerController {
         override fun expand(animated: Boolean) {
             anchors.lastOrNull()?.let { moveTo(it, animated) }
@@ -386,7 +399,7 @@ class DrawerContainer @JvmOverloads constructor(
         }
         override fun setExpandedContent(content: DrawerPanelContent?) {
             currentConfig = currentConfig.copy(expandedContent = content)
-            setExpandedContent(content)
+            this@DrawerContainer.setExpandedContent(content)
         }
         override fun setNavigationConfig(config: DrawerNavigationConfig) {
             currentConfig = currentConfig.copy(navigationConfig = config)
