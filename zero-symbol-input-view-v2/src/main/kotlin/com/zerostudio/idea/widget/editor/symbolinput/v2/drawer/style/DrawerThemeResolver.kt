@@ -3,6 +3,7 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style
 import android.content.Context
 import android.view.ContextThemeWrapper
 import android.util.TypedValue
+import com.zerostudio.idea.widget.editor.symbolinput.v2.R
 
 /** Resolves theme attributes at runtime so host Activity theme changes can be reflected. */
 object DrawerThemeResolver {
