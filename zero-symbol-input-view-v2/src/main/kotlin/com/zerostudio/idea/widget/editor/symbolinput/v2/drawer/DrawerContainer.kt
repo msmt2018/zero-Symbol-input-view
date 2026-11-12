@@ -387,12 +387,28 @@ class DrawerContainer @JvmOverloads constructor(
     override fun onStartNestedScroll(child: View, target: View, axes: Int): Boolean =
         currentConfig.enableNestedScroll && (axes and ViewCompat.SCROLL_AXIS_VERTICAL) != 0
 
+    override fun onStartNestedScroll(child: View, target: View, axes: Int, type: Int): Boolean =
+        onStartNestedScroll(child, target, axes)
+
     override fun onNestedScrollAccepted(child: View, target: View, axes: Int) {
         nestedScrollHelper.onNestedScrollAccepted(child, target, axes)
     }
 
+    override fun onNestedScrollAccepted(child: View, target: View, axes: Int, type: Int) {
+        nestedScrollHelper.onNestedScrollAccepted(child, target, axes, type)
+    }
+
     override fun onStopNestedScroll(target: View) {
         nestedScrollHelper.onStopNestedScroll(target)
+        settleAfterNestedScroll()
+    }
+
+    override fun onStopNestedScroll(target: View, type: Int) {
+        nestedScrollHelper.onStopNestedScroll(target, type)
+        settleAfterNestedScroll()
+    }
+
+    private fun settleAfterNestedScroll() {
         val currentHeight = state?.currentHeightPx ?: return
         if (anchors.isNotEmpty()) {
             moveTo(DrawerAnchorResolver.nearestAnchor(anchors, currentHeight), true)
