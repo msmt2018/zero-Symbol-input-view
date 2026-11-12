@@ -280,7 +280,7 @@ class SymbolDrawerSettingsScreen(
         }
         row.addView(label(title), matchWrap())
         val spinner = Spinner(context)
-        var initialSelection = true
+        val initialIndex = values.indexOf(selected).coerceAtLeast(0)
         spinner.adapter = ArrayAdapter(
             context,
             android.R.layout.simple_spinner_dropdown_item,
@@ -291,14 +291,13 @@ class SymbolDrawerSettingsScreen(
                 }
             }
         )
-        spinner.setSelection(values.indexOf(selected).coerceAtLeast(0), false)
+        spinner.setSelection(initialIndex, false)
         spinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            private var lastPosition = initialIndex
             override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
             override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
-                if (initialSelection) {
-                    initialSelection = false
-                    return
-                }
+                if (position == lastPosition) return
+                lastPosition = position
                 values.getOrNull(position)?.let(changed)
             }
         }

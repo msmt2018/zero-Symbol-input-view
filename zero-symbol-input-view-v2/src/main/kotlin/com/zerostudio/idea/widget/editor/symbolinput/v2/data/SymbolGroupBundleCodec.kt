@@ -32,22 +32,51 @@ object SymbolGroupBundleCodec {
             }
             return SymbolGroupStorageCodec.decode(json)
         }
+        require(root.isJsonObject) { "Symbol group backup must be an object or V1 group array" }
         val envelope = root.asJsonObject
-        require(envelope.get("format")?.asString == "zero-symbol-drawer") { "Not a supported symbol drawer backup" }
-        val version = envelope.get("version")?.asInt ?: error("Missing backup version")
+        require(envelope.keySet() == setOf("format", "version", "groups")) {
+            "Symbol group backup fields do not match the supported envelope"
+        }
+        require(envelope.get("format").isJsonPrimitive &&
+            envelope.get("format").asString == "zero-symbol-drawer") {
+            "Not a supported symbol drawer backup"
+        }
+        require(envelope.get("version").isJsonPrimitive &&
+            envelope.get("version").asJsonPrimitive.isNumber &&
+            envelope.get("version").asInt.toDouble() == envelope.get("version").asDouble) {
+            "Invalid backup version"
+        }
+        val version = envelope.get("version").asInt
         require(version == CURRENT_VERSION) { "Unsupported backup version: $version" }
-        val groupArray = envelope.getAsJsonArray("groups") ?: error("Missing groups")
+        val groupElement = envelope.get("groups")
+        require(groupElement.isJsonArray) { "Missing or invalid groups array" }
+        val groupArray = groupElement.asJsonArray
         require(groupArray.size() <= MAX_GROUPS) { "Too many groups in backup" }
         val result = groupArray.map { groupElement ->
+            require(groupElement.isJsonObject) { "Group entry must be an object" }
             val group = groupElement.asJsonObject
-            val symbols = group.getAsJsonArray("symbols") ?: JsonArray()
+            require(group.keySet() == setOf("id", "title", "symbols")) {
+                "Group entry does not match the supported schema"
+            }
+            require(group.get("id").isJsonPrimitive && group.get("id").asJsonPrimitive.isString &&
+                group.get("title").isJsonPrimitive && group.get("title").asJsonPrimitive.isString &&
+                group.get("symbols").isJsonArray) { "Group ID, title or symbols are invalid" }
+            val symbols = group.getAsJsonArray("symbols")
             require(symbols.size() <= MAX_SYMBOLS_PER_GROUP) { "Too many symbols in group" }
             SymbolGroup(
                 id = group.get("id")?.asString ?: error("Group ID is missing"),
                 title = group.get("title")?.asString ?: error("Group title is missing"),
                 symbols = symbols.map { element ->
+                    require(element.isJsonObject) { "Symbol entry must be an object" }
                     val symbol = element.asJsonObject
-                    val short = symbol.getAsJsonObject("shortAction") ?: error("Short action is missing")
+                    require(symbol.keySet().containsAll(setOf("id", "label", "shortAction")) &&
+                        symbol.keySet().all { it in setOf("id", "label", "shortAction", "longAction", "icon") }) {
+                        "Symbol entry does not match the supported schema"
+                    }
+                    require(symbol.get("id").isJsonPrimitive && symbol.get("id").asJsonPrimitive.isNumber &&
+                        symbol.get("label").isJsonPrimitive && symbol.get("label").asJsonPrimitive.isString &&
+                        symbol.get("shortAction").isJsonObject) { "Symbol ID, label or short action is invalid" }
+                    val short = symbol.getAsJsonObject("shortAction")
                     val long = symbol.get("longAction")?.takeUnless { it.isJsonNull }?.asJsonObject
                         ?.let(SymbolActionJsonCodec::decode)
                     SymbolEntry(

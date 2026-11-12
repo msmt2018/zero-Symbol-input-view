@@ -33,7 +33,6 @@ internal class JsonDocumentPicker(
         } else {
             val suffix = nextId.incrementAndGet()
             val registry = host.activityResultRegistry
-            val lifecycle = host.lifecycle
             openLauncher = registry.register(
                 "zero-symbol-json-open-$suffix",
                 host,
@@ -62,7 +61,19 @@ internal class JsonDocumentPicker(
         runCatching {
             val input = activity?.contentResolver?.openInputStream(uri)
                 ?: error("Unable to open selected JSON file")
-            input.bufferedReader(Charsets.UTF_8).use { it.readText() }
+            input.use { stream ->
+                val output = java.io.ByteArrayOutputStream()
+                val buffer = ByteArray(8 * 1024)
+                var total = 0
+                while (true) {
+                    val count = stream.read(buffer)
+                    if (count < 0) break
+                    total += count
+                    require(total <= MAX_IMPORT_BYTES) { "Selected JSON file exceeds the 16 MiB import limit" }
+                    output.write(buffer, 0, count)
+                }
+                output.toString(Charsets.UTF_8.name())
+            }
         }.onSuccess(onImported).onFailure(onError)
     }
 
@@ -86,6 +97,7 @@ internal class JsonDocumentPicker(
     }
 
     private companion object {
+        const val MAX_IMPORT_BYTES = 16 * 1024 * 1024
         val nextId = AtomicInteger()
     }
 }

@@ -136,7 +136,7 @@ internal class SymbolPageAdapter(
                 holder.label.setCompoundDrawables(null, null, null, null)
                 holder.label.text = if (settings.showSymbolLabels) item.label else item.icon?.takeIf { it.isNotBlank() } ?: item.label
                 holder.label.contentDescription = if (settings.showActionHints) {
-                "${item.label}, ${item.shortAction}"
+                    "${item.label}, ${item.shortAction}"
                 } else item.label
             }
             holder.label.setOnClickListener {
