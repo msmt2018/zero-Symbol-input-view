@@ -14,6 +14,8 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.core.view.NestedScrollingParent3
+import androidx.core.view.NestedScrollingParentHelper
 import androidx.core.view.ViewCompat
 import com.google.android.material.tabs.TabLayout
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.config.DrawerConfig
@@ -50,7 +52,7 @@ import kotlin.math.min
 class DrawerContainer @JvmOverloads constructor(
     context: Context,
     config: DrawerConfig = DrawerConfig.builder().build()
-) : FrameLayout(context) {
+) : FrameLayout(context), NestedScrollingParent3 {
 
     private val scrim = View(context)
     private val sheet = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
@@ -74,6 +76,7 @@ class DrawerContainer @JvmOverloads constructor(
     private var hostContent: View? = null
     private val stateListeners = LinkedHashSet<(DrawerState) -> Unit>()
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
+    private val nestedScrollHelper = NestedScrollingParentHelper(this)
     private val controllerImpl = Controller()
 
     val controller: DrawerController get() = controllerImpl
@@ -369,6 +372,69 @@ class DrawerContainer @JvmOverloads constructor(
         }
         return true
     }
+
+    private fun updateHeightFromNestedScroll(heightPx: Int) {
+        if (anchors.isEmpty()) return
+        val minHeight = anchors.first().heightPx
+        val maxHeight = anchors.last().heightPx
+        val bounded = heightPx.coerceIn(minHeight, maxHeight)
+        val nearest = DrawerAnchorResolver.nearestAnchor(anchors, bounded)
+        state = DrawerState(nearest.id, bounded, anchors, isDragging = true, isAnimating = false)
+        updateVisualState()
+        state?.let { snapshot -> stateListeners.toList().forEach { it(snapshot) } }
+    }
+
+    override fun onStartNestedScroll(child: View, target: View, axes: Int): Boolean =
+        currentConfig.enableNestedScroll && (axes and ViewCompat.SCROLL_AXIS_VERTICAL) != 0
+
+    override fun onNestedScrollAccepted(child: View, target: View, axes: Int) {
+        nestedScrollHelper.onNestedScrollAccepted(child, target, axes)
+    }
+
+    override fun onStopNestedScroll(target: View) {
+        nestedScrollHelper.onStopNestedScroll(target)
+        val currentHeight = state?.currentHeightPx ?: return
+        if (anchors.isNotEmpty()) {
+            moveTo(DrawerAnchorResolver.nearestAnchor(anchors, currentHeight), true)
+        }
+    }
+
+    override fun getNestedScrollAxes(): Int = nestedScrollHelper.nestedScrollAxes
+
+    override fun onNestedPreScroll(target: View, dx: Int, dy: Int, consumed: IntArray) {
+        onNestedPreScroll(target, dx, dy, consumed, ViewCompat.TYPE_TOUCH)
+    }
+
+    override fun onNestedPreScroll(target: View, dx: Int, dy: Int, consumed: IntArray, type: Int) {
+        if (!currentConfig.enableNestedScroll || anchors.isEmpty() || dy == 0) return
+        val current = state?.currentHeightPx ?: anchors.first().heightPx
+        val minHeight = anchors.first().heightPx
+        val maxHeight = anchors.last().heightPx
+        val next = when {
+            dy > 0 && current < maxHeight -> (current + dy).coerceAtMost(maxHeight)
+            dy < 0 && !target.canScrollVertically(-1) && current > minHeight ->
+                (current + dy).coerceAtLeast(minHeight)
+            else -> current
+        }
+        if (next != current) {
+            consumed[1] += next - current
+            updateHeightFromNestedScroll(next)
+        }
+    }
+
+    override fun onNestedScroll(
+        target: View, dxConsumed: Int, dyConsumed: Int, dxUnconsumed: Int, dyUnconsumed: Int
+    ) = Unit
+
+    override fun onNestedScroll(
+        target: View, dxConsumed: Int, dyConsumed: Int, dxUnconsumed: Int,
+        dyUnconsumed: Int, type: Int
+    ) = Unit
+
+    override fun onNestedScroll(
+        target: View, dxConsumed: Int, dyConsumed: Int, dxUnconsumed: Int,
+        dyUnconsumed: Int, type: Int, consumed: IntArray
+    ) = Unit
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
