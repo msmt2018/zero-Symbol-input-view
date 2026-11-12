@@ -1,7 +1,5 @@
 package com.zerostudio.idea.widget.editor.symbolinput.v2.manager
 
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.Context
 import android.text.Editable
 import android.text.TextWatcher
@@ -111,15 +109,6 @@ class SymbolDrawerManagerScreen(
         val row = horizontalRow()
         row.addView(actionButton("新建分组") { promptGroupName("新建分组") { manager.addGroup(it); selectedGroupId = manager.groups.lastOrNull()?.id; refresh() } })
         row.addView(actionButton("新建符号") { if (currentGroup() == null) toast("请先创建分组") else editSymbol(null) })
-        row.addView(actionButton("导出") {
-            runCatching { exportBundle() }.onSuccess { bundle ->
-                onExportBundle?.invoke(bundle)
-                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                clipboard.setPrimaryClip(ClipData.newPlainText("Symbol drawer backup", bundle))
-                toast("备份 JSON 已复制")
-            }.onFailure(::reportError)
-        })
-        row.addView(actionButton("导入") { promptImport() })
         addView(row, matchWrap())
     }
 
@@ -280,31 +269,6 @@ class SymbolDrawerManagerScreen(
                 val value = input.text.toString().trim()
                 if (value.isNotEmpty()) runCatching { done(value) }.onFailure(::reportError)
                 else toast("分组名称不能为空")
-            }
-            .show()
-    }
-
-    private fun promptImport() {
-        val input = EditText(context).apply {
-            hint = "粘贴符号抽屉备份 JSON"
-            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
-            minLines = 5
-            gravity = android.view.Gravity.TOP
-        }
-        AlertDialog.Builder(context)
-            .setTitle("导入备份")
-            .setMessage("导入会替换当前全部分组。建议先导出备份。")
-            .setView(input)
-            .setNegativeButton("取消", null)
-            .setPositiveButton("继续") { _, _ ->
-                AlertDialog.Builder(context)
-                    .setTitle("确认替换")
-                    .setMessage("确定用导入的数据替换当前所有分组吗？")
-                    .setNegativeButton("取消", null)
-                    .setPositiveButton("替换") { _, _ ->
-                        runCatching { importBundle(input.text.toString()) }.onFailure(::reportError)
-                    }
-                    .show()
             }
             .show()
     }

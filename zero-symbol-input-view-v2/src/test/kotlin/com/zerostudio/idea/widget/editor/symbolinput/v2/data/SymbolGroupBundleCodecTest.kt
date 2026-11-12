@@ -85,6 +85,16 @@ class SymbolGroupBundleCodecTest {
     }
 
     @Test(expected = IllegalArgumentException::class)
+    fun rejectsUnrelatedJsonAsLegacyGroups() {
+        LegacySymbolDataCodec.decode("""[{"name":"not-a-v1-group","items":[]}]""")
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun rejectsLegacyGroupsWithWrongActionIdType() {
+        LegacySymbolDataCodec.decode("""[{"n":"g","d":[{"a":2.5,"b":"x"}]}]""")
+    }
+
+    @Test(expected = IllegalArgumentException::class)
     fun rejectsUnknownBackupVersion() {
         SymbolGroupBundleCodec.decode("""{"format":"zero-symbol-drawer","version":99,"groups":[]}""")
     }

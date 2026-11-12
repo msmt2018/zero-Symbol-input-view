@@ -82,8 +82,8 @@ object LegacySymbolDataCodec {
         require(json.length <= SymbolGroupBundleCodec.MAX_BUNDLE_CHARS) { "Symbol group JSON is too large" }
         val root = com.google.gson.JsonParser.parseString(json)
         require(root.isJsonArray) { "Symbol group JSON must be an array" }
-        require(root.asJsonArray.size() in 1..SymbolGroupBundleCodec.MAX_GROUPS) {
-            "Symbol group JSON must contain between 1 and ${SymbolGroupBundleCodec.MAX_GROUPS} groups"
+        require(root.asJsonArray.size() <= SymbolGroupBundleCodec.MAX_GROUPS) {
+            "Too many groups in symbol group JSON"
         }
         val actionIds = LegacySymbolActionCatalog.values.toSet()
         var total = 0
@@ -109,7 +109,7 @@ object LegacySymbolDataCodec {
                 val shortId = item.get("a")
                 val display = item.get("b")
                 require(shortId.isJsonPrimitive && shortId.asJsonPrimitive.isNumber &&
-                    shortId.asInt in actionIds) { "Symbol #${itemIndex + 1} has an unsupported short action ID" }
+                    shortId.asDouble == shortId.asInt.toDouble() && shortId.asInt in actionIds) { "Symbol #${itemIndex + 1} has an unsupported short action ID" }
                 require(display.isJsonPrimitive && display.asJsonPrimitive.isString &&
                     display.asString.isNotEmpty() && display.asString.length <= 4096) {
                     "Symbol #${itemIndex + 1} has an invalid display field"
@@ -124,7 +124,8 @@ object LegacySymbolDataCodec {
                 }
                 val longId = item.get("d")
                 require(longId == null || longId.isJsonNull ||
-                    (longId.isJsonPrimitive && longId.asJsonPrimitive.isNumber && longId.asInt in actionIds)) {
+                    (longId.isJsonPrimitive && longId.asJsonPrimitive.isNumber &&
+                        longId.asDouble == longId.asInt.toDouble() && longId.asInt in actionIds)) {
                     "Symbol #${itemIndex + 1} has an unsupported long action ID"
                 }
             }

@@ -108,6 +108,10 @@ internal class SymbolGroupIndicator(
                     HostThemeColors.onSurface(context)
                 }
             )
+            holder.indicator.background = GradientDrawable().apply {
+                cornerRadius = dp(holder.indicator, 3).toFloat()
+                setColor(HostThemeColors.primary(context))
+            }
             holder.indicator.visibility =
                 if (selected && settings.indicatorStyle == GroupIndicatorStyle.UNDERLINE) View.VISIBLE
                 else View.INVISIBLE
