@@ -7,7 +7,7 @@ data class DrawerColorAttributes(
     val surfaceAttr: Int = com.google.android.material.R.attr.colorSurface,
     val primaryTextAttr: Int = com.google.android.material.R.attr.colorOnSurface,
     val secondaryTextAttr: Int = com.google.android.material.R.attr.colorOnSurfaceVariant,
-    val accentAttr: Int = com.google.android.material.R.attr.colorPrimary
+    val accentAttr: Int = androidx.appcompat.R.attr.colorPrimary
 )
 
 data class DrawerColors(
