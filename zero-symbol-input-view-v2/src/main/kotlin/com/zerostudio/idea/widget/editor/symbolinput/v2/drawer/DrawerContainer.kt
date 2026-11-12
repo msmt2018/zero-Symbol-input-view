@@ -121,6 +121,7 @@ class DrawerContainer @JvmOverloads constructor(
         tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab) {
                 (tab.tag as? String)?.let(pageHost::selectPage)
+                applyNavigationTypography()
             }
             override fun onTabUnselected(tab: TabLayout.Tab) = Unit
             override fun onTabReselected(tab: TabLayout.Tab) = Unit
@@ -184,12 +185,51 @@ class DrawerContainer @JvmOverloads constructor(
 
     private fun rebuildTabs() {
         tabs.removeAllTabs()
+        val navigation = currentConfig.navigationConfig
         pageHost.navigationController.pages().forEach { page ->
-            tabs.addTab(tabs.newTab().setText(page.title).setTag(page.id))
+            val label = TextView(context).apply {
+                text = if (navigation.showTitles) page.title else ""
+                gravity = Gravity.CENTER
+                textSize = navigation.titleTextSizeSp
+                minWidth = dp(navigation.itemMinWidthDp)
+                setPadding(
+                    dp(navigation.itemHorizontalPaddingDp),
+                    dp(navigation.itemVerticalPaddingDp),
+                    dp(navigation.itemHorizontalPaddingDp),
+                    dp(navigation.itemVerticalPaddingDp)
+                )
+                if (navigation.showIcons && page.icon != null) {
+                    setCompoundDrawablesWithIntrinsicBounds(page.icon, null, null, null)
+                    compoundDrawablePadding = dp(6)
+                }
+                contentDescription = page.title
+            }
+            val tab = tabs.newTab().setCustomView(label).setTag(page.id)
+            tabs.addTab(tab, false)
         }
         val selected = pageHost.navigationController.selectedIndex()
         if (selected >= 0 && selected < tabs.tabCount) tabs.getTabAt(selected)?.select()
         updateNavigationVisibility()
+        applyNavigationTypography()
+    }
+
+    private fun applyNavigationTypography() {
+        val navigation = currentConfig.navigationConfig
+        for (index in 0 until tabs.tabCount) {
+            val tab = tabs.getTabAt(index) ?: continue
+            val label = tab.customView as? TextView ?: continue
+            val selected = tab.isSelected
+            label.textSize = if (selected) navigation.selectedTitleTextSizeSp else navigation.titleTextSizeSp
+            label.setTypeface(
+                label.typeface,
+                if (selected && navigation.selectedTitleBold) android.graphics.Typeface.BOLD
+                else android.graphics.Typeface.NORMAL
+            )
+            label.setTextColor(
+                if (selected) resolvedColors().accent ?: Color.BLUE
+                else resolvedColors().secondaryText ?: Color.GRAY
+            )
+        }
     }
 
     private fun updateNavigationVisibility() {
@@ -203,6 +243,7 @@ class DrawerContainer @JvmOverloads constructor(
         tabs.isTabIndicatorFullWidth = nav.indicator.widthFraction >= 0.99f
         tabs.tabMode = if (nav.scrollable) TabLayout.MODE_SCROLLABLE else TabLayout.MODE_FIXED
         tabs.tabGravity = if (nav.scrollable) TabLayout.GRAVITY_START else TabLayout.GRAVITY_FILL
+        tabs.setTabMinWidth(dp(nav.itemMinWidthDp))
         val indicatorColor = nav.indicator.color ?: resolvedColors().accent ?: Color.BLUE
         tabs.setSelectedTabIndicator(GradientDrawable().apply {
             setColor(if (nav.indicator.shape == com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerIndicatorShape.NONE) {
@@ -305,6 +346,12 @@ class DrawerContainer @JvmOverloads constructor(
         val showExpanded = expanded && (expandedHost.content() != null || pageHost.navigationController.pages().isNotEmpty())
         peekHost.visibility = if (showPeek) VISIBLE else GONE
         expandedHost.visibility = if (showExpanded) VISIBLE else GONE
+        val navigation = currentConfig.navigationConfig
+        tabs.visibility = if (navigation.enabled &&
+            navigation.placement != DrawerNavigationPlacement.HIDDEN &&
+            pageHost.visibility == VISIBLE &&
+            pageHost.navigationController.pages().isNotEmpty() &&
+            (expanded || navigation.showInPeekPanel)) VISIBLE else GONE
         if (containerAttached && showPeek != peekContentVisible) {
             peekHost.dispatchPanelVisible(showPeek)
             peekContentVisible = showPeek

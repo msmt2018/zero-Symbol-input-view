@@ -1,12 +1,14 @@
 package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation
 
+import android.graphics.drawable.Drawable
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.panel.DrawerPanelContent
 
 /** Generic page contract; no symbol-group model is involved. */
 data class DrawerPage(
     val id: String,
     val title: CharSequence,
-    val content: DrawerPanelContent
+    val content: DrawerPanelContent,
+    val icon: Drawable? = null
 ) {
     init {
         require(id.isNotBlank()) { "Page id must not be blank" }

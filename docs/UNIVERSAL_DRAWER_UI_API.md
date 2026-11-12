@@ -29,13 +29,15 @@ All strategies resolve through DrawerAnchorResolver, which clamps heights, sorts
 
 The three-stage strategy defaults to a half point at 50% of the viewport and an expanded point at 92%. If the available height makes two or more anchors coincide, the resolver collapses duplicates instead of creating zero-distance states.
 
-## Public API foundation in this phase
+## Public API foundation and runtime container
 
-- drawer.core: anchor models, four strategies, normalization, drawer state, and controller contract.
-- drawer.panel: lifecycle-aware content contract and replaceable DrawerPanelHost.
-- drawer.navigation: generic DrawerPage and observable DrawerNavigationController.
+- drawer.core: anchor models, four strategies, normalization, drawer state, and runtime controller contract.
+- drawer.panel: lifecycle-aware, theme-aware content contract and replaceable Peek/Expanded hosts.
+- drawer.navigation: generic DrawerPage, optional page icons, observable DrawerNavigationController, and cached DrawerPageHost.
+- drawer.style: host theme resolver, immutable style tokens, Material 3 theme overlays, and typography/shape/motion settings.
+- drawer.DrawerContainer: reusable bottom drawer implementation with anchor measurement, animation, drag handle, scrim, nested vertical scrolling, optional navigation, and runtime setters.
 
-The controller and panel contracts are intentionally independent of the current AdvancedSymbolDrawerView. Integration will happen after the core container and gesture engine have explicit ownership of measurement and touch dispatch.
+The runtime container is independent of AdvancedSymbolDrawerView. The symbol view remains unchanged until the public API is sufficiently verified and a separate parity migration is planned.
 
 ## Panel composition
 
@@ -81,7 +83,7 @@ The style API is feature-neutral and uses immutable value objects:
 - `DrawerMotion`: settle duration, drag resistance, fling velocity thresholds and spring enablement.
 - `DrawerStyle`: combines all tokens, theme mode, elevation and clipping/scrim flags.
 
-`DrawerThemeResolver.resolve(context, style)` resolves color attributes at runtime. `FOLLOW_HOST` uses the supplied Activity/Context theme, so the drawer inherits host theme values rather than maintaining a parallel light/dark state. Explicit LIGHT and DARK modes use platform Material theme wrappers. Explicit color values override inherited values individually; unspecified roles continue to inherit.
+`DrawerThemeResolver.resolve(context, style)` resolves color attributes at runtime. `FOLLOW_HOST` uses the supplied Activity/Context theme, so the drawer inherits host theme values rather than maintaining a parallel light/dark state. Explicit LIGHT and DARK modes use Material 3 theme overlays. Theme-aware content providers can override `createView(context)` to construct their views from the resolved theme context; legacy providers using `createView()` remain compatible. Explicit color values override inherited values individually; unspecified roles continue to inherit.
 
 `DrawerConfig.Builder` provides both grouped setters and granular setters, including `setAnchorStrategy`, `setPeekContent`, `setExpandedContent`, `setThemeMode`, `setFollowHostTheme`, `setColors`, `setSurfaceColor`, `setAccentColor`, `setDimensions`, `setPeekHeightDp`, `setExpandedMaxHeightDp`, `setCornerRadiusDp`, `setCornerRadiiDp`, `setTypography`, `setTitleTextSizeSp`, `setMotion`, `setDragResistance`, `setSettleDurationMs`, `setDragEnabled`, `setNestedScrollEnabled`, and dismissal/accessibility setters.
 
@@ -101,4 +103,43 @@ Presets are starting configurations, not locked templates. Build a preset config
 
 `DrawerPageHost` is an optional Android `FrameLayout` that renders the selected `DrawerPage` from `DrawerNavigationController`. It caches page Views, detaches the previous page before attaching the next one, and dispatches panel attach/visible/hidden/detach callbacks. The page host does not draw a navigation bar; applications may bind a Material TabLayout, a custom underline indicator, or any other navigation UI to the controller and the `DrawerNavigationConfig`.
 
-The runtime `DrawerController` contract now includes atomic `applyConfig` and granular setters for anchor strategy, style, theme mode, colors, dimensions, typography, motion, shape, Peek/Expanded content, navigation appearance, drag/nested-scroll, edge-to-edge, dismissal, drag handle and accessibility. These setters describe the public contract; a concrete container implementation will be added in the next phase.
+The runtime `DrawerController` is implemented by `DrawerContainer` and includes atomic `applyConfig`, anchor strategy replacement, style/theme/color/dimension/typography/motion/shape setters, independent Peek/Expanded content replacement, title and page setters, navigation selection/configuration, drag and nested-scroll toggles, scrim/back dismissal, drag-handle and accessibility controls.
+
+`DrawerContainer` also exposes `setMainContent(View?)`, `setPeekContent(...)`, `setExpandedContent(...)`, `setPages(...)`, `expand()`, `collapse()`, `handleBack()`, `navigationHost`, and a `DrawerController` facade. The app module's `DrawerApiLabActivity` is available from the MainActivity overflow menu as **Universal Drawer API Lab**.
+
+
+## Runtime container usage
+
+```kotlin
+val drawer = DrawerContainer(context, DrawerPresets.config(DrawerPreset.SPLIT_PANEL))
+drawer.setMainContent(applicationContent)
+drawer.controller.setTitle("Workspace")
+drawer.setPeekContent(peekContent)
+drawer.controller.setPages(
+    listOf(
+        DrawerPage("logs", "Logcat", logcatContent),
+        DrawerPage("tools", "Tools", toolsContent)
+    )
+)
+drawer.controller.setAnchorStrategy(DrawerAnchorStrategies.threeStage())
+drawer.controller.setThemeMode(DrawerThemeMode.FOLLOW_HOST)
+drawer.controller.expand()
+```
+
+`DrawerPanelContent.createView(context)` is the theme-aware construction hook. The no-argument `createView()` remains supported for existing implementations. On explicit theme-mode changes, the container recreates cached page/panel views using the new themed context and dispatches lifecycle callbacks around replacement.
+
+Nested vertical scrolling is coordinated through `NestedScrollingParent3`: upward scroll expands the drawer until its active maximum anchor; downward scroll collapses it only after the nested child reaches its top. Drag flings settle to at most the adjacent anchor. Horizontal child gestures are not intercepted by the handle drag recognizer.
+
+## API lab coverage
+
+The app module exposes a dedicated Activity through MainActivity's menu. It exercises:
+
+- Existing-height, three-stage, content-sized and custom four-anchor strategies.
+- Standard, Compact, Full Screen and Split Panel presets.
+- Host-following, explicit light/dark overlays and custom color palettes.
+- Navigation top/bottom/hidden placement, line/pill indicators, scrollable tabs and page selection.
+- Independent Peek/Expanded content, runtime page replacement and cached page hosting.
+- Peek/max heights, drag resistance, settle duration, scrim dismissal, drag handle and accessibility.
+- A nested-scrollable page with enough content to test drawer/child scroll hand-off.
+
+The Activity is a manual interaction/visual test harness. CI verifies compilation and JVM unit tests; device-specific gesture feel, edge-to-edge behavior and rendering still require running the Activity on target Android versions.
