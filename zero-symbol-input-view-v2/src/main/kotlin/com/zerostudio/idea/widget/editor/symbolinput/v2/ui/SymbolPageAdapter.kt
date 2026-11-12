@@ -1,12 +1,10 @@
 package com.zerostudio.idea.widget.editor.symbolinput.v2.ui
 
 import android.content.Context
-import android.graphics.Color
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
-import android.util.TypedValue
 import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.GridLayoutManager
@@ -16,7 +14,6 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.DrawerConfig
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
-import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.ThemeMode
 
 /** ViewPager2 page adapter backed by recycled grids and DiffUtil. */
 internal class SymbolPageAdapter(
@@ -83,7 +80,7 @@ internal class SymbolPageAdapter(
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SymbolHolder {
             val label = TextView(parent.context).apply {
                 gravity = Gravity.CENTER
-                setTextColor(resolveTextColor(context, settings.themeMode))
+                setTextColor(HostThemeColors.onSurface(context))
                 val selectableBackground = TypedValue()
                 if (context.theme.resolveAttribute(android.R.attr.selectableItemBackground, selectableBackground, true) && selectableBackground.resourceId != 0) {
                     setBackgroundResource(selectableBackground.resourceId)
@@ -221,22 +218,6 @@ internal class SymbolPageAdapter(
         fun dp(context: Context, value: Int) =
             (value * context.resources.displayMetrics.density).toInt()
 
-        private fun resolveTextColor(context: Context, mode: ThemeMode): Int {
-            return when (mode) {
-                ThemeMode.DARK -> Color.WHITE
-                ThemeMode.LIGHT -> Color.BLACK
-                ThemeMode.SYSTEM -> {
-                    val value = TypedValue()
-                    if (!context.theme.resolveAttribute(android.R.attr.textColorPrimary, value, true)) {
-                        Color.WHITE
-                    } else if (value.resourceId != 0) {
-                        runCatching { context.resources.getColor(value.resourceId) }
-                            .getOrDefault(Color.WHITE)
-                    } else {
-                        value.data
-                    }
-                }
-            }
-        }
+        // Colors always follow the host Activity theme.
     }
 }
