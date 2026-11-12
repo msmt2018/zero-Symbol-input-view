@@ -229,7 +229,7 @@ class DrawerApiLabActivity : AppCompatActivity() {
             orientation = LinearLayout.VERTICAL
             addView(TextView(context).apply { text = title; textSize = 20f })
             addView(TextView(context).apply {
-                text = (1..18).joinToString("\\n") { "$description\\nScrollable content row $it" }
+                text = (1..18).joinToString("\n") { "$description\nScrollable content row $it" }
                 textSize = 14f
                 setPadding(0, dp(context, 10), 0, 0)
             })

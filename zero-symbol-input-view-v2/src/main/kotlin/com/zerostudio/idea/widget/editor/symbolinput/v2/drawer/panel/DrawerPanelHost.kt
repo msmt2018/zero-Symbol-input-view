@@ -16,6 +16,7 @@ class DrawerPanelHost @JvmOverloads constructor(
 ) : FrameLayout(context) {
     private var panelContent: DrawerPanelContent? = null
     private var contentView: View? = null
+    private var panelVisible = false
 
     init {
         contentDescription = contentDescriptionLabel
@@ -36,7 +37,8 @@ class DrawerPanelHost @JvmOverloads constructor(
     }
 
     private fun replaceContent(content: DrawerPanelContent?, viewContext: Context) {
-        panelContent?.onPanelHidden()
+        if (panelVisible) panelContent?.onPanelHidden()
+        panelVisible = false
         panelContent?.onPanelDetached()
         contentView?.let { old ->
             if (old.parent === this) removeView(old)
@@ -52,11 +54,13 @@ class DrawerPanelHost @JvmOverloads constructor(
     fun content(): DrawerPanelContent? = panelContent
 
     fun dispatchPanelVisible(visible: Boolean) {
+        if (panelVisible == visible) return
+        panelVisible = visible
         if (visible) panelContent?.onPanelVisible() else panelContent?.onPanelHidden()
     }
 
     override fun onDetachedFromWindow() {
-        panelContent?.onPanelHidden()
+        dispatchPanelVisible(false)
         super.onDetachedFromWindow()
     }
 }
