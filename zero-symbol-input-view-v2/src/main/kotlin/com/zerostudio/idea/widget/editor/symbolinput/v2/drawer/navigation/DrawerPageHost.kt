@@ -14,6 +14,7 @@ class DrawerPageHost @JvmOverloads constructor(
     val navigationController: DrawerNavigationController = DrawerNavigationController()
 ) : FrameLayout(context) {
     private val pageViews = LinkedHashMap<String, View>()
+    private var contentContext: Context = context
     private var visiblePageId: String? = null
     private var hostAttached = false
     private val navigationListener = DrawerNavigationController.Listener { snapshot, _ ->
@@ -43,6 +44,23 @@ class DrawerPageHost @JvmOverloads constructor(
         navigationController.submitPages(pages, preserveSelection)
     }
 
+    fun setContentContext(value: Context, recreateCachedViews: Boolean = false) {
+        contentContext = value
+        if (!recreateCachedViews || pageViews.isEmpty()) return
+        val selectedId = visiblePageId
+        if (hostAttached) {
+            navigationController.pages().firstOrNull { it.id == selectedId }?.content?.onPanelHidden()
+        }
+        navigationController.pages().filter { pageViews.containsKey(it.id) }
+            .forEach { it.content.onPanelDetached() }
+        pageViews.values.forEach { view ->
+            if (view.parent === this) removeView(view)
+        }
+        pageViews.clear()
+        visiblePageId = null
+        render(selectedId)
+    }
+
     fun selectPage(id: String): Boolean = navigationController.selectPage(id)
     fun selectPage(index: Int): Boolean = navigationController.selectPage(index)
     fun currentPage(): DrawerPage? = navigationController.selectedPage()
@@ -60,7 +78,7 @@ class DrawerPageHost @JvmOverloads constructor(
         visiblePageId = pageId
         val page = navigationController.pages().firstOrNull { it.id == pageId } ?: return
         val isNewView = !pageViews.containsKey(page.id)
-        val view = pageViews.getOrPut(page.id) { page.content.createView() }
+        val view = pageViews.getOrPut(page.id) { page.content.createView(contentContext) }
         (view.parent as? ViewGroup)?.removeView(view)
         addView(view, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
         if (isNewView) page.content.onPanelAttached()

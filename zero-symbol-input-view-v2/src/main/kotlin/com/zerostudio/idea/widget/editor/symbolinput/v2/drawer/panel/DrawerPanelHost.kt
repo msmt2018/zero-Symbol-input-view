@@ -23,15 +23,26 @@ class DrawerPanelHost @JvmOverloads constructor(
         clipToPadding = false
     }
 
-    fun setContent(content: DrawerPanelContent?) {
-        if (panelContent === content) return
+    fun setContent(content: DrawerPanelContent?) = setContent(content, context)
+
+    fun setContent(content: DrawerPanelContent?, viewContext: Context) {
+        if (panelContent === content && contentView != null) return
+        replaceContent(content, viewContext)
+    }
+
+    fun refreshContentContext(viewContext: Context) {
+        val current = panelContent ?: return
+        replaceContent(current, viewContext)
+    }
+
+    private fun replaceContent(content: DrawerPanelContent?, viewContext: Context) {
         panelContent?.onPanelHidden()
         panelContent?.onPanelDetached()
         contentView?.let { old ->
             if (old.parent === this) removeView(old)
         }
         panelContent = content
-        contentView = content?.createView()?.also { view ->
+        contentView = content?.createView(viewContext)?.also { view ->
             (view.parent as? ViewGroup)?.removeView(view)
             addView(view, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
             content.onPanelAttached()

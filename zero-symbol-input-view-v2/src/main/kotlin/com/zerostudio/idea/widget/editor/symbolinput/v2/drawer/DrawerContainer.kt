@@ -145,15 +145,17 @@ class DrawerContainer @JvmOverloads constructor(
         title.visibility = if (title.text.isNullOrEmpty()) GONE else VISIBLE
     }
 
+    private fun contentThemeContext() = DrawerThemeResolver.contextFor(context, currentConfig.style)
+
     fun setPeekContent(content: DrawerPanelContent?) {
-        peekHost.setContent(content)
+        peekHost.setContent(content, contentThemeContext())
         peekHost.visibility = if (content == null) GONE else VISIBLE
         recalculateAnchors()
     }
 
     fun setExpandedContent(content: DrawerPanelContent?) {
         pageHost.visibility = if (content == null && pageHost.navigationController.pages().isNotEmpty()) VISIBLE else GONE
-        expandedHost.setContent(content)
+        expandedHost.setContent(content, contentThemeContext())
         recalculateAnchors()
     }
 
@@ -497,14 +499,23 @@ class DrawerContainer @JvmOverloads constructor(
         }
         override fun applyConfig(config: DrawerConfig) {
             currentConfig = config
-            peekHost.setContent(config.peekContent)
-            expandedHost.setContent(config.expandedContent)
+            val themedContext = contentThemeContext()
+            peekHost.setContent(config.peekContent, themedContext)
+            expandedHost.setContent(config.expandedContent, themedContext)
+            pageHost.setContentContext(themedContext, recreateCachedViews = true)
             pageHost.visibility = if (config.expandedContent == null) VISIBLE else GONE
             applyVisualStyle()
             recalculateAnchors()
         }
         override fun setStyle(style: DrawerStyle) {
+            val themeChanged = currentConfig.style.themeMode != style.themeMode
             currentConfig = currentConfig.copy(style = style)
+            if (themeChanged) {
+                val themedContext = contentThemeContext()
+                peekHost.refreshContentContext(themedContext)
+                expandedHost.refreshContentContext(themedContext)
+                pageHost.setContentContext(themedContext, recreateCachedViews = true)
+            }
             applyVisualStyle()
             recalculateAnchors()
         }
@@ -516,7 +527,7 @@ class DrawerContainer @JvmOverloads constructor(
         override fun setShape(shape: DrawerShape) = setStyle(currentConfig.style.copy(shape = shape))
         override fun setPeekContent(content: DrawerPanelContent?) {
             currentConfig = currentConfig.copy(peekContent = content)
-            peekHost.setContent(content)
+            peekHost.setContent(content, contentThemeContext())
             recalculateAnchors()
         }
         override fun setExpandedContent(content: DrawerPanelContent?) {

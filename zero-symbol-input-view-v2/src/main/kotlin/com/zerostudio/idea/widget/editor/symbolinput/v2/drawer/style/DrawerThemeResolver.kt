@@ -7,16 +7,16 @@ import android.util.TypedValue
 /** Resolves theme attributes at runtime so host Activity theme changes can be reflected. */
 object DrawerThemeResolver {
     @JvmStatic
-    fun resolve(context: Context, style: DrawerStyle = DrawerStyle()): DrawerColors {
-        val themedContext = when (style.themeMode) {
+    fun contextFor(context: Context, style: DrawerStyle = DrawerStyle()): Context =
+        when (style.themeMode) {
             DrawerThemeMode.FOLLOW_HOST -> context
-            DrawerThemeMode.LIGHT -> ContextThemeWrapper(
-                context, android.R.style.Theme_Material_Light_NoActionBar
-            )
-            DrawerThemeMode.DARK -> ContextThemeWrapper(
-                context, android.R.style.Theme_Material_NoActionBar
-            )
+            DrawerThemeMode.LIGHT -> ContextThemeWrapper(context, R.style.DrawerThemeOverlay_Light)
+            DrawerThemeMode.DARK -> ContextThemeWrapper(context, R.style.DrawerThemeOverlay_Dark)
         }
+
+    @JvmStatic
+    fun resolve(context: Context, style: DrawerStyle = DrawerStyle()): DrawerColors {
+        val themedContext = contextFor(context, style)
         val attrs = style.colorAttributes
         val inherited = DrawerColors(
             surface = resolveColor(themedContext, attrs.surfaceAttr),

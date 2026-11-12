@@ -7,6 +7,8 @@ import android.view.View
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import androidx.core.widget.NestedScrollView
+import android.content.Context
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
@@ -211,27 +213,28 @@ class DrawerApiLabActivity : AppCompatActivity() {
     )
 
     private fun content(title: String, description: String) = object : DrawerPanelContent {
-        override fun createView(): View = panel(title, description)
+        override fun createView(): View = panel(this@DrawerApiLabActivity, title, description)
+        override fun createView(context: Context): View = panel(context, title, description)
     }
 
     private fun objectPanel(title: String, description: String) = content(title, description)
 
-    private fun panel(title: String, description: String): View {
-        val card = MaterialCardView(this).apply {
+    private fun panel(context: Context, title: String, description: String): View {
+        val card = MaterialCardView(context).apply {
             radius = dp(18).toFloat()
             cardElevation = dp(1).toFloat()
             setContentPadding(dp(20), dp(18), dp(20), dp(18))
         }
-        card.addView(LinearLayout(this).apply {
+        card.addView(LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            addView(TextView(this@DrawerApiLabActivity).apply { text = title; textSize = 20f })
-            addView(TextView(this@DrawerApiLabActivity).apply {
-                text = description
+            addView(TextView(context).apply { text = title; textSize = 20f })
+            addView(TextView(context).apply {
+                text = (1..18).joinToString("\\n") { "$description\\nScrollable content row $it" }
                 textSize = 14f
-                setPadding(0, dp(10), 0, 0)
+                setPadding(0, dp(context, 10), 0, 0)
             })
         })
-        return card
+        return NestedScrollView(context).apply { addView(card) }
     }
 
     private fun section(text: String) = TextView(this).apply {
@@ -283,5 +286,8 @@ class DrawerApiLabActivity : AppCompatActivity() {
     @Suppress("DEPRECATION")
     private fun getColorCompat(id: Int): Int = resources.getColor(id)
 
-    private fun dp(value: Int) = (value * resources.displayMetrics.density + 0.5f).toInt()
+    private fun dp(value: Int) = dp(this, value)
+
+    private fun dp(context: Context, value: Int) =
+        (value * context.resources.displayMetrics.density + 0.5f).toInt()
 }

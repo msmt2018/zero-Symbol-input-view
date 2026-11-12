@@ -4,10 +4,10 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style
 enum class DrawerThemeMode { FOLLOW_HOST, LIGHT, DARK }
 
 data class DrawerColorAttributes(
-    val surfaceAttr: Int = android.R.attr.colorBackground,
-    val primaryTextAttr: Int = android.R.attr.textColorPrimary,
-    val secondaryTextAttr: Int = android.R.attr.textColorSecondary,
-    val accentAttr: Int = android.R.attr.colorAccent
+    val surfaceAttr: Int = com.google.android.material.R.attr.colorSurface,
+    val primaryTextAttr: Int = com.google.android.material.R.attr.colorOnSurface,
+    val secondaryTextAttr: Int = com.google.android.material.R.attr.colorOnSurfaceVariant,
+    val accentAttr: Int = com.google.android.material.R.attr.colorPrimary
 )
 
 data class DrawerColors(
