@@ -33,16 +33,26 @@ internal class JsonDocumentPicker(
         } else {
             val suffix = nextId.incrementAndGet()
             val registry = host.activityResultRegistry
+            // Use the registry overload without a LifecycleOwner: settings
+            // dialogs are commonly opened after the Activity is already
+            // RESUMED, when lifecycle-bound registration is no longer legal.
             openLauncher = registry.register(
                 "zero-symbol-json-open-$suffix",
-                host,
                 ActivityResultContracts.OpenDocument()
             ) { uri -> if (uri != null) read(uri) }
             saveLauncher = registry.register(
                 "zero-symbol-json-save-$suffix",
-                host,
                 ActivityResultContracts.CreateDocument("application/json")
             ) { uri -> if (uri != null) write(uri) }
+            host.lifecycle.addObserver(object : LifecycleEventObserver {
+                override fun onStateChanged(source: androidx.lifecycle.LifecycleOwner, event: Lifecycle.Event) {
+                    if (event == Lifecycle.Event.ON_DESTROY) {
+                        openLauncher?.unregister()
+                        saveLauncher?.unregister()
+                        source.lifecycle.removeObserver(this)
+                    }
+                }
+            })
         }
     }
 
