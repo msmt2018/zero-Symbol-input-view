@@ -6,7 +6,6 @@ import android.content.ClipboardManager
 import android.graphics.Typeface
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
-import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.app.AlertDialog
@@ -26,6 +25,7 @@ import com.google.android.material.tabs.TabLayout
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SharedPreferencesSymbolGroupRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.manager.SymbolDrawerManagerScreen
+import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.HostThemeColors
 
 /**
  * First-party programmatic settings screen. It can be embedded by any host
@@ -52,6 +52,7 @@ class SymbolDrawerSettingsScreen(
 
     init {
         orientation = VERTICAL
+        setBackgroundColor(HostThemeColors.surface(context))
         setPadding(dp(12), dp(12), dp(12), dp(8))
         repository.save(current)
         addView(content, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
@@ -68,6 +69,7 @@ class SymbolDrawerSettingsScreen(
 
     private fun render() {
         content.removeAllViews()
+        content.setBackgroundColor(HostThemeColors.surface(context))
         activePage = null
 
         content.addView(LinearLayout(context).apply {
@@ -334,22 +336,14 @@ class SymbolDrawerSettingsScreen(
         gravity = Gravity.CENTER_VERTICAL
     }
 
-    private fun themeColor(attribute: Int, fallback: Int): Int {
-        val value = TypedValue()
-        return if (context.theme.resolveAttribute(attribute, value, true)) {
-            if (value.resourceId != 0) runCatching { resources.getColor(value.resourceId, context.theme) }.getOrDefault(fallback)
-            else value.data
-        } else fallback
-    }
-
-    private fun surfaceColor() = themeColor(android.R.attr.colorBackground, Color.rgb(248, 248, 250))
-    private fun onSurfaceColor() = themeColor(android.R.attr.textColorPrimary, Color.rgb(28, 28, 30))
-    private fun primaryColor() = themeColor(android.R.attr.colorAccent, Color.rgb(103, 80, 164))
+    private fun surfaceColor() = HostThemeColors.surface(context)
+    private fun onSurfaceColor() = HostThemeColors.onSurface(context)
+    private fun primaryColor() = HostThemeColors.primary(context)
 
     private fun surfaceBackground(fill: Int, strokeAlpha: Float, radius: Int) = GradientDrawable().apply {
         setColor(fill)
         cornerRadius = dp(radius).toFloat()
-        setStroke(dp(1), Color.argb((strokeAlpha.coerceIn(0f, 1f) * 255).toInt(), 96, 96, 110))
+        setStroke(dp(1), (HostThemeColors.outline(context) and 0x00ffffff) or ((strokeAlpha.coerceIn(0f, 1f) * 255).toInt() shl 24))
     }
 
     private fun matchWrap() = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)

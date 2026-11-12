@@ -36,6 +36,7 @@ internal class SymbolPageAdapter(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
+            setBackgroundColor(HostThemeColors.surface(context))
             layoutManager = GridLayoutManager(context, config.columns)
             isNestedScrollingEnabled = false
             overScrollMode = RecyclerView.OVER_SCROLL_NEVER

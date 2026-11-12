@@ -109,10 +109,11 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
      * lightweight page adapter when grid geometry changes; group data is retained.
      */
     fun applySettings(value: SymbolDrawerSettings) {
-        settings = value
-        config = value.toDrawerConfig()
-        indicator.applySettings(value)
-        pager.offscreenPageLimit = if (value.prefetchAdjacentGroups) value.pageCacheLimit else 1
+        settings = value.copy(themeMode = com.zerostudio.idea.widget.editor.symbolinput.v2.settings.ThemeMode.SYSTEM)
+        config = settings.toDrawerConfig()
+        setBackgroundColor(com.zerostudio.idea.widget.editor.symbolinput.v2.ui.HostThemeColors.surface(context))
+        indicator.applySettings(settings)
+        pager.offscreenPageLimit = if (settings.prefetchAdjacentGroups) settings.pageCacheLimit else 1
 
         // Prepare the replacement adapter while the current adapter remains
         // attached and interactive. Assigning a fresh ListAdapter immediately
@@ -145,6 +146,8 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
 
     /** Refresh palette after the host changes its theme without recreating its Activity. */
     fun refreshHostTheme() {
+        setBackgroundColor(com.zerostudio.idea.widget.editor.symbolinput.v2.ui.HostThemeColors.surface(context))
+        indicator.setBackgroundColor(com.zerostudio.idea.widget.editor.symbolinput.v2.ui.HostThemeColors.surface(context))
         indicator.applySettings(settings)
         applySettings(settings)
     }

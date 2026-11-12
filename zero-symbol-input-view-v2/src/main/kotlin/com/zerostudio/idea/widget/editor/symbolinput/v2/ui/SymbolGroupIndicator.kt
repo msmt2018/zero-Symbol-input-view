@@ -24,6 +24,7 @@ internal class SymbolGroupIndicator(
 
     init {
         layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
+        setBackgroundColor(HostThemeColors.surface(context))
         adapter = groupAdapter
         itemAnimator = null
         overScrollMode = OVER_SCROLL_NEVER
