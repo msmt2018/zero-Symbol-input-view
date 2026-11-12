@@ -34,7 +34,7 @@ class DrawerPageHost @JvmOverloads constructor(
         removedIds.forEach { id ->
             if (pageViews.containsKey(id)) {
                 pagesOrCurrent(id)?.content?.let { content ->
-                    content.onPanelHidden()
+                    if (hostAttached && panelVisible && id == visiblePageId) content.onPanelHidden()
                     content.onPanelDetached()
                 }
             }
