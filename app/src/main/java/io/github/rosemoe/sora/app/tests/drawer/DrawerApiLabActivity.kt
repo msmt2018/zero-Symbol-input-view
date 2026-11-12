@@ -43,7 +43,7 @@ class DrawerApiLabActivity : AppCompatActivity() {
         setContentView(drawer)
         drawer.setTitle("Universal Drawer API Lab")
         drawer.setMainContent(buildDashboard())
-        drawer.setPeekContent(panel("Peek panel", "This compact panel is independent from the expanded content."))
+        drawer.setPeekContent(objectPanel("Peek panel", "This compact panel is independent from the expanded content."))
         drawer.setPages(
             listOf(
                 DrawerPage("overview", "Overview", content("Overview page", "Generic page hosting, lifecycle and page switching.")),
