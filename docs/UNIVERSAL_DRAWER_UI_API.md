@@ -67,3 +67,31 @@ DrawerNavigationController is the source of truth for page identity and selectio
 6. Host theme/style system and Standard, Compact, FullScreen, SplitPanel presets.
 7. Migrate Symbol drawer to a feature module/adapter without changing visible behavior.
 8. API documentation, lifecycle tests, Android instrumentation tests, and performance validation.
+
+
+## Style, theme and configuration API
+
+The style API is feature-neutral and uses immutable value objects:
+
+- `DrawerColors`: optional explicit surface, primary/secondary text, accent, outline and scrim colors. A null value inherits the host theme.
+- `DrawerColorAttributes`: lets an application map its own theme attributes into the drawer color roles.
+- `DrawerDimensions`: peek/maximum heights, corner radius, paddings, spacing and drag-handle size in dp.
+- `DrawerTypography`: title/body/caption sizes in sp, typeface styles and optional font family.
+- `DrawerShape`: independent corner radii and outline width.
+- `DrawerMotion`: settle duration, drag resistance, fling velocity thresholds and spring enablement.
+- `DrawerStyle`: combines all tokens, theme mode, elevation and clipping/scrim flags.
+
+`DrawerThemeResolver.resolve(context, style)` resolves color attributes at runtime. `FOLLOW_HOST` uses the supplied Activity/Context theme, so the drawer inherits host theme values rather than maintaining a parallel light/dark state. Explicit LIGHT and DARK modes use platform Material theme wrappers. Explicit color values override inherited values individually; unspecified roles continue to inherit.
+
+`DrawerConfig.Builder` provides both grouped setters and granular setters, including `setAnchorStrategy`, `setPeekContent`, `setExpandedContent`, `setThemeMode`, `setFollowHostTheme`, `setColors`, `setSurfaceColor`, `setAccentColor`, `setDimensions`, `setPeekHeightDp`, `setExpandedMaxHeightDp`, `setCornerRadiusDp`, `setCornerRadiiDp`, `setTypography`, `setTitleTextSizeSp`, `setMotion`, `setDragResistance`, `setSettleDurationMs`, `setDragEnabled`, `setNestedScrollEnabled`, and dismissal/accessibility setters.
+
+## Baseline layout presets
+
+`DrawerPresets.config(...)` supplies overridable baselines:
+
+- STANDARD: compatibility height behavior and default style.
+- COMPACT: content-sized, reduced padding and compact maximum height.
+- FULL_SCREEN: three-stage anchors with a full-viewport expanded stage.
+- SPLIT_PANEL: three-stage layout with additional spacing for independent panel composition.
+
+Presets are starting configurations, not locked templates. Build a preset config, copy its style into a new builder, and override only the desired properties.
