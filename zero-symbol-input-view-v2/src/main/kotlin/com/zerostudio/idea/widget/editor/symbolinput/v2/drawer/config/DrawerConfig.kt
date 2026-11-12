@@ -2,6 +2,7 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.config
 
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorStrategies
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorStrategy
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerNavigationConfig
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.panel.DrawerPanelContent
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerColorAttributes
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerColors
@@ -24,7 +25,8 @@ data class DrawerConfig(
     val dismissOnScrimTap: Boolean = true,
     val dismissOnBack: Boolean = true,
     val dragHandleEnabled: Boolean = true,
-    val accessibilityEnabled: Boolean = true
+    val accessibilityEnabled: Boolean = true,
+    val navigationConfig: DrawerNavigationConfig = DrawerNavigationConfig()
 ) {
     class Builder {
         private var anchorStrategy: DrawerAnchorStrategy = DrawerAnchorStrategies.existingHeight()
@@ -38,6 +40,7 @@ data class DrawerConfig(
         private var dismissOnBack = true
         private var dragHandleEnabled = true
         private var accessibilityEnabled = true
+        private var navigationConfig = DrawerNavigationConfig()
 
         fun setAnchorStrategy(value: DrawerAnchorStrategy) = apply { anchorStrategy = value }
         fun setPeekContent(value: DrawerPanelContent?) = apply { peekContent = value }
@@ -49,6 +52,22 @@ data class DrawerConfig(
         fun setDismissOnBack(value: Boolean) = apply { dismissOnBack = value }
         fun setDragHandleEnabled(value: Boolean) = apply { dragHandleEnabled = value }
         fun setAccessibilityEnabled(value: Boolean) = apply { accessibilityEnabled = value }
+        fun setNavigationConfig(value: DrawerNavigationConfig) = apply { navigationConfig = value }
+        fun setNavigationEnabled(value: Boolean) = apply {
+            navigationConfig = navigationConfig.copy(enabled = value)
+        }
+        fun setNavigationPlacement(value: com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerNavigationPlacement) = apply {
+            navigationConfig = navigationConfig.copy(placement = value)
+        }
+        fun setNavigationIndicator(value: com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerIndicatorStyle) = apply {
+            navigationConfig = navigationConfig.copy(indicator = value)
+        }
+        fun setNavigationScrollable(value: Boolean) = apply {
+            navigationConfig = navigationConfig.copy(scrollable = value)
+        }
+        fun setNavigationShowTitles(value: Boolean) = apply {
+            navigationConfig = navigationConfig.copy(showTitles = value)
+        }
 
         fun setStyle(value: DrawerStyle) = apply { style = value }
         fun setThemeMode(value: DrawerThemeMode) = apply {
@@ -149,7 +168,7 @@ data class DrawerConfig(
         fun build(): DrawerConfig = DrawerConfig(
             anchorStrategy, style, peekContent, expandedContent, enableDrag,
             enableNestedScroll, enableEdgeToEdge, dismissOnScrimTap, dismissOnBack,
-            dragHandleEnabled, accessibilityEnabled
+            dragHandleEnabled, accessibilityEnabled, navigationConfig
         )
     }
 
