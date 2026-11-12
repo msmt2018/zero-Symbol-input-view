@@ -15,6 +15,7 @@ class DrawerPageHost @JvmOverloads constructor(
 ) : FrameLayout(context) {
     private val pageViews = LinkedHashMap<String, View>()
     private var visiblePageId: String? = null
+    private var hostAttached = false
     private val navigationListener = DrawerNavigationController.Listener { snapshot, _ ->
         render(snapshot.selectedPageId)
     }
@@ -29,6 +30,10 @@ class DrawerPageHost @JvmOverloads constructor(
         val validIds = pages.mapTo(HashSet()) { it.id }
         val removedIds = pageViews.keys.filterNot { it in validIds }
         removedIds.forEach { id ->
+            pagesOrCurrent(id)?.content?.let { content ->
+                content.onPanelHidden()
+                content.onPanelDetached()
+            }
             pageViews.remove(id)?.let { view ->
                 if (view.parent === this) removeView(view)
             }
@@ -43,7 +48,7 @@ class DrawerPageHost @JvmOverloads constructor(
     private fun render(pageId: String?) {
         if (pageId == visiblePageId) return
         val previous = navigationController.pages().firstOrNull { it.id == visiblePageId }
-        previous?.content?.onPanelHidden()
+        if (hostAttached) previous?.content?.onPanelHidden()
         if (visiblePageId != null) {
             pageViews[visiblePageId]?.let { old ->
                 if (old.parent === this) removeView(old)
@@ -52,19 +57,34 @@ class DrawerPageHost @JvmOverloads constructor(
 
         visiblePageId = pageId
         val page = navigationController.pages().firstOrNull { it.id == pageId } ?: return
+        val isNewView = !pageViews.containsKey(page.id)
         val view = pageViews.getOrPut(page.id) { page.content.createView() }
         (view.parent as? ViewGroup)?.removeView(view)
         addView(view, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
-        page.content.onPanelAttached()
-        page.content.onPanelVisible()
+        if (isNewView) page.content.onPanelAttached()
+        if (hostAttached) page.content.onPanelVisible()
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        hostAttached = true
+        visiblePageId?.let { id ->
+            navigationController.pages().firstOrNull { it.id == id }?.content?.onPanelVisible()
+        }
     }
 
     override fun onDetachedFromWindow() {
-        visiblePageId?.let { id ->
-            navigationController.pages().firstOrNull { it.id == id }?.content?.onPanelHidden()
+        if (hostAttached) {
+            visiblePageId?.let { id ->
+                navigationController.pages().firstOrNull { it.id == id }?.content?.onPanelHidden()
+            }
         }
+        hostAttached = false
         super.onDetachedFromWindow()
     }
+
+    private fun pagesOrCurrent(id: String): DrawerPage? =
+        navigationController.pages().firstOrNull { it.id == id }
 
     fun dispose() {
         navigationController.removeListener(navigationListener)
