@@ -43,8 +43,10 @@ object LegacySymbolDataCodec {
     }
 
     fun decode(json: String): List<SymbolGroup> {
+        validateLegacyShape(json)
         val type = object : TypeToken<MutableList<LegacySymbolGroup>>() {}.type
-        val legacy: MutableList<LegacySymbolGroup> = gson.fromJson(json, type) ?: mutableListOf()
+        val legacy: MutableList<LegacySymbolGroup> = gson.fromJson(json, type)
+            ?: error("Symbol group JSON is empty")
         require(legacy.size <= SymbolGroupBundleCodec.MAX_GROUPS) { "Too many groups" }
         var total = 0
         return legacy.mapIndexed { groupIndex, group ->
@@ -68,6 +70,66 @@ object LegacySymbolDataCodec {
         }.also {
             require(total <= SymbolGroupBundleCodec.MAX_TOTAL_SYMBOLS) { "Too many symbols" }
             SymbolGroupBundleCodec.validateGroups(it)
+        }
+    }
+
+    /**
+     * Strictly validates the original V1 wire model before Gson conversion.
+     * Gson's default lenient field handling must never turn unrelated JSON into
+     * an empty or partially populated symbol-group collection.
+     */
+    private fun validateLegacyShape(json: String) {
+        require(json.length <= SymbolGroupBundleCodec.MAX_BUNDLE_CHARS) { "Symbol group JSON is too large" }
+        val root = com.google.gson.JsonParser.parseString(json)
+        require(root.isJsonArray) { "Symbol group JSON must be an array" }
+        require(root.asJsonArray.size() in 1..SymbolGroupBundleCodec.MAX_GROUPS) {
+            "Symbol group JSON must contain between 1 and ${SymbolGroupBundleCodec.MAX_GROUPS} groups"
+        }
+        val actionIds = LegacySymbolActionCatalog.values.toSet()
+        var total = 0
+        root.asJsonArray.forEachIndexed { groupIndex, groupElement ->
+            require(groupElement.isJsonObject) { "Group #${groupIndex + 1} must be an object" }
+            val group = groupElement.asJsonObject
+            require(group.keySet() == setOf("n", "d")) { "Group #${groupIndex + 1} must contain only n and d fields" }
+            val name = group.get("n")
+            require(name.isJsonPrimitive && name.asJsonPrimitive.isString && name.asString.isNotBlank()) {
+                "Group #${groupIndex + 1} has an invalid n (name) field"
+            }
+            val items = group.get("d")
+            require(items.isJsonArray && items.asJsonArray.size() <= SymbolGroupBundleCodec.MAX_SYMBOLS_PER_GROUP) {
+                "Group '${name.asString}' has an invalid d (items) field"
+            }
+            items.asJsonArray.forEachIndexed { itemIndex, itemElement ->
+                require(itemElement.isJsonObject) { "Symbol #${itemIndex + 1} in '${name.asString}' must be an object" }
+                val item = itemElement.asJsonObject
+                require(item.keySet().containsAll(setOf("a", "b")) &&
+                    item.keySet().all { it in setOf("a", "b", "c", "d", "e") }) {
+                    "Symbol #${itemIndex + 1} in '${name.asString}' must use V1 fields a/b/c/d/e"
+                }
+                val shortId = item.get("a")
+                val display = item.get("b")
+                require(shortId.isJsonPrimitive && shortId.asJsonPrimitive.isNumber &&
+                    shortId.asInt in actionIds) { "Symbol #${itemIndex + 1} has an unsupported short action ID" }
+                require(display.isJsonPrimitive && display.asJsonPrimitive.isString &&
+                    display.asString.isNotEmpty() && display.asString.length <= 4096) {
+                    "Symbol #${itemIndex + 1} has an invalid display field"
+                }
+                listOf("c", "e").forEach { field ->
+                    val value = item.get(field)
+                    require(value == null || value.isJsonNull ||
+                        (value.isJsonPrimitive && value.asJsonPrimitive.isString &&
+                            value.asString.length <= SymbolGroupBundleCodec.MAX_ACTION_TEXT_CHARS)) {
+                        "Symbol #${itemIndex + 1} has an invalid $field payload"
+                    }
+                }
+                val longId = item.get("d")
+                require(longId == null || longId.isJsonNull ||
+                    (longId.isJsonPrimitive && longId.asJsonPrimitive.isNumber && longId.asInt in actionIds)) {
+                    "Symbol #${itemIndex + 1} has an unsupported long action ID"
+                }
+            }
+            total += items.asJsonArray.size()
+            require(total <= SymbolGroupBundleCodec.MAX_TOTAL_SYMBOLS) { "Too many symbols in import" }
         }
     }
 
