@@ -180,7 +180,7 @@ class DrawerContainer @JvmOverloads constructor(
     private fun updateNavigationVisibility() {
         val nav = currentConfig.navigationConfig
         if (tabs.parent === sheet) sheet.removeView(tabs)
-        val tabIndex = if (nav.placement == DrawerNavigationPlacement.BOTTOM) sheet.childCount else 3
+        val tabIndex = if (nav.placement == DrawerNavigationPlacement.BOTTOM) sheet.childCount else 2
         sheet.addView(tabs, tabIndex.coerceIn(0, sheet.childCount),
             LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         tabs.visibility = if (nav.enabled && nav.placement != DrawerNavigationPlacement.HIDDEN &&

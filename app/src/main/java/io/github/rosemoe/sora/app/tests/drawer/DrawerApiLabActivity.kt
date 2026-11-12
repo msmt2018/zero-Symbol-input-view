@@ -18,6 +18,10 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchor
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorState
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorStrategies
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerPage
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerNavigationConfig
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerNavigationPlacement
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerIndicatorStyle
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerIndicatorShape
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.panel.DrawerPanelContent
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.preset.DrawerPreset
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.preset.DrawerPresets
@@ -147,6 +151,23 @@ class DrawerApiLabActivity : AppCompatActivity() {
         root.addView(toggle("显示拖动手柄", true) { drawer.controller.setDragHandleEnabled(it) })
         root.addView(toggle("无障碍支持", true) { drawer.controller.setAccessibilityEnabled(it) })
         root.addView(section("页面与面板"))
+        root.addView(button("导航栏置顶") {
+            drawer.controller.setNavigationConfig(DrawerNavigationConfig(placement = DrawerNavigationPlacement.TOP))
+        })
+        root.addView(button("导航栏置底") {
+            drawer.controller.setNavigationConfig(DrawerNavigationConfig(placement = DrawerNavigationPlacement.BOTTOM))
+        })
+        root.addView(button("隐藏导航栏") {
+            drawer.controller.setNavigationConfig(DrawerNavigationConfig(placement = DrawerNavigationPlacement.HIDDEN))
+        })
+        root.addView(button("胶囊形导航指示器") {
+            drawer.controller.setNavigationConfig(DrawerNavigationConfig(
+                indicator = DrawerIndicatorStyle(shape = DrawerIndicatorShape.PILL, heightDp = 4f, widthFraction = 0.72f)
+            ))
+        })
+        root.addView(button("恢复下划线导航指示器") {
+            drawer.controller.setNavigationConfig(DrawerNavigationConfig())
+        })
         root.addView(button("恢复四个示例页面") { drawer.setPages(samplePages()) })
         root.addView(button("只显示 Peek 面板") {
             drawer.controller.setExpandedContent(null)
