@@ -52,6 +52,7 @@ import io.github.rosemoe.sora.app.lsp.LspTestActivity
 import io.github.rosemoe.sora.app.lsp.LspTestJavaActivity
 import io.github.rosemoe.sora.app.tests.TestActivity
 import io.github.rosemoe.sora.app.tests.paged.PagedEditActivity
+import io.github.rosemoe.sora.app.tests.drawer.DrawerApiLabActivity
 import io.github.rosemoe.sora.event.ContentChangeEvent
 import io.github.rosemoe.sora.event.EditorKeyEvent
 import io.github.rosemoe.sora.event.InlayHintClickEvent
@@ -715,6 +716,7 @@ class MainActivity : AppCompatActivity() {
         val id = item.itemId
         val editor = binding.editor
         when (id) {
+            R.id.open_drawer_api_lab -> startActivity(Intent(this, DrawerApiLabActivity::class.java))
             R.id.open_test_activity -> startActivity<TestActivity>()
             R.id.open_paged_edit -> startActivity<PagedEditActivity>()
             R.id.open_lsp_activity -> {
