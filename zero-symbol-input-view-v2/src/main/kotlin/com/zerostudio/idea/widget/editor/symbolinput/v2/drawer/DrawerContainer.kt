@@ -70,6 +70,7 @@ class DrawerContainer @JvmOverloads constructor(
     private var dragging = false
     private var peekContentVisible = false
     private var expandedContentVisible = false
+    private var containerAttached = false
     private var hostContent: View? = null
     private val stateListeners = LinkedHashSet<(DrawerState) -> Unit>()
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
@@ -136,7 +137,10 @@ class DrawerContainer @JvmOverloads constructor(
         bringChildToFront(sheet)
     }
 
-    fun setTitle(value: CharSequence?) { title.text = value ?: "" }
+    fun setTitle(value: CharSequence?) {
+        title.text = value ?: ""
+        title.visibility = if (title.text.isNullOrEmpty()) GONE else VISIBLE
+    }
 
     fun setPeekContent(content: DrawerPanelContent?) {
         peekHost.setContent(content)
@@ -145,7 +149,7 @@ class DrawerContainer @JvmOverloads constructor(
     }
 
     fun setExpandedContent(content: DrawerPanelContent?) {
-        pageHost.visibility = GONE
+        pageHost.visibility = if (content == null && pageHost.navigationController.pages().isNotEmpty()) VISIBLE else GONE
         expandedHost.setContent(content)
         recalculateAnchors()
     }
@@ -186,7 +190,7 @@ class DrawerContainer @JvmOverloads constructor(
         sheet.addView(tabs, tabIndex.coerceIn(0, sheet.childCount),
             LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         tabs.visibility = if (nav.enabled && nav.placement != DrawerNavigationPlacement.HIDDEN &&
-            pageHost.navigationController.pages().isNotEmpty()) VISIBLE else GONE
+            pageHost.visibility == VISIBLE && pageHost.navigationController.pages().isNotEmpty()) VISIBLE else GONE
         tabs.isTabIndicatorFullWidth = nav.indicator.widthFraction >= 0.99f
         tabs.tabMode = if (nav.scrollable) TabLayout.MODE_SCROLLABLE else TabLayout.MODE_FIXED
         tabs.tabGravity = if (nav.scrollable) TabLayout.GRAVITY_START else TabLayout.GRAVITY_FILL
@@ -284,11 +288,11 @@ class DrawerContainer @JvmOverloads constructor(
         val showExpanded = expanded && (expandedHost.content() != null || pageHost.navigationController.pages().isNotEmpty())
         peekHost.visibility = if (showPeek) VISIBLE else GONE
         expandedHost.visibility = if (showExpanded) VISIBLE else GONE
-        if (showPeek != peekContentVisible) {
+        if (containerAttached && showPeek != peekContentVisible) {
             peekHost.dispatchPanelVisible(showPeek)
             peekContentVisible = showPeek
         }
-        if (showExpanded != expandedContentVisible) {
+        if (containerAttached && showExpanded != expandedContentVisible) {
             expandedHost.dispatchPanelVisible(showExpanded)
             expandedContentVisible = showExpanded
         }
@@ -374,7 +378,18 @@ class DrawerContainer @JvmOverloads constructor(
     private fun dp(value: Float): Int = (value * resources.displayMetrics.density + 0.5f).toInt()
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density + 0.5f).toInt()
 
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        containerAttached = true
+        updateVisualState()
+    }
+
     override fun onDetachedFromWindow() {
+        if (peekContentVisible) peekHost.dispatchPanelVisible(false)
+        if (expandedContentVisible) expandedHost.dispatchPanelVisible(false)
+        peekContentVisible = false
+        expandedContentVisible = false
+        containerAttached = false
         animator?.cancel()
         animator = null
         velocityTracker?.recycle()
@@ -424,6 +439,10 @@ class DrawerContainer @JvmOverloads constructor(
             currentConfig = currentConfig.copy(expandedContent = content)
             this@DrawerContainer.setExpandedContent(content)
         }
+        override fun setTitle(title: CharSequence?) = this@DrawerContainer.setTitle(title)
+        override fun setPages(pages: List<DrawerPage>, preserveSelection: Boolean) =
+            this@DrawerContainer.setPages(pages, preserveSelection)
+        override fun selectPage(pageId: String): Boolean = pageHost.selectPage(pageId)
         override fun setNavigationConfig(config: DrawerNavigationConfig) {
             currentConfig = currentConfig.copy(navigationConfig = config)
             applyVisualStyle()

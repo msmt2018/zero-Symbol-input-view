@@ -3,6 +3,7 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.config.DrawerConfig
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerNavigationConfig
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.panel.DrawerPanelContent
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerPage
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerColors
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerDimensions
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerMotion
@@ -40,6 +41,9 @@ interface DrawerController {
     fun setExpandedContent(content: DrawerPanelContent?)
 
     /** Generic page navigation appearance; the navigation widget itself is optional. */
+    fun setTitle(title: CharSequence?)
+    fun setPages(pages: List<DrawerPage>, preserveSelection: Boolean = true)
+    fun selectPage(pageId: String): Boolean
     fun setNavigationConfig(config: DrawerNavigationConfig)
 
     fun setDragEnabled(enabled: Boolean)
