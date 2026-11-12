@@ -1,68 +1,69 @@
 package com.zerostudio.idea.widget.editor.symbolinput.v2.settings
 
-import android.content.Context
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.Context
 import android.graphics.Typeface
-import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
-import android.app.AlertDialog
 import android.widget.ArrayAdapter
 import android.widget.Button
-import android.widget.Toast
 import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.LinearLayout
-import android.widget.TextView
 import android.widget.ScrollView
-import android.text.InputType
 import android.widget.SeekBar
 import android.widget.Spinner
 import android.widget.Switch
-import android.widget.FrameLayout
+import android.widget.TextView
+import android.widget.Toast
+import android.app.AlertDialog
+import android.text.InputType
 import com.google.android.material.tabs.TabLayout
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SharedPreferencesSymbolGroupRepository
+import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupBundleCodec
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupRepository
-import com.zerostudio.idea.widget.editor.symbolinput.v2.manager.SymbolDrawerManagerScreen
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.HostThemeColors
 
 /**
- * First-party programmatic settings screen. It can be embedded by any host
- * Activity without imposing a navigation or Activity theme dependency.
+ * Settings-only surface. Symbol-group editing stays in the dedicated manager
+ * dialog; this screen owns the two backup/import workflows.
  */
 class SymbolDrawerSettingsScreen(
     context: Context,
     private val repository: SymbolDrawerSettingsRepository =
         SharedPreferencesSymbolDrawerSettingsRepository(context),
-    groupRepository: SymbolGroupRepository = SharedPreferencesSymbolGroupRepository(context)
+    private val groupRepository: SymbolGroupRepository =
+        SharedPreferencesSymbolGroupRepository(context)
 ) : LinearLayout(context) {
 
     var onSettingsChanged: ((SymbolDrawerSettings) -> Unit)? = null
-    var onGroupsChanged: ((List<com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup>) -> Unit)? = null
+    var onGroupsChanged: ((List<SymbolGroup>) -> Unit)? = null
     var onError: ((Throwable) -> Unit)? = null
 
     private var current = repository.load().settings.copy(themeMode = ThemeMode.SYSTEM)
-    private val content = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
     private var activePage: LinearLayout? = null
-    private val symbolManager = SymbolDrawerManagerScreen(context, groupRepository, embeddedInSettings = true).apply {
-        onError = { this@SymbolDrawerSettingsScreen.onError?.invoke(it) }
-        onGroupsChanged = { this@SymbolDrawerSettingsScreen.onGroupsChanged?.invoke(it) }
-    }
+    private var pendingImport: ImportKind = ImportKind.SETTINGS
+    private val content = LinearLayout(context).apply { orientation = VERTICAL }
+    private val documentPicker = JsonDocumentPicker(
+        context,
+        onImported = ::handleImportedJson,
+        onError = { onError?.invoke(it); toast("文件处理失败：${it.message ?: "未知错误"}") }
+    )
 
     init {
         orientation = VERTICAL
-        setBackgroundColor(HostThemeColors.surface(context))
+        setBackgroundColor(surfaceColor())
         setPadding(dp(12), dp(12), dp(12), dp(8))
-        repository.save(current)
         addView(content, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
         render()
     }
 
     fun reload() {
         current = repository.load().settings.copy(themeMode = ThemeMode.SYSTEM)
-        repository.save(current)
         render()
     }
 
@@ -70,11 +71,11 @@ class SymbolDrawerSettingsScreen(
 
     private fun render() {
         content.removeAllViews()
-        content.setBackgroundColor(HostThemeColors.surface(context))
+        content.setBackgroundColor(surfaceColor())
         activePage = null
 
         content.addView(LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
+            orientation = VERTICAL
             setPadding(dp(18), dp(16), dp(18), dp(16))
             background = surfaceBackground(surfaceColor(), 0.10f, 22)
             addView(TextView(context).apply {
@@ -84,7 +85,7 @@ class SymbolDrawerSettingsScreen(
                 setTypeface(typeface, Typeface.BOLD)
             }, matchWrap())
             addView(TextView(context).apply {
-                text = "按类别管理外观、布局、交互与符号动作"
+                text = "按类别管理外观、布局、交互、性能与数据"
                 textSize = 13f
                 setTextColor(onSurfaceColor())
                 alpha = 0.72f
@@ -107,8 +108,12 @@ class SymbolDrawerSettingsScreen(
         val builders: List<Pair<String, () -> Unit>> = listOf(
             "外观" to {
                 section("主题与显示")
-                addChoice("主题模式", listOf(ThemeMode.SYSTEM), ThemeMode.SYSTEM) { update { copy(themeMode = ThemeMode.SYSTEM) } }
-                addChoice("分组指示器样式", GroupIndicatorStyle.values().toList(), current.indicatorStyle) { update { copy(indicatorStyle = it) } }
+                addChoice("主题模式", listOf(ThemeMode.SYSTEM), ThemeMode.SYSTEM) {
+                    update { copy(themeMode = ThemeMode.SYSTEM) }
+                }
+                addChoice("分组指示器样式", GroupIndicatorStyle.values().toList(), current.indicatorStyle) {
+                    update { copy(indicatorStyle = it) }
+                }
                 addSwitch("显示分组名称", current.showGroupTitles) { update { copy(showGroupTitles = it) } }
                 addSwitch("显示符号标签", current.showSymbolLabels) { update { copy(showSymbolLabels = it) } }
                 addSwitch("显示动作提示", current.showActionHints) { update { copy(showActionHints = it) } }
@@ -139,65 +144,65 @@ class SymbolDrawerSettingsScreen(
                 addSeek("页面缓存数量", current.pageCacheLimit, 1, 9) { update { copy(pageCacheLimit = it) } }
                 addSwitch("预加载相邻分组", current.prefetchAdjacentGroups) { update { copy(prefetchAdjacentGroups = it) } }
                 section("搜索")
-                addSwitch("搜索时包含动作内容", current.searchIncludesActionPayload) { update { copy(searchIncludesActionPayload = it) } }
+                addSwitch("搜索时包含动作内容", current.searchIncludesActionPayload) {
+                    update { copy(searchIncludesActionPayload = it) }
+                }
             },
             "数据管理" to {
-                section("设置备份")
-                val backupRow = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
-                backupRow.addView(Button(context).apply {
-                    text = "复制设置备份"
-                    setOnClickListener {
-                        runCatching {
-                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            clipboard.setPrimaryClip(ClipData.newPlainText("Zero Symbol Drawer settings", SymbolDrawerSettingsCodec.encode(current)))
-                            Toast.makeText(context, "设置备份 JSON 已复制", Toast.LENGTH_SHORT).show()
-                        }.onFailure { onError?.invoke(it) }
-                    }
-                }, LinearLayout.LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
-                backupRow.addView(Button(context).apply {
-                    text = "导入设置备份"
-                    setOnClickListener { promptImportBackup() }
-                }, LinearLayout.LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
-                activePage?.addView(backupRow, matchWrap())
+                section("设置选项备份")
+                addActionRow(
+                    "复制设置 JSON" to ::copySettingsBackup,
+                    "导出设置文件" to ::exportSettingsFile
+                )
+                addActionRow(
+                    "粘贴导入设置" to ::promptImportSettings,
+                    "从文件导入设置" to { pendingImport = ImportKind.SETTINGS; documentPicker.openJson() }
+                )
+                section("符号组导入与导出")
+                addActionRow(
+                    "复制符号组 JSON" to ::copyGroupsBackup,
+                    "导出符号组文件" to ::exportGroupsFile
+                )
+                addActionRow(
+                    "粘贴导入符号组" to ::promptImportGroups,
+                    "从文件导入符号组" to { pendingImport = ImportKind.GROUPS; documentPicker.openJson() }
+                )
+                addView(TextView(context).apply {
+                    text = "两类备份分别处理，互不覆盖。导入前会校验 JSON 结构、字段类型、动作编号和数据范围。"
+                    textSize = 12f
+                    setTextColor(onSurfaceColor())
+                    alpha = 0.72f
+                    setPadding(dp(2), dp(8), dp(2), dp(12))
+                }, matchWrap())
                 activePage?.addView(Button(context).apply {
                     text = "恢复默认设置"
                     setOnClickListener {
                         runCatching {
-                            repository.reset()
-                            current = SymbolDrawerSettings()
+                            val defaults = SymbolDrawerSettings()
+                            repository.save(defaults)
+                            current = defaults
                             render()
                             onSettingsChanged?.invoke(current)
-                        }.onFailure { onError?.invoke(it) }
+                            toast("设置已恢复默认并保存")
+                        }.onFailure(::reportFailure)
                     }
                 }, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
-                    topMargin = dp(18)
+                    topMargin = dp(10)
                 })
-            },
-            "符号管理" to {
-                section("符号列表与动作")
-                activePage?.addView(TextView(context).apply {
-                    text = "每个符号独立设置短按与长按行为。动作编号和数据格式兼容第一代。"
-                    textSize = 13f
-                    setTextColor(onSurfaceColor())
-                    alpha = 0.72f
-                    setPadding(dp(2), 0, dp(2), dp(10))
-                }, matchWrap())
-                if (symbolManager.parent is android.view.ViewGroup) {
-                    (symbolManager.parent as android.view.ViewGroup).removeView(symbolManager)
-                }
-                activePage?.addView(symbolManager, matchWrap())
             }
         )
 
         builders.forEachIndexed { index, entry ->
             tabs.addTab(tabs.newTab().setText(entry.first), index == 0)
             val page = LinearLayout(context).apply {
-                orientation = LinearLayout.VERTICAL
+                orientation = VERTICAL
                 setPadding(dp(16), dp(8), dp(16), dp(28))
             }
             val scroll = ScrollView(context).apply {
                 isFillViewport = true
-                addView(page, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+                addView(page, FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+                ))
                 visibility = if (index == 0) View.VISIBLE else View.GONE
             }
             pageHost.addView(scroll, FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
@@ -214,6 +219,28 @@ class SymbolDrawerSettingsScreen(
             override fun onTabUnselected(tab: TabLayout.Tab) = Unit
             override fun onTabReselected(tab: TabLayout.Tab) = Unit
         })
+    }
+
+    private fun addActionRow(first: Pair<String, () -> Unit>, second: Pair<String, () -> Unit>) {
+        val row = LinearLayout(context).apply {
+            orientation = HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        row.addView(actionButton(first.first, first.second), LinearLayout.LayoutParams(0, dp(52), 1f).apply {
+            marginEnd = dp(5)
+        })
+        row.addView(actionButton(second.first, second.second), LinearLayout.LayoutParams(0, dp(52), 1f).apply {
+            marginStart = dp(5)
+        })
+        activePage?.addView(row, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
+            bottomMargin = dp(8)
+        })
+    }
+
+    private fun actionButton(title: String, action: () -> Unit) = Button(context).apply {
+        text = title
+        isAllCaps = false
+        setOnClickListener { runCatching(action).onFailure(::reportFailure) }
     }
 
     private fun section(title: String) {
@@ -240,12 +267,14 @@ class SymbolDrawerSettingsScreen(
                 isChecked = checked
                 setOnCheckedChangeListener { _, value -> changed(value) }
             }, LinearLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT))
-        }, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply { bottomMargin = dp(8) })
+        }, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
+            bottomMargin = dp(8)
+        })
     }
 
     private fun <T : Enum<T>> addChoice(title: String, values: List<T>, selected: T, changed: (T) -> Unit) {
         val row = LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
+            orientation = VERTICAL
             setPadding(dp(14), dp(10), dp(14), dp(10))
             background = surfaceBackground(surfaceColor(), 0.08f, 14)
         }
@@ -255,9 +284,11 @@ class SymbolDrawerSettingsScreen(
         spinner.adapter = ArrayAdapter(
             context,
             android.R.layout.simple_spinner_dropdown_item,
-            values.map {
-                if (it == ThemeMode.SYSTEM) "跟随宿主 Activity"
-                else it.name.lowercase().replace('_', ' ')
+            values.map { value ->
+                when (value) {
+                    ThemeMode.SYSTEM -> "跟随宿主 Activity"
+                    else -> value.name.lowercase().replace('_', ' ')
+                }
             }
         )
         spinner.setSelection(values.indexOf(selected).coerceAtLeast(0), false)
@@ -272,13 +303,16 @@ class SymbolDrawerSettingsScreen(
             }
         }
         row.addView(spinner, matchWrap())
-        activePage?.addView(row, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply { bottomMargin = dp(8) })
+        activePage?.addView(row, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
+            bottomMargin = dp(8)
+        })
     }
 
     private fun addSeek(title: String, value: Int, minimum: Int, maximum: Int, changed: (Int) -> Unit) {
         val row = LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(0, dp(6), 0, dp(6))
+            orientation = VERTICAL
+            setPadding(dp(10), dp(6), dp(10), dp(6))
+            background = surfaceBackground(surfaceColor(), 0.05f, 12)
         }
         val valueLabel = label("$title：$value")
         row.addView(valueLabel, matchWrap())
@@ -293,30 +327,93 @@ class SymbolDrawerSettingsScreen(
                 override fun onStopTrackingTouch(bar: SeekBar?) { changed((bar?.progress ?: 0) + minimum) }
             })
         }, matchWrap())
-        activePage?.addView(row, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply { bottomMargin = dp(8) })
+        activePage?.addView(row, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
+            bottomMargin = dp(8)
+        })
     }
 
-    private fun promptImportBackup() {
+    private fun copySettingsBackup() = copyJson(
+        "Zero Symbol Drawer settings", SymbolDrawerSettingsCodec.encode(current), "设置备份 JSON 已复制"
+    )
+
+    private fun exportSettingsFile() = documentPicker.saveJson(
+        "symbol-drawer-settings.json", SymbolDrawerSettingsCodec.encode(current)
+    )
+
+    private fun copyGroupsBackup() = copyJson(
+        "Zero Symbol Drawer groups", SymbolGroupBundleCodec.encode(groupRepository.loadGroups()), "符号组 JSON 已复制"
+    )
+
+    private fun exportGroupsFile() = documentPicker.saveJson(
+        "symbol-drawer-groups.json", SymbolGroupBundleCodec.encode(groupRepository.loadGroups())
+    )
+
+    private fun copyJson(label: String, json: String, message: String) {
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText(label, json))
+        toast(message)
+    }
+
+    private fun promptImportSettings() {
+        promptJson("导入设置备份", "粘贴设置 JSON。导入成功后会覆盖当前设置。") { json ->
+            importSettings(json)
+        }
+    }
+
+    private fun promptImportGroups() {
+        promptJson("导入符号组", "粘贴 V1 符号组 JSON。导入成功后会替换全部分组。") { json ->
+            confirmGroupImport(json)
+        }
+    }
+
+    private fun promptJson(title: String, message: String, imported: (String) -> Unit) {
         val input = EditText(context).apply {
-            hint = "粘贴设置备份 JSON"
+            hint = "粘贴 JSON"
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
             minLines = 6
             gravity = Gravity.TOP
         }
         AlertDialog.Builder(context)
-            .setTitle("导入符号抽屉设置")
-            .setMessage("导入会覆盖当前设置，符号分组和符号数据不会改变。")
+            .setTitle(title)
+            .setMessage(message)
             .setView(input)
+            .setNegativeButton("取消", null)
+            .setPositiveButton("继续") { _, _ ->
+                runCatching { imported(input.text.toString()) }.onFailure(::reportFailure)
+            }
+            .show()
+    }
+
+    private fun handleImportedJson(json: String) {
+        when (pendingImport) {
+            ImportKind.SETTINGS -> importSettings(json)
+            ImportKind.GROUPS -> confirmGroupImport(json)
+        }
+    }
+
+    private fun importSettings(json: String) {
+        val next = SymbolDrawerSettingsCodec.decode(json)
+        repository.save(next)
+        current = next.copy(themeMode = ThemeMode.SYSTEM)
+        render()
+        onSettingsChanged?.invoke(current)
+        toast("设置备份已校验并导入")
+    }
+
+    private fun confirmGroupImport(json: String) {
+        // Decode and validate before asking for confirmation. Invalid files never
+        // reach the repository and cannot partially overwrite the current data.
+        val imported = SymbolGroupBundleCodec.decode(json)
+        AlertDialog.Builder(context)
+            .setTitle("确认替换符号组")
+            .setMessage("已校验 ${imported.size} 个分组。确定替换当前全部符号组吗？")
             .setNegativeButton("取消", null)
             .setPositiveButton("导入") { _, _ ->
                 runCatching {
-                    val next = SymbolDrawerSettingsCodec.decode(input.text.toString())
-                    repository.save(next)
-                    current = next
-                    render()
-                    onSettingsChanged?.invoke(next)
-                    Toast.makeText(context, "设置已导入", Toast.LENGTH_SHORT).show()
-                }.onFailure { onError?.invoke(it) }
+                    groupRepository.saveGroups(imported)
+                    onGroupsChanged?.invoke(imported)
+                    toast("符号组已导入")
+                }.onFailure(::reportFailure)
             }
             .show()
     }
@@ -324,10 +421,12 @@ class SymbolDrawerSettingsScreen(
     private fun update(transform: SymbolDrawerSettings.() -> SymbolDrawerSettings) {
         runCatching {
             val next = current.transform().copy(themeMode = ThemeMode.SYSTEM)
+            // SharedPreferences commit() is synchronous; return only after the
+            // local persistent snapshot has been written successfully.
             repository.save(next)
             current = next
             onSettingsChanged?.invoke(next)
-        }.onFailure { onError?.invoke(it) }
+        }.onFailure(::reportFailure)
     }
 
     private fun label(value: String) = TextView(context).apply {
@@ -337,6 +436,13 @@ class SymbolDrawerSettingsScreen(
         gravity = Gravity.CENTER_VERTICAL
     }
 
+    private fun reportFailure(error: Throwable) {
+        onError?.invoke(error)
+        toast(error.message ?: "操作失败")
+    }
+
+    private fun toast(message: String) = Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+
     private fun surfaceColor() = HostThemeColors.surface(context)
     private fun onSurfaceColor() = HostThemeColors.onSurface(context)
     private fun primaryColor() = HostThemeColors.primary(context)
@@ -344,9 +450,12 @@ class SymbolDrawerSettingsScreen(
     private fun surfaceBackground(fill: Int, strokeAlpha: Float, radius: Int) = GradientDrawable().apply {
         setColor(fill)
         cornerRadius = dp(radius).toFloat()
-        setStroke(dp(1), (HostThemeColors.outline(context) and 0x00ffffff) or ((strokeAlpha.coerceIn(0f, 1f) * 255).toInt() shl 24))
+        setStroke(dp(1), (HostThemeColors.outline(context) and 0x00ffffff) or
+            ((strokeAlpha.coerceIn(0f, 1f) * 255).toInt() shl 24))
     }
 
     private fun matchWrap() = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
     private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
+
+    private enum class ImportKind { SETTINGS, GROUPS }
 }
