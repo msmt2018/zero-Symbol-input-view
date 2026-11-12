@@ -52,7 +52,9 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
     var onOpenManagerListener: (() -> Unit)? = null
     var onGroupChangedListener: ((Int, SymbolGroup?) -> Unit)? = null
 
-    private var settings = SymbolDrawerSettings()
+    private var settings = com.zerostudio.idea.widget.editor.symbolinput.v2.settings
+        .SharedPreferencesSymbolDrawerSettingsRepository(context.applicationContext)
+        .load().settings.copy(themeMode = com.zerostudio.idea.widget.editor.symbolinput.v2.settings.ThemeMode.SYSTEM)
     private val indicator = SymbolGroupIndicator(context) { selectGroup(it, true) }
     private val pager = ViewPager2(context).apply {
         orientation = ViewPager2.ORIENTATION_HORIZONTAL
@@ -89,6 +91,10 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
         addView(indicator, LayoutParams(LayoutParams.MATCH_PARENT, 0))
         addView(pager, LayoutParams(LayoutParams.MATCH_PARENT, collapsedHeight))
         pager.adapter = pageAdapter
+        // Load the durable settings snapshot before the first visible layout.
+        // Rebuild the adapter once below so grid geometry and interactions use
+        // the same persisted values as the settings dialog.
+        config = settings.toDrawerConfig()
         LegacySymbolDataMigration.importIfV2Empty(context, repository)
         if (repository.loadGroups().isEmpty()) {
             repository.saveGroups(com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolDrawerDefaults.createGroups())
@@ -101,6 +107,7 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
             }
         })
         reloadGroups()
+        applySettings(settings)
         updateVisualState(0f)
     }
 

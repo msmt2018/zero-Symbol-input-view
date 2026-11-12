@@ -65,6 +65,7 @@ class SymbolDrawerSettingsScreen(
     fun reload() {
         current = repository.load().settings.copy(themeMode = ThemeMode.SYSTEM)
         render()
+        onSettingsChanged?.invoke(current)
     }
 
     fun getSettings(): SymbolDrawerSettings = current
