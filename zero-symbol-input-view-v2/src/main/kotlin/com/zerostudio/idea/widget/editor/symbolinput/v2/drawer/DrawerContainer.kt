@@ -243,7 +243,6 @@ class DrawerContainer @JvmOverloads constructor(
         tabs.isTabIndicatorFullWidth = nav.indicator.widthFraction >= 0.99f
         tabs.tabMode = if (nav.scrollable) TabLayout.MODE_SCROLLABLE else TabLayout.MODE_FIXED
         tabs.tabGravity = if (nav.scrollable) TabLayout.GRAVITY_START else TabLayout.GRAVITY_FILL
-        tabs.setTabMinWidth(dp(nav.itemMinWidthDp))
         val indicatorColor = nav.indicator.color ?: resolvedColors().accent ?: Color.BLUE
         tabs.setSelectedTabIndicator(GradientDrawable().apply {
             setColor(if (nav.indicator.shape == com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerIndicatorShape.NONE) {
