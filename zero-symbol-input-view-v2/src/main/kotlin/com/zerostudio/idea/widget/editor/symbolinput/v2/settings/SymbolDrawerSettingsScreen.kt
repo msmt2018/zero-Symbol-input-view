@@ -197,7 +197,7 @@ class SymbolDrawerSettingsScreen(
             }
             val scroll = ScrollView(context).apply {
                 isFillViewport = true
-                addView(page, ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+                addView(page, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
                 visibility = if (index == 0) View.VISIBLE else View.GONE
             }
             pageHost.addView(scroll, FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
