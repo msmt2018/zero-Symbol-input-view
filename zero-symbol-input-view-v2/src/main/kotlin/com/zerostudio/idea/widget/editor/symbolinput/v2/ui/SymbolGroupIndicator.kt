@@ -78,7 +78,7 @@ internal class SymbolGroupIndicator(
             }
             val indicator = View(parent.context).apply {
                 background = GradientDrawable().apply {
-                    cornerRadius = dp(this@apply, 3).toFloat()
+                    cornerRadius = dp(parent, 3).toFloat()
                     setColor(HostThemeColors.primary(context))
                 }
                 visibility = View.INVISIBLE
