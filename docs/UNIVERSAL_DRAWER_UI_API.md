@@ -95,3 +95,10 @@ The style API is feature-neutral and uses immutable value objects:
 - SPLIT_PANEL: three-stage layout with additional spacing for independent panel composition.
 
 Presets are starting configurations, not locked templates. Build a preset config, copy its style into a new builder, and override only the desired properties.
+
+
+## Generic page host and runtime setter contract
+
+`DrawerPageHost` is an optional Android `FrameLayout` that renders the selected `DrawerPage` from `DrawerNavigationController`. It caches page Views, detaches the previous page before attaching the next one, and dispatches panel attach/visible/hidden/detach callbacks. The page host does not draw a navigation bar; applications may bind a Material TabLayout, a custom underline indicator, or any other navigation UI to the controller and the `DrawerNavigationConfig`.
+
+The runtime `DrawerController` contract now includes atomic `applyConfig` and granular setters for anchor strategy, style, theme mode, colors, dimensions, typography, motion, shape, Peek/Expanded content, navigation appearance, drag/nested-scroll, edge-to-edge, dismissal, drag handle and accessibility. These setters describe the public contract; a concrete container implementation will be added in the next phase.
