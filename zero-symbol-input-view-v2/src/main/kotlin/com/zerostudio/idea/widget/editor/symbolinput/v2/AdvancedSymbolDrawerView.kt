@@ -22,7 +22,9 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.HapticMode
+import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SharedPreferencesSymbolDrawerSettingsRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
+import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.ThemeMode
 import com.zerostudio.idea.widget.editor.symbolinput.v2.state.DrawerGeometry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.SymbolGroupIndicator
 import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.SymbolPageAdapter
@@ -52,9 +54,9 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
     var onOpenManagerListener: (() -> Unit)? = null
     var onGroupChangedListener: ((Int, SymbolGroup?) -> Unit)? = null
 
-    private var settings = com.zerostudio.idea.widget.editor.symbolinput.v2.settings
-        .SharedPreferencesSymbolDrawerSettingsRepository(context.applicationContext)
-        .load().settings.copy(themeMode = com.zerostudio.idea.widget.editor.symbolinput.v2.settings.ThemeMode.SYSTEM)
+    private val settingsRepository = SharedPreferencesSymbolDrawerSettingsRepository(context.applicationContext)
+    private val hasPersistedSettings = settingsRepository.hasStoredSettings()
+    private var settings = settingsRepository.load().settings.copy(themeMode = ThemeMode.SYSTEM)
     private val indicator = SymbolGroupIndicator(context) { selectGroup(it, true) }
     private val pager = ViewPager2(context).apply {
         orientation = ViewPager2.ORIENTATION_HORIZONTAL
@@ -94,7 +96,7 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
         // Load the durable settings snapshot before the first visible layout.
         // Rebuild the adapter once below so grid geometry and interactions use
         // the same persisted values as the settings dialog.
-        config = settings.toDrawerConfig()
+        if (hasPersistedSettings) config = settings.toDrawerConfig()
         LegacySymbolDataMigration.importIfV2Empty(context, repository)
         if (repository.loadGroups().isEmpty()) {
             repository.saveGroups(com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolDrawerDefaults.createGroups())
@@ -107,7 +109,7 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
             }
         })
         reloadGroups()
-        applySettings(settings)
+        if (hasPersistedSettings) applySettings(settings)
         updateVisualState(0f)
     }
 

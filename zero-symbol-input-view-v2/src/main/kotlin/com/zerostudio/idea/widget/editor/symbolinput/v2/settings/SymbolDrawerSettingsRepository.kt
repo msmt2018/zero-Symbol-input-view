@@ -10,6 +10,8 @@ interface SymbolDrawerSettingsRepository {
     fun load(): SettingsLoadResult
     fun save(settings: SymbolDrawerSettings)
     fun reset()
+    /** True when a durable user snapshot exists rather than only defaults. */
+    fun hasStoredSettings(): Boolean = false
 }
 
 data class SettingsLoadResult(
@@ -126,6 +128,8 @@ class SharedPreferencesSymbolDrawerSettingsRepository(
             "Unable to reset symbol drawer settings"
         }
     }
+
+    override fun hasStoredSettings(): Boolean = preferences.contains(KEY_SETTINGS)
 
     private companion object {
         const val KEY_SETTINGS = "settings_json_v1"
