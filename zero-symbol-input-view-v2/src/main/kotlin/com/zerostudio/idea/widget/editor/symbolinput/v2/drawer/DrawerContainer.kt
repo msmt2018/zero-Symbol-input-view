@@ -259,6 +259,7 @@ class DrawerContainer @JvmOverloads constructor(
         val density = resources.displayMetrics.density
         val maxHeight = min(height, dp(currentConfig.style.dimensions.expandedMaxHeightDp))
         val minHeight = min(maxHeight, dp(currentConfig.style.dimensions.peekHeightDp))
+        sheet.layoutParams = sheet.layoutParams.apply { this.height = maxHeight }
         val contentHeight = max(peekHost.measuredHeight, expandedHost.measuredHeight)
         anchors = DrawerAnchorResolver.resolve(
             currentConfig.anchorStrategy,
@@ -278,8 +279,9 @@ class DrawerContainer @JvmOverloads constructor(
 
     private fun updateVisualState() {
         val current = state ?: return
-        val rootHeight = height.takeIf { it > 0 } ?: current.currentHeightPx
-        sheet.translationY = (rootHeight - current.currentHeightPx).toFloat()
+        val sheetHeight = (sheet.layoutParams?.height ?: sheet.measuredHeight)
+            .takeIf { it > 0 } ?: current.currentHeightPx
+        sheet.translationY = (sheetHeight - current.currentHeightPx).toFloat()
         val minHeight = anchors.firstOrNull()?.heightPx ?: 1
         val maxHeight = anchors.lastOrNull()?.heightPx ?: minHeight
         val fraction = if (maxHeight == minHeight) 0f else
