@@ -30,6 +30,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupManager
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.LegacySymbolDataMigration
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolDrawerDefaults
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupRepository
+import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.HostThemeColors
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.LegacySymbolAction
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.LegacySymbolActionAdapter
@@ -506,12 +507,12 @@ class SymbolDrawerManagerScreen(
             val ctx = parent.context
             val title = TextView(ctx).apply {
                 textSize = 15f
-                setTextColor(resolveColor(ctx, android.R.attr.textColorPrimary, Color.BLACK))
+                setTextColor(HostThemeColors.onSurface(ctx))
                 setTypeface(typeface, android.graphics.Typeface.BOLD)
             }
             val detail = TextView(ctx).apply {
                 textSize = 12f
-                setTextColor(resolveColor(ctx, android.R.attr.textColorSecondary, Color.DKGRAY))
+                setTextColor(HostThemeColors.secondaryText(ctx))
                 setPadding(0, dp(ctx, 4), 0, 0)
             }
             val textColumn = LinearLayout(ctx).apply {
@@ -524,9 +525,9 @@ class SymbolDrawerManagerScreen(
             val root = LinearLayout(ctx).apply {
                 orientation = HORIZONTAL
                 gravity = android.view.Gravity.CENTER_VERTICAL
-                background = roundedSurface(resolveColor(ctx, android.R.attr.colorBackground, Color.WHITE), dp(ctx, 12))
+                background = roundedSurface(HostThemeColors.surface(ctx), dp(ctx, 12))
                 addView(View(ctx).apply {
-                    setBackgroundColor(resolveColor(ctx, android.R.attr.colorAccent, Color.rgb(103, 80, 164)))
+                    setBackgroundColor(HostThemeColors.primary(ctx))
                 }, LinearLayout.LayoutParams(dp(ctx, 3), ViewGroup.LayoutParams.MATCH_PARENT))
                 addView(textColumn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
                 isClickable = true
@@ -559,35 +560,20 @@ class SymbolDrawerManagerScreen(
                 val index = LegacySymbolActionCatalog.values.indexOf(id)
                 return LegacySymbolActionCatalog.labels.getOrNull(index) ?: "动作 $id"
             }
-            private fun resolveColor(context: Context, attr: Int, fallback: Int): Int {
-                val value = TypedValue()
-                return if (context.theme.resolveAttribute(attr, value, true)) {
-                    if (value.resourceId != 0) runCatching { context.resources.getColor(value.resourceId, context.theme) }.getOrDefault(fallback)
-                    else value.data
-                } else fallback
-            }
             private fun roundedSurface(color: Int, radius: Int) = GradientDrawable().apply {
                 setColor(color)
                 cornerRadius = radius.toFloat()
-                setStroke(1, 0x22000000)
+                setStroke(1, HostThemeColors.outline(ctx = context))
             }
-        }
     }
 
     private fun roundedSurface(color: Int, radiusDp: Int) = GradientDrawable().apply {
         setColor(color)
         cornerRadius = dp(radiusDp).toFloat()
-        setStroke(dp(1), 0x22000000)
+        setStroke(dp(1), HostThemeColors.outline(context))
     }
-    private fun themeColor(attr: Int, fallback: Int): Int {
-        val value = TypedValue()
-        return if (context.theme.resolveAttribute(attr, value, true)) {
-            if (value.resourceId != 0) runCatching { resources.getColor(value.resourceId, context.theme) }.getOrDefault(fallback)
-            else value.data
-        } else fallback
-    }
-    private fun surfaceColor() = themeColor(android.R.attr.colorBackground, Color.rgb(248, 248, 250))
-    private fun primaryColor() = themeColor(android.R.attr.colorAccent, Color.rgb(103, 80, 164))
-    private fun secondaryTextColor() = themeColor(android.R.attr.textColorSecondary, Color.DKGRAY)
+    private fun surfaceColor() = HostThemeColors.surface(context)
+    private fun primaryColor() = HostThemeColors.primary(context)
+    private fun secondaryTextColor() = HostThemeColors.secondaryText(context)
 
 }

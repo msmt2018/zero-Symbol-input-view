@@ -1,11 +1,9 @@
 package com.zerostudio.idea.widget.editor.symbolinput.v2.ui
 
 import android.content.Context
-import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
-import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -17,7 +15,6 @@ import androidx.recyclerview.widget.RecyclerView
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.GroupIndicatorStyle
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
-import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.ThemeMode
 
 internal class SymbolGroupIndicator(
     context: Context,
@@ -83,15 +80,11 @@ internal class SymbolGroupIndicator(
             holder.title.text = if (settings.showGroupTitles) group.title else (position + 1).toString()
             holder.title.alpha = if (selected) 1f else 0.68f
             holder.title.setTypeface(null, if (selected) Typeface.BOLD else Typeface.NORMAL)
-            val primary = when (settings.themeMode) {
-                ThemeMode.DARK -> Color.WHITE
-                ThemeMode.LIGHT -> Color.BLACK
-                ThemeMode.SYSTEM -> resolveColor(holder.title, android.R.attr.textColorPrimary, Color.WHITE)
-            }
-            val accent = resolveColor(holder.title, android.R.attr.colorAccent, Color.CYAN)
+            val primary = HostThemeColors.onSurface(holder.title.context)
+            val accent = HostThemeColors.primary(holder.title.context)
             holder.title.setTextColor(
                 if (selected && settings.indicatorStyle == GroupIndicatorStyle.TEXT) accent
-                else if (selected && settings.indicatorStyle == GroupIndicatorStyle.PILL) Color.WHITE
+                else if (selected && settings.indicatorStyle == GroupIndicatorStyle.PILL) HostThemeColors.onPrimary(holder.title.context)
                 else primary
             )
             holder.title.background = if (selected && settings.indicatorStyle == GroupIndicatorStyle.PILL) {
@@ -118,14 +111,6 @@ internal class SymbolGroupIndicator(
             selectedIndex = index.coerceAtLeast(0)
             if (previous in 0 until itemCount) notifyItemChanged(previous)
             if (selectedIndex in 0 until itemCount) notifyItemChanged(selectedIndex)
-        }
-
-        private fun resolveColor(view: View, attribute: Int, fallback: Int): Int {
-            val value = TypedValue()
-            if (!view.context.theme.resolveAttribute(attribute, value, true)) return fallback
-            return if (value.resourceId != 0) {
-                runCatching { view.resources.getColor(value.resourceId) }.getOrDefault(fallback)
-            } else value.data
         }
 
         private fun dp(view: View, value: Int) =

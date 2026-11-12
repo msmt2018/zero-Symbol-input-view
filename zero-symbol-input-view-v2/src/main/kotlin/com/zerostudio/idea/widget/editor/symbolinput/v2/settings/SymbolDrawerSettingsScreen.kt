@@ -42,7 +42,7 @@ class SymbolDrawerSettingsScreen(
     var onGroupsChanged: ((List<com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup>) -> Unit)? = null
     var onError: ((Throwable) -> Unit)? = null
 
-    private var current = repository.load().settings
+    private var current = repository.load().settings.copy(themeMode = ThemeMode.SYSTEM)
     private val content = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
     private var activePage: LinearLayout? = null
     private val symbolManager = SymbolDrawerManagerScreen(context, groupRepository, embeddedInSettings = true).apply {
@@ -53,12 +53,14 @@ class SymbolDrawerSettingsScreen(
     init {
         orientation = VERTICAL
         setPadding(dp(12), dp(12), dp(12), dp(8))
+        repository.save(current)
         addView(content, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
         render()
     }
 
     fun reload() {
-        current = repository.load().settings
+        current = repository.load().settings.copy(themeMode = ThemeMode.SYSTEM)
+        repository.save(current)
         render()
     }
 
@@ -102,7 +104,7 @@ class SymbolDrawerSettingsScreen(
         val builders: List<Pair<String, () -> Unit>> = listOf(
             "外观" to {
                 section("主题与显示")
-                addChoice("主题模式", ThemeMode.values().toList(), current.themeMode) { update { copy(themeMode = it) } }
+                addChoice("主题模式", listOf(ThemeMode.SYSTEM), ThemeMode.SYSTEM) { update { copy(themeMode = ThemeMode.SYSTEM) } }
                 addChoice("分组指示器样式", GroupIndicatorStyle.values().toList(), current.indicatorStyle) { update { copy(indicatorStyle = it) } }
                 addSwitch("显示分组名称", current.showGroupTitles) { update { copy(showGroupTitles = it) } }
                 addSwitch("显示符号标签", current.showSymbolLabels) { update { copy(showSymbolLabels = it) } }
@@ -250,7 +252,10 @@ class SymbolDrawerSettingsScreen(
         spinner.adapter = ArrayAdapter(
             context,
             android.R.layout.simple_spinner_dropdown_item,
-            values.map { it.name.lowercase().replace('_', ' ') }
+            values.map {
+                if (it == ThemeMode.SYSTEM) "跟随宿主 Activity"
+                else it.name.lowercase().replace('_', ' ')
+            }
         )
         spinner.setSelection(values.indexOf(selected).coerceAtLeast(0), false)
         spinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
@@ -315,7 +320,7 @@ class SymbolDrawerSettingsScreen(
 
     private fun update(transform: SymbolDrawerSettings.() -> SymbolDrawerSettings) {
         runCatching {
-            val next = current.transform()
+            val next = current.transform().copy(themeMode = ThemeMode.SYSTEM)
             repository.save(next)
             current = next
             onSettingsChanged?.invoke(next)

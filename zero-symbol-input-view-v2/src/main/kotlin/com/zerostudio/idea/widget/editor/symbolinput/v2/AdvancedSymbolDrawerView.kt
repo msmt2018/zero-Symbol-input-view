@@ -143,6 +143,17 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
 
     fun getSettings(): SymbolDrawerSettings = settings
 
+    /** Refresh palette after the host changes its theme without recreating its Activity. */
+    fun refreshHostTheme() {
+        indicator.applySettings(settings)
+        applySettings(settings)
+    }
+
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+        super.onConfigurationChanged(newConfig)
+        refreshHostTheme()
+    }
+
     private fun createPageAdapter() = SymbolPageAdapter(config, settings) { symbol, longPress ->
         val action = if (longPress) symbol.longAction else symbol.shortAction
         if (action != null) {
