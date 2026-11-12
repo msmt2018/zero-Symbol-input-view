@@ -7,6 +7,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.util.TypedValue
 import android.widget.TextView
+import androidx.core.widget.TextViewCompat
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.ListAdapter
@@ -88,6 +90,13 @@ internal class SymbolPageAdapter(
                     setBackgroundResource(selectableBackground.resourceId)
                 }
                 textSize = 18f
+                isSingleLine = true
+                maxLines = 1
+                includeFontPadding = false
+                ellipsize = android.text.TextUtils.TruncateAt.END
+                TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(
+                    this, 8, 18, 1, TypedValue.COMPLEX_UNIT_SP
+                )
                 isClickable = true
                 isFocusable = true
                 minHeight = dp(context, maxOf(config.cellHeightDp, config.minimumTouchTargetDp))
@@ -112,10 +121,24 @@ internal class SymbolPageAdapter(
 
         override fun onBindViewHolder(holder: SymbolHolder, position: Int) {
             val item = getItem(position)
-            holder.label.text = if (settings.showSymbolLabels) item.label else item.icon?.takeIf { it.isNotBlank() } ?: item.label
-            holder.label.contentDescription = if (settings.showActionHints) {
+            val isSettingsAction = item.shortAction == SymbolAction.OpenManager
+            if (isSettingsAction) {
+                holder.label.text = ""
+                val icon = androidx.core.content.ContextCompat.getDrawable(
+                    holder.label.context, android.R.drawable.ic_menu_preferences
+                )?.mutate()
+                icon?.setTint(HostThemeColors.onSurface(holder.label.context))
+                val size = dp(holder.label.context, 22)
+                icon?.setBounds(0, 0, size, size)
+                holder.label.setCompoundDrawables(null, icon, null, null)
+                holder.label.contentDescription = "设置"
+            } else {
+                holder.label.setCompoundDrawables(null, null, null, null)
+                holder.label.text = if (settings.showSymbolLabels) item.label else item.icon?.takeIf { it.isNotBlank() } ?: item.label
+                holder.label.contentDescription = if (settings.showActionHints) {
                 "${item.label}, ${item.shortAction}"
-            } else item.label
+                } else item.label
+            }
             holder.label.setOnClickListener {
                 val current = holder.bindingAdapterPosition
                 if (current != RecyclerView.NO_POSITION) onSymbolAction(getItem(current), false)
