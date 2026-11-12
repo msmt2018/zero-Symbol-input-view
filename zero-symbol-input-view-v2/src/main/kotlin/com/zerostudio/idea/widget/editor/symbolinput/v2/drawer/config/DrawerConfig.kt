@@ -3,6 +3,7 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.config
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorStrategies
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorStrategy
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.panel.DrawerPanelContent
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerColorAttributes
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerColors
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerDimensions
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerMotion
@@ -55,6 +56,27 @@ data class DrawerConfig(
         }
         fun setFollowHostTheme() = setThemeMode(DrawerThemeMode.FOLLOW_HOST)
         fun setColors(value: DrawerColors) = apply { style = style.copy(colors = value) }
+        fun setColorAttributes(value: DrawerColorAttributes) = apply {
+            style = style.copy(colorAttributes = value)
+        }
+        fun setSurfaceColor(value: Int?) = apply {
+            style = style.copy(colors = style.colors.copy(surface = value))
+        }
+        fun setPrimaryTextColor(value: Int?) = apply {
+            style = style.copy(colors = style.colors.copy(primaryText = value))
+        }
+        fun setSecondaryTextColor(value: Int?) = apply {
+            style = style.copy(colors = style.colors.copy(secondaryText = value))
+        }
+        fun setAccentColor(value: Int?) = apply {
+            style = style.copy(colors = style.colors.copy(accent = value))
+        }
+        fun setOutlineColor(value: Int?) = apply {
+            style = style.copy(colors = style.colors.copy(outline = value))
+        }
+        fun setScrimColor(value: Int?) = apply {
+            style = style.copy(colors = style.colors.copy(scrim = value))
+        }
         fun setDimensions(value: DrawerDimensions) = apply { style = style.copy(dimensions = value) }
         fun setTypography(value: DrawerTypography) = apply { style = style.copy(typography = value) }
         fun setMotion(value: DrawerMotion) = apply { style = style.copy(motion = value) }
@@ -78,6 +100,44 @@ data class DrawerConfig(
         }
         fun setVerticalPaddingDp(value: Float) = apply {
             style = style.copy(dimensions = style.dimensions.copy(verticalPaddingDp = value))
+        }
+        fun setPanelSpacingDp(value: Float) = apply {
+            style = style.copy(dimensions = style.dimensions.copy(panelSpacingDp = value))
+        }
+        fun setHandleSizeDp(width: Float, height: Float) = apply {
+            style = style.copy(dimensions = style.dimensions.copy(
+                handleWidthDp = width, handleHeightDp = height
+            ))
+        }
+        fun setTitleTextSizeSp(value: Float) = apply {
+            style = style.copy(typography = style.typography.copy(titleSizeSp = value))
+        }
+        fun setBodyTextSizeSp(value: Float) = apply {
+            style = style.copy(typography = style.typography.copy(bodySizeSp = value))
+        }
+        fun setCaptionTextSizeSp(value: Float) = apply {
+            style = style.copy(typography = style.typography.copy(captionSizeSp = value))
+        }
+        fun setFontFamily(value: String?) = apply {
+            style = style.copy(typography = style.typography.copy(fontFamily = value))
+        }
+        fun setElevationDp(value: Float) = apply { style = style.copy(elevationDp = value) }
+        fun setCornerRadiiDp(topStart: Float, topEnd: Float, bottomStart: Float, bottomEnd: Float) = apply {
+            style = style.copy(shape = style.shape.copy(
+                topStartRadiusDp = topStart, topEndRadiusDp = topEnd,
+                bottomStartRadiusDp = bottomStart, bottomEndRadiusDp = bottomEnd
+            ))
+        }
+        fun setOutlineWidthDp(value: Float) = apply {
+            style = style.copy(shape = style.shape.copy(outlineWidthDp = value))
+        }
+        fun setFlingVelocityDp(minimum: Float, maximum: Float) = apply {
+            style = style.copy(motion = style.motion.copy(
+                minimumFlingVelocityDp = minimum, maximumFlingVelocityDp = maximum
+            ))
+        }
+        fun setSpringEnabled(value: Boolean) = apply {
+            style = style.copy(motion = style.motion.copy(enableSpring = value))
         }
         fun setSettleDurationMs(value: Long) = apply {
             style = style.copy(motion = style.motion.copy(settleDurationMs = value))

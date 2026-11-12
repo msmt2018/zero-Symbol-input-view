@@ -1,18 +1,28 @@
 package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style
 
 import android.content.Context
+import android.view.ContextThemeWrapper
 import android.util.TypedValue
 
 /** Resolves theme attributes at runtime so host Activity theme changes can be reflected. */
 object DrawerThemeResolver {
     @JvmStatic
     fun resolve(context: Context, style: DrawerStyle = DrawerStyle()): DrawerColors {
+        val themedContext = when (style.themeMode) {
+            DrawerThemeMode.FOLLOW_HOST -> context
+            DrawerThemeMode.LIGHT -> ContextThemeWrapper(
+                context, android.R.style.Theme_Material_Light_NoActionBar
+            )
+            DrawerThemeMode.DARK -> ContextThemeWrapper(
+                context, android.R.style.Theme_Material_NoActionBar
+            )
+        }
         val attrs = style.colorAttributes
         val inherited = DrawerColors(
-            surface = resolveColor(context, attrs.surfaceAttr),
-            primaryText = resolveColor(context, attrs.primaryTextAttr),
-            secondaryText = resolveColor(context, attrs.secondaryTextAttr),
-            accent = resolveColor(context, attrs.accentAttr)
+            surface = resolveColor(themedContext, attrs.surfaceAttr),
+            primaryText = resolveColor(themedContext, attrs.primaryTextAttr),
+            secondaryText = resolveColor(themedContext, attrs.secondaryTextAttr),
+            accent = resolveColor(themedContext, attrs.accentAttr)
         )
         return inherited.overlay(style.colors)
     }
