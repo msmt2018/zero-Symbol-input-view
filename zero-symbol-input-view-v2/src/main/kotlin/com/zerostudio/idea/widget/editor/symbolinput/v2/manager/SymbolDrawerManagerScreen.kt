@@ -525,7 +525,7 @@ class SymbolDrawerManagerScreen(
             val root = LinearLayout(ctx).apply {
                 orientation = HORIZONTAL
                 gravity = android.view.Gravity.CENTER_VERTICAL
-                background = roundedSurface(HostThemeColors.surface(ctx), dp(ctx, 12))
+                background = roundedSurface(ctx, HostThemeColors.surface(ctx), dp(ctx, 12))
                 addView(View(ctx).apply {
                     setBackgroundColor(HostThemeColors.primary(ctx))
                 }, LinearLayout.LayoutParams(dp(ctx, 3), ViewGroup.LayoutParams.MATCH_PARENT))
@@ -560,11 +560,12 @@ class SymbolDrawerManagerScreen(
                 val index = LegacySymbolActionCatalog.values.indexOf(id)
                 return LegacySymbolActionCatalog.labels.getOrNull(index) ?: "动作 $id"
             }
-            private fun roundedSurface(color: Int, radius: Int) = GradientDrawable().apply {
+            private fun roundedSurface(context: Context, color: Int, radius: Int) = GradientDrawable().apply {
                 setColor(color)
                 cornerRadius = radius.toFloat()
-                setStroke(1, HostThemeColors.outline(ctx = context))
+                setStroke(1, HostThemeColors.outline(context))
             }
+        }
     }
 
     private fun roundedSurface(color: Int, radiusDp: Int) = GradientDrawable().apply {
