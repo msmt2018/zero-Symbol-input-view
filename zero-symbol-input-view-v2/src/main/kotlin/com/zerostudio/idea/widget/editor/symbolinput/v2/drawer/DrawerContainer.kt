@@ -355,6 +355,7 @@ class DrawerContainer @JvmOverloads constructor(
             peekHost.dispatchPanelVisible(showPeek)
             peekContentVisible = showPeek
         }
+        pageHost.setPanelVisible(showExpanded && pageHost.visibility == VISIBLE)
         if (containerAttached && showExpanded != expandedContentVisible) {
             expandedHost.dispatchPanelVisible(showExpanded)
             expandedContentVisible = showExpanded

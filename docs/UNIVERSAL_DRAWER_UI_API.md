@@ -61,12 +61,12 @@ DrawerNavigationController is the source of truth for page identity and selectio
 
 ## Implementation roadmap
 
-1. <badge>Complete</badge> Public contracts and pure anchor resolver.
-2. <badge>Complete</badge> Generic DrawerContainer and state/controller binding.
-3. <badge>Complete</badge> Independent Peek/Expanded panel composition.
-4. <badge>Complete</badge> Generic navigation bar, indicators and page host.
-5. <badge>Core complete</badge> Drag physics and nested vertical-scroll coordination; additional horizontal gesture arbitration and device testing remain.
-6. <badge>Core complete</badge> Host theme/style system and Standard, Compact, FullScreen, SplitPanel presets; edge-to-edge/insets refinements remain.
+1. **Complete** Public contracts and pure anchor resolver.
+2. **Complete** Generic DrawerContainer and state/controller binding.
+3. **Complete** Independent Peek/Expanded panel composition.
+4. **Complete** Generic navigation bar, indicators and page host.
+5. **Core complete** Drag physics and nested vertical-scroll coordination; additional horizontal gesture arbitration and device testing remain.
+6. **Core complete** Host theme/style system and Standard, Compact, FullScreen, SplitPanel presets; edge-to-edge/insets refinements remain.
 7. Pending: migrate the Symbol drawer through a feature adapter without changing visible behavior.
 8. Ongoing: documentation, lifecycle tests, Android instrumentation tests, accessibility and performance validation.
 

@@ -190,6 +190,14 @@ class DrawerApiLabActivity : AppCompatActivity() {
         root.addView(button("选中标题加粗") {
             drawer.controller.setNavigationConfig(DrawerNavigationConfig(selectedTitleBold = true))
         })
+        root.addView(button("折叠态也显示页面导航") {
+            drawer.controller.setNavigationConfig(DrawerNavigationConfig(showInPeekPanel = true))
+            drawer.collapse()
+        })
+        root.addView(button("折叠态隐藏页面导航") {
+            drawer.controller.setNavigationConfig(DrawerNavigationConfig(showInPeekPanel = false))
+            drawer.collapse()
+        })
         root.addView(button("恢复四个示例页面") { drawer.controller.setPages(samplePages()) })
         root.addView(button("只显示 Peek 面板") {
             drawer.controller.setExpandedContent(null)

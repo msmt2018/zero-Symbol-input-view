@@ -17,6 +17,7 @@ class DrawerPageHost @JvmOverloads constructor(
     private var contentContext: Context = context
     private var visiblePageId: String? = null
     private var hostAttached = false
+    private var panelVisible = false
     private val navigationListener = DrawerNavigationController.Listener { snapshot, _ ->
         render(snapshot.selectedPageId)
     }
@@ -48,7 +49,7 @@ class DrawerPageHost @JvmOverloads constructor(
         contentContext = value
         if (!recreateCachedViews || pageViews.isEmpty()) return
         val selectedId = visiblePageId
-        if (hostAttached) {
+        if (hostAttached && panelVisible) {
             navigationController.pages().firstOrNull { it.id == selectedId }?.content?.onPanelHidden()
         }
         navigationController.pages().filter { pageViews.containsKey(it.id) }
@@ -68,7 +69,7 @@ class DrawerPageHost @JvmOverloads constructor(
     private fun render(pageId: String?) {
         if (pageId == visiblePageId) return
         val previous = navigationController.pages().firstOrNull { it.id == visiblePageId }
-        if (hostAttached) previous?.content?.onPanelHidden()
+        if (hostAttached && panelVisible) previous?.content?.onPanelHidden()
         if (visiblePageId != null) {
             pageViews[visiblePageId]?.let { old ->
                 if (old.parent === this) removeView(old)
@@ -82,25 +83,30 @@ class DrawerPageHost @JvmOverloads constructor(
         (view.parent as? ViewGroup)?.removeView(view)
         addView(view, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
         if (isNewView) page.content.onPanelAttached()
-        if (hostAttached) page.content.onPanelVisible()
+        if (hostAttached && panelVisible) page.content.onPanelVisible()
     }
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
         hostAttached = true
-        visiblePageId?.let { id ->
-            navigationController.pages().firstOrNull { it.id == id }?.content?.onPanelVisible()
-        }
+        if (panelVisible) dispatchCurrentPageVisible(true)
     }
 
     override fun onDetachedFromWindow() {
-        if (hostAttached) {
-            visiblePageId?.let { id ->
-                navigationController.pages().firstOrNull { it.id == id }?.content?.onPanelHidden()
-            }
-        }
+        if (hostAttached && panelVisible) dispatchCurrentPageVisible(false)
         hostAttached = false
         super.onDetachedFromWindow()
+    }
+
+    fun setPanelVisible(visible: Boolean) {
+        if (panelVisible == visible) return
+        panelVisible = visible
+        if (hostAttached) dispatchCurrentPageVisible(visible)
+    }
+
+    private fun dispatchCurrentPageVisible(visible: Boolean) {
+        val page = navigationController.pages().firstOrNull { it.id == visiblePageId } ?: return
+        if (visible) page.content.onPanelVisible() else page.content.onPanelHidden()
     }
 
     private fun pagesOrCurrent(id: String): DrawerPage? =
@@ -110,7 +116,7 @@ class DrawerPageHost @JvmOverloads constructor(
         navigationController.removeListener(navigationListener)
         navigationController.pages().forEach { page ->
             if (pageViews.containsKey(page.id)) {
-                if (hostAttached && page.id == visiblePageId) page.content.onPanelHidden()
+                if (hostAttached && panelVisible && page.id == visiblePageId) page.content.onPanelHidden()
                 page.content.onPanelDetached()
             }
         }
