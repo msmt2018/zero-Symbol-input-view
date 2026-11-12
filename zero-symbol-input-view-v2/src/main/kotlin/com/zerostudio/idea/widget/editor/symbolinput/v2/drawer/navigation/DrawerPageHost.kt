@@ -30,9 +30,11 @@ class DrawerPageHost @JvmOverloads constructor(
         val validIds = pages.mapTo(HashSet()) { it.id }
         val removedIds = pageViews.keys.filterNot { it in validIds }
         removedIds.forEach { id ->
-            pagesOrCurrent(id)?.content?.let { content ->
-                content.onPanelHidden()
-                content.onPanelDetached()
+            if (pageViews.containsKey(id)) {
+                pagesOrCurrent(id)?.content?.let { content ->
+                    content.onPanelHidden()
+                    content.onPanelDetached()
+                }
             }
             pageViews.remove(id)?.let { view ->
                 if (view.parent === this) removeView(view)
@@ -89,8 +91,10 @@ class DrawerPageHost @JvmOverloads constructor(
     fun dispose() {
         navigationController.removeListener(navigationListener)
         navigationController.pages().forEach { page ->
-            page.content.onPanelHidden()
-            page.content.onPanelDetached()
+            if (pageViews.containsKey(page.id)) {
+                if (hostAttached && page.id == visiblePageId) page.content.onPanelHidden()
+                page.content.onPanelDetached()
+            }
         }
         pageViews.values.forEach { view ->
             if (view.parent === this) removeView(view)
