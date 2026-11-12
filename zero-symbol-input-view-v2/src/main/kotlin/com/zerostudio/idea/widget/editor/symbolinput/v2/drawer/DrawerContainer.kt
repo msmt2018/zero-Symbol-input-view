@@ -121,7 +121,7 @@ class DrawerContainer @JvmOverloads constructor(
             override fun onTabUnselected(tab: TabLayout.Tab) = Unit
             override fun onTabReselected(tab: TabLayout.Tab) = Unit
         })
-        applyConfig(config)
+        controllerImpl.applyConfig(config)
         post { recalculateAnchors() }
     }
 
