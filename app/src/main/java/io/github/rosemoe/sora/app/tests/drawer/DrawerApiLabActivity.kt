@@ -30,6 +30,8 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.preset.DrawerPres
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerColors
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerDimensions
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerMotion
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerShape
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerTypography
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerThemeMode
 
 /** Interactive playground for the reusable, business-neutral drawer APIs. */
@@ -46,14 +48,7 @@ class DrawerApiLabActivity : AppCompatActivity() {
         drawer.setTitle("Universal Drawer API Lab")
         drawer.setMainContent(buildDashboard())
         drawer.setPeekContent(objectPanel("Peek panel", "This compact panel is independent from the expanded content."))
-        drawer.setPages(
-            listOf(
-                DrawerPage("overview", "Overview", content("Overview page", "Generic page hosting, lifecycle and page switching.")),
-                DrawerPage("logs", "Logs", content("Logcat page", "A simulated log stream demonstrates arbitrary page content.")),
-                DrawerPage("tools", "Tools", content("Tools page", "A second independent page with its own view and state.")),
-                DrawerPage("details", "Details", content("Details page", "Page identity and selection are not tied to symbol groups."))
-            )
-        )
+        drawer.controller.setPages(samplePages())
         drawer.controller.addStateListener { state ->
             status.text = "Anchor: ${state.currentAnchorId}  ·  Height: ${state.currentHeightPx}px  ·  Dragging: ${state.isDragging}  ·  Animating: ${state.isAnimating}"
         }
@@ -112,7 +107,7 @@ class DrawerApiLabActivity : AppCompatActivity() {
                     peekContent = objectPanel("Peek · $preset", "Preset preview"),
                     expandedContent = null
                 ))
-                drawer.setPages(samplePages())
+                drawer.controller.setPages(samplePages())
                 drawer.setTitle("Preset · $preset")
             })
         }
@@ -146,6 +141,16 @@ class DrawerApiLabActivity : AppCompatActivity() {
         root.addView(slider(0f, 600f, 260f) { value ->
             drawer.controller.setMotion(DrawerMotion(settleDurationMs = value.toLong()))
         })
+        root.addView(label("抽屉顶部圆角"))
+        root.addView(slider(0f, 40f, 24f) { value ->
+            drawer.controller.setShape(DrawerShape(
+                topStartRadiusDp = value, topEndRadiusDp = value
+            ))
+        })
+        root.addView(label("标题字号"))
+        root.addView(slider(14f, 28f, 18f) { value ->
+            drawer.controller.setTypography(DrawerTypography(titleSizeSp = value))
+        })
         root.addView(section("交互开关"))
         root.addView(toggle("允许拖动", true) { drawer.controller.setDragEnabled(it) })
         root.addView(toggle("允许嵌套滚动", true) { drawer.controller.setNestedScrollEnabled(it) })
@@ -170,7 +175,22 @@ class DrawerApiLabActivity : AppCompatActivity() {
         root.addView(button("恢复下划线导航指示器") {
             drawer.controller.setNavigationConfig(DrawerNavigationConfig())
         })
-        root.addView(button("恢复四个示例页面") { drawer.setPages(samplePages()) })
+        root.addView(button("图标 + 标题") {
+            drawer.controller.setNavigationConfig(DrawerNavigationConfig(showIcons = true, showTitles = true))
+            drawer.controller.setPages(samplePages())
+        })
+        root.addView(button("仅图标导航") {
+            drawer.controller.setNavigationConfig(DrawerNavigationConfig(showIcons = true, showTitles = false))
+            drawer.controller.setPages(samplePages())
+        })
+        root.addView(button("仅标题导航") {
+            drawer.controller.setNavigationConfig(DrawerNavigationConfig(showIcons = false, showTitles = true))
+            drawer.controller.setPages(samplePages())
+        })
+        root.addView(button("选中标题加粗") {
+            drawer.controller.setNavigationConfig(DrawerNavigationConfig(selectedTitleBold = true))
+        })
+        root.addView(button("恢复四个示例页面") { drawer.controller.setPages(samplePages()) })
         root.addView(button("只显示 Peek 面板") {
             drawer.controller.setExpandedContent(null)
             drawer.setPeekContent(objectPanel("Only Peek", "Expanded content is detached."))
@@ -206,11 +226,17 @@ class DrawerApiLabActivity : AppCompatActivity() {
     }
 
     private fun samplePages() = listOf(
-        DrawerPage("overview", "Overview", content("Overview page", "Generic page hosting, lifecycle and page switching.")),
-        DrawerPage("logs", "Logs", content("Logs page", "A simulated log stream demonstrates arbitrary page content.")),
-        DrawerPage("tools", "Tools", content("Tools page", "Independent tools and custom content.")),
-        DrawerPage("details", "Details", content("Details page", "Stable page IDs preserve selection across updates."))
+        DrawerPage("overview", "Overview", content("Overview page", "Generic page hosting, lifecycle and page switching."),
+            systemIcon(android.R.drawable.ic_menu_view)),
+        DrawerPage("logs", "Logs", content("Logs page", "A simulated log stream demonstrates arbitrary page content."),
+            systemIcon(android.R.drawable.ic_menu_recent_history)),
+        DrawerPage("tools", "Tools", content("Tools page", "Independent tools and custom content."),
+            systemIcon(android.R.drawable.ic_menu_manage)),
+        DrawerPage("details", "Details", content("Details page", "Stable page IDs preserve selection across updates."),
+            systemIcon(android.R.drawable.ic_menu_info_details))
     )
+
+    private fun systemIcon(resourceId: Int) = resources.getDrawable(resourceId, theme)
 
     private fun content(title: String, description: String) = object : DrawerPanelContent {
         override fun createView(): View = panel(this@DrawerApiLabActivity, title, description)

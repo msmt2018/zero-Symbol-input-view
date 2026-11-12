@@ -59,16 +59,16 @@ DrawerNavigationController is the source of truth for page identity and selectio
 - Avoid duplicating the current ViewPager2 and gesture implementation while the new core is being extracted; migration should have one owner for each interaction at every stage.
 - Public API types should be stable and domain-neutral. Internal implementation classes may change without requiring application changes.
 
-## Planned implementation sequence
+## Implementation roadmap
 
-1. Public contracts and pure anchor resolver.
-2. Generic DrawerContainer and state/controller binding.
-3. Independent Peek/Expanded panel composition.
-4. Generic navigation bar/indicator/page host.
-5. Gesture physics and nested-scroll coordination, preserving horizontal child gestures.
-6. Host theme/style system and Standard, Compact, FullScreen, SplitPanel presets.
-7. Migrate Symbol drawer to a feature module/adapter without changing visible behavior.
-8. API documentation, lifecycle tests, Android instrumentation tests, and performance validation.
+1. <badge>Complete</badge> Public contracts and pure anchor resolver.
+2. <badge>Complete</badge> Generic DrawerContainer and state/controller binding.
+3. <badge>Complete</badge> Independent Peek/Expanded panel composition.
+4. <badge>Complete</badge> Generic navigation bar, indicators and page host.
+5. <badge>Core complete</badge> Drag physics and nested vertical-scroll coordination; additional horizontal gesture arbitration and device testing remain.
+6. <badge>Core complete</badge> Host theme/style system and Standard, Compact, FullScreen, SplitPanel presets; edge-to-edge/insets refinements remain.
+7. Pending: migrate the Symbol drawer through a feature adapter without changing visible behavior.
+8. Ongoing: documentation, lifecycle tests, Android instrumentation tests, accessibility and performance validation.
 
 
 ## Style, theme and configuration API
@@ -143,3 +143,6 @@ The app module exposes a dedicated Activity through MainActivity's menu. It exer
 - A nested-scrollable page with enough content to test drawer/child scroll hand-off.
 
 The Activity is a manual interaction/visual test harness. CI verifies compilation and JVM unit tests; device-specific gesture feel, edge-to-edge behavior and rendering still require running the Activity on target Android versions.
+
+
+The API lab includes page-icon/title combinations, icon-only and title-only navigation modes, selected-title emphasis, live corner-radius and typography controls. These controls are intended to validate the public setter surface while the symbol-specific integration remains untouched.
