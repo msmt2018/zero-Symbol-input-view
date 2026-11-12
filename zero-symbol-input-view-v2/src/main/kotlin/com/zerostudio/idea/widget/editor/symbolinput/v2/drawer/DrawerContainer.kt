@@ -282,7 +282,10 @@ class DrawerContainer @JvmOverloads constructor(
         }
         title.setTextColor(colors.primaryText ?: Color.BLACK)
         title.textSize = style.typography.titleSizeSp
-        title.setTypeface(title.typeface, style.typography.titleStyle)
+        title.typeface = style.typography.fontFamily?.let {
+            android.graphics.Typeface.create(it, style.typography.titleStyle)
+        } ?: android.graphics.Typeface.create(title.typeface, style.typography.titleStyle)
+        sheet.clipToOutline = style.clipContentToShape
         handle.layoutParams = (handle.layoutParams as LinearLayout.LayoutParams).apply {
             width = dp(style.dimensions.handleWidthDp)
             height = dp(style.dimensions.handleHeightDp)
@@ -312,7 +315,19 @@ class DrawerContainer @JvmOverloads constructor(
         val maxHeight = min(height, dp(currentConfig.style.dimensions.expandedMaxHeightDp))
         val minHeight = min(maxHeight, dp(currentConfig.style.dimensions.peekHeightDp))
         sheet.layoutParams = sheet.layoutParams.apply { this.height = maxHeight }
-        val contentHeight = max(peekHost.measuredHeight, expandedHost.measuredHeight)
+        val contentWidth = width.takeIf { it > 0 } ?: resources.displayMetrics.widthPixels
+        val bodyHeight = max(
+            peekHost.measureContentHeight(contentWidth, maxHeight),
+            max(
+                expandedHost.measureContentHeight(contentWidth, maxHeight),
+                pageHost.measureCurrentContentHeight(contentWidth, maxHeight)
+            )
+        )
+        val headerHeight = dp(currentConfig.style.dimensions.handleHeightDp + 18f) +
+            (if (title.visibility == VISIBLE) dp(36) else 0) +
+            (if (tabs.visibility == VISIBLE) dp(48) else 0) +
+            dp(currentConfig.style.dimensions.verticalPaddingDp)
+        val contentHeight = (bodyHeight + headerHeight).coerceAtMost(maxHeight)
         anchors = DrawerAnchorResolver.resolve(
             currentConfig.anchorStrategy,
             DrawerAnchorInput(minHeight, maxHeight, height, contentHeight, maxHeight, density)
@@ -422,8 +437,10 @@ class DrawerContainer @JvmOverloads constructor(
                 velocityTracker?.recycle()
                 velocityTracker = null
                 val currentHeight = state?.currentHeightPx ?: dragStartHeight
-                val target = if (abs(velocityY) >= dp(currentConfig.style.motion.minimumFlingVelocityDp)) {
-                    DrawerAnchorResolver.flingTarget(anchors, currentHeight, -velocityY,
+                val maximumVelocity = dp(currentConfig.style.motion.maximumFlingVelocityDp).toFloat()
+                val boundedVelocity = velocityY.coerceIn(-maximumVelocity, maximumVelocity)
+                val target = if (abs(boundedVelocity) >= dp(currentConfig.style.motion.minimumFlingVelocityDp)) {
+                    DrawerAnchorResolver.flingTarget(anchors, currentHeight, -boundedVelocity,
                         dp(currentConfig.style.motion.minimumFlingVelocityDp).toFloat())
                 } else DrawerAnchorResolver.nearestAnchor(anchors, currentHeight)
                 moveTo(target, true)

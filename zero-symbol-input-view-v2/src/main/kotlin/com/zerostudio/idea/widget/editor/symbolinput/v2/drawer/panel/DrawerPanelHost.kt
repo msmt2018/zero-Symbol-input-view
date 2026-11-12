@@ -51,6 +51,15 @@ class DrawerPanelHost @JvmOverloads constructor(
         }
     }
 
+    fun measureContentHeight(maxWidthPx: Int, maxHeightPx: Int): Int {
+        val view = contentView ?: return 0
+        view.measure(
+            View.MeasureSpec.makeMeasureSpec(maxWidthPx.coerceAtLeast(0), View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(maxHeightPx.coerceAtLeast(0), View.MeasureSpec.AT_MOST)
+        )
+        return view.measuredHeight
+    }
+
     fun content(): DrawerPanelContent? = panelContent
 
     fun dispatchPanelVisible(visible: Boolean) {

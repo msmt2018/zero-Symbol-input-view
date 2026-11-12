@@ -66,6 +66,16 @@ class DrawerPageHost @JvmOverloads constructor(
     fun selectPage(index: Int): Boolean = navigationController.selectPage(index)
     fun currentPage(): DrawerPage? = navigationController.selectedPage()
 
+    fun measureCurrentContentHeight(maxWidthPx: Int, maxHeightPx: Int): Int {
+        val selectedId = navigationController.snapshot().selectedPageId ?: return 0
+        val view = pageViews[selectedId] ?: return 0
+        view.measure(
+            View.MeasureSpec.makeMeasureSpec(maxWidthPx.coerceAtLeast(0), View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(maxHeightPx.coerceAtLeast(0), View.MeasureSpec.AT_MOST)
+        )
+        return view.measuredHeight
+    }
+
     private fun render(pageId: String?) {
         if (pageId == visiblePageId) return
         val previous = navigationController.pages().firstOrNull { it.id == visiblePageId }
