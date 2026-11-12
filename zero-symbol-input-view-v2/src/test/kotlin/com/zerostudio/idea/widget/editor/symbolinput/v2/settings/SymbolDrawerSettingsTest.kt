@@ -16,15 +16,21 @@ class SymbolDrawerSettingsTest {
         assertEquals(value, SymbolDrawerSettingsCodec.decode(SymbolDrawerSettingsCodec.encode(value)))
     }
 
+    @Test fun missingFieldsUseCurrentDefaultsForStoredSettingsMigration() {
+        val value = SymbolDrawerSettingsCodec.decode("""{"schemaVersion":1,"columns":7}""")
+        assertEquals(7, value.columns)
+        assertEquals(SymbolDrawerSettings().cellHeightDp, value.cellHeightDp)
+    }
+
     @Test(expected = IllegalArgumentException::class)
-    fun rejectsMissingFieldsInSettingsBackup() {
-        SymbolDrawerSettingsCodec.decode("""{"schemaVersion":1,"columns":7}""")
+    fun rejectsMissingFieldsInExternalSettingsBackup() {
+        SymbolDrawerSettingsCodec.decodeStrict("""{"schemaVersion":1,"columns":7}""")
     }
 
     @Test(expected = IllegalArgumentException::class)
     fun rejectsUnknownSettingsFields() {
         val json = SymbolDrawerSettingsCodec.encode(SymbolDrawerSettings()).dropLast(1) + ""","unknown":true}"""
-        SymbolDrawerSettingsCodec.decode(json)
+        SymbolDrawerSettingsCodec.decodeStrict(json)
     }
 
     @Test fun drawerConfigHonorsReducedMotion() {

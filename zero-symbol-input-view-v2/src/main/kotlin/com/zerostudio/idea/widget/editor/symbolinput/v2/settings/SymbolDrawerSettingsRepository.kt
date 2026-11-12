@@ -23,7 +23,12 @@ object SymbolDrawerSettingsCodec {
 
     fun encode(settings: SymbolDrawerSettings): String = gson.toJson(settings)
 
-    fun decode(json: String): SymbolDrawerSettings {
+    fun decode(json: String): SymbolDrawerSettings = decodeInternal(json, strict = false)
+
+    /** Import path: unlike local preference migration, external backups must be complete. */
+    fun decodeStrict(json: String): SymbolDrawerSettings = decodeInternal(json, strict = true)
+
+    private fun decodeInternal(json: String, strict: Boolean): SymbolDrawerSettings {
         val rootElement = JsonParser.parseString(json)
         require(rootElement.isJsonObject) { "Settings backup must be a JSON object" }
         val root = rootElement.asJsonObject
@@ -36,53 +41,58 @@ object SymbolDrawerSettingsCodec {
             "autoCollapseAfterAction", "pageCacheLimit", "prefetchAdjacentGroups",
             "minimumTouchTargetDp", "searchIncludesActionPayload"
         )
-        require(root.keySet() == expected) { "Settings backup fields do not match the supported schema" }
-        fun int(name: String): Int {
-            val value = root.get(name)
+        require(root.keySet().all { it in expected }) { "Settings backup contains unknown fields" }
+        if (strict) require(root.keySet() == expected) {
+            "Settings backup fields do not match the supported schema"
+        }
+
+        val defaults = SymbolDrawerSettings()
+        fun int(name: String, default: Int): Int {
+            val value = root.get(name) ?: return default
             require(value.isJsonPrimitive && value.asJsonPrimitive.isNumber) { "Invalid integer setting: $name" }
             val number = value.asInt
             require(value.asDouble == number.toDouble()) { "Non-integral setting: $name" }
             return number
         }
-        fun bool(name: String): Boolean {
-            val value = root.get(name)
+        fun bool(name: String, default: Boolean): Boolean {
+            val value = root.get(name) ?: return default
             require(value.isJsonPrimitive && value.asJsonPrimitive.isBoolean) { "Invalid boolean setting: $name" }
             return value.asBoolean
         }
-        fun enumValue(name: String): String {
-            val value = root.get(name)
+        fun enumValue(name: String, default: String): String {
+            val value = root.get(name) ?: return default
             require(value.isJsonPrimitive && value.asJsonPrimitive.isString) { "Invalid enum setting: $name" }
             return value.asString
         }
 
-        val version = int("schemaVersion")
+        val version = int("schemaVersion", defaults.schemaVersion)
         require(version == SymbolDrawerSettings.CURRENT_SCHEMA_VERSION) {
             "Unsupported settings schema version: $version"
         }
         return SymbolDrawerSettings(
             schemaVersion = version,
-            themeMode = ThemeMode.valueOf(enumValue("themeMode")),
-            columns = int("columns"),
-            collapsedRows = int("collapsedRows"),
-            cellHeightDp = int("cellHeightDp"),
-            cellHorizontalSpacingDp = int("cellHorizontalSpacingDp"),
-            cellVerticalSpacingDp = int("cellVerticalSpacingDp"),
-            indicatorHeightDp = int("indicatorHeightDp"),
-            indicatorStyle = GroupIndicatorStyle.valueOf(enumValue("indicatorStyle")),
-            showGroupTitles = bool("showGroupTitles"),
-            showSymbolLabels = bool("showSymbolLabels"),
-            showActionHints = bool("showActionHints"),
-            maxExpandedHeightDp = int("maxExpandedHeightDp"),
-            animationDurationMs = int("animationDurationMs"),
-            reduceMotion = bool("reduceMotion"),
-            flingVelocityDpPerSecond = int("flingVelocityDpPerSecond"),
-            longPressTimeoutMs = int("longPressTimeoutMs"),
-            hapticMode = HapticMode.valueOf(enumValue("hapticMode")),
-            autoCollapseAfterAction = bool("autoCollapseAfterAction"),
-            pageCacheLimit = int("pageCacheLimit"),
-            prefetchAdjacentGroups = bool("prefetchAdjacentGroups"),
-            minimumTouchTargetDp = int("minimumTouchTargetDp"),
-            searchIncludesActionPayload = bool("searchIncludesActionPayload")
+            themeMode = ThemeMode.valueOf(enumValue("themeMode", defaults.themeMode.name)),
+            columns = int("columns", defaults.columns),
+            collapsedRows = int("collapsedRows", defaults.collapsedRows),
+            cellHeightDp = int("cellHeightDp", defaults.cellHeightDp),
+            cellHorizontalSpacingDp = int("cellHorizontalSpacingDp", defaults.cellHorizontalSpacingDp),
+            cellVerticalSpacingDp = int("cellVerticalSpacingDp", defaults.cellVerticalSpacingDp),
+            indicatorHeightDp = int("indicatorHeightDp", defaults.indicatorHeightDp),
+            indicatorStyle = GroupIndicatorStyle.valueOf(enumValue("indicatorStyle", defaults.indicatorStyle.name)),
+            showGroupTitles = bool("showGroupTitles", defaults.showGroupTitles),
+            showSymbolLabels = bool("showSymbolLabels", defaults.showSymbolLabels),
+            showActionHints = bool("showActionHints", defaults.showActionHints),
+            maxExpandedHeightDp = int("maxExpandedHeightDp", defaults.maxExpandedHeightDp),
+            animationDurationMs = int("animationDurationMs", defaults.animationDurationMs),
+            reduceMotion = bool("reduceMotion", defaults.reduceMotion),
+            flingVelocityDpPerSecond = int("flingVelocityDpPerSecond", defaults.flingVelocityDpPerSecond),
+            longPressTimeoutMs = int("longPressTimeoutMs", defaults.longPressTimeoutMs),
+            hapticMode = HapticMode.valueOf(enumValue("hapticMode", defaults.hapticMode.name)),
+            autoCollapseAfterAction = bool("autoCollapseAfterAction", defaults.autoCollapseAfterAction),
+            pageCacheLimit = int("pageCacheLimit", defaults.pageCacheLimit),
+            prefetchAdjacentGroups = bool("prefetchAdjacentGroups", defaults.prefetchAdjacentGroups),
+            minimumTouchTargetDp = int("minimumTouchTargetDp", defaults.minimumTouchTargetDp),
+            searchIncludesActionPayload = bool("searchIncludesActionPayload", defaults.searchIncludesActionPayload)
         )
     }
 }

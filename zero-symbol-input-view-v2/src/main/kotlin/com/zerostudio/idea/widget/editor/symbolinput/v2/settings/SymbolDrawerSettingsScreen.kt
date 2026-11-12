@@ -391,7 +391,7 @@ class SymbolDrawerSettingsScreen(
     }
 
     private fun importSettings(json: String) {
-        val next = SymbolDrawerSettingsCodec.decode(json)
+        val next = SymbolDrawerSettingsCodec.decodeStrict(json)
         repository.save(next)
         current = next.copy(themeMode = ThemeMode.SYSTEM)
         render()
