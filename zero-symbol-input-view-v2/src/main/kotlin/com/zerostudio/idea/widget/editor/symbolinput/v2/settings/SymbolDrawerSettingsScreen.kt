@@ -8,6 +8,7 @@ import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
 import android.app.AlertDialog
 import android.widget.ArrayAdapter
 import android.widget.Button
@@ -196,7 +197,7 @@ class SymbolDrawerSettingsScreen(
             }
             val scroll = ScrollView(context).apply {
                 isFillViewport = true
-                addView(page, ScrollView.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
+                addView(page, ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
                 visibility = if (index == 0) View.VISIBLE else View.GONE
             }
             pageHost.addView(scroll, FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
