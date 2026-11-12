@@ -68,6 +68,8 @@ class DrawerContainer @JvmOverloads constructor(
     private var downY = 0f
     private var dragStartHeight = 0
     private var dragging = false
+    private var peekContentVisible = false
+    private var expandedContentVisible = false
     private var hostContent: View? = null
     private val stateListeners = LinkedHashSet<(DrawerState) -> Unit>()
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
@@ -188,8 +190,19 @@ class DrawerContainer @JvmOverloads constructor(
         tabs.isTabIndicatorFullWidth = nav.indicator.widthFraction >= 0.99f
         tabs.tabMode = if (nav.scrollable) TabLayout.MODE_SCROLLABLE else TabLayout.MODE_FIXED
         tabs.tabGravity = if (nav.scrollable) TabLayout.GRAVITY_START else TabLayout.GRAVITY_FILL
-        tabs.setSelectedTabIndicatorColor(nav.indicator.color ?: resolvedColors().accent ?: Color.BLUE)
-        tabs.setSelectedTabIndicatorHeight(dp(nav.indicator.heightDp))
+        val indicatorColor = nav.indicator.color ?: resolvedColors().accent ?: Color.BLUE
+        tabs.setSelectedTabIndicator(GradientDrawable().apply {
+            setColor(if (nav.indicator.shape == com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerIndicatorShape.NONE) {
+                Color.TRANSPARENT
+            } else indicatorColor)
+            cornerRadius = if (nav.indicator.shape == com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerIndicatorShape.PILL) {
+                dp(nav.indicator.heightDp).toFloat()
+            } else 0f
+        })
+        tabs.setSelectedTabIndicatorHeight(
+            if (nav.indicator.shape == com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerIndicatorShape.NONE) 0
+            else dp(nav.indicator.heightDp)
+        )
         tabs.setTabTextColors(
             resolvedColors().secondaryText ?: Color.GRAY,
             resolvedColors().accent ?: Color.BLUE
@@ -267,8 +280,18 @@ class DrawerContainer @JvmOverloads constructor(
         scrim.alpha = fraction * 0.48f
         scrim.isClickable = fraction > 0.01f && currentConfig.dismissOnScrimTap
         val expanded = current.currentHeightPx > minHeight
-        peekHost.visibility = if (!expanded && peekHost.content() != null) VISIBLE else GONE
-        expandedHost.visibility = if (expanded) VISIBLE else GONE
+        val showPeek = !expanded && peekHost.content() != null
+        val showExpanded = expanded && (expandedHost.content() != null || pageHost.navigationController.pages().isNotEmpty())
+        peekHost.visibility = if (showPeek) VISIBLE else GONE
+        expandedHost.visibility = if (showExpanded) VISIBLE else GONE
+        if (showPeek != peekContentVisible) {
+            peekHost.dispatchPanelVisible(showPeek)
+            peekContentVisible = showPeek
+        }
+        if (showExpanded != expandedContentVisible) {
+            expandedHost.dispatchPanelVisible(showExpanded)
+            expandedContentVisible = showExpanded
+        }
     }
 
     private fun moveTo(anchor: DrawerAnchor, animated: Boolean) {
@@ -332,7 +355,7 @@ class DrawerContainer @JvmOverloads constructor(
                 velocityTracker = null
                 val currentHeight = state?.currentHeightPx ?: dragStartHeight
                 val target = if (abs(velocityY) >= dp(currentConfig.style.motion.minimumFlingVelocityDp)) {
-                    DrawerAnchorResolver.flingTarget(anchors, currentHeight, velocityY,
+                    DrawerAnchorResolver.flingTarget(anchors, currentHeight, -velocityY,
                         dp(currentConfig.style.motion.minimumFlingVelocityDp).toFloat())
                 } else DrawerAnchorResolver.nearestAnchor(anchors, currentHeight)
                 moveTo(target, true)
