@@ -3,6 +3,9 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.config
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.ThreeStageAnchorStrategy
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.preset.DrawerPreset
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.preset.DrawerPresets
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerIndicatorShape
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerIndicatorStyle
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerNavigationPlacement
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerThemeMode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -46,6 +49,24 @@ class DrawerConfigTest {
         assertEquals(20f, config.style.typography.titleSizeSp)
         assertEquals(300L, config.style.motion.settleDurationMs)
         assertEquals(0.6f, config.style.motion.dragResistance)
+    }
+
+    @Test fun navigationOptionsAreConfigurableIndependently() {
+        val config = DrawerConfig.builder()
+            .setNavigationEnabled(true)
+            .setNavigationPlacement(DrawerNavigationPlacement.BOTTOM)
+            .setNavigationIndicator(DrawerIndicatorStyle(
+                shape = DrawerIndicatorShape.PILL, heightDp = 4f, widthFraction = 0.8f
+            ))
+            .setNavigationScrollable(false)
+            .setNavigationShowTitles(false)
+            .build()
+
+        assertTrue(config.navigationConfig.enabled)
+        assertEquals(DrawerNavigationPlacement.BOTTOM, config.navigationConfig.placement)
+        assertEquals(DrawerIndicatorShape.PILL, config.navigationConfig.indicator.shape)
+        assertFalse(config.navigationConfig.scrollable)
+        assertFalse(config.navigationConfig.showTitles)
     }
 
     @Test fun presetsRemainDistinctAndOverrideable() {

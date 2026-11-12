@@ -140,7 +140,6 @@ data class DrawerConfig(
         fun setFontFamily(value: String?) = apply {
             style = style.copy(typography = style.typography.copy(fontFamily = value))
         }
-        fun setElevationDp(value: Float) = apply { style = style.copy(elevationDp = value) }
         fun setCornerRadiiDp(topStart: Float, topEnd: Float, bottomStart: Float, bottomEnd: Float) = apply {
             style = style.copy(shape = style.shape.copy(
                 topStartRadiusDp = topStart, topEndRadiusDp = topEnd,
