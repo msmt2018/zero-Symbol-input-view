@@ -81,6 +81,8 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.data.LegacySymbolActionA
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.LegacySymbolActionCatalog
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SharedPreferencesSymbolDrawerSettingsRepository
+import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowAdaptiveInfo
+import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.AdaptiveContentLayoutResolver
 
 private class SymbolHolder(val root: LinearLayout, val title: TextView, val detail: TextView) : RecyclerView.ViewHolder(root)
 
@@ -131,6 +133,17 @@ class SymbolDrawerManagerScreen(
         buildSymbolList()
         buildUndoBar()
         refresh()
+    }
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        if (w <= 0) return
+        val density = resources.displayMetrics.density
+        val window = WindowAdaptiveInfo(w / density, h / density, density)
+        val spec = AdaptiveContentLayoutResolver.resolve(window)
+        val horizontal = dp(spec.horizontalPaddingDp.toInt())
+        val vertical = dp(if (spec.verticalSpacingDp >= 16f) 20 else 12)
+        setPadding(horizontal, vertical, horizontal, vertical)
     }
 
     fun reload() {
