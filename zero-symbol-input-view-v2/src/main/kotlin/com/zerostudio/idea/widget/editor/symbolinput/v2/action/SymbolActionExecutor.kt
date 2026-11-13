@@ -234,6 +234,6 @@ class SymbolActionExecutor(
 
     private companion object {
         val COMMAND_ID = Regex("[a-zA-Z][a-zA-Z0-9_.-]{0,127}")
-        val EXTENSION_ID = Regex("[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}")
+        val EXTENSION_ID = Regex("[a-zA-Z0-9][a-zA-Z0-9_.:/-]{0,255}")
     }
 }

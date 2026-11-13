@@ -53,6 +53,8 @@ import org.junit.Test
 class SymbolActionExecutorTest {
     private open class RecordingHost : SymbolActionHost {
         val calls = mutableListOf<String>()
+        var lastExtensionId: String? = null
+        var lastExtensionPayload: String? = null
         override fun insertText(template: String): Boolean { calls += "insert:$template"; return true }
         override fun replaceSelection(text: String) = true
         override fun surroundSelection(prefix: String, suffix: String) = true
@@ -62,7 +64,11 @@ class SymbolActionExecutorTest {
         override fun executeEditorCommand(commandId: String, payload: String?) = true
         override fun performClipboard(operation: ClipboardOperation) = true
         override fun openManager() = true
-        override fun executeExtension(extensionId: String, payload: String?) = true
+        override fun executeExtension(extensionId: String, payload: String?): Boolean {
+            lastExtensionId = extensionId
+            lastExtensionPayload = payload
+            return true
+        }
     }
 
     @Test fun executesCompositeInOrder() {
@@ -72,6 +78,15 @@ class SymbolActionExecutorTest {
         )
         assertEquals(SymbolActionResult.Executed, result)
         assertEquals(listOf("insert:a", "insert:b"), host.calls)
+    }
+
+
+    @Test fun extensionActionsAcceptNamespacedContextIdentifiers() {
+        val host = RecordingHost()
+        val action = SymbolAction.Extension("com.example/editor:paste", "text")
+        assertEquals(SymbolActionResult.Executed, SymbolActionExecutor().execute(action, host))
+        assertEquals("com.example/editor:paste", host.lastExtensionId)
+        assertEquals("text", host.lastExtensionPayload)
     }
 
     @Test fun rejectsInvalidCommandIds() {
