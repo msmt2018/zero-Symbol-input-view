@@ -287,7 +287,7 @@ class SymbolDrawerManagerScreen(
                 }.onFailure(::reportError)
             }
             .setNegativeButton("取消", null)
-            .show()
+            .showAdaptiveDialog()
     }
 
     private fun buildSearch() {
@@ -419,7 +419,7 @@ class SymbolDrawerManagerScreen(
                     selectedGroupId = previousSelection
                 }
             }
-            .show()
+            .showAdaptiveDialog()
     }
 
     private fun promptGroupName(title: String, initial: String = "", done: (String) -> Unit) {
@@ -437,7 +437,7 @@ class SymbolDrawerManagerScreen(
                 if (value.isNotEmpty()) runCatching { done(value) }.onFailure(::reportError)
                 else toast("分组名称不能为空")
             }
-            .show()
+            .showAdaptiveDialog()
     }
 
     private fun editSymbol(existing: SymbolEntry?) {
@@ -534,7 +534,7 @@ class SymbolDrawerManagerScreen(
                     refresh()
                 }.onFailure(::reportError)
             }
-            .show()
+            .showAdaptiveDialog()
     }
 
     private fun showSymbolMenu(symbol: SymbolEntry, anchor: View) {
@@ -570,7 +570,7 @@ class SymbolDrawerManagerScreen(
                     selectedGroupId = previousSelection
                 }
             }
-            .show()
+            .showAdaptiveDialog()
     }
 
     private fun moveSymbol(symbol: SymbolEntry, delta: Int) {
@@ -597,7 +597,26 @@ class SymbolDrawerManagerScreen(
                     .onFailure(::reportError)
             }
             .setNegativeButton("取消", null)
-            .show()
+            .showAdaptiveDialog()
+    }
+
+    private fun AlertDialog.Builder.showAdaptiveDialog(): AlertDialog {
+        val dialog = create()
+        dialog.setOnShowListener {
+            val density = resources.displayMetrics.density
+            val root = rootView
+            val widthPx = root.width.takeIf { it > 0 } ?: resources.displayMetrics.widthPixels
+            val heightPx = root.height.takeIf { it > 0 } ?: resources.displayMetrics.heightPixels
+            val window = WindowAdaptiveInfo(widthPx / density, heightPx / density, density)
+            val dialogWidth = AdaptiveContentLayoutResolver.resolveDialogWidthPx(
+                windowWidthPx = widthPx,
+                density = density,
+                window = window
+            )
+            dialog.window?.setLayout(dialogWidth, ViewGroup.LayoutParams.WRAP_CONTENT)
+        }
+        dialog.show()
+        return dialog
     }
 
     private fun horizontalRow() = LinearLayout(context).apply {
