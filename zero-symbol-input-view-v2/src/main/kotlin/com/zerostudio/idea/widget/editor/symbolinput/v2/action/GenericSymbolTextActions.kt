@@ -232,8 +232,10 @@ object GenericSymbolTextActions {
     private fun indentCurrentLine(document: SymbolTextDocument, indent: String): Boolean {
         if (!document.isEditable || indent.isEmpty()) return false
         val start = document.lineStartOffset(currentLine(document))
+        val previousCursor = document.cursorOffset
         if (!document.replace(start, start, indent)) return false
-        document.setSelection(document.cursorOffset + indent.length, document.cursorOffset + indent.length)
+        val caret = if (previousCursor >= start) previousCursor + indent.length else start + indent.length
+        document.setSelection(caret, caret)
         return true
     }
 
@@ -250,9 +252,10 @@ object GenericSymbolTextActions {
             else -> 0
         }
         if (count == 0) return false
+        val previousCursor = document.cursorOffset
         if (!document.replace(start, start + count, "")) return false
-        val caret = (document.cursorOffset - count).coerceAtLeast(start)
-        document.setSelection(caret, caret)
+        val caret = if (previousCursor >= start + count) previousCursor - count else start
+        document.setSelection(caret.coerceAtLeast(start), caret.coerceAtLeast(start))
         return true
     }
 

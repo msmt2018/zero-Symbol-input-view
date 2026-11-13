@@ -2,7 +2,12 @@ package io.github.rosemoe.sora.app
 
 import io.github.rosemoe.sora.widget.CodeEditor
 import io.github.rosemoe.sora.widget.SelectionMovement
+import com.zerostudio.idea.widget.editor.symbolinput.v2.action.GenericSymbolTextActions
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionHost
+import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionId
+import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionRegistry
+import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolTextDocument
+import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolTextEditing
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.ClipboardOperation
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.CursorTarget
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.DeleteKind
