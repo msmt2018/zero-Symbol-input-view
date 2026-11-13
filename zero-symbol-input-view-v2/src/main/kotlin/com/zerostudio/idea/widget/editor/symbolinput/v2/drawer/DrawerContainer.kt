@@ -374,10 +374,17 @@ class DrawerContainer @JvmOverloads constructor(
             android.graphics.Typeface.create(it, style.typography.titleStyle)
         } ?: android.graphics.Typeface.create(title.typeface, style.typography.titleStyle)
         sheet.clipToOutline = style.clipContentToShape
-        handle.layoutParams = (handle.layoutParams as LinearLayout.LayoutParams).apply {
-            width = dp(style.dimensions.handleWidthDp)
-            height = dp(style.dimensions.handleHeightDp)
-        }
+        // The handle is a child of handleTouchTarget (FrameLayout), not
+        // the vertical sheet (LinearLayout). Never cast a View's params to
+        // the parent's sibling layout type: Android supplies FrameLayout.LayoutParams here.
+        val handleParams = handle.layoutParams ?: FrameLayout.LayoutParams(
+            dp(style.dimensions.handleWidthDp),
+            dp(style.dimensions.handleHeightDp),
+            Gravity.CENTER
+        )
+        handleParams.width = dp(style.dimensions.handleWidthDp)
+        handleParams.height = dp(style.dimensions.handleHeightDp)
+        handle.layoutParams = handleParams
         sheet.elevation = if (fullScreen) 0f else dp(style.elevationDp).toFloat()
         handleTouchTarget.visibility = if (!currentConfig.dragHandleEnabled) GONE else VISIBLE
         val topInset = if (currentConfig.enableEdgeToEdge) systemBarTopInset else 0
