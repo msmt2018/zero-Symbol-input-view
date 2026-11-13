@@ -909,13 +909,8 @@ class DrawerContainer @JvmOverloads constructor(
         override fun setTypography(typography: DrawerTypography) = setStyle(currentConfig.style.copy(typography = typography))
         override fun setMotion(motion: DrawerMotion) = setStyle(currentConfig.style.copy(motion = motion))
         override fun setShape(shape: DrawerShape) = setStyle(currentConfig.style.copy(shape = shape))
-        override fun setPeekContent(content: DrawerPanelContent?) {
-            currentConfig = currentConfig.copy(peekContent = content)
-            val changed = peekHost.content() !== content
-            peekHost.setContent(content, contentThemeContext())
-            if (changed) refreshPanelVisibilityCallbacks()
-            recalculateAnchors()
-        }
+        override fun setPeekContent(content: DrawerPanelContent?) =
+            this@DrawerContainer.setPeekContent(content)
         override fun setExpandedContent(content: DrawerPanelContent?) {
             currentConfig = currentConfig.copy(expandedContent = content)
             this@DrawerContainer.setExpandedContent(content)
