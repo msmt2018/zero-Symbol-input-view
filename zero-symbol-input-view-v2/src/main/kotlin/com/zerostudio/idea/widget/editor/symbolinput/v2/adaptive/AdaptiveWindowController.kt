@@ -33,6 +33,19 @@ class AdaptiveWindowController(
     @Volatile
     private var latestSnapshot: WindowAdaptiveInfo? = null
 
+    @Volatile
+    private var listenerFailure: Exception? = null
+
+    /**
+     * Optional diagnostics hook. A subscriber failure is recorded and reported
+     * here without escaping the View layout/insets callback and crashing the host.
+     */
+    @Volatile
+    var onListenerError: ((Exception) -> Unit)? = null
+
+    val lastListenerFailure: Exception?
+        get() = listenerFailure
+
     private val observer = AdaptiveWindowObserver(
         view = hostView,
         onChanged = ::dispatch,
@@ -89,17 +102,17 @@ class AdaptiveWindowController(
             latestSnapshot = snapshot
             listeners.values.toList()
         }
-        var firstFailure: Exception? = null
         callbacks.forEach { callback ->
             try {
                 callback(snapshot)
             } catch (failure: Exception) {
-                if (firstFailure == null) firstFailure = failure
-                else firstFailure?.addSuppressed(failure)
+                listenerFailure = failure
+                // Listener code is external to the observer. Never let a faulty
+                // subscriber escape through View.onLayoutChange on the main
+                // thread; retain the failure for diagnostics and notify hosts.
+                runCatching { onListenerError?.invoke(failure) }
             }
         }
-        // Deliver to every subscriber before propagating callback failures.
-        firstFailure?.let { throw it }
     }
 
     override fun close() {

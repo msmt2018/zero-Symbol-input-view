@@ -84,7 +84,7 @@ class AdaptiveWindowControllerTest {
     }
 
     @Test
-    fun oneFailingListenerDoesNotStarveOtherSubscribers() {
+    fun oneFailingListenerIsReportedWithoutCrashingOrStarvingOtherSubscribers() {
         ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
                 val host = FrameLayout(activity)
@@ -106,14 +106,17 @@ class AdaptiveWindowControllerTest {
                     WindowInsetsMode.VIEW_BOUNDS_ALREADY_EXCLUDE_INSETS
                 )
                 var delivered = 0
+                var reported: Exception? = null
+                controller.onListenerError = { reported = it }
                 controller.addListener(
                     { throw IllegalStateException("expected listener failure") },
                     emitCurrent = false
                 )
                 controller.addListener({ delivered++ }, emitCurrent = false)
 
-                val failure = runCatching { host.layout(0, 0, 520, 700) }.exceptionOrNull()
-                assertEquals("expected listener failure", failure?.message)
+                host.layout(0, 0, 520, 700)
+                assertEquals("expected listener failure", controller.lastListenerFailure?.message)
+                assertEquals("expected listener failure", reported?.message)
                 assertEquals(1, delivered)
                 controller.close()
             }
