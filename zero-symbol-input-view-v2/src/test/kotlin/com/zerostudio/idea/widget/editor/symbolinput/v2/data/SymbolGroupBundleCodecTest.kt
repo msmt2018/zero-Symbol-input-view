@@ -93,7 +93,7 @@ class SymbolGroupBundleCodecTest {
             ))
         )
         val json = SymbolGroupBundleCodec.encode(source)
-        assertTrue(json.contains("\\"format\\":\\"zero-symbol-drawer\\""))
+        assertTrue(json.contains("\"format\":\"zero-symbol-drawer\""))
         assertEquals(source, SymbolGroupBundleCodec.decode(json))
     }
 
