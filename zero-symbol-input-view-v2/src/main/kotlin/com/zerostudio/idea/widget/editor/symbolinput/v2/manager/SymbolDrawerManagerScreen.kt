@@ -56,6 +56,7 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.PopupMenu
 import android.widget.Spinner
+import android.widget.ScrollView
 import android.widget.TextView
 import com.google.android.material.tabs.TabLayout
 import android.graphics.Color
@@ -506,9 +507,16 @@ class SymbolDrawerManagerScreen(
                 alpha = 0.7f
             }, matchWrap())
         }
+        val formScroll = ScrollView(context).apply {
+            isFillViewport = false
+            addView(form, ScrollView.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ))
+        }
         AlertDialog.Builder(context)
             .setTitle(if (existing == null) "新建符号" else "编辑符号")
-            .setView(form)
+            .setView(formScroll)
             .setNegativeButton("取消", null)
             .setPositiveButton("保存") { _, _ ->
                 runCatching {
