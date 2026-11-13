@@ -585,7 +585,9 @@ class SymbolDrawerManagerScreen(
                     val longPosition = longAction.selectedItemPosition
                     val keepLong = preserveLongAction && longPosition == 0
                     val longId = when {
-                        keepLong || longPosition == 0 && !preserveLongAction -> null
+                        keepLong -> null
+                        preserveLongAction && longPosition == 1 -> null
+                        !preserveLongAction && longPosition == 0 -> null
                         else -> LegacySymbolActionCatalog.values[longPosition - longOffset]
                     }
                     val longPayload = longId?.takeIf(LegacySymbolActionCatalog::hasTextPayload)
