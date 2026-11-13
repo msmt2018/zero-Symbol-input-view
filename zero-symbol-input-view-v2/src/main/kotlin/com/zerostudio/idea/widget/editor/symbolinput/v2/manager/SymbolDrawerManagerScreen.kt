@@ -482,48 +482,61 @@ class SymbolDrawerManagerScreen(
             setSingleLine(true)
             setText(existing?.label.orEmpty())
         }
-        val shortIndex = existing?.legacyShortActionId
-            ?.let { LegacySymbolActionCatalog.values.indexOf(it) }
-            ?.takeIf { it >= 0 }
-            ?: LegacySymbolActionCatalog.values.indexOfFirst { value ->
-                existing?.shortAction == LegacySymbolActionAdapter.convert(LegacySymbolAction(value, null))
-            }.coerceAtLeast(0)
-        val longIndex = existing?.legacyLongActionId?.let { LegacySymbolActionCatalog.values.indexOf(it) }
-            ?.takeIf { it >= 0 }?.plus(1)
-            ?: existing?.longAction?.let { action ->
-                val found = LegacySymbolActionCatalog.values.indexOfFirst { value ->
-                    LegacySymbolActionAdapter.convert(LegacySymbolAction(value, null)) == action
-                }
-                when {
-                    found >= 0 -> found + 1
-                    action is com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.InsertText -> 1
-                    else -> 0
-                }
-            } ?: 0
+        val shortLegacyIndex = legacyActionIndex(
+            existing?.shortAction,
+            existing?.legacyShortActionId
+        )
+        val preserveShortAction = existing != null && shortLegacyIndex == null
+        val shortOffset = if (preserveShortAction) 1 else 0
+        val shortLabels = (if (preserveShortAction) listOf("保留当前 V2 动作") else emptyList()) +
+            LegacySymbolActionCatalog.labels
+        val shortIndex = if (preserveShortAction) 0 else shortLegacyIndex ?: 0
+
+        val longLegacyIndex = existing?.longAction?.let { action ->
+            legacyActionIndex(action, existing.legacyLongActionId)
+        }
+        val preserveLongAction = existing?.longAction != null && longLegacyIndex == null
+        val longOffset = if (preserveLongAction) 2 else 1
+        val longLabels = buildList {
+            if (preserveLongAction) add("保留当前 V2 动作")
+            add("无长按动作")
+            addAll(LegacySymbolActionCatalog.labels)
+        }
+        val longIndex = when {
+            preserveLongAction -> 0
+            existing?.longAction == null -> 0
+            else -> (longLegacyIndex ?: 0) + 1
+        }
+
         val shortAction = Spinner(context).apply {
-            adapter = ArrayAdapter(context, android.R.layout.simple_spinner_item, LegacySymbolActionCatalog.labels)
+            adapter = ArrayAdapter(context, android.R.layout.simple_spinner_item, shortLabels)
                 .also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
             setSelection(shortIndex, false)
         }
-        val longLabels = listOf("无长按动作") + LegacySymbolActionCatalog.labels
         val longAction = Spinner(context).apply {
             adapter = ArrayAdapter(context, android.R.layout.simple_spinner_item, longLabels)
                 .also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
             setSelection(longIndex, false)
         }
         val shortText = EditText(context).apply {
-            hint = "短按插入文本（仅“插入文本”动作使用）"
+            hint = "动作参数文本（插入文本/替换行等动作使用）"
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
             minLines = 2
             setText(existing?.legacyShortText
-                ?: (existing?.shortAction as? com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.InsertText)?.template.orEmpty())
+                ?: (existing?.shortAction as? com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.InsertText)?.template
+                ?: (existing?.shortAction as? com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.EditorCommand)
+                    ?.takeIf { it.commandId == "line.replace" }?.payload.orEmpty())
+            isEnabled = !preserveShortAction
         }
         val longText = EditText(context).apply {
-            hint = "长按插入文本（仅“插入文本”动作使用）"
+            hint = "动作参数文本（插入文本/替换行等动作使用）"
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
             minLines = 2
             setText(existing?.legacyLongText
-                ?: (existing?.longAction as? com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.InsertText)?.template.orEmpty())
+                ?: (existing?.longAction as? com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.InsertText)?.template
+                ?: (existing?.longAction as? com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.EditorCommand)
+                    ?.takeIf { it.commandId == "line.replace" }?.payload.orEmpty())
+            isEnabled = !preserveLongAction
         }
         val form = LinearLayout(context).apply {
             orientation = VERTICAL
@@ -561,20 +574,37 @@ class SymbolDrawerManagerScreen(
                 runCatching {
                     val display = label.text.toString()
                     require(display.isNotEmpty()) { "符号显示文本不能为空" }
-                    val shortId = LegacySymbolActionCatalog.values[shortAction.selectedItemPosition]
+                    val keepShort = preserveShortAction && shortAction.selectedItemPosition == 0
+                    val shortId = if (keepShort) null else
+                        LegacySymbolActionCatalog.values[shortAction.selectedItemPosition - shortOffset]
+                    val shortPayload = shortId?.takeIf(LegacySymbolActionCatalog::hasTextPayload)
+                        ?.let { shortText.text.toString() }
+                    val shortTypedAction = if (keepShort) existing!!.shortAction else
+                        LegacySymbolActionAdapter.convert(LegacySymbolAction(shortId!!, shortPayload))
+
                     val longPosition = longAction.selectedItemPosition
-                    val longId = if (longPosition == 0) null else LegacySymbolActionCatalog.values[longPosition - 1]
-                    val shortPayload = shortText.text.toString().takeIf { shortId == 0 }
-                    val longPayload = longText.text.toString().takeIf { longId == 0 }
+                    val keepLong = preserveLongAction && longPosition == 0
+                    val longId = when {
+                        keepLong || longPosition == 0 && !preserveLongAction -> null
+                        else -> LegacySymbolActionCatalog.values[longPosition - longOffset]
+                    }
+                    val longPayload = longId?.takeIf(LegacySymbolActionCatalog::hasTextPayload)
+                        ?.let { longText.text.toString() }
+                    val longTypedAction = when {
+                        keepLong -> existing?.longAction
+                        longId == null -> null
+                        else -> LegacySymbolActionAdapter.convert(LegacySymbolAction(longId, longPayload))
+                    }
                     val symbol = SymbolEntry(
                         id = existing?.id ?: 0L,
                         label = display,
-                        shortAction = LegacySymbolActionAdapter.convert(LegacySymbolAction(shortId, shortPayload)),
-                        longAction = longId?.let { LegacySymbolActionAdapter.convert(LegacySymbolAction(it, longPayload)) },
-                        legacyShortActionId = shortId,
-                        legacyShortText = shortPayload,
-                        legacyLongActionId = longId,
-                        legacyLongText = longPayload
+                        shortAction = shortTypedAction,
+                        longAction = longTypedAction,
+                        legacyShortActionId = if (keepShort) existing?.legacyShortActionId else shortId,
+                        legacyShortText = if (keepShort) existing?.legacyShortText else shortPayload,
+                        legacyLongActionId = if (keepLong) existing?.legacyLongActionId else longId,
+                        legacyLongText = if (keepLong) existing?.legacyLongText else longPayload,
+                        icon = existing?.icon
                     )
                     if (existing == null) manager.addSymbol(group.id, symbol)
                     else manager.updateSymbol(group.id, symbol)
@@ -582,6 +612,32 @@ class SymbolDrawerManagerScreen(
                 }.onFailure(::reportError)
             }
             .showAdaptiveDialog()
+    }
+
+
+    /**
+     * Returns the V1 selector index only when the typed action is losslessly
+     * representable by that selector. V2-only actions stay in a dedicated
+     * "keep current action" option instead of silently degrading on edit.
+     */
+    private fun legacyActionIndex(
+        action: com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction?,
+        legacyId: Int?
+    ): Int? {
+        legacyId?.let { id ->
+            LegacySymbolActionCatalog.values.indexOf(id).takeIf { it >= 0 }?.let { return it }
+        }
+        if (action == null) return null
+        if (action is com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.InsertText) {
+            return LegacySymbolActionCatalog.values.indexOf(0).takeIf { it >= 0 }
+        }
+        if (action is com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.EditorCommand &&
+            action.commandId == "line.replace") {
+            return LegacySymbolActionCatalog.values.indexOf(36).takeIf { it >= 0 }
+        }
+        return LegacySymbolActionCatalog.values.indexOfFirst { id ->
+            LegacySymbolActionAdapter.convert(LegacySymbolAction(id, null)) == action
+        }.takeIf { it >= 0 }
     }
 
     private fun showSymbolMenu(symbol: SymbolEntry, anchor: View) {
