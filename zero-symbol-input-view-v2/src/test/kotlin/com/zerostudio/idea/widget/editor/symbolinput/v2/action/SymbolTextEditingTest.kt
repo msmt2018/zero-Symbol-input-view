@@ -23,7 +23,7 @@ class SymbolTextEditingTest {
     @Test fun macroKeepsEscapedDollarAndUnknownTokensLiteral() {
         assertEquals(
             SymbolTextMacroExpansion("$Sx", 2, 3),
-            SymbolTextEditing.expandMacro("$$S$Sx$E", "")
+            SymbolTextEditing.expandMacro("\\$S\\$Sx\\$E", "")
         )
         assertEquals(
             SymbolTextMacroExpansion("before$Qafter", 13, 13),
