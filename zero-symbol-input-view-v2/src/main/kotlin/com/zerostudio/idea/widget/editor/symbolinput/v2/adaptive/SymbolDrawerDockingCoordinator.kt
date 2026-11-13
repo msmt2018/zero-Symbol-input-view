@@ -31,10 +31,10 @@ class SymbolDrawerDockingCoordinator(
     private var closed = false
 
     private val observer by lazy(LazyThreadSafetyMode.NONE) {
-        AdaptiveWindowObserver(hostView) { window ->
+        AdaptiveWindowObserver(hostView, onChanged = { window ->
             currentWindow = window
             dispatch()
-        }
+        })
     }
 
     init {

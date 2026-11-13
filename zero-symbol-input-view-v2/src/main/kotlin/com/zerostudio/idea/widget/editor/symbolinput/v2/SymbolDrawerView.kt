@@ -70,6 +70,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.HapticMode
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SharedPreferencesSymbolDrawerSettingsRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.ThemeMode
+import com.zerostudio.idea.widget.editor.symbolinput.v2.state.DrawerGeometry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.adapter.SymbolDrawerAnchorAdapter
 import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.SymbolGroupIndicator
 import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.SymbolPageAdapter
