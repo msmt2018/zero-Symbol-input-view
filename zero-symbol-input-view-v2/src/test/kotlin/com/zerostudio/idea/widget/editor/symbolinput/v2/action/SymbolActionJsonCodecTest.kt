@@ -59,6 +59,18 @@ class SymbolActionJsonCodecTest {
         assertEquals(action, SymbolActionJsonCodec.decode(SymbolActionJsonCodec.encode(action)))
     }
 
+
+    @Test fun roundTripsGenericCommandIdsAndExtensionPayloads() {
+        val actions = listOf(
+            SymbolAction.EditorCommand("line.moveUp"),
+            SymbolAction.EditorCommand("line.toggleComment", "#"),
+            SymbolAction.Extension("com.example/editor:paste", "payload")
+        )
+        actions.forEach { action ->
+            assertEquals(action, SymbolActionJsonCodec.decode(SymbolActionJsonCodec.encode(action)))
+        }
+    }
+
     @Test(expected = IllegalArgumentException::class)
     fun rejectsUnknownDiscriminator() {
         SymbolActionJsonCodec.decode(com.google.gson.JsonParser.parseString("""{"kind":"unknown"}""").asJsonObject)
