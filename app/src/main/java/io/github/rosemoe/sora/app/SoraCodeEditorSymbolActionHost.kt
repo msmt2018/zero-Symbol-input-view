@@ -18,7 +18,8 @@ class SoraCodeEditorSymbolActionHost(
     private val editor: CodeEditor,
     private val onOpenManager: () -> Unit
 ) : SymbolActionHost {
-    private val extensionHandlers = LinkedHashMap<String, SymbolActionExtensionHandler>()
+    private val extensionHandlers = SymbolActionRegistry<SoraCodeEditorSymbolActionHost>()
+    private val extensionRegistrations = LinkedHashMap<String, AutoCloseable>()
 
     /** Register an app-defined extension action. Returns false for a blank ID. */
     fun registerExtensionHandler(
@@ -26,12 +27,18 @@ class SoraCodeEditorSymbolActionHost(
         handler: SymbolActionExtensionHandler
     ): Boolean {
         if (extensionId.isBlank()) return false
-        extensionHandlers[extensionId] = handler
+        extensionRegistrations.remove(extensionId)?.close()
+        extensionRegistrations[extensionId] = extensionHandlers.register(
+            SymbolActionId.extension(extensionId)
+        ) { _, payload -> handler.execute(payload) }
         return true
     }
 
     fun unregisterExtensionHandler(extensionId: String): Boolean =
-        extensionHandlers.remove(extensionId) != null
+        extensionRegistrations.remove(extensionId)?.let {
+            it.close()
+            true
+        } ?: false
     /**
      * V1-compatible insertion macros: $S = insertion cursor, $E = selection end,
      * $T = selected text and $ = a literal dollar sign.
@@ -258,7 +265,7 @@ class SoraCodeEditorSymbolActionHost(
     }
 
     override fun executeExtension(extensionId: String, payload: String?): Boolean =
-        extensionHandlers[extensionId]?.execute(payload) ?: false
+        extensionHandlers.execute(SymbolActionId.extension(extensionId), this, payload) ?: false
 
     private fun selectedText(): String =
         if (editor.cursor.isSelected) editor.text.subSequence(
