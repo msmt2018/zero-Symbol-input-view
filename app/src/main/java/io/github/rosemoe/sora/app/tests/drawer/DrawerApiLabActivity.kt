@@ -46,7 +46,7 @@ class DrawerApiLabActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         drawer = DrawerContainer(this, DrawerPresets.config(DrawerPreset.STANDARD))
         setContentView(drawer)
-        drawer.setTitle("Universal Drawer API Lab")
+        drawer.setTitle("")
         drawer.setMainContent(buildDashboard())
         drawer.setPeekContent(objectPanel("Peek panel", "This compact panel is independent from the expanded content."))
         drawer.controller.setPages(samplePages())
@@ -306,7 +306,7 @@ class DrawerApiLabActivity : AppCompatActivity() {
         root.addView(button("重置实验环境") {
             customPalette = false
             drawer.controller.applyConfig(DrawerPresets.config(DrawerPreset.STANDARD))
-            drawer.setTitle("Universal Drawer API Lab")
+            drawer.setTitle("")
             drawer.setPeekContent(objectPanel("Peek panel", "This compact panel is independent from the expanded content."))
             drawer.setPages(samplePages())
             drawer.collapse()
