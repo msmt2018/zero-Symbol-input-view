@@ -65,6 +65,7 @@ import android.util.TypedValue
 import android.widget.Toast
 import android.app.AlertDialog
 import android.text.InputType
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.ListAdapter
@@ -111,6 +112,7 @@ class SymbolDrawerManagerScreen(
     private val searchContainer = LinearLayout(context)
     private var rebuildingTabs = false
     private val emptyView = TextView(context)
+    private var symbolList: RecyclerView? = null
     private val symbolAdapter = SymbolAdapter(
         onClick = { symbol -> editSymbol(symbol) },
         onLongClick = { symbol, anchor -> showSymbolMenu(symbol, anchor) }
@@ -145,6 +147,19 @@ class SymbolDrawerManagerScreen(
         val horizontal = dp(spec.horizontalPaddingDp.toInt())
         val vertical = dp(if (spec.verticalSpacingDp >= 16f) 20 else 12)
         setPadding(horizontal, vertical, horizontal, vertical)
+
+        // Reflow the symbol editor list as cards on expanded windows. The
+        // compact/medium path remains the original single-column list.
+        (symbolList?.layoutManager as? GridLayoutManager)?.let { grid ->
+            if (grid.spanCount != spec.cardColumns) grid.spanCount = spec.cardColumns
+        }
+        groupTabs.layoutParams?.let { params ->
+            val targetHeight = dp(if (spec.cardColumns > 1) 52 else 48)
+            if (params.height != targetHeight) {
+                params.height = targetHeight
+                groupTabs.layoutParams = params
+            }
+        }
     }
 
     fun reload() {
@@ -316,11 +331,12 @@ class SymbolDrawerManagerScreen(
         emptyView.setPadding(dp(8), dp(16), dp(8), dp(16))
         addView(emptyView, matchWrap())
         val list = RecyclerView(context).apply {
-            layoutManager = LinearLayoutManager(context)
+            layoutManager = GridLayoutManager(context, 1)
             adapter = symbolAdapter
             itemAnimator = null
             overScrollMode = RecyclerView.OVER_SCROLL_NEVER
         }
+        symbolList = list
         if (embeddedInSettings) {
             list.isNestedScrollingEnabled = false
             addView(list, LayoutParams(LayoutParams.MATCH_PARENT, dp(320)))
