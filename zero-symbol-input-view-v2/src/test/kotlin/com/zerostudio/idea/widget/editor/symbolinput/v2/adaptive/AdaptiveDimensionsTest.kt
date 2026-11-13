@@ -10,15 +10,15 @@ import org.junit.Test
 
 class AdaptiveDimensionsTest {
     @Test fun scalesDecorativeDimensionsByWindowClass() {
-        assertEquals(96f, AdaptiveDimensions(WindowAdaptiveInfo(400f, 800f)).dp(100f))
-        assertEquals(100f, AdaptiveDimensions(WindowAdaptiveInfo(700f, 800f)).dp(100f))
-        assertEquals(106f, AdaptiveDimensions(WindowAdaptiveInfo(1000f, 800f)).dp(100f))
+        assertEquals(96f, AdaptiveDimensions(WindowAdaptiveInfo(400f, 800f)).dp(100f), 0.001f)
+        assertEquals(100f, AdaptiveDimensions(WindowAdaptiveInfo(700f, 800f)).dp(100f), 0.001f)
+        assertEquals(106f, AdaptiveDimensions(WindowAdaptiveInfo(1000f, 800f)).dp(100f), 0.001f)
     }
 
     @Test fun preservesMinimumTouchTarget() {
         val dimensions = AdaptiveDimensions(WindowAdaptiveInfo(400f, 800f))
-        assertEquals(48f, dimensions.touchTargetDp(40f))
-        assertEquals(48f, dimensions.touchTargetDp(48f))
+        assertEquals(48f, dimensions.touchTargetDp(40f), 0.001f)
+        assertEquals(48f, dimensions.touchTargetDp(48f), 0.001f)
     }
 
     @Test fun convertsScaledDimensionsToPixels() {
