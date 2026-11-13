@@ -58,9 +58,6 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerStyle
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerThemeMode
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerTypography
 
-/** Defines whether the drawer behaves as a floating bottom sheet or a full-viewport surface. */
-enum class DrawerPresentationMode { BOTTOM_SHEET, FULL_SCREEN }
-
 /** Declarative, feature-neutral configuration consumed by a future DrawerContainer. */
 data class DrawerConfig(
     val anchorStrategy: DrawerAnchorStrategy = DrawerAnchorStrategies.existingHeight(),
