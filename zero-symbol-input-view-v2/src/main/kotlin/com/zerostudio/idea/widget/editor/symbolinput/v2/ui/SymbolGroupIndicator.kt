@@ -102,8 +102,12 @@ internal class SymbolGroupIndicator(
         private var horizontalPaddingDp = 14
 
         fun updateWindowWidth(widthPx: Int, density: Float) {
+            lastWindowWidthPx = widthPx
+            lastDensity = density
             val info = WindowAdaptiveInfo(widthPx / density, 0f, density)
-            val next = when (info.sizeClass) {
+            val next = if (
+                settings.largeScreenLayoutMode == com.zerostudio.idea.widget.editor.symbolinput.v2.settings.LargeScreenLayoutMode.BOTTOM
+            ) 14 else when (info.sizeClass) {
                 WindowSizeClass.COMPACT -> 10
                 WindowSizeClass.MEDIUM -> 14
                 WindowSizeClass.EXPANDED -> 18
@@ -113,8 +117,12 @@ internal class SymbolGroupIndicator(
             notifyItemRangeChanged(0, itemCount)
         }
 
+        private var lastWindowWidthPx = 0
+        private var lastDensity = 1f
+
         fun applySettings(value: SymbolDrawerSettings) {
             settings = value
+            if (lastWindowWidthPx > 0) updateWindowWidth(lastWindowWidthPx, lastDensity)
             notifyItemRangeChanged(0, itemCount)
         }
 
