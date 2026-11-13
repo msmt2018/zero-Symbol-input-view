@@ -283,7 +283,7 @@ class DrawerUiContractTest {
                 val parentLimit = (160f * density).toInt()
                 val scroll = CappedScrollView(activity, cap)
                 val content = TextView(activity).apply {
-                    text = (1..80).joinToString("\\n") { "Scrollable editor field $it" }
+                    text = (1..80).joinToString("\n") { "Scrollable editor field $it" }
                 }
                 scroll.addView(content, ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
