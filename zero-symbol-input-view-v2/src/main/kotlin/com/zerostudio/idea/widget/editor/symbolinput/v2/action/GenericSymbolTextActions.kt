@@ -52,7 +52,7 @@ object GenericSymbolTextActions {
         add("selection.wrapAsterisks") { d, _ -> wrapSelection(d, "*", "*") }
         add("selection.wrapUnderscores") { d, _ -> wrapSelection(d, "_", "_") }
         add("selection.wrapHtmlTag") { d, payload -> wrapSelectionWithTag(d, payload) }
-        add("selection.indentLines") { d, payload -> indentSelectedLines(d, payload ?: "\\t") }
+        add("selection.indentLines") { d, payload -> indentSelectedLines(d, payload ?: "\t") }
         add("selection.unindentLines") { d, _ -> unindentSelectedLines(d) }
         add("selection.reverseLines") { d, _ -> reorderSelectedLines(d, reverse = true) }
         add("selection.sortLines") { d, _ -> reorderSelectedLines(d, reverse = false) }
@@ -347,18 +347,18 @@ object GenericSymbolTextActions {
     private fun lineSeparator(document: SymbolTextDocument, line: Int): String {
         val start = document.lineStartOffset(line)
         if (start > 0) {
-            if (start >= 2 && document.charAt(start - 2) == '\\r' && document.charAt(start - 1) == '\\n') return "\\r\\n"
-            if (document.charAt(start - 1) == '\\r') return "\\r"
-            if (document.charAt(start - 1) == '\\n') return "\\n"
+            if (start >= 2 && document.charAt(start - 2) == '\r' && document.charAt(start - 1) == '\n') return "\r\n"
+            if (document.charAt(start - 1) == '\r') return "\r"
+            if (document.charAt(start - 1) == '\n') return "\n"
         }
         val end = document.lineEndOffset(line)
         if (end < document.textLength) {
-            if (document.charAt(end) == '\\r') {
-                return if (end + 1 < document.textLength && document.charAt(end + 1) == '\\n') "\\r\\n" else "\\r"
+            if (document.charAt(end) == '\r') {
+                return if (end + 1 < document.textLength && document.charAt(end + 1) == '\n') "\r\n" else "\r"
             }
-            if (document.charAt(end) == '\\n') return "\\n"
+            if (document.charAt(end) == '\n') return "\n"
         }
-        return "\\n"
+        return "\n"
     }
 
     private fun wrapSelectionWithTag(document: SymbolTextDocument, payload: String?): Boolean {
@@ -409,7 +409,7 @@ object GenericSymbolTextActions {
             val start = document.lineStartOffset(line)
             val content = document.lineText(line)
             val count = when {
-                content.startsWith("\\t") -> 1
+                content.startsWith("\t") -> 1
                 content.startsWith("    ") -> 4
                 content.startsWith("   ") -> 3
                 content.startsWith("  ") -> 2
@@ -483,11 +483,11 @@ object GenericSymbolTextActions {
     private fun ensureFinalNewline(document: SymbolTextDocument, payload: String?): Boolean {
         if (!document.isEditable || document.textLength == 0) return false
         val last = document.charAt(document.textLength - 1)
-        if (last == '\\n' || last == '\\r') return false
+        if (last == '\n' || last == '\r') return false
         val separator = when (payload) {
-            "\\r\\n" -> "\\r\\n"
-            "\\r" -> "\\r"
-            else -> "\\n"
+            "\r\n" -> "\r\n"
+            "\r" -> "\r"
+            else -> "\n"
         }
         val oldLength = document.textLength
         val oldStart = document.selectionStart
