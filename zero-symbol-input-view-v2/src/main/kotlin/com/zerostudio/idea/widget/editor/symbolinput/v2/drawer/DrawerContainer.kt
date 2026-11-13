@@ -752,7 +752,7 @@ class DrawerContainer @JvmOverloads constructor(
         override fun setEdgeToEdgeEnabled(enabled: Boolean) {
             if (currentConfig.enableEdgeToEdge == enabled) return
             currentConfig = currentConfig.copy(enableEdgeToEdge = enabled)
-            ViewCompat.requestApplyInsets(this)
+            ViewCompat.requestApplyInsets(this@DrawerContainer)
             applyVisualStyle()
             recalculateAnchors()
         }
