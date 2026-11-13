@@ -330,7 +330,7 @@ class SymbolDrawerManagerScreen(
         val group = currentGroup() ?: return
         AlertDialog.Builder(context)
             .setTitle("删除分组")
-            .setMessage("删除“${group.title}”及其中全部符号？此操作无法撤销。")
+            .setMessage("删除“${group.title}”及其中全部符号？删除后可使用页面底部的“撤销”恢复。")
             .setNegativeButton("取消", null)
             .setPositiveButton("删除") { _, _ ->
                 val previous = manager.groups.toList()

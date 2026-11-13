@@ -222,22 +222,15 @@ class SymbolDrawerSettingsScreen(
                     alpha = 0.72f
                     setPadding(dp(4), dp(12), dp(4), dp(8))
                 }, matchWrap())
-                activePage?.addView(com.google.android.material.button.MaterialButton(context).apply {
-                    text = "恢复默认设置"
-                    isAllCaps = false
-                    cornerRadius = dp(14)
-                    backgroundTintList = android.content.res.ColorStateList.valueOf(primaryColor())
-                    setTextColor(surfaceColor())
-                    setOnClickListener {
-                        runCatching {
-                            val defaults = SymbolDrawerSettings()
-                            repository.save(defaults)
-                            current = defaults
-                            render()
-                            onSettingsChanged?.invoke(current)
-                            toast("设置已恢复默认并保存")
-                        }.onFailure(::reportFailure)
-                    }
+                activePage?.addView(actionButton("恢复默认设置") {
+                    runCatching {
+                        val defaults = SymbolDrawerSettings()
+                        repository.save(defaults)
+                        current = defaults
+                        render()
+                        onSettingsChanged?.invoke(current)
+                        toast("设置已恢复默认并保存")
+                    }.onFailure(::reportFailure)
                 }, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, dp(50)).apply {
                     topMargin = dp(14)
                 })
