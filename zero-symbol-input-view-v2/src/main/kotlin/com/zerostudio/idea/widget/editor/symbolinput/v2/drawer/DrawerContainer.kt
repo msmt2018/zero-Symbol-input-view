@@ -135,6 +135,9 @@ class DrawerContainer @JvmOverloads constructor(
     private val stateListeners = LinkedHashSet<(DrawerState) -> Unit>()
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
     private val nestedScrollHelper = NestedScrollingParentHelper(this)
+    // Track touch and fling (non-touch) sessions independently. A drawer may receive
+    // overlapping sessions while a scrolling child transitions from drag to fling.
+    private val activeNestedScrollTypes = LinkedHashSet<Int>()
     private val controllerImpl = Controller()
 
     val controller: DrawerController get() = controllerImpl
@@ -631,19 +634,23 @@ class DrawerContainer @JvmOverloads constructor(
 
     override fun onNestedScrollAccepted(child: View, target: View, axes: Int) {
         nestedScrollHelper.onNestedScrollAccepted(child, target, axes)
+        activeNestedScrollTypes += ViewCompat.TYPE_TOUCH
     }
 
     override fun onNestedScrollAccepted(child: View, target: View, axes: Int, type: Int) {
         nestedScrollHelper.onNestedScrollAccepted(child, target, axes, type)
+        activeNestedScrollTypes += type
     }
 
     override fun onStopNestedScroll(target: View) {
         nestedScrollHelper.onStopNestedScroll(target)
+        activeNestedScrollTypes -= ViewCompat.TYPE_TOUCH
         settleAfterNestedScroll()
     }
 
     override fun onStopNestedScroll(target: View, type: Int) {
         nestedScrollHelper.onStopNestedScroll(target, type)
+        activeNestedScrollTypes -= type
         settleAfterNestedScroll()
     }
 
@@ -652,6 +659,7 @@ class DrawerContainer @JvmOverloads constructor(
         // A nested pre-fling may already have started a directional settle
         // animation. Do not replace that target with a nearest-anchor decision
         // based on the animation's transient starting position.
+        if (activeNestedScrollTypes.isNotEmpty()) return
         if (current.isAnimating || !current.isDragging || anchors.isEmpty()) return
         moveTo(DrawerAnchorResolver.nearestAnchor(anchors, current.currentHeightPx), true)
     }
