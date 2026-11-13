@@ -399,6 +399,7 @@ class SymbolDrawerSettingsScreen(
                     "RIGHT" -> "右侧"
                     else -> value.name.lowercase().replace('_', ' ')
                 }
+            }
         )
         spinner.setSelection(initialIndex, false)
         spinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
