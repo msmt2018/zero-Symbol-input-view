@@ -46,7 +46,7 @@ class LegacySymbolDataMigrationTest {
 
     @Test
     fun importsV1ActionsWithoutMutatingTheLegacyPreference() {
-        val json = """[{"n":"Legacy","d":[{"a":0,"b":"x","c":"x","d":36,"e":"replacement"}]}]"""
+        val json = """[{"n":"Legacy","d":[{"a":0,"b":"x","c":"x","d":36,"e":"replacement"},{"a":987,"b":"custom","c":"short payload","d":988,"e":"long payload"}]}]"""
         legacyPreferences.edit().putString("symbol_json_data", json).commit()
         val repository = MemoryRepository()
 
@@ -56,7 +56,15 @@ class LegacySymbolDataMigrationTest {
         assertEquals(SymbolAction.InsertText("x"), repository.groups.single().symbols.single().shortAction)
         assertEquals(
             SymbolAction.EditorCommand("line.replace", "replacement"),
-            repository.groups.single().symbols.single().longAction
+            repository.groups.single().symbols.first().longAction
+        )
+        assertEquals(
+            SymbolAction.Extension("legacy.action.987", "short payload"),
+            repository.groups.single().symbols[1].shortAction
+        )
+        assertEquals(
+            SymbolAction.Extension("legacy.action.988", "long payload"),
+            repository.groups.single().symbols[1].longAction
         )
         assertEquals(json, legacyPreferences.getString("symbol_json_data", null))
     }
