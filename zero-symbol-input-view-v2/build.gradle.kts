@@ -47,6 +47,7 @@ import org.gradle.api.publish.maven.MavenPublication
 
 plugins {
     id("com.android.library")
+    id("maven-publish")
 }
 
 android {
