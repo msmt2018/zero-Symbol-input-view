@@ -190,5 +190,5 @@ object SymbolActionJsonCodec {
     internal const val MAX_ACTION_NODES = 256
     private const val MAX_TEXT_LENGTH = 1_048_576
     private val COMMAND_ID = Regex("[a-zA-Z][a-zA-Z0-9_.-]{0,127}")
-    private val EXTENSION_ID = Regex("[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}")
+    private val EXTENSION_ID = Regex("[a-zA-Z0-9][a-zA-Z0-9_.:/-]{0,255}")
 }
