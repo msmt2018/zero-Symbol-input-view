@@ -406,7 +406,15 @@ class SymbolDrawerView @JvmOverloads constructor(
                         super.requestDisallowInterceptTouchEvent(true)
                     } else if (abs(dy) > abs(dx) * 1.15f) {
                         gestureAxis = AXIS_VERTICAL
-                        if (expandedHeight > collapsedHeight) {
+                        val childCanScrollUp = dy > 0f &&
+                            canScrollableDescendantScrollVertically(-1, event.x, event.y)
+                        if (SymbolDrawerDragPolicy.shouldInterceptVerticalDrag(
+                                fingerDeltaY = dy,
+                                currentHeightPx = drawerHeight,
+                                collapsedHeightPx = collapsedHeight,
+                                expandedHeightPx = expandedHeight,
+                                childCanScrollUp = childCanScrollUp
+                            )) {
                             draggingDrawer = true
                             heightAnimator?.cancel()
                             super.requestDisallowInterceptTouchEvent(true)
@@ -418,6 +426,33 @@ class SymbolDrawerView @JvmOverloads constructor(
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> resetGesture()
         }
         return false
+    }
+
+    /**
+     * Finds a vertically scrollable descendant under the active pointer.
+     * A downward gesture should scroll that content to its start before the
+     * drawer itself begins collapsing.
+     */
+    private fun canScrollableDescendantScrollVertically(
+        direction: Int,
+        x: Float,
+        y: Float
+    ): Boolean {
+        fun scan(view: View, localX: Float, localY: Float): Boolean {
+            if (view !is ViewGroup) return view.canScrollVertically(direction)
+            for (index in view.childCount - 1 downTo 0) {
+                val child = view.getChildAt(index)
+                if (child.visibility != View.VISIBLE || child.width <= 0 || child.height <= 0) continue
+                val childX = localX + view.scrollX - child.left
+                val childY = localY + view.scrollY - child.top
+                if (childX >= 0f && childX < child.width &&
+                    childY >= 0f && childY < child.height &&
+                    scan(child, childX, childY)
+                ) return true
+            }
+            return view.canScrollVertically(direction)
+        }
+        return scan(this, x, y)
     }
 
     /**
