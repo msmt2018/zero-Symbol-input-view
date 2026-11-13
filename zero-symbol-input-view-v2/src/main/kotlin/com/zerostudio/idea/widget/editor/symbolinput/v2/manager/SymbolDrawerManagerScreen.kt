@@ -518,13 +518,18 @@ class SymbolDrawerManagerScreen(
             setSingleLine(true)
             setText(existing?.label.orEmpty())
         }
-        val shortLegacyIndex = legacyActionIndex(
+        val shortLegacyIndex = LegacyActionPickerResolver.legacyActionIndex(
             existing?.shortAction,
-            existing?.legacyShortActionId
+            existing?.legacyShortActionId,
+            existing?.legacyShortText
         )
         val preserveShortAction = existing?.shortAction != null && shortLegacyIndex == null
         val longLegacyIndex = existing?.longAction?.let { action ->
-            legacyActionIndex(action, existing.legacyLongActionId)
+            LegacyActionPickerResolver.legacyActionIndex(
+                action,
+                existing.legacyLongActionId,
+                existing.legacyLongText
+            )
         }
         val preserveLongAction = existing?.longAction != null && longLegacyIndex == null
 
@@ -577,7 +582,7 @@ class SymbolDrawerManagerScreen(
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
             minLines = 2
             setText(
-                existing?.legacyShortText
+                existing?.legacyShortText?.takeIf { shortLegacyIndex != null }
                     ?: (existing?.shortAction as? SymbolAction.InsertText)?.template
                     ?: (existing?.shortAction as? SymbolAction.EditorCommand)?.payload.orEmpty()
             )
@@ -589,7 +594,7 @@ class SymbolDrawerManagerScreen(
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
             minLines = 2
             setText(
-                existing?.legacyLongText
+                existing?.legacyLongText?.takeIf { longLegacyIndex != null }
                     ?: (existing?.longAction as? SymbolAction.InsertText)?.template
                     ?: (existing?.longAction as? SymbolAction.EditorCommand)?.payload.orEmpty()
             )
@@ -708,51 +713,6 @@ class SymbolDrawerManagerScreen(
             .showAdaptiveDialog()
     }
 
-
-    /**
-     * Returns the V1 selector index only when the typed action is losslessly
-     * representable by that selector. V2-only actions stay in a dedicated
-     * "keep current action" option instead of silently degrading on edit.
-     */
-    private fun legacyActionIndex(
-        action: com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction?,
-        legacyId: Int?
-    ): Int? {
-        if (action == null) return null
-        // Historical long-press IDs 1/2 are clipboard operations. Keep their
-        // original IDs instead of normalizing them to newer copy/cut IDs.
-        if (legacyId == 1 || legacyId == 2) return null
-        legacyId?.let { id ->
-            val index = LegacySymbolActionCatalog.values.indexOf(id)
-            if (index >= 0) {
-                val expected = LegacySymbolActionAdapter.convert(LegacySymbolAction(id, null))
-                val compatible = when (expected) {
-                    is com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.InsertText ->
-                        action is com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.InsertText
-                    is com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.EditorCommand -> {
-                        if (expected.commandId == "line.replace") {
-                            action is com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.EditorCommand &&
-                                action.commandId == expected.commandId
-                        } else {
-                            expected == action
-                        }
-                    }
-                    else -> expected == action
-                }
-                if (compatible) return index
-            }
-        }
-        if (action is com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.InsertText) {
-            return LegacySymbolActionCatalog.values.indexOf(0).takeIf { it >= 0 }
-        }
-        if (action is com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.EditorCommand &&
-            action.commandId == "line.replace") {
-            return LegacySymbolActionCatalog.values.indexOf(36).takeIf { it >= 0 }
-        }
-        return LegacySymbolActionCatalog.values.indexOfFirst { id ->
-            LegacySymbolActionAdapter.convert(LegacySymbolAction(id, null)) == action
-        }.takeIf { it >= 0 }
-    }
 
     private fun showSymbolMenu(symbol: SymbolEntry, anchor: View) {
         val menu = PopupMenu(context, anchor)
