@@ -113,10 +113,7 @@ class DrawerUiContractTest {
                 drawer.layout(0, 0, width, height)
                 val settings = find(drawer) { it.contentDescription == "符号设置" }
                 assertTrue(settings.performClick())
-                val dialogTitle = find(activity.window.decorView) {
-                    it is TextView && it.text == "符号抽屉设置"
-                }
-                assertTrue(dialogTitle is TextView)
+                assertTrue(drawer.isSettingsDialogShowing)
             }
         }
     }

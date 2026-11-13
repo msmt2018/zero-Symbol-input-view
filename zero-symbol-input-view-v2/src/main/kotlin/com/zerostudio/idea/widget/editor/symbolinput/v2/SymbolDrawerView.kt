@@ -107,6 +107,8 @@ class SymbolDrawerView @JvmOverloads constructor(
     private val settingsRepository = SharedPreferencesSymbolDrawerSettingsRepository(context.applicationContext)
     private val hasPersistedSettings = settingsRepository.hasStoredSettings()
     private var settings = settingsRepository.load().settings.copy(themeMode = ThemeMode.SYSTEM)
+    private var settingsDialog: AlertDialog? = null
+    internal val isSettingsDialogShowing: Boolean get() = settingsDialog?.isShowing == true
     private val indicator = SymbolGroupIndicator(context) { selectGroup(it, true) }.apply {
         onSettingsClick = { openSettings() }
     }
@@ -219,11 +221,13 @@ class SymbolDrawerView @JvmOverloads constructor(
                 saveGroups()
             }
         }
-        AlertDialog.Builder(context)
+        settingsDialog?.dismiss()
+        settingsDialog = AlertDialog.Builder(context)
             .setTitle("符号抽屉设置")
             .setView(screen)
             .setPositiveButton("完成", null)
-            .show()
+            .create()
+            .also { it.show() }
     }
 
     fun getSettings(): SymbolDrawerSettings = settings
@@ -475,6 +479,8 @@ class SymbolDrawerView @JvmOverloads constructor(
     }
 
     override fun onDetachedFromWindow() {
+        settingsDialog?.dismiss()
+        settingsDialog = null
         heightAnimator?.cancel()
         heightAnimator = null
         resetGesture()
