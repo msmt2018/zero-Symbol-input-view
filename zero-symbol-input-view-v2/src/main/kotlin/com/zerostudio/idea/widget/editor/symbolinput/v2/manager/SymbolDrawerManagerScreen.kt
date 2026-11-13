@@ -82,12 +82,29 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.LegacySymbolAction
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.LegacySymbolActionAdapter
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.LegacySymbolActionCatalog
+import com.zerostudio.idea.widget.editor.symbolinput.v2.action.BuiltinSymbolActionCatalog
+import com.zerostudio.idea.widget.editor.symbolinput.v2.action.BuiltinSymbolActionOption
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SharedPreferencesSymbolDrawerSettingsRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowAdaptiveInfo
 import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.AdaptiveContentLayoutResolver
 
 private class SymbolHolder(val root: LinearLayout, val title: TextView, val detail: TextView) : RecyclerView.ViewHolder(root)
+
+private data class SymbolActionOption(
+    val label: String,
+    val legacyId: Int? = null,
+    val builtin: BuiltinSymbolActionOption? = null,
+    val keepCurrent: Boolean = false,
+    val none: Boolean = false
+) {
+    val hasPayload: Boolean
+        get() = builtin?.hasPayload ?: (legacyId?.let(LegacySymbolActionCatalog::hasTextPayload) == true)
+
+    val payloadHint: String?
+        get() = builtin?.payloadHint
+}
 
 /**
  * Caps an editor form to the available app-window height. AlertDialog can then
@@ -506,84 +523,92 @@ class SymbolDrawerManagerScreen(
             existing?.legacyShortActionId
         )
         val preserveShortAction = existing != null && shortLegacyIndex == null
-        val shortOffset = if (preserveShortAction) 1 else 0
-        val shortLabels = (if (preserveShortAction) listOf("保留当前 V2 动作") else emptyList()) +
-            LegacySymbolActionCatalog.labels
-        val shortIndex = if (preserveShortAction) 0 else shortLegacyIndex ?: 0
-
         val longLegacyIndex = existing?.longAction?.let { action ->
             legacyActionIndex(action, existing.legacyLongActionId)
         }
         val preserveLongAction = existing?.longAction != null && longLegacyIndex == null
-        val longOffset = if (preserveLongAction) 2 else 1
-        val longLabels = buildList {
-            if (preserveLongAction) add("保留当前 V2 动作")
-            add("无长按动作")
-            addAll(LegacySymbolActionCatalog.labels)
+
+        val legacyOptions = LegacySymbolActionCatalog.values.mapIndexed { index, id ->
+            SymbolActionOption("[V1] " + LegacySymbolActionCatalog.labels[index], legacyId = id)
         }
+        val builtinOptions = BuiltinSymbolActionCatalog.options.map { option ->
+            SymbolActionOption("[V2] " + option.label, builtin = option)
+        }
+        val shortOptions = buildList {
+            if (preserveShortAction) add(SymbolActionOption("保留当前 V2 动作", keepCurrent = true))
+            addAll(legacyOptions)
+            addAll(builtinOptions)
+        }
+        val shortOffset = if (preserveShortAction) 1 else 0
+        val shortIndex = if (preserveShortAction) 0 else (shortLegacyIndex ?: 0) + shortOffset
+
+        val longOptions = buildList {
+            if (preserveLongAction) add(SymbolActionOption("保留当前 V2 动作", keepCurrent = true))
+            add(SymbolActionOption("无长按动作", none = true))
+            addAll(legacyOptions)
+            addAll(builtinOptions)
+        }
+        val longOffset = if (preserveLongAction) 2 else 1
         val longIndex = when {
             preserveLongAction -> 0
             existing?.longAction == null -> 0
-            else -> (longLegacyIndex ?: 0) + 1
+            else -> (longLegacyIndex ?: 0) + longOffset
         }
 
         val shortAction = Spinner(context).apply {
-            adapter = ArrayAdapter(context, android.R.layout.simple_spinner_item, shortLabels)
-                .also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
-            setSelection(shortIndex, false)
+            adapter = ArrayAdapter(
+                context,
+                android.R.layout.simple_spinner_item,
+                shortOptions.map(SymbolActionOption::label)
+            ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+            setSelection(shortIndex.coerceIn(shortOptions.indices), false)
         }
         val longAction = Spinner(context).apply {
-            adapter = ArrayAdapter(context, android.R.layout.simple_spinner_item, longLabels)
-                .also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
-            setSelection(longIndex, false)
+            adapter = ArrayAdapter(
+                context,
+                android.R.layout.simple_spinner_item,
+                longOptions.map(SymbolActionOption::label)
+            ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+            setSelection(longIndex.coerceIn(longOptions.indices), false)
         }
         val shortText = EditText(context).apply {
-            hint = "动作参数文本（插入文本/替换行等动作使用）"
+            hint = shortOptions.getOrNull(shortIndex)?.payloadHint
+                ?: "动作参数文本（插入文本/替换行等动作使用）"
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
             minLines = 2
-            setText(existing?.legacyShortText
-                ?: (existing?.shortAction as? com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.InsertText)?.template
-                ?: (existing?.shortAction as? com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.EditorCommand)
-                    ?.takeIf { it.commandId == "line.replace" }?.payload.orEmpty())
-            isEnabled = !preserveShortAction && LegacySymbolActionCatalog.hasTextPayload(
-                LegacySymbolActionCatalog.values[shortIndex - shortOffset]
+            setText(
+                existing?.legacyShortText
+                    ?: (existing?.shortAction as? SymbolAction.InsertText)?.template
+                    ?: (existing?.shortAction as? SymbolAction.EditorCommand)?.payload.orEmpty()
             )
+            isEnabled = shortOptions.getOrNull(shortIndex)?.hasPayload == true
         }
         val longText = EditText(context).apply {
-            hint = "动作参数文本（插入文本/替换行等动作使用）"
+            hint = longOptions.getOrNull(longIndex)?.payloadHint
+                ?: "动作参数文本（插入文本/替换行等动作使用）"
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
             minLines = 2
-            setText(existing?.legacyLongText
-                ?: (existing?.longAction as? com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.InsertText)?.template
-                ?: (existing?.longAction as? com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.EditorCommand)
-                    ?.takeIf { it.commandId == "line.replace" }?.payload.orEmpty())
-            isEnabled = !preserveLongAction && longLegacyIndex?.let { index ->
-                LegacySymbolActionCatalog.hasTextPayload(LegacySymbolActionCatalog.values[index])
-            } == true
+            setText(
+                existing?.legacyLongText
+                    ?: (existing?.longAction as? SymbolAction.InsertText)?.template
+                    ?: (existing?.longAction as? SymbolAction.EditorCommand)?.payload.orEmpty()
+            )
+            isEnabled = longOptions.getOrNull(longIndex)?.hasPayload == true
         }
         shortAction.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onNothingSelected(parent: AdapterView<*>?) {
-                shortText.isEnabled = false
-            }
-
+            override fun onNothingSelected(parent: AdapterView<*>?) { shortText.isEnabled = false }
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                val actionId = if (preserveShortAction && position == 0) null
-                    else LegacySymbolActionCatalog.values[position - shortOffset]
-                shortText.isEnabled = actionId?.let(LegacySymbolActionCatalog::hasTextPayload) == true
+                val option = shortOptions.getOrNull(position)
+                shortText.isEnabled = option?.hasPayload == true
+                option?.payloadHint?.let { shortText.hint = it }
             }
         }
         longAction.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onNothingSelected(parent: AdapterView<*>?) {
-                longText.isEnabled = false
-            }
-
+            override fun onNothingSelected(parent: AdapterView<*>?) { longText.isEnabled = false }
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                val actionId = when {
-                    preserveLongAction && position <= 1 -> null
-                    !preserveLongAction && position == 0 -> null
-                    else -> LegacySymbolActionCatalog.values[position - longOffset]
-                }
-                longText.isEnabled = actionId?.let(LegacySymbolActionCatalog::hasTextPayload) == true
+                val option = longOptions.getOrNull(position)
+                longText.isEnabled = option?.hasPayload == true
+                option?.payloadHint?.let { longText.hint = it }
             }
         }
         val form = LinearLayout(context).apply {
@@ -622,38 +647,57 @@ class SymbolDrawerManagerScreen(
                 runCatching {
                     val display = label.text.toString()
                     require(display.isNotEmpty()) { "符号显示文本不能为空" }
-                    val keepShort = preserveShortAction && shortAction.selectedItemPosition == 0
-                    val shortId = if (keepShort) null else
-                        LegacySymbolActionCatalog.values[shortAction.selectedItemPosition - shortOffset]
-                    val shortPayload = shortId?.takeIf(LegacySymbolActionCatalog::hasTextPayload)
-                        ?.let { shortText.text.toString() }
-                    val shortTypedAction = if (keepShort) existing!!.shortAction else
-                        LegacySymbolActionAdapter.convert(LegacySymbolAction(shortId!!, shortPayload))
-
-                    val longPosition = longAction.selectedItemPosition
-                    val keepLong = preserveLongAction && longPosition == 0
-                    val longId = when {
-                        keepLong -> null
-                        preserveLongAction && longPosition == 1 -> null
-                        !preserveLongAction && longPosition == 0 -> null
-                        else -> LegacySymbolActionCatalog.values[longPosition - longOffset]
+                    val shortOption = shortOptions.getOrNull(shortAction.selectedItemPosition)
+                        ?: error("请选择有效的短按动作")
+                    val keepShort = shortOption.keepCurrent
+                    val shortId = if (keepShort) existing?.legacyShortActionId else shortOption.legacyId
+                    val shortPayload = if (shortOption.hasPayload) {
+                        shortText.text.toString().takeIf { it.isNotEmpty() }
+                    } else null
+                    val shortTypedAction = when {
+                        keepShort -> existing!!.shortAction
+                        shortOption.builtin != null ->
+                            SymbolAction.EditorCommand(shortOption.builtin.commandId, shortPayload)
+                        shortOption.legacyId != null ->
+                            LegacySymbolActionAdapter.convert(LegacySymbolAction(shortOption.legacyId, shortPayload))
+                        else -> null
                     }
-                    val longPayload = longId?.takeIf(LegacySymbolActionCatalog::hasTextPayload)
-                        ?.let { longText.text.toString() }
+                    val shortLegacyText = when {
+                        keepShort -> existing?.legacyShortText
+                        shortId?.let(LegacySymbolActionCatalog::hasTextPayload) == true -> shortPayload
+                        else -> null
+                    }
+
+                    val longOption = longOptions.getOrNull(longAction.selectedItemPosition)
+                        ?: error("请选择有效的长按动作")
+                    val keepLong = longOption.keepCurrent
+                    val longId = if (keepLong) existing?.legacyLongActionId else longOption.legacyId
+                    val longPayload = if (longOption.hasPayload) {
+                        longText.text.toString().takeIf { it.isNotEmpty() }
+                    } else null
                     val longTypedAction = when {
                         keepLong -> existing?.longAction
-                        longId == null -> null
-                        else -> LegacySymbolActionAdapter.convert(LegacySymbolAction(longId, longPayload))
+                        longOption.none -> null
+                        longOption.builtin != null ->
+                            SymbolAction.EditorCommand(longOption.builtin.commandId, longPayload)
+                        longOption.legacyId != null ->
+                            LegacySymbolActionAdapter.convert(LegacySymbolAction(longOption.legacyId, longPayload))
+                        else -> null
+                    }
+                    val longLegacyText = when {
+                        keepLong -> existing?.legacyLongText
+                        longId?.let(LegacySymbolActionCatalog::hasTextPayload) == true -> longPayload
+                        else -> null
                     }
                     val symbol = SymbolEntry(
                         id = existing?.id ?: 0L,
                         label = display,
                         shortAction = shortTypedAction,
                         longAction = longTypedAction,
-                        legacyShortActionId = if (keepShort) existing?.legacyShortActionId else shortId,
-                        legacyShortText = if (keepShort) existing?.legacyShortText else shortPayload,
-                        legacyLongActionId = if (keepLong) existing?.legacyLongActionId else longId,
-                        legacyLongText = if (keepLong) existing?.legacyLongText else longPayload,
+                        legacyShortActionId = shortId,
+                        legacyShortText = shortLegacyText,
+                        legacyLongActionId = longId,
+                        legacyLongText = longLegacyText,
                         icon = existing?.icon
                     )
                     if (existing == null) manager.addSymbol(group.id, symbol)
