@@ -656,10 +656,23 @@ class SymbolDrawerManagerScreen(
         action: com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction?,
         legacyId: Int?
     ): Int? {
-        legacyId?.let { id ->
-            LegacySymbolActionCatalog.values.indexOf(id).takeIf { it >= 0 }?.let { return it }
-        }
         if (action == null) return null
+        legacyId?.let { id ->
+            val index = LegacySymbolActionCatalog.values.indexOf(id)
+            if (index >= 0) {
+                val expected = LegacySymbolActionAdapter.convert(LegacySymbolAction(id, null))
+                val compatible = when (expected) {
+                    is com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.InsertText ->
+                        action is com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.InsertText
+                    is com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.EditorCommand
+                        if (expected.commandId == "line.replace") ->
+                        action is com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.EditorCommand &&
+                            action.commandId == expected.commandId
+                    else -> expected == action
+                }
+                if (compatible) return index
+            }
+        }
         if (action is com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.InsertText) {
             return LegacySymbolActionCatalog.values.indexOf(0).takeIf { it >= 0 }
         }
