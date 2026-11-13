@@ -65,7 +65,12 @@ class DrawerPageHostLifecycleTest {
                 host.dispose()
                 assertEquals(1, events.count { it == "new-second:hidden" })
                 assertEquals(1, events.count { it == "new-second:detached" })
-                assertFalse(host.selectPage("first"))
+                try {
+                    host.selectPage("first")
+                    throw AssertionError("Expected disposed host to reject selection")
+                } catch (expected: IllegalStateException) {
+                    assertTrue(expected.message.orEmpty().contains("disposed"))
+                }
             }
         }
     }
