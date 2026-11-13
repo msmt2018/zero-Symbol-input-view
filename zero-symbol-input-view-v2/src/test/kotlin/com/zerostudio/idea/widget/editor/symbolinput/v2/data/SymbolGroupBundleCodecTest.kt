@@ -130,18 +130,48 @@ class SymbolGroupBundleCodecTest {
         assertTrue(SymbolGroupBundleCodec.decode(SymbolGroupBundleCodec.encode(emptyList())).isEmpty())
     }
 
-    @Test fun storageWritesV1CompactSchemaAndReadsItBack() {
+    @Test fun storageWritesVersionedV2SchemaAndReadsItBack() {
         val groups = listOf(
             SymbolGroup("kotlin", "Kotlin", listOf(
                 SymbolEntry(1L, "fun", SymbolAction.InsertText("fun "))
             ))
         )
         val encoded = SymbolGroupStorageCodec.encode(groups)
-        assertTrue(encoded.contains("\"n\":\"Kotlin\""))
-        assertTrue(encoded.contains("\"d\":["))
-        assertTrue(encoded.contains("\"a\":0"))
-        assertTrue(encoded.contains("\"b\":\"fun\""))
-        assertEquals("Kotlin", SymbolGroupStorageCodec.decode(encoded).single().title)
+        assertTrue(encoded.contains("\\"format\\":\\"zero-symbol-drawer\\""))
+        assertTrue(encoded.contains("\\"version\\":1"))
+        assertTrue(encoded.contains("\\"shortAction\\":"))
+        assertEquals(groups, SymbolGroupStorageCodec.decode(encoded))
+    }
+
+    @Test fun storagePersistsActionsThatCannotBeRepresentedByV1NumericIds() {
+        val groups = listOf(
+            SymbolGroup("modern", "Modern", listOf(
+                SymbolEntry(
+                    id = 9L,
+                    label = "wrap",
+                    shortAction = SymbolAction.SurroundSelection("[", "]"),
+                    longAction = SymbolAction.Composite(listOf(
+                        SymbolAction.InsertText("before"),
+                        SymbolAction.Extension("my.editor.action", "{\\"mode\\":1}")
+                    )),
+                    icon = "W"
+                ),
+                SymbolEntry(
+                    id = 10L,
+                    label = "toggle",
+                    shortAction = SymbolAction.TransformSelection(SelectionTransform.TOGGLE_CASE)
+                )
+            ))
+        )
+        val encoded = SymbolGroupStorageCodec.encode(groups)
+        assertEquals(groups, SymbolGroupStorageCodec.decode(encoded))
+    }
+
+    @Test fun storageStillReadsLegacyV1CompactSchema() {
+        val legacyV1 = """[{"n":"Legacy","d":[{"a":0,"b":"x","c":"x"}]}]"""
+        val restored = SymbolGroupStorageCodec.decode(legacyV1)
+        assertEquals("Legacy", restored.single().title)
+        assertEquals(SymbolAction.InsertText("x"), restored.single().symbols.single().shortAction)
     }
 
     @Test fun storageReadsPreviousUnversionedV2Array() {
@@ -198,7 +228,7 @@ class SymbolGroupBundleCodecTest {
         SymbolGroupBundleCodec.encode(listOf(group))
     }
 
-    @Test fun v1ActionIdsAndPayloadsSurviveCompactJsonRoundTrip() {
+    @Test fun legacyActionIdsAndPayloadsSurviveVersionedV2StorageRoundTrip() {
         val source = listOf(
             SymbolGroup(
                 "legacy-actions",
@@ -224,16 +254,13 @@ class SymbolGroupBundleCodecTest {
             )
         )
         val json = SymbolGroupStorageCodec.encode(source)
-        assertTrue(json.contains("\"a\":0"))
-        assertTrue(json.contains("\"c\":\"val x = %DOLLAR%S%DOLLAR%T%DOLLAR%E\""))
-        assertTrue(json.contains("\"d\":36"))
-        assertTrue(json.contains("\"e\":\"replacement\""))
-        assertTrue(json.contains("\"a\":33"))
+        assertTrue(json.contains("\\"legacyShortActionId\\":0"))
+        assertTrue(json.contains("\\"legacyShortText\\":\\"val x = %DOLLAR%S%DOLLAR%T%DOLLAR%E\\""))
+        assertTrue(json.contains("\\"legacyLongActionId\\":36"))
+        assertTrue(json.contains("\\"legacyLongText\\":\\"replacement\\""))
+        assertTrue(json.contains("\\"legacyShortActionId\\":33"))
         val restored = SymbolGroupStorageCodec.decode(json)
-        assertEquals(0, restored[0].symbols[0].legacyShortActionId)
-        assertEquals("val x = %DOLLAR%S%DOLLAR%T%DOLLAR%E", restored[0].symbols[0].legacyShortText)
-        assertEquals(36, restored[0].symbols[0].legacyLongActionId)
-        assertEquals(33, restored[0].symbols[1].legacyShortActionId)
+        assertEquals(source, restored)
     }
 
     @Test fun importsTheSuppliedV1BackupWithBracketSelectionActionId26() {
