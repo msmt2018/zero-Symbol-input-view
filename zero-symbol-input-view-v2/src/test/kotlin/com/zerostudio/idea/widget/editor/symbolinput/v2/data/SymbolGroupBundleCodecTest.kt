@@ -51,6 +51,30 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SymbolGroupBundleCodecTest {
+
+    @Test fun roundTripsNamespacedExtensionIdsAndV2ActionKinds() {
+        val group = listOf(
+            SymbolGroup(
+                id = "custom/group:one",
+                title = "Actions",
+                symbols = listOf(
+                    SymbolEntry(
+                        id = 99L,
+                        label = "Custom",
+                        shortAction = SymbolAction.Extension("com.example/editor:paste", "payload"),
+                        longAction = SymbolAction.Composite(
+                            listOf(
+                                SymbolAction.TransformSelection(SelectionTransform.TOGGLE_CASE),
+                                SymbolAction.SurroundSelection("(", ")")
+                            )
+                        ),
+                        icon = "custom-icon"
+                    )
+                )
+            )
+        )
+        assertEquals(group, SymbolGroupBundleCodec.decode(SymbolGroupBundleCodec.encode(group)))
+    }
     @Test fun roundTripsGroupsSymbolsIconsAndTypedActions() {
         val groups = listOf(
             SymbolGroup(

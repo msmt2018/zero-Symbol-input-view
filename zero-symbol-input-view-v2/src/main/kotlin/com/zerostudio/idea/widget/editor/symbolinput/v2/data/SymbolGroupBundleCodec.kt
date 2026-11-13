@@ -224,7 +224,7 @@ object SymbolGroupBundleCodec {
                 require((action.payload?.length ?: 0) <= MAX_ACTION_TEXT_CHARS) { "Editor command payload is too large" }
             }
             is SymbolAction.Extension -> {
-                require(Regex("[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}").matches(action.extensionId)) { "Invalid extension ID" }
+                require(Regex("[a-zA-Z0-9][a-zA-Z0-9_.:/-]{0,255}").matches(action.extensionId)) { "Invalid extension ID" }
                 require((action.payload?.length ?: 0) <= MAX_ACTION_TEXT_CHARS) { "Extension payload is too large" }
             }
             is SymbolAction.Composite -> {
