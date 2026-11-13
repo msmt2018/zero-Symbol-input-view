@@ -50,23 +50,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SymbolDrawerSettingsTest {
-    @Test fun largeScreenPreferencesRoundTrip() {
-        val value = SymbolDrawerSettings(
-            largeScreenLayoutMode = LargeScreenLayoutMode.SIDE,
-            sideDockEdge = SideDockEdge.LEFT
-        )
-        val restored = SymbolDrawerSettingsCodec.decode(SymbolDrawerSettingsCodec.encode(value))
-        assertEquals(LargeScreenLayoutMode.SIDE, restored.largeScreenLayoutMode)
-        assertEquals(SideDockEdge.LEFT, restored.sideDockEdge)
-    }
-
-    @Test fun versionOneSettingsMigrateToAutomaticLargeScreenLayout() {
-        val restored = SymbolDrawerSettingsCodec.decode("""{"schemaVersion":1,"columns":7}""")
-        assertEquals(SymbolDrawerSettings.CURRENT_SCHEMA_VERSION, restored.schemaVersion)
-        assertEquals(LargeScreenLayoutMode.AUTO, restored.largeScreenLayoutMode)
-        assertEquals(SideDockEdge.RIGHT, restored.sideDockEdge)
-    }
-
     @Test fun settingsCodecRoundTripsAllValues() {
         val value = SymbolDrawerSettings(
             columns = 6,

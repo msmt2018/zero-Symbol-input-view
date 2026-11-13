@@ -32,7 +32,7 @@ object SymbolDrawerDockingPolicy {
     ): SymbolDrawerDocking = when (settings.largeScreenLayoutMode) {
         LargeScreenLayoutMode.BOTTOM -> SymbolDrawerDocking.BOTTOM
         LargeScreenLayoutMode.SIDE -> settings.sideDockEdge.toDocking()
-        LargeScreenLayoutMode.AUTO -> if (window.widthDp >= AUTO_SIDE_DOCK_MIN_WIDTH_DP) {
+        LargeScreenLayoutMode.AUTO -> if (window.availableWidthDp >= AUTO_SIDE_DOCK_MIN_WIDTH_DP) {
             settings.sideDockEdge.toDocking()
         } else {
             SymbolDrawerDocking.BOTTOM
