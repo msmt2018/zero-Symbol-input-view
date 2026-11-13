@@ -654,13 +654,13 @@ class SymbolDrawerManagerScreen(
                     val shortPayload = if (shortOption.hasPayload) {
                         shortText.text.toString().takeIf { it.isNotEmpty() }
                     } else null
-                    val shortTypedAction = when {
+                    val shortTypedAction: SymbolAction = when {
                         keepShort -> existing!!.shortAction
                         shortOption.builtin != null ->
                             SymbolAction.EditorCommand(shortOption.builtin.commandId, shortPayload)
                         shortOption.legacyId != null ->
                             LegacySymbolActionAdapter.convert(LegacySymbolAction(shortOption.legacyId, shortPayload))
-                        else -> null
+                        else -> SymbolAction.InsertText("")
                     }
                     val shortLegacyText = when {
                         keepShort -> existing?.legacyShortText
