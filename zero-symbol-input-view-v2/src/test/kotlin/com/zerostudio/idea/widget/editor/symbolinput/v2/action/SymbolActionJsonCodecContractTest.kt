@@ -87,6 +87,40 @@ class SymbolActionJsonCodecContractTest {
         assertEquals(action, SymbolActionJsonCodec.decode(encoded))
     }
 
+
+    @Test fun writesAnExplicitActionSchemaVersionAndReadsLegacyUnversionedActions() {
+        val encoded = SymbolActionJsonCodec.encode(SymbolAction.InsertText("ok"))
+        assertEquals(1, encoded.get("schemaVersion").asInt)
+        assertEquals(
+            SymbolAction.InsertText("legacy"),
+            SymbolActionJsonCodec.decode(JsonParser.parseString("""{"kind":"insertText","template":"legacy"}""").asJsonObject)
+        )
+    }
+
+    @Test fun rejectsUnsupportedOrNonIntegralActionSchemaVersions() {
+        assertDecodeFails("""{"schemaVersion":2,"kind":"openManager"}""")
+        assertDecodeFails("""{"schemaVersion":1.5,"kind":"openManager"}""")
+        assertDecodeFails("""{"schemaVersion":"1","kind":"openManager"}""")
+    }
+
+    @Test fun rejectsOversizedTextAndInvalidExtensionIdentifiersDuringDecode() {
+        val oversized = "x".repeat(1_048_577)
+        assertDecodeFails(com.google.gson.JsonObject().apply {
+            addProperty("schemaVersion", 1)
+            addProperty("kind", "insertText")
+            addProperty("template", oversized)
+        }.toString())
+        assertDecodeFails("""{"kind":"extension","extensionId":"../escape"}""")
+        assertDecodeFails("""{"kind":"editorCommand","commandId":"../escape"}""")
+    }
+
+    @Test fun rejectsActionTreesExceedingTheAggregateNodeBudget() {
+        val leaves = (1..64).joinToString(",") { """{"kind":"openManager"}""" }
+        val level = """{"kind":"composite","actions":[$leaves]}"""
+        val nested = """{"kind":"composite","actions":[$level,$level,$level,$level,$level]}"""
+        assertDecodeFails(nested)
+    }
+
     private fun assertDecodeFails(json: String) {
         try {
             SymbolActionJsonCodec.decode(JsonParser.parseString(json).asJsonObject)
