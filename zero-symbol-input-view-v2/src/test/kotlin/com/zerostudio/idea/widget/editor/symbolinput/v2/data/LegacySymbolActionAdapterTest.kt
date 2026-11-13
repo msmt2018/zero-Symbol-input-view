@@ -96,7 +96,7 @@ class LegacySymbolActionAdapterTest {
             30 to SymbolAction.Clipboard(ClipboardOperation.PASTE),
             32 to SymbolAction.EditorCommand("editor.format"),
             33 to SymbolAction.EditorCommand("line.duplicate"),
-            34 to SymbolAction.EditorCommand("line.cut"),
+            34 to SymbolAction.Delete(DeleteKind.CURRENT_LINE),
             35 to SymbolAction.EditorCommand("line.duplicate"),
             36 to SymbolAction.EditorCommand("line.replace", "payload"),
             37 to SymbolAction.InsertText("\n"),

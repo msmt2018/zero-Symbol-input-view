@@ -14,7 +14,6 @@ object BuiltinSymbolActionCatalog {
     val options: List<BuiltinSymbolActionOption> = listOf(
         BuiltinSymbolActionOption("line.duplicate", "行：复制当前行"),
         BuiltinSymbolActionOption("line.delete", "行：删除当前行"),
-        BuiltinSymbolActionOption("line.cut", "行：剪切当前行"),
         BuiltinSymbolActionOption("line.clear", "行：清空当前行"),
         BuiltinSymbolActionOption("line.replace", "行：替换当前行", "输入替换后的整行文本"),
         BuiltinSymbolActionOption("line.insertAbove", "行：上方插入空行"),

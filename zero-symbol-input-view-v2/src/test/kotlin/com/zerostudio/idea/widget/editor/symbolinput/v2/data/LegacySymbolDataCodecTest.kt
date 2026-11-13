@@ -12,9 +12,15 @@ class LegacySymbolDataCodecTest {
         assertEquals(2, roundTrip[0].symbols[1].legacyShortActionId)
     }
 
-    @Test fun cutLineActionRoundTripsAsItsDedicatedV1Id() {
-        val legacy = """[{"n":"行","d":[{"a":34,"b":"剪切行"}]}]"""
+    @Test fun historicalLineDeleteIdKeepsItsV1DeleteSemantics() {
+        val legacy = """[{"n":"行","d":[{"a":34,"b":"删除行"}]}]"""
         val decoded = LegacySymbolDataCodec.decode(legacy)
+        assertEquals(
+            com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.Delete(
+                com.zerostudio.idea.widget.editor.symbolinput.v2.model.DeleteKind.CURRENT_LINE
+            ),
+            decoded[0].symbols[0].shortAction
+        )
         assertEquals(legacy, LegacySymbolDataCodec.encode(decoded))
     }
 }
