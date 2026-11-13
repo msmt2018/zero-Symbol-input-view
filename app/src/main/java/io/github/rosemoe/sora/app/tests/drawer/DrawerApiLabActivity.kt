@@ -83,7 +83,7 @@ class DrawerApiLabActivity : AppCompatActivity() {
             drawer.expand()
         })
         root.addView(button("三分屏（Peek / Half / Expanded）") {
-            drawer.controller.setAnchorStrategy(DrawerAnchorStrategies.threeStage(0.48f, 0.94f))
+            drawer.controller.setAnchorStrategy(DrawerAnchorStrategies.threeStage(0.48f, false))
             drawer.controller.expand()
         })
         root.addView(button("内容自适应高度") {
@@ -103,7 +103,7 @@ class DrawerApiLabActivity : AppCompatActivity() {
         root.addView(button("展开 / 折叠") { drawer.expand(); drawer.postDelayed({ drawer.collapse() }, 900) })
         root.addView(button("切换为全屏容器") {
             drawer.controller.setPresentationMode(DrawerPresentationMode.FULL_SCREEN)
-            drawer.controller.setAnchorStrategy(DrawerAnchorStrategies.threeStage(0.5f, 1f))
+            drawer.controller.setAnchorStrategy(DrawerAnchorStrategies.threeStage(0.5f, false))
             drawer.expand()
         })
         root.addView(button("退出全屏容器") {

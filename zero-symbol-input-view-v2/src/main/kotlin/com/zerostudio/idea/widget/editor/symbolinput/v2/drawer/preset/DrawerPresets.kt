@@ -78,7 +78,7 @@ object DrawerPresets {
                 ))
             DrawerPreset.FULL_SCREEN -> builder
                 .setPresentationMode(DrawerPresentationMode.FULL_SCREEN)
-                .setAnchorStrategy(DrawerAnchorStrategies.threeStage(0.5f, 1f))
+                .setAnchorStrategy(DrawerAnchorStrategies.threeStage(0.5f, false))
                 .setStyle(DrawerStyle(
                     dimensions = DrawerDimensions(
                         peekHeightDp = 64f,
