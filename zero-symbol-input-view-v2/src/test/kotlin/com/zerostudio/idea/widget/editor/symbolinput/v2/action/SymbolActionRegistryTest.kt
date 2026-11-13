@@ -49,6 +49,11 @@ class SymbolActionRegistryTest {
         assertFalse(registry.unregister(id))
     }
 
+    @Test fun namespacedContextIdsCanUseUriLikeStableIdentifiers() {
+        val id = SymbolActionId.extension("com.example/editor:paste")
+        assertEquals("com.example/editor:paste", id.value)
+    }
+
     @Test fun invalidIdsAreRejected() {
         assertTrue(runCatching { SymbolActionId("", "x") }.isFailure)
         assertTrue(runCatching { SymbolActionId("plugin", "has space") }.isFailure)

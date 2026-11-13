@@ -16,7 +16,7 @@ data class SymbolActionId(val namespace: String, val value: String) {
     }
 
     companion object {
-        private val ID_PART = Regex("[A-Za-z0-9][A-Za-z0-9_.-]{0,127}")
+        private val ID_PART = Regex("[A-Za-z0-9][A-Za-z0-9_.:/-]{0,255}")
 
         @JvmStatic fun legacy(numericId: Int) =
             SymbolActionId("legacy", numericId.toString())
