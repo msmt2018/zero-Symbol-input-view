@@ -25,6 +25,8 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.testing.DrawerTestHostAc
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
@@ -69,10 +71,15 @@ class DrawerUiContractTest {
 
     @Test fun drawerCanDetachAndReattachWithoutLosingStableUiState() {
         ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
+            lateinit var drawer: SymbolDrawerView
+            val committed = CountDownLatch(1)
             scenario.onActivity { activity ->
-                val drawer = SymbolDrawerView(activity)
+                drawer = SymbolDrawerView(activity)
                 activity.content.addView(drawer, FrameLayout.LayoutParams(-1, 480))
-                drawer.submitGroups(sample())
+                drawer.submitGroups(sample()) { committed.countDown() }
+            }
+            assertTrue("Group submission did not commit", committed.await(5, TimeUnit.SECONDS))
+            scenario.onActivity { activity ->
                 drawer.selectGroup(1, false)
                 drawer.setExpanded(true, false)
 

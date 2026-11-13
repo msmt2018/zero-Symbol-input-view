@@ -236,7 +236,11 @@ class SymbolDrawerView @JvmOverloads constructor(
         if (reload) reloadGroups()
     }
 
-    fun submitGroups(value: List<SymbolGroup>, preserveSelectedGroup: Boolean = true) {
+    fun submitGroups(
+        value: List<SymbolGroup>,
+        preserveSelectedGroup: Boolean = true,
+        onCommitted: (() -> Unit)? = null
+    ) {
         require(value.map { it.id }.distinct().size == value.size) {
             "Symbol group IDs must be unique"
         }
@@ -256,6 +260,7 @@ class SymbolDrawerView @JvmOverloads constructor(
             if (groups.isNotEmpty() && target in groups.indices) {
                 pager.setCurrentItem(target, false)
             }
+            onCommitted?.invoke()
         }
         recalculateGeometry()
     }

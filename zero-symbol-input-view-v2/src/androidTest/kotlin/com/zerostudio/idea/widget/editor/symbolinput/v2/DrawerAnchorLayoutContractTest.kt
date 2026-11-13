@@ -84,7 +84,7 @@ class DrawerAnchorLayoutContractTest {
                 drawer.controller.setPages(emptyList())
                 fun panel(lines: Int) = object : DrawerPanelContent {
                     override fun createView(): View = TextView(activity).apply {
-                        text = (1..lines).joinToString("\\n") { "Content row $it" }
+                        text = (1..lines).joinToString("\n") { "Content row $it" }
                     }
                 }
                 drawer.controller.setExpandedContent(panel(2))

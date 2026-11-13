@@ -98,6 +98,7 @@ class DrawerApiLabActivity : AppCompatActivity() {
         root.addView(button("内容自适应 · 短内容") {
             configureBottomSheet()
             drawer.controller.setPages(emptyList())
+            drawer.setPeekContent(objectPanel("内容自适应", "折叠时显示简短摘要。", 2))
             drawer.controller.setExpandedContent(objectPanel("内容自适应", "内容较少时抽屉按实际内容高度收缩。", 3))
             drawer.controller.setAnchorStrategy(DrawerAnchorStrategies.contentBased())
             drawer.refreshAnchors()
@@ -106,6 +107,7 @@ class DrawerApiLabActivity : AppCompatActivity() {
         root.addView(button("内容自适应 · 长内容") {
             configureBottomSheet()
             drawer.controller.setPages(emptyList())
+            drawer.setPeekContent(objectPanel("内容自适应", "折叠时显示简短摘要。", 2))
             drawer.controller.setExpandedContent(objectPanel("内容自适应", "增加内容后重新测量，锚点随内容高度变化。", 14))
             drawer.controller.setAnchorStrategy(DrawerAnchorStrategies.contentBased())
             drawer.refreshAnchors()
