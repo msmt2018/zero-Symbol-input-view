@@ -124,8 +124,8 @@ jobs:
               {
                 echo "## JitPack publication"
                 echo ""
-                echo "- Tag: `$RELEASE_TAG`"
-                echo "- Coordinate: `com.github.msmt2018.zero-Symbol-input-view:zero-symbol-input-view-v2:$RELEASE_TAG`"
+                printf '%s\n' '- Tag: `%s`' "$RELEASE_TAG"
+                printf '%s\n' '- Coordinate: `com.github.msmt2018.zero-Symbol-input-view:zero-symbol-input-view-v2:%s`' "$RELEASE_TAG"
                 echo "- JitPack: https://jitpack.io/#msmt2018/zero-Symbol-input-view"
               } >> "$GITHUB_STEP_SUMMARY"
               exit 0
