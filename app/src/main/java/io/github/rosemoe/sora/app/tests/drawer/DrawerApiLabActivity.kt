@@ -40,23 +40,47 @@ class DrawerApiLabActivity : AppCompatActivity() {
 
     private lateinit var drawer: DrawerContainer
     private lateinit var status: TextView
+    private lateinit var playerController: DrawerDemoPlayerController
+    private var demoDimensions = DrawerDimensions()
+    private var filterSummary = "全部内容"
     private var customPalette = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        drawer = DrawerContainer(this, DrawerPresets.config(DrawerPreset.STANDARD))
+        val standard = DrawerPresets.config(DrawerPreset.STANDARD)
+        demoDimensions = standard.style.dimensions
+        drawer = DrawerContainer(this, standard.copy(peekContent = null, expandedContent = null))
+        playerController = DrawerDemoPlayerController(this) { playerState ->
+            if (::status.isInitialized) {
+                status.text = "播放器：" +
+                    (playerState.error ?: if (playerState.isPreparing) "准备中" else if (playerState.isPlaying) "播放中" else "暂停")
+            }
+        }
         setContentView(drawer)
         drawer.setTitle("")
         drawer.setMainContent(buildDashboard())
-        drawer.setPeekContent(objectPanel("Peek panel", "This compact panel is independent from the expanded content."))
+        // Start with only the real handle visible. Each scenario supplies its own panels.
+        drawer.setPeekContent(null)
+        drawer.controller.setExpandedContent(null)
+        drawer.controller.setDragHandleEnabled(true)
+        drawer.controller.setDragEnabled(true)
         drawer.controller.setPages(samplePages())
         drawer.controller.addStateListener { state ->
-            status.text = "当前锚点：${state.currentAnchorId} · 当前高度：${state.currentHeightPx}px\n" + state.anchors.joinToString("  |  ") { "${it.id}=${it.heightPx}px" } + "\n拖动：${state.isDragging} · 动画：${state.isAnimating}"
+            if (::status.isInitialized) {
+                status.text = "当前锚点：" + state.currentAnchorId +
+                    " · 当前高度：" + state.currentHeightPx + "px" +
+                    "\n拖动：" + state.isDragging + " · 动画：" + state.isAnimating
+            }
         }
     }
 
     override fun onBackPressed() {
         if (!::drawer.isInitialized || !drawer.handleBack()) super.onBackPressed()
+    }
+
+    override fun onDestroy() {
+        if (::playerController.isInitialized) playerController.close()
+        super.onDestroy()
     }
 
     private fun buildDashboard(): View {
@@ -117,9 +141,7 @@ class DrawerApiLabActivity : AppCompatActivity() {
             configureBottomSheet()
             val maxDp = (drawer.height / resources.displayMetrics.density).toInt()
                 .coerceAtLeast(360).coerceAtMost(720)
-            drawer.controller.setDimensions(DrawerDimensions(
-                peekHeightDp = 64f, expandedMaxHeightDp = maxDp.toFloat()
-            ))
+            updateDimensions { it.copy(peekHeightDp = 64f, expandedMaxHeightDp = maxDp.toFloat()) }
             val expanded = dp(maxDp)
             drawer.controller.setAnchorStrategy(DrawerAnchorStrategies.custom(listOf(
                 DrawerAnchor("peek", dp(64), DrawerAnchorState.PEEK),
@@ -132,7 +154,7 @@ class DrawerApiLabActivity : AppCompatActivity() {
         })
         root.addView(button("全屏三段式 · Peek / Half / Full") {
             drawer.controller.setPresentationMode(DrawerPresentationMode.FULL_SCREEN)
-            drawer.controller.setDimensions(DrawerDimensions(peekHeightDp = 64f, expandedMaxHeightDp = 720f))
+            updateDimensions { it.copy(peekHeightDp = 64f, expandedMaxHeightDp = 720f) }
             drawer.controller.setAnchorStrategy(DrawerAnchorStrategies.threeStage(0.5f, false))
             drawer.refreshAnchors()
             drawer.controller.moveToAnchor("expanded", true)
@@ -150,23 +172,32 @@ class DrawerApiLabActivity : AppCompatActivity() {
             drawer.controller.moveToAnchor("peek", false)
         })
         root.addView(section("底部抽屉业务场景"))
-        root.addView(button("播放器抽屉 · Peek / Now Playing") {
+        root.addView(button("播放器抽屉 · 黑胶唱片 / 上一曲 / 播放 / 下一曲") {
             configureBottomSheet()
             drawer.setTitle("Now Playing")
             drawer.controller.setPages(emptyList())
-            drawer.setPeekContent(objectPanel("正在播放 · Sample Track", "播放状态、标题与进度摘要", 2))
-            drawer.controller.setExpandedContent(objectPanel("播放器控制", "播放列表、进度与控制区", 8))
+            drawer.setPeekContent(DrawerDemoPlayerPanelContent(this, playerController, compact = true))
+            drawer.controller.setExpandedContent(DrawerDemoPlayerPanelContent(this, playerController, compact = false))
             drawer.controller.setAnchorStrategy(DrawerAnchorStrategies.threeStage(0.5f, false))
+            drawer.controller.setDragHandleEnabled(true)
+            drawer.controller.setDragEnabled(true)
             drawer.refreshAnchors()
-            drawer.controller.moveToAnchor("half", true)
+            drawer.controller.moveToAnchor("expanded", true)
+            playerController.play()
         })
-        root.addView(button("筛选抽屉 · 内容自适应") {
+        root.addView(button("筛选抽屉 · 独立筛选表单") {
             configureBottomSheet()
             drawer.setTitle("筛选条件")
             drawer.controller.setPages(emptyList())
-            drawer.setPeekContent(objectPanel("筛选摘要", "已选择 2 个条件", 2))
-            drawer.controller.setExpandedContent(objectPanel("筛选项目", "分类、时间范围、排序与开关", 10))
+            filterSummary = "全部内容"
+            drawer.setPeekContent(DrawerDemoFilterSummaryContent(this) { filterSummary })
+            drawer.controller.setExpandedContent(DrawerDemoFilterPanelContent(this) { summary ->
+                filterSummary = summary
+                drawer.collapse()
+            })
             drawer.controller.setAnchorStrategy(DrawerAnchorStrategies.contentBased())
+            drawer.controller.setDragHandleEnabled(true)
+            drawer.controller.setDragEnabled(true)
             drawer.refreshAnchors()
             drawer.controller.moveToAnchor("content", true)
         })
@@ -183,7 +214,9 @@ class DrawerApiLabActivity : AppCompatActivity() {
         root.addView(section("预设样式"))
         DrawerPreset.values().forEach { preset ->
             root.addView(button("应用预设：$preset") {
-                drawer.controller.applyConfig(DrawerPresets.config(preset).copy(
+                val presetConfig = DrawerPresets.config(preset)
+                demoDimensions = presetConfig.style.dimensions
+                drawer.controller.applyConfig(presetConfig.copy(
                     peekContent = objectPanel("Peek · $preset", "Preset preview"),
                     expandedContent = null
                 ))
@@ -207,12 +240,19 @@ class DrawerApiLabActivity : AppCompatActivity() {
         root.addView(section("尺寸与动画"))
         root.addView(label("Peek 高度"))
         root.addView(slider(40f, 120f, 56f) { value ->
-            val old = DrawerDimensions()
-            drawer.controller.setDimensions(old.copy(peekHeightDp = value))
+            updateDimensions { it.copy(peekHeightDp = value) }
         })
         root.addView(label("最大展开高度"))
         root.addView(slider(320f, 900f, 640f) { value ->
-            drawer.controller.setDimensions(DrawerDimensions(expandedMaxHeightDp = value))
+            updateDimensions { it.copy(expandedMaxHeightDp = value.coerceAtLeast(it.peekHeightDp)) }
+        })
+        root.addView(label("拖动手柄宽度"))
+        root.addView(slider(20f, 72f, 36f) { value ->
+            updateDimensions { it.copy(handleWidthDp = value) }
+        })
+        root.addView(label("拖动手柄高度"))
+        root.addView(slider(2f, 14f, 4f) { value ->
+            updateDimensions { it.copy(handleHeightDp = value) }
         })
         root.addView(label("拖动阻尼"))
         root.addView(slider(0.2f, 1f, 0.72f) { value ->
@@ -305,9 +345,12 @@ class DrawerApiLabActivity : AppCompatActivity() {
         root.addView(status)
         root.addView(button("重置实验环境") {
             customPalette = false
-            drawer.controller.applyConfig(DrawerPresets.config(DrawerPreset.STANDARD))
+            val standard = DrawerPresets.config(DrawerPreset.STANDARD)
+            demoDimensions = standard.style.dimensions
+            drawer.controller.applyConfig(standard.copy(peekContent = null, expandedContent = null))
             drawer.setTitle("")
-            drawer.setPeekContent(objectPanel("Peek panel", "This compact panel is independent from the expanded content."))
+            drawer.setPeekContent(null)
+            drawer.controller.setExpandedContent(null)
             drawer.setPages(samplePages())
             drawer.collapse()
         })
@@ -317,11 +360,20 @@ class DrawerApiLabActivity : AppCompatActivity() {
 
     private fun configureBottomSheet() {
         drawer.controller.setPresentationMode(DrawerPresentationMode.BOTTOM_SHEET)
+        drawer.controller.setDragHandleEnabled(true)
+        drawer.controller.setDragEnabled(true)
         val availableDp = (drawer.height / resources.displayMetrics.density).toInt().coerceAtLeast(360)
-        drawer.controller.setDimensions(DrawerDimensions(
-            peekHeightDp = 64f,
-            expandedMaxHeightDp = availableDp.coerceAtMost(720).toFloat()
-        ))
+        updateDimensions {
+            it.copy(
+                peekHeightDp = 64f,
+                expandedMaxHeightDp = availableDp.coerceAtMost(720).toFloat()
+            )
+        }
+    }
+
+    private fun updateDimensions(transform: (DrawerDimensions) -> DrawerDimensions) {
+        demoDimensions = transform(demoDimensions)
+        drawer.controller.setDimensions(demoDimensions)
     }
 
     private fun samplePages() = listOf(

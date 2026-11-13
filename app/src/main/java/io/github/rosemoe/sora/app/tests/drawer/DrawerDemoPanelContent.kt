@@ -38,7 +38,7 @@ internal class DrawerDemoPlayerPanelContent(
     private var playButton: MaterialButton? = null
     private var seekBar: SeekBar? = null
     private var elapsed: TextView? = null
-    private var duration: TextView? = null
+    private var durationLabel: TextView? = null
     private var userSeeking = false
 
     override fun createView(): View = createView(context)
@@ -140,9 +140,9 @@ internal class DrawerDemoPlayerPanelContent(
                 gravity = Gravity.CENTER_VERTICAL
             }
             elapsed = timeLabel(context)
-            duration = timeLabel(context).apply { gravity = Gravity.END }
+            durationLabel = timeLabel(context).apply { gravity = Gravity.END }
             timeRow.addView(elapsed, LinearLayout.LayoutParams(0, -2, 1f))
-            timeRow.addView(duration, LinearLayout.LayoutParams(0, -2, 1f))
+            timeRow.addView(durationLabel, LinearLayout.LayoutParams(0, -2, 1f))
             column.addView(timeRow)
             val controls = LinearLayout(context).apply {
                 orientation = LinearLayout.HORIZONTAL
@@ -193,7 +193,7 @@ internal class DrawerDemoPlayerPanelContent(
             seekBar?.progress = if (total > 0) (current * 1000L / total).toInt() else 0
         }
         elapsed?.text = formatTime(state.positionMs)
-        duration?.text = formatTime(state.durationMs)
+        durationLabel?.text = formatTime(state.durationMs)
         disc?.setTrackIndex(state.trackIndex)
         val animator = discAnimator
         if (state.isPlaying) {

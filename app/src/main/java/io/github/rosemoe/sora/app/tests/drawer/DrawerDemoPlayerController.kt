@@ -285,7 +285,7 @@ internal class DrawerDemoPlayerController(
 
     private fun publish(value: DrawerDemoPlayerState) {
         state = value
-        onStateChanged(value)
+        runCatching { onStateChanged(value) }
         listeners.toList().forEach { listener -> runCatching { listener(value) } }
     }
 
