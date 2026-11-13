@@ -174,7 +174,7 @@ class SymbolDrawerManagerScreen(
         searchToggle.setOnClickListener {
             val show = searchContainer.visibility != View.VISIBLE
             searchContainer.visibility = if (show) View.VISIBLE else View.GONE
-            if (!show) searchField.setText() else searchField.requestFocus()
+            if (!show) searchField.text?.clear() else searchField.requestFocus()
         }
         row.addView(searchToggle, LayoutParams(dp(44), dp(40)))
         addView(row, matchWrap())
