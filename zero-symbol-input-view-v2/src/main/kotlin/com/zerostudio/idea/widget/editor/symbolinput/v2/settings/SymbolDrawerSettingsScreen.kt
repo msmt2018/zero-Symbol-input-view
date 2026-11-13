@@ -95,6 +95,9 @@ class SymbolDrawerSettingsScreen(
     private var activePage: LinearLayout? = null
     private var pendingImport: ImportKind = ImportKind.SETTINGS
     private var adaptiveSpacingScale: Float = 1f
+    private var selectedTabIndex: Int = 0
+    private var activeScrollView: ScrollView? = null
+    private var spacingReflowInProgress = false
     private val content = LinearLayout(context).apply { orientation = VERTICAL }
     private val documentPicker = JsonDocumentPicker(
         context,
@@ -116,11 +119,13 @@ class SymbolDrawerSettingsScreen(
         val density = resources.displayMetrics.density
         val window = WindowAdaptiveInfo(w / density, h / density, density)
         val spec = AdaptiveContentLayoutResolver.resolve(window)
-        adaptiveSpacingScale = when (window.sizeClass) {
+        val nextSpacingScale = when (window.sizeClass) {
             com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowSizeClass.COMPACT -> 0.96f
             com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowSizeClass.MEDIUM -> 1f
             com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowSizeClass.EXPANDED -> 1.08f
         }
+        val spacingChanged = nextSpacingScale != adaptiveSpacingScale
+        adaptiveSpacingScale = nextSpacingScale
         val horizontal = dp(spec.horizontalPaddingDp.toInt())
         setPadding(horizontal, dp(12), horizontal, dp(8))
         gravity = Gravity.CENTER_HORIZONTAL
@@ -129,6 +134,13 @@ class SymbolDrawerSettingsScreen(
         if (params.width != targetWidth) {
             params.width = targetWidth
             content.layoutParams = params
+        }
+        if (spacingChanged && !spacingReflowInProgress && content.childCount > 0) {
+            spacingReflowInProgress = true
+            val previousScroll = activeScrollView?.scrollY ?: 0
+            render()
+            activeScrollView?.post { activeScrollView?.scrollTo(0, previousScroll) }
+            spacingReflowInProgress = false
         }
     }
 
@@ -144,6 +156,7 @@ class SymbolDrawerSettingsScreen(
         content.removeAllViews()
         content.setBackgroundColor(surfaceColor())
         activePage = null
+        activeScrollView = null
 
         content.addView(LinearLayout(context).apply {
             orientation = VERTICAL
@@ -273,7 +286,7 @@ class SymbolDrawerSettingsScreen(
         )
 
         builders.forEachIndexed { index, entry ->
-            tabs.addTab(tabs.newTab().setText(entry.first), index == 0)
+            tabs.addTab(tabs.newTab().setText(entry.first), index == selectedTabIndex)
             val page = LinearLayout(context).apply {
                 orientation = VERTICAL
                 setPadding(spaceDp(16), spaceDp(8), spaceDp(16), spaceDp(28))
@@ -283,15 +296,18 @@ class SymbolDrawerSettingsScreen(
                 addView(page, FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
                 ))
-                visibility = if (index == 0) View.VISIBLE else View.GONE
+                visibility = if (index == selectedTabIndex) View.VISIBLE else View.GONE
             }
             pageHost.addView(scroll, FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+            if (index == selectedTabIndex) activeScrollView = scroll
             activePage = page
             entry.second.invoke()
         }
         activePage = null
         tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab) {
+                selectedTabIndex = tab.position
+                activeScrollView = pageHost.getChildAt(tab.position) as? ScrollView
                 for (i in 0 until pageHost.childCount) {
                     pageHost.getChildAt(i).visibility = if (i == tab.position) View.VISIBLE else View.GONE
                 }
