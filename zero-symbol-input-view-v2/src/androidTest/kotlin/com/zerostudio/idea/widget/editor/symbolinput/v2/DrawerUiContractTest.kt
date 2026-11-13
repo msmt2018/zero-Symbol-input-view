@@ -5,6 +5,8 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.tabs.TabLayout
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.manager.SymbolDrawerManagerScreen
@@ -90,6 +92,33 @@ class DrawerUiContractTest {
                 val backup = screen.exportBundle()
                 screen.importBundle(backup)
                 assertEquals(sample(), repository.value)
+            }
+        }
+    }
+
+    @Test fun managerSymbolCardsReflowAcrossWindowSizeClasses() {
+        ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val screen = SymbolDrawerManagerScreen(activity, Groups(sample()))
+                activity.content.addView(screen, FrameLayout.LayoutParams(-1, -1))
+                val density = activity.resources.displayMetrics.density
+                val wideWidth = (1000f * density).toInt()
+                val height = (800f * density).toInt()
+                screen.measure(
+                    View.MeasureSpec.makeMeasureSpec(wideWidth, View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
+                )
+                screen.layout(0, 0, wideWidth, height)
+                val list = find(screen) { it is RecyclerView } as RecyclerView
+                assertEquals(2, (list.layoutManager as GridLayoutManager).spanCount)
+
+                val compactWidth = (500f * density).toInt()
+                screen.measure(
+                    View.MeasureSpec.makeMeasureSpec(compactWidth, View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
+                )
+                screen.layout(0, 0, compactWidth, height)
+                assertEquals(1, (list.layoutManager as GridLayoutManager).spanCount)
             }
         }
     }
