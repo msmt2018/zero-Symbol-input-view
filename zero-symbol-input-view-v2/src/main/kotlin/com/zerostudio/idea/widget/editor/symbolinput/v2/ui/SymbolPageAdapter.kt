@@ -156,7 +156,7 @@ internal class SymbolPageAdapter(
             clipToPadding = false
             var appliedHorizontalPadding = Int.MIN_VALUE
             addOnLayoutChangeListener { view, left, top, right, bottom, _, _, _, _ ->
-                val availableWidth = right - left
+                val availableWidth = (right - left - view.paddingLeft - view.paddingRight).coerceAtLeast(1)
                 if (availableWidth <= 0) return@addOnLayoutChangeListener
                 val density = resources.displayMetrics.density
                 val fixedDimensions =
@@ -176,7 +176,7 @@ internal class SymbolPageAdapter(
                 if (adaptiveGridLayout.spanCount != gridSpec.columnCount) {
                     adaptiveGridLayout.spanCount = gridSpec.columnCount
                 }
-                val horizontal = dp(context, gridSpec.horizontalSpacingDp.coerceAtLeast(0))
+                val horizontal = dp(context, if (fixedDimensions) gridSpec.horizontalSpacingDp else gridSpec.horizontalSpacingDp.coerceAtLeast(0))
                 if (horizontal != appliedHorizontalPadding) {
                     appliedHorizontalPadding = horizontal
                     view.setPadding(horizontal, view.paddingTop, horizontal, view.paddingBottom)

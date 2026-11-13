@@ -100,20 +100,27 @@ internal class SymbolGroupIndicator(
         private var selectedIndex = 0
         private var settings = SymbolDrawerSettings()
         private var horizontalPaddingDp = 14
+        private var titleTextSizeSp = 14f
 
         fun updateWindowWidth(widthPx: Int, density: Float) {
             lastWindowWidthPx = widthPx
             lastDensity = density
             val info = WindowAdaptiveInfo(widthPx / density, 0f, density)
-            val next = if (
+            val fixedDimensions =
                 settings.largeScreenLayoutMode == com.zerostudio.idea.widget.editor.symbolinput.v2.settings.LargeScreenLayoutMode.BOTTOM
-            ) 14 else when (info.sizeClass) {
+            val next = if (fixedDimensions) 14 else when (info.sizeClass) {
                 WindowSizeClass.COMPACT -> 10
                 WindowSizeClass.MEDIUM -> 14
                 WindowSizeClass.EXPANDED -> 18
             }
-            if (next == horizontalPaddingDp) return
+            val nextTextSize = if (fixedDimensions) 14f else when (info.sizeClass) {
+                WindowSizeClass.COMPACT -> 13f
+                WindowSizeClass.MEDIUM -> 14f
+                WindowSizeClass.EXPANDED -> 15f
+            }
+            if (next == horizontalPaddingDp && nextTextSize == titleTextSizeSp) return
             horizontalPaddingDp = next
+            titleTextSizeSp = nextTextSize
             notifyItemRangeChanged(0, itemCount)
         }
 
@@ -174,6 +181,7 @@ internal class SymbolGroupIndicator(
                 dp(holder.root, horizontalPaddingDp), 0
             )
             holder.title.text = if (settings.showGroupTitles) group.title else (position + 1).toString()
+            holder.title.textSize = titleTextSizeSp
             holder.title.alpha = if (selected) 1f else 0.68f
             holder.title.setTypeface(null, if (selected) Typeface.BOLD else Typeface.NORMAL)
             holder.title.setTextColor(
