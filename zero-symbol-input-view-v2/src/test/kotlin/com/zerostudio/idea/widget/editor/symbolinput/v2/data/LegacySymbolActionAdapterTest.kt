@@ -73,6 +73,8 @@ class LegacySymbolActionAdapterTest {
     @Test fun mapsEveryBuiltInV1ActionToAnImplementedV2Contract() {
         val expected = mapOf(
             0 to SymbolAction.InsertText("payload"),
+            1 to SymbolAction.Clipboard(ClipboardOperation.COPY),
+            2 to SymbolAction.Clipboard(ClipboardOperation.CUT),
             3 to SymbolAction.Delete(DeleteKind.CURRENT_LINE),
             4 to SymbolAction.EditorCommand("line.clear"),
             7 to SymbolAction.TransformSelection(SelectionTransform.UPPERCASE),

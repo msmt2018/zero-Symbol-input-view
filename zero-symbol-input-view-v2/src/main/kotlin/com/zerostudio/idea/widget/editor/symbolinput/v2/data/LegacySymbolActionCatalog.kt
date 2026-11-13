@@ -52,7 +52,7 @@ object LegacySymbolActionCatalog {
         28, 29, 30, 32, 33, 34, 35, 36, 37, 38, 39,
         40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56
     )
-    // Historical IDs 1 and 2 occur in stored long-press payloads but are not new UI choices.\n    val importableValues: Set<Int> = values.toSet() + setOf(1, 2)\n\n    // Historical IDs 1 and 2 occur in stored long-press payloads but are not new UI choices.
+    // Historical IDs 1 and 2 occur in stored long-press payloads but are not new UI choices.
     val importableValues: Set<Int> = values.toSet() + setOf(1, 2)
 
     /** V1 text payloads are used by insertion and replace-current-line actions. */

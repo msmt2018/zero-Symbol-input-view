@@ -62,6 +62,8 @@ object LegacySymbolActionAdapter {
         val payload = legacy.payload
         return when (legacy.type) {
             0 -> SymbolAction.InsertText(payload.orEmpty())
+            1 -> SymbolAction.Clipboard(ClipboardOperation.COPY)
+            2 -> SymbolAction.Clipboard(ClipboardOperation.CUT)
             3, 34 -> SymbolAction.Delete(DeleteKind.CURRENT_LINE)
             4 -> SymbolAction.EditorCommand("line.clear")
             7 -> SymbolAction.TransformSelection(SelectionTransform.UPPERCASE)

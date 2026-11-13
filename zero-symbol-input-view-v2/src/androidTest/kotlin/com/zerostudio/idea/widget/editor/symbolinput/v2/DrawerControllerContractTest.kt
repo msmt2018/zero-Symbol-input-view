@@ -67,6 +67,9 @@ class DrawerControllerContractTest {
                 )
 
                 controller.setPeekContent(panel)
+                controller.refreshAnchors()
+                val minimumPeekHeight = requireNotNull(controller.currentState()).anchors.first().heightPx
+                assertTrue(minimumPeekHeight >= (120f * activity.resources.displayMetrics.density).toInt())
                 controller.setPeekContent(null)
                 controller.setPeekContent(panel)
                 controller.setExpandedContent(panel)
