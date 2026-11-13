@@ -689,10 +689,10 @@ class DrawerContainer @JvmOverloads constructor(
         val current = state?.currentHeightPx ?: anchors.first().heightPx
         val minHeight = anchors.first().heightPx
         val maxHeight = anchors.last().heightPx
-        // Nested-scroll deltas use content coordinates (positive = content moves up),
-        // while drawer height grows in the opposite direction.
-        val next = (current - dyUnconsumed).coerceIn(minHeight, maxHeight)
-        val drawerDelta = current - next
+        // Nested-scroll deltas use content coordinates: positive expands the
+        // drawer, negative collapses it, matching onNestedPreScroll semantics.
+        val next = (current + dyUnconsumed).coerceIn(minHeight, maxHeight)
+        val drawerDelta = next - current
         if (drawerDelta != 0) {
             consumed[1] += drawerDelta
             updateHeightFromNestedScroll(next)
