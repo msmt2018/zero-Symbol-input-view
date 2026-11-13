@@ -49,6 +49,15 @@ import android.content.Context
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
+import android.graphics.Canvas
+import android.graphics.ColorFilter
+import android.graphics.Matrix
+import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.PixelFormat
+import android.graphics.RectF
+import android.graphics.drawable.Drawable
+import androidx.core.graphics.PathParser
 import android.view.ViewGroup
 import android.util.TypedValue
 import android.widget.TextView
@@ -62,6 +71,51 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.DrawerConfig
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
+
+/**
+ * Material Symbols Outlined "settings" vector, rendered directly from Kotlin.
+ *
+ * Keeping the path in source avoids platform-dependent menu preference glyphs
+ * and guarantees the drawer uses the same gear silhouette on every API level.
+ */
+private class MaterialSettingsDrawable(
+    color: Int
+) : Drawable() {
+    private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+        this.color = color
+    }
+    private val path = PathParser.createPathFromPathData(
+        "M9.25,22l-0.4-3.2q-0.32-0.13-0.61-0.3T7.68,18.13L4.7,19.38L1.95,14.63l2.58-1.95Q4.5,12.5 4.5,12.34q0-0.16 0-0.34t0-0.34t0.03-0.34L1.95,9.38L4.7,4.63L7.68,5.88Q7.95,5.68 8.25,5.5t0.6-0.3L9.25,2h5.5l0.4,3.2q0.33,0.13 0.61,0.3t0.56,0.38L19.3,4.63l2.75,4.75l-2.57,1.95q0.02,0.18 0.02,0.34t0,0.34t0,0.34t-0.05,0.34l2.57,1.95l-2.75,4.75l-2.95-1.25q-0.27,0.2-0.57,0.38t-0.6,0.3L14.75,22H9.25ZM11,20h1.98l0.35-2.65q0.78-0.2 1.44-0.59t1.21-0.94l2.47,1.03l0.98-1.7l-2.15-1.63q0.13-0.35 0.17-0.74T17.5,12t-0.05-0.79q-0.05-0.39-0.17-0.74l2.15-1.63l-0.98-1.7L15.98,8.2q-0.55-0.57-1.21-0.96T13.33,6.65L13,4H11.03L10.68,6.65Q9.9,6.85 9.24,7.24T8.03,8.17L5.55,7.15L4.58,8.85l2.15,1.6Q6.6,10.83 6.55,11.2T6.5,12q0,0.4 0.05,0.77t0.17,0.75L4.58,15.15l0.98,1.7L8.03,15.8q0.55,0.58 1.21,0.96t1.44,0.59L11,20Zm1.05-4.5q1.45,0 2.47-1.03T15.55,12T14.53,9.52T12.05,8.5q-1.47,0-2.49,1.02T8.55,12t1.01,2.47t2.49,1.03ZM12,12Z"
+    ) ?: Path()
+
+    override fun draw(canvas: Canvas) {
+        val bounds = bounds
+        if (bounds.isEmpty) return
+        val source = RectF(0f, 0f, 24f, 24f)
+        val target = RectF(bounds)
+        val matrix = Matrix().apply {
+            setRectToRect(source, target, Matrix.ScaleToFit.CENTER)
+        }
+        val transformed = Path().apply { path.transform(matrix, this) }
+        val save = canvas.save()
+        canvas.translate(bounds.left.toFloat(), bounds.top.toFloat())
+        canvas.drawPath(transformed, paint)
+        canvas.restoreToCount(save)
+    }
+
+    override fun setAlpha(alpha: Int) {
+        paint.alpha = alpha
+        invalidateSelf()
+    }
+
+    override fun setColorFilter(colorFilter: ColorFilter?) {
+        paint.colorFilter = colorFilter
+        invalidateSelf()
+    }
+
+    override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
+}
 
 /** ViewPager2 page adapter backed by recycled grids and DiffUtil. */
 internal class SymbolPageAdapter(
@@ -169,10 +223,9 @@ internal class SymbolPageAdapter(
             val isSettingsAction = item.shortAction == SymbolAction.OpenManager
             if (isSettingsAction) {
                 holder.label.text = ""
-                val icon = androidx.core.content.ContextCompat.getDrawable(
-                    holder.label.context, android.R.drawable.ic_menu_preferences
-                )?.mutate()
-                icon?.setTint(HostThemeColors.onSurface(holder.label.context))
+                val icon = MaterialSettingsDrawable(
+                    HostThemeColors.onSurface(holder.label.context)
+                )
                 val size = dp(holder.label.context, 22)
                 icon?.setBounds(0, 0, size, size)
                 holder.label.setCompoundDrawables(null, icon, null, null)
