@@ -229,6 +229,7 @@ object LegacySymbolDataCodec {
             "selection.selectAll" -> LegacySymbolAction(25)
             "editor.format" -> LegacySymbolAction(32)
             "line.duplicate" -> LegacySymbolAction(35)
+            "line.cut" -> LegacySymbolAction(34)
             "line.replace" -> LegacySymbolAction(36, action.payload)
             "editor.unindent" -> LegacySymbolAction(39)
             "history.undo" -> LegacySymbolAction(55)

@@ -190,6 +190,7 @@ class SoraCodeEditorSymbolActionHost(
             "unindent", "editor.unindent" -> editor.unindentSelection()
             "format", "editor.format" -> editor.formatCodeAsync()
             "insert_payload" -> editor.commitText(payload.orEmpty())
+            "line.cut" -> return cutCurrentLine()
             else -> return false
         }
         return true
@@ -289,6 +290,20 @@ class SoraCodeEditorSymbolActionHost(
         genericTextActions.execute(SymbolActionId("builtin", extensionId), SoraSymbolTextDocument(editor), payload)
             ?.let { return it }
         return extensionHandlers.execute(SymbolActionId.extension(extensionId), this, payload) ?: false
+    }
+
+    private fun cutCurrentLine(): Boolean {
+        if (!editor.isEditable) return false
+        val line = editor.cursor.leftLine
+        val endColumn = editor.text.getColumnCount(line)
+        if (endColumn > 0) {
+            editor.setSelectionRegion(line, 0, line, endColumn)
+            editor.copyText()
+        }
+        return genericTextActions.execute(
+            SymbolActionId("builtin", "line.delete"),
+            SoraSymbolTextDocument(editor)
+        ) ?: false
     }
 
     private class SoraSymbolTextDocument(

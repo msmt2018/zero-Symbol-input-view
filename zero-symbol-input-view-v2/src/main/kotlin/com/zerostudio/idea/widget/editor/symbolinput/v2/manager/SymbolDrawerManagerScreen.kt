@@ -535,7 +535,7 @@ class SymbolDrawerManagerScreen(
             SymbolActionOption("[V2] " + option.label, builtin = option)
         }
         val shortOptions = buildList {
-            if (preserveShortAction) add(SymbolActionOption("保留当前 V2 动作", keepCurrent = true))
+            if (preserveShortAction) add(SymbolActionOption("保留当前动作", keepCurrent = true))
             addAll(legacyOptions)
             addAll(builtinOptions)
         }
@@ -719,6 +719,9 @@ class SymbolDrawerManagerScreen(
         legacyId: Int?
     ): Int? {
         if (action == null) return null
+        // Historical long-press IDs 1/2 are clipboard operations. Keep their
+        // original IDs instead of normalizing them to newer copy/cut IDs.
+        if (legacyId == 1 || legacyId == 2) return null
         legacyId?.let { id ->
             val index = LegacySymbolActionCatalog.values.indexOf(id)
             if (index >= 0) {
