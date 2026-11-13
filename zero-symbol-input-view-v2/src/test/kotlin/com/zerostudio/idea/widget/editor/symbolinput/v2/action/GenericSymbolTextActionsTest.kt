@@ -67,7 +67,7 @@ class GenericSymbolTextActionsTest {
     }
 
     @Test fun readOnlyDocumentsAllowNavigationButRejectEdits() {
-        val doc = FakeDocument("alpha beta", cursor = 8, editable = false)
+        val doc = FakeDocument("alpha beta", cursor = 8, isEditable = false)
         assertTrue(run("cursor.wordLeft", doc))
         assertFalse(run("line.duplicate", doc))
     }
