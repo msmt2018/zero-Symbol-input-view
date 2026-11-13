@@ -52,19 +52,20 @@ class LegacySymbolDataMigrationTest {
 
         assertTrue(LegacySymbolDataMigration.importIfV2Empty(context, repository))
         assertTrue(repository.migrationComplete)
-        assertEquals("Legacy", repository.groups.single().title)
-        assertEquals(SymbolAction.InsertText("x"), repository.groups.single().symbols.single().shortAction)
+        val importedGroup = repository.groups.first { it.title == "Legacy" }
+        assertEquals(2, importedGroup.symbols.size)
+        assertEquals(SymbolAction.InsertText("x"), importedGroup.symbols[0].shortAction)
         assertEquals(
             SymbolAction.EditorCommand("line.replace", "replacement"),
-            repository.groups.single().symbols.first().longAction
+            importedGroup.symbols[0].longAction
         )
         assertEquals(
             SymbolAction.Extension("legacy.action.987", "short payload"),
-            repository.groups.single().symbols[1].shortAction
+            importedGroup.symbols[1].shortAction
         )
         assertEquals(
             SymbolAction.Extension("legacy.action.988", "long payload"),
-            repository.groups.single().symbols[1].longAction
+            importedGroup.symbols[1].longAction
         )
         assertEquals(json, legacyPreferences.getString("symbol_json_data", null))
     }

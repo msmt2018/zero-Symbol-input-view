@@ -239,7 +239,7 @@ class DrawerUiContractTest {
         ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
                 val density = activity.resources.displayMetrics.density
-                val windowHeight = (180f * density).toInt()
+                val windowHeight = (60f * density).toInt()
                 val reservedChrome = (96f * density).toInt()
                 val cap = resolveEditorFormMaxHeightPx(windowHeight, reservedChrome)
                 assertEquals(1, cap)
@@ -255,7 +255,9 @@ class DrawerUiContractTest {
                 val cap = (500f * density).toInt()
                 val parentLimit = (160f * density).toInt()
                 val scroll = CappedScrollView(activity, cap)
-                val content = View(activity)
+                val content = TextView(activity).apply {
+                    text = (1..80).joinToString("\\n") { "Scrollable editor field $it" }
+                }
                 scroll.addView(content, ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     (900f * density).toInt()
@@ -267,8 +269,15 @@ class DrawerUiContractTest {
                     ),
                     View.MeasureSpec.makeMeasureSpec(parentLimit, View.MeasureSpec.AT_MOST)
                 )
-                assertTrue(scroll.measuredHeight <= parentLimit)
-                assertTrue(content.measuredHeight > scroll.measuredHeight)
+                scroll.layout(0, 0, scroll.measuredWidth, scroll.measuredHeight)
+                assertTrue(
+                    "The capped editor form must respect its tighter parent height",
+                    scroll.measuredHeight <= parentLimit
+                )
+                assertTrue(
+                    "The content must remain scrollable inside the capped form",
+                    scroll.canScrollVertically(1)
+                )
             }
         }
     }

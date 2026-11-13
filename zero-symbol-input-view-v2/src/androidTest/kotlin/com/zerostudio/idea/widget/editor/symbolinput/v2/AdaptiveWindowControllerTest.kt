@@ -52,6 +52,18 @@ class AdaptiveWindowControllerTest {
                 val secondSubscription = controller.addListener(callback)
                 assertTrue(snapshots.isNotEmpty())
 
+                controller.updateFoldingFeature(
+                    FoldingFeatureInfo(
+                        posture = WindowPosture.HALF_OPENED,
+                        isSeparating = true,
+                        boundsLeftDp = 250f,
+                        boundsRightDp = 270f,
+                        boundsBottomDp = 700f / activity.resources.displayMetrics.density
+                    )
+                )
+                assertEquals(WindowPosture.HALF_OPENED, controller.current?.foldingFeature?.posture)
+                assertEquals(WindowPosture.HALF_OPENED, postures.last())
+
                 host.layout(0, 0, 520, 700)
                 assertEquals(520f / activity.resources.displayMetrics.density, snapshots.last(), 0.5f)
 
@@ -66,17 +78,6 @@ class AdaptiveWindowControllerTest {
                 host.layout(0, 0, 480, 700)
                 assertEquals(countAfterAllClosed, snapshots.size)
 
-                controller.updateFoldingFeature(
-                    FoldingFeatureInfo(
-                        posture = WindowPosture.HALF_OPENED,
-                        isSeparating = true,
-                        boundsLeftDp = 250f,
-                        boundsRightDp = 270f,
-                        boundsBottomDp = 700f / activity.resources.displayMetrics.density
-                    )
-                )
-                assertEquals(WindowPosture.HALF_OPENED, controller.current?.foldingFeature?.posture)
-                assertEquals(WindowPosture.HALF_OPENED, postures.last())
                 controller.close()
                 assertNull(controller.current)
             }

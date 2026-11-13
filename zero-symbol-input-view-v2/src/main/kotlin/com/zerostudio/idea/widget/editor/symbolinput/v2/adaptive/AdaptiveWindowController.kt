@@ -88,7 +88,17 @@ class AdaptiveWindowController(
 
     fun updateFoldingFeature(value: FoldingFeatureInfo) {
         check(!closed) { "AdaptiveWindowController is closed" }
+        val previous = latestSnapshot
         observer.updateFoldingFeature(value)
+        // The observer intentionally waits for attachment before measuring.
+        // Still expose host-supplied posture immediately in the last known
+        // window snapshot, so consumers do not keep stale fold information
+        // while the host view is temporarily detached.
+        if (previous != null && latestSnapshot === previous &&
+            previous.foldingFeature != value
+        ) {
+            dispatch(previous.copy(foldingFeature = value))
+        }
     }
 
     fun refresh() {
