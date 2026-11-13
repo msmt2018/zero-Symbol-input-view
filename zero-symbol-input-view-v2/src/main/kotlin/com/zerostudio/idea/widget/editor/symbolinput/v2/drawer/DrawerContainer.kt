@@ -348,7 +348,7 @@ class DrawerContainer @JvmOverloads constructor(
             height = dp(style.dimensions.handleHeightDp)
         }
         sheet.elevation = if (fullScreen) 0f else dp(style.elevationDp).toFloat()
-        handleTouchTarget.visibility = if (fullScreen || !currentConfig.dragHandleEnabled) GONE else VISIBLE
+        handleTouchTarget.visibility = if (!currentConfig.dragHandleEnabled) GONE else VISIBLE
         sheet.setPadding(dp(style.dimensions.horizontalPaddingDp), 0,
             dp(style.dimensions.horizontalPaddingDp), dp(style.dimensions.verticalPaddingDp))
         scrim.setBackgroundColor(colors.scrim ?: Color.BLACK)
@@ -419,6 +419,10 @@ class DrawerContainer @JvmOverloads constructor(
         scrim.alpha = fraction * 0.48f
         scrim.isClickable = fraction > 0.01f && currentConfig.dismissOnScrimTap
         val expanded = current.currentHeightPx > minHeight
+        val isFullScreen = currentConfig.presentationMode == DrawerPresentationMode.FULL_SCREEN
+        val isAtFullScreenAnchor = current.currentHeightPx >= maxHeight - 1
+        handleTouchTarget.visibility = if (!currentConfig.dragHandleEnabled ||
+            (isFullScreen && isAtFullScreenAnchor)) GONE else VISIBLE
         val showPeek = !expanded && peekHost.content() != null
         val showExpanded = expanded && (expandedHost.content() != null || pageHost.navigationController.pages().isNotEmpty())
         peekHost.visibility = if (showPeek) VISIBLE else GONE

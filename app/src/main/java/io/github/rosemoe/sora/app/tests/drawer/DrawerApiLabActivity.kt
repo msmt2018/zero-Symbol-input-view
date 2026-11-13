@@ -16,6 +16,7 @@ import com.google.android.material.slider.Slider
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.DrawerContainer
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.config.DrawerConfig
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.config.DrawerPresentationMode
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchor
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorState
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorStrategies
@@ -100,6 +101,17 @@ class DrawerApiLabActivity : AppCompatActivity() {
             drawer.expand()
         })
         root.addView(button("展开 / 折叠") { drawer.expand(); drawer.postDelayed({ drawer.collapse() }, 900) })
+        root.addView(button("切换为全屏容器") {
+            drawer.controller.setPresentationMode(DrawerPresentationMode.FULL_SCREEN)
+            drawer.controller.setAnchorStrategy(DrawerAnchorStrategies.threeStage(0.5f, 1f))
+            drawer.expand()
+        })
+        root.addView(button("退出全屏容器") {
+            drawer.controller.setPresentationMode(DrawerPresentationMode.BOTTOM_SHEET)
+            drawer.controller.setAnchorStrategy(DrawerAnchorStrategies.existingHeight())
+            drawer.controller.setDimensions(DrawerDimensions(peekHeightDp = 56f, expandedMaxHeightDp = 640f))
+            drawer.collapse()
+        })
         root.addView(section("预设样式"))
         DrawerPreset.values().forEach { preset ->
             root.addView(button("应用预设：$preset") {
@@ -109,6 +121,7 @@ class DrawerApiLabActivity : AppCompatActivity() {
                 ))
                 drawer.controller.setPages(samplePages())
                 drawer.setTitle("Preset · $preset")
+                if (preset == DrawerPreset.FULL_SCREEN) drawer.expand()
             })
         }
         root.addView(section("主题与颜色"))
