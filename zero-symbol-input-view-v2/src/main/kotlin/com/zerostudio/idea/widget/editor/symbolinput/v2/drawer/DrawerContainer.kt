@@ -124,6 +124,7 @@ class DrawerContainer @JvmOverloads constructor(
     private var dragStartAnchorId: String? = null
     private var restoredAnchorId: String? = null
     private var restoredHeightPx: Int? = null
+    private var restoredPageId: String? = null
     private var dragging = false
     private var peekContentVisible = false
     private var expandedContentVisible = false
@@ -243,6 +244,9 @@ class DrawerContainer @JvmOverloads constructor(
         expandedHost.content()?.let { expandedHost.setContent(null) }
         pageHost.visibility = VISIBLE
         pageHost.setPages(pages, preserveSelection)
+        restoredPageId?.let { pageId ->
+            if (pageHost.selectPage(pageId)) restoredPageId = null
+        }
         rebuildTabs()
         recalculateAnchors()
     }
@@ -756,6 +760,7 @@ class DrawerContainer @JvmOverloads constructor(
         return SavedState(superState).also { saved ->
             saved.anchorId = stableAnchor?.id
             saved.heightPx = stableAnchor?.heightPx ?: anchors.firstOrNull()?.heightPx ?: 0
+            saved.pageId = pageHost.navigationController.snapshot().selectedPageId
         }
     }
 
@@ -767,24 +772,28 @@ class DrawerContainer @JvmOverloads constructor(
         super.onRestoreInstanceState(state.superState)
         restoredAnchorId = state.anchorId
         restoredHeightPx = state.heightPx.coerceAtLeast(0)
+        restoredPageId = state.pageId
         if (width > 0 && height > 0) recalculateAnchors()
     }
 
     private class SavedState : BaseSavedState {
         var anchorId: String? = null
         var heightPx: Int = 0
+        var pageId: String? = null
 
         constructor(superState: Parcelable?) : super(superState)
 
         private constructor(source: Parcel) : super(source) {
             anchorId = source.readString()
             heightPx = source.readInt()
+            pageId = source.readString()
         }
 
         override fun writeToParcel(out: Parcel, flags: Int) {
             super.writeToParcel(out, flags)
             out.writeString(anchorId)
             out.writeInt(heightPx)
+            out.writeString(pageId)
         }
 
         companion object {
