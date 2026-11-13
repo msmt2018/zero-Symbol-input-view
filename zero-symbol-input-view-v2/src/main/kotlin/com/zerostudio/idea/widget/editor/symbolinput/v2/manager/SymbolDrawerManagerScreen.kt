@@ -57,6 +57,7 @@ import android.widget.LinearLayout
 import android.widget.PopupMenu
 import android.widget.Spinner
 import android.widget.TextView
+import com.google.android.material.tabs.TabLayout
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.util.TypedValue
@@ -101,8 +102,11 @@ class SymbolDrawerManagerScreen(
         LegacySymbolDataMigration.importIfV2Empty(context, it)
     })
     private val settings = SharedPreferencesSymbolDrawerSettingsRepository(context).load().settings
-    private val groupSpinner = Spinner(context)
+    private val groupTabs = TabLayout(context)
     private val searchField = EditText(context)
+    private val searchToggle = Button(context)
+    private val searchContainer = LinearLayout(context)
+    private var rebuildingTabs = false
     private val emptyView = TextView(context)
     private val symbolAdapter = SymbolAdapter(
         onClick = { symbol -> editSymbol(symbol) },
@@ -153,30 +157,44 @@ class SymbolDrawerManagerScreen(
     private var groupActionsButton: Button? = null
 
     private fun buildHeader() {
-        val row = horizontalRow()
-        val addButton = actionButton("添加") { }
+        val row = horizontalRow().apply { gravity = android.view.Gravity.CENTER_VERTICAL }
+        row.addView(TextView(context).apply {
+            text = "符号管理"
+            textSize = 17f
+            setTextColor(HostThemeColors.onSurface(context))
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+        }, LinearLayout.LayoutParams(0, dp(44), 1f))
+        val addButton = actionButton("＋ 添加") { }
         addButton.setOnClickListener { showAddMenu(addButton) }
-        row.addView(addButton, LayoutParams(LayoutParams.WRAP_CONTENT, dp(44)))
+        row.addView(addButton, LayoutParams(LayoutParams.WRAP_CONTENT, dp(40)))
+        searchToggle.text = "⌕"
+        searchToggle.textSize = 22f
+        searchToggle.minWidth = dp(40)
+        searchToggle.setPadding(dp(8), 0, dp(8), 0)
+        searchToggle.setOnClickListener {
+            val show = searchContainer.visibility != View.VISIBLE
+            searchContainer.visibility = if (show) View.VISIBLE else View.GONE
+            if (!show) searchField.setText() else searchField.requestFocus()
+        }
+        row.addView(searchToggle, LayoutParams(dp(44), dp(40)))
         addView(row, matchWrap())
     }
 
     private fun buildGroupControls() {
-        val row = horizontalRow()
-        row.addView(groupSpinner, LinearLayout.LayoutParams(0, dp(48), 1f).apply {
-            marginEnd = dp(8)
-        })
-        groupActionsButton = actionButton("分组操作") { }
-        groupActionsButton?.setOnClickListener { showGroupMenu(it) }
-        row.addView(groupActionsButton, LayoutParams(LayoutParams.WRAP_CONTENT, dp(44)))
-        addView(row, matchWrap())
-        groupSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
-            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
-            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
-                selectedGroupId = manager.groups.getOrNull(position)?.id
+        groupTabs.tabMode = TabLayout.MODE_SCROLLABLE
+        groupTabs.tabGravity = TabLayout.GRAVITY_START
+        groupTabs.setTabTextColors(secondaryTextColor(), primaryColor())
+        groupTabs.setSelectedTabIndicatorColor(primaryColor())
+        groupTabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab) {
+                if (rebuildingTabs) return
+                selectedGroupId = manager.groups.getOrNull(tab.position)?.id
                 refreshSymbols()
-                groupActionsButton?.isEnabled = currentGroup() != null
             }
-        }
+            override fun onTabUnselected(tab: TabLayout.Tab) = Unit
+            override fun onTabReselected(tab: TabLayout.Tab) = Unit
+        })
+        addView(groupTabs, LayoutParams(LayoutParams.MATCH_PARENT, dp(48)))
     }
 
     private fun showAddMenu(anchor: View) {
@@ -196,36 +214,64 @@ class SymbolDrawerManagerScreen(
         menu.show()
     }
 
-    private fun showGroupMenu(anchor: View) {
-        val group = currentGroup() ?: return
+    private fun showGroupTabMenu(anchor: View, groupId: String) {
+        val group = manager.groups.firstOrNull { it.id == groupId } ?: return
+        selectedGroupId = group.id
         val index = manager.groups.indexOfFirst { it.id == group.id }
-        val menu = PopupMenu(context, anchor)
-        menu.menu.add("当前分组：${group.title}").isEnabled = false
-        menu.menu.add("重命名“${group.title}”").setOnMenuItemClickListener {
-            promptGroupName("重命名分组", group.title) {
-                manager.renameGroup(group.id, it)
-                refresh()
+        PopupMenu(context, anchor).apply {
+            menu.add("左移").apply { isEnabled = index > 0 }
+                .setOnMenuItemClickListener { moveGroup(group.id, -1); true }
+            menu.add("右移").apply { isEnabled = index >= 0 && index < manager.groups.lastIndex }
+                .setOnMenuItemClickListener { moveGroup(group.id, 1); true }
+            menu.add("添加").setOnMenuItemClickListener { showAddMenu(anchor); true }
+            menu.add("复制到…").apply { isEnabled = manager.groups.size > 1 }
+                .setOnMenuItemClickListener { promptCopyGroupTo(group.id); true }
+            menu.add("重命名").setOnMenuItemClickListener {
+                promptGroupName("重命名“${group.title}”", group.title) {
+                    manager.renameGroup(group.id, it)
+                    refresh()
+                }
+                true
             }
-            true
+            menu.add("删除").setOnMenuItemClickListener { confirmDeleteGroup(group.id); true }
+            show()
         }
-        menu.menu.add("复制“${group.title}”").setOnMenuItemClickListener {
-            selectedGroupId = manager.duplicateGroup(group.id).id
+    }
+
+    private fun moveGroup(groupId: String, delta: Int) {
+        val index = manager.groups.indexOfFirst { it.id == groupId }
+        val target = index + delta
+        if (index >= 0 && target in manager.groups.indices) {
+            manager.moveGroup(index, target)
             refresh()
-            true
+            groupTabs.getTabAt(target)?.select()
         }
-        menu.menu.add("上移“${group.title}”").apply { isEnabled = index > 0 }
-            .setOnMenuItemClickListener { moveCurrentGroup(-1); true }
-        menu.menu.add("下移“${group.title}”").apply { isEnabled = index >= 0 && index < manager.groups.lastIndex }
-            .setOnMenuItemClickListener { moveCurrentGroup(1); true }
-        menu.menu.add("删除“${group.title}”").setOnMenuItemClickListener {
-            confirmDeleteGroup()
-            true
-        }
-        menu.show()
+    }
+
+    private fun promptCopyGroupTo(sourceGroupId: String) {
+        val source = manager.groups.firstOrNull { it.id == sourceGroupId } ?: return
+        val targets = manager.groups.filter { it.id != sourceGroupId }
+        if (targets.isEmpty()) return
+        AlertDialog.Builder(context)
+            .setTitle("复制“${source.title}”中的符号到…")
+            .setItems(targets.map { it.title }.toTypedArray()) { _, which ->
+                runCatching {
+                    val target = targets[which]
+                    val ids = source.symbols.map { it.id }.toSet()
+                    if (ids.isNotEmpty()) manager.copySymbols(source.id, ids, target.id)
+                    selectedGroupId = target.id
+                    refresh()
+                    toast("已复制到“${target.title}”")
+                }.onFailure(::reportError)
+            }
+            .setNegativeButton("取消", null)
+            .show()
     }
 
     private fun buildSearch() {
-        searchField.hint = "搜索符号名称"
+        searchContainer.orientation = VERTICAL
+        searchContainer.visibility = View.GONE
+        searchField.hint = "搜索符号名称或动作"
         searchField.setSingleLine(true)
         searchField.textSize = 14f
         searchField.setPadding(dp(14), dp(10), dp(14), dp(10))
@@ -235,7 +281,8 @@ class SymbolDrawerManagerScreen(
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = refreshSymbols()
             override fun afterTextChanged(s: Editable?) = Unit
         })
-        addView(searchField, matchWrap())
+        searchContainer.addView(searchField, matchWrap())
+        addView(searchContainer, matchWrap())
     }
 
     private fun buildSymbolList() {
@@ -284,15 +331,22 @@ class SymbolDrawerManagerScreen(
         val groups = manager.groups
         val selectedIndex = groups.indexOfFirst { it.id == selectedGroupId }.takeIf { it >= 0 } ?: 0
         selectedGroupId = groups.getOrNull(selectedIndex)?.id
-        groupSpinner.adapter = ArrayAdapter(
-            context,
-            android.R.layout.simple_spinner_item,
-            groups.map { it.title }
-        ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
-        if (groups.isNotEmpty()) groupSpinner.setSelection(selectedIndex, false)
-        val enabled = groups.isNotEmpty()
-        groupActionsButton?.isEnabled = enabled
-        searchField.isEnabled = enabled
+        rebuildingTabs = true
+        groupTabs.removeAllTabs()
+        groups.forEachIndexed { index, group ->
+            val tab = groupTabs.newTab().setText(group.title)
+            groupTabs.addTab(tab, index == selectedIndex)
+            tab.view.setOnLongClickListener {
+                showGroupTabMenu(it, group.id)
+                true
+            }
+        }
+        rebuildingTabs = false
+        if (groups.isNotEmpty() && groupTabs.selectedTabPosition != selectedIndex) {
+            groupTabs.getTabAt(selectedIndex)?.select()
+        }
+        searchField.isEnabled = groups.isNotEmpty()
+        searchToggle.isEnabled = groups.isNotEmpty()
         refreshSymbols()
         onGroupsChanged?.invoke(groups)
     }
@@ -326,8 +380,8 @@ class SymbolDrawerManagerScreen(
         }
     }
 
-    private fun confirmDeleteGroup() {
-        val group = currentGroup() ?: return
+    private fun confirmDeleteGroup(groupId: String) {
+        val group = manager.groups.firstOrNull { it.id == groupId } ?: return
         AlertDialog.Builder(context)
             .setTitle("删除分组")
             .setMessage("删除“${group.title}”及其中全部符号？删除后可使用页面底部的“撤销”恢复。")
