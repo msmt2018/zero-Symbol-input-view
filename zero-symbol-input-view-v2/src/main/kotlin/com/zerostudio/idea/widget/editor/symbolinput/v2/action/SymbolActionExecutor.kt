@@ -69,8 +69,18 @@ interface SymbolActionHost {
     fun executeExtension(extensionId: String, payload: String?): Boolean
 }
 
+/** Cooperative cancellation checked between action steps; host calls remain synchronous. */
+fun interface SymbolActionCancellation {
+    fun isCancelled(): Boolean
+
+    companion object {
+        val NEVER = SymbolActionCancellation { false }
+    }
+}
+
 sealed interface SymbolActionResult {
     data object Executed : SymbolActionResult
+    data class Cancelled(val completedActions: Int) : SymbolActionResult
     data class Unsupported(val action: SymbolAction) : SymbolActionResult
     data class Invalid(val reason: String) : SymbolActionResult
     data class Failed(val cause: Throwable) : SymbolActionResult
@@ -90,10 +100,14 @@ class SymbolActionExecutor(
         require(maxTotalActions in 1..4_096)
     }
 
-    fun execute(action: SymbolAction, host: SymbolActionHost): SymbolActionResult {
+    fun execute(
+        action: SymbolAction,
+        host: SymbolActionHost,
+        cancellation: SymbolActionCancellation = SymbolActionCancellation.NEVER
+    ): SymbolActionResult {
         val validationError = validate(action, 0, ActionBudget(maxTotalActions))
         if (validationError != null) return SymbolActionResult.Invalid(validationError)
-        return executeInternal(action, host, 0)
+        return executeInternal(action, host, 0, cancellation, ExecutionProgress())
     }
 
     /** Validate the entire tree before invoking the host, preventing malformed
@@ -130,11 +144,14 @@ class SymbolActionExecutor(
     private fun executeInternal(
         action: SymbolAction,
         host: SymbolActionHost,
-        depth: Int
+        depth: Int,
+        cancellation: SymbolActionCancellation,
+        progress: ExecutionProgress
     ): SymbolActionResult {
         if (depth > maxNestingDepth) return SymbolActionResult.Invalid("Composite action nesting limit exceeded")
+        if (cancellation.isCancelled()) return SymbolActionResult.Cancelled(progress.completedActions)
         return try {
-            when (action) {
+            val result = when (action) {
                 is SymbolAction.InsertText -> {
                     if (action.template.length > maxTextLength) invalid("Insert template is too large")
                     else supported(host.insertText(action.template), action)
@@ -166,8 +183,12 @@ class SymbolActionExecutor(
                         else -> supported(host.executeExtension(action.extensionId, action.payload), action)
                     }
                 }
-                is SymbolAction.Composite -> executeComposite(action, host, depth)
+                is SymbolAction.Composite -> executeComposite(action, host, depth, cancellation, progress)
             }
+            if (action !is SymbolAction.Composite && result == SymbolActionResult.Executed) {
+                progress.completedActions++
+            }
+            result
         } catch (error: Exception) {
             SymbolActionResult.Failed(error)
         }
@@ -176,7 +197,9 @@ class SymbolActionExecutor(
     private fun executeComposite(
         composite: SymbolAction.Composite,
         host: SymbolActionHost,
-        depth: Int
+        depth: Int,
+        cancellation: SymbolActionCancellation,
+        progress: ExecutionProgress
     ): SymbolActionResult {
         if (composite.actions.isEmpty()) return SymbolActionResult.Invalid("Composite action cannot be empty")
         if (composite.actions.size > maxCompositeActions) {
@@ -184,7 +207,8 @@ class SymbolActionExecutor(
         }
         var completed = 0
         composite.actions.forEach { child ->
-            val result = executeInternal(child, host, depth + 1)
+            val result = executeInternal(child, host, depth + 1, cancellation, progress)
+            if (result is SymbolActionResult.Cancelled) return result
             if (result != SymbolActionResult.Executed) {
                 return if (completed == 0) result else SymbolActionResult.PartialFailure(completed, result)
             }
@@ -192,6 +216,8 @@ class SymbolActionExecutor(
         }
         return SymbolActionResult.Executed
     }
+
+    private class ExecutionProgress(var completedActions: Int = 0)
 
     private class ActionBudget(private var remaining: Int) {
         fun consume(): Boolean {
