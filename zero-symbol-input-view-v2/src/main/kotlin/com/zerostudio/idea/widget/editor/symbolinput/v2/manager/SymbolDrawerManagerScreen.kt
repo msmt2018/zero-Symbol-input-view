@@ -522,7 +522,7 @@ class SymbolDrawerManagerScreen(
             existing?.shortAction,
             existing?.legacyShortActionId
         )
-        val preserveShortAction = existing != null && shortLegacyIndex == null
+        val preserveShortAction = existing?.shortAction != null && shortLegacyIndex == null
         val longLegacyIndex = existing?.longAction?.let { action ->
             legacyActionIndex(action, existing.legacyLongActionId)
         }
