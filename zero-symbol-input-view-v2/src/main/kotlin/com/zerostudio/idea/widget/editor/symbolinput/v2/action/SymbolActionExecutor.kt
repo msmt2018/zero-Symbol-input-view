@@ -165,7 +165,7 @@ class SymbolActionExecutor(
                 }
                 is SymbolAction.Composite -> executeComposite(action, host, depth)
             }
-        } catch (error: Throwable) {
+        } catch (error: Exception) {
             SymbolActionResult.Failed(error)
         }
     }
