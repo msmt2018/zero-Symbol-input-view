@@ -80,31 +80,34 @@ sealed interface SymbolActionResult {
 class SymbolActionExecutor(
     private val maxCompositeActions: Int = 64,
     private val maxNestingDepth: Int = 8,
-    private val maxTextLength: Int = 1_048_576
+    private val maxTextLength: Int = 1_048_576,
+    private val maxTotalActions: Int = 256
 ) {
     init {
         require(maxCompositeActions in 1..256)
         require(maxNestingDepth in 1..16)
         require(maxTextLength in 1..4_194_304)
+        require(maxTotalActions in 1..4_096)
     }
 
     fun execute(action: SymbolAction, host: SymbolActionHost): SymbolActionResult {
-        val validationError = validate(action, 0)
+        val validationError = validate(action, 0, ActionBudget(maxTotalActions))
         if (validationError != null) return SymbolActionResult.Invalid(validationError)
         return executeInternal(action, host, 0)
     }
 
     /** Validate the entire tree before invoking the host, preventing malformed
      * later steps from leaving a partially applied composite action. */
-    private fun validate(action: SymbolAction, depth: Int): String? {
+    private fun validate(action: SymbolAction, depth: Int, budget: ActionBudget): String? {
         if (depth > maxNestingDepth) return "Composite action nesting limit exceeded"
+        if (!budget.consume()) return "Composite action total action limit exceeded"
         return when (action) {
             is SymbolAction.InsertText ->
                 if (action.template.length > maxTextLength) "Insert template is too large" else null
             is SymbolAction.ReplaceSelection ->
                 if (action.text.length > maxTextLength) "Replacement text is too large" else null
             is SymbolAction.SurroundSelection ->
-                if (action.prefix.length + action.suffix.length > maxTextLength) "Surround template is too large" else null
+                if (action.prefix.length.toLong() + action.suffix.length > maxTextLength) "Surround template is too large" else null
             is SymbolAction.EditorCommand -> when {
                 !COMMAND_ID.matches(action.commandId) -> "Invalid editor command ID"
                 (action.payload?.length ?: 0) > maxTextLength -> "Editor command payload is too large"
@@ -118,7 +121,7 @@ class SymbolActionExecutor(
             is SymbolAction.Composite -> when {
                 action.actions.isEmpty() -> "Composite action cannot be empty"
                 action.actions.size > maxCompositeActions -> "Composite action contains too many steps"
-                else -> action.actions.firstNotNullOfOrNull { validate(it, depth + 1) }
+                else -> action.actions.firstNotNullOfOrNull { validate(it, depth + 1, budget) }
             }
             else -> null
         }
@@ -141,7 +144,7 @@ class SymbolActionExecutor(
                     else supported(host.replaceSelection(action.text), action)
                 }
                 is SymbolAction.SurroundSelection -> {
-                    if (action.prefix.length + action.suffix.length > maxTextLength) invalid("Surround template is too large")
+                    if (action.prefix.length.toLong() + action.suffix.length > maxTextLength) invalid("Surround template is too large")
                     else supported(host.surroundSelection(action.prefix, action.suffix), action)
                 }
                 is SymbolAction.MoveCursor -> supported(host.moveCursor(action.target), action)
@@ -188,6 +191,14 @@ class SymbolActionExecutor(
             completed++
         }
         return SymbolActionResult.Executed
+    }
+
+    private class ActionBudget(private var remaining: Int) {
+        fun consume(): Boolean {
+            if (remaining <= 0) return false
+            remaining--
+            return true
+        }
     }
 
     private fun supported(success: Boolean, action: SymbolAction) =
