@@ -84,7 +84,7 @@ manager screen and persists each successful command.
 
 ## Storage
 
-The default repository uses the isolated SharedPreferences namespace `symbol_drawer_v2` and key `groups_json_v2`. Values use the original V1 compact JSON model (`n`/`d` for groups and `a`/`b`/`c`/`d`/`e` for symbols); the legacy `advanced_symbol_prefs` store is only read during one-way migration and is never modified.
+The default repository uses the isolated SharedPreferences namespace `symbol_drawer_v2` and key `groups_json_v2`. New values use the versioned V2 typed-action envelope, preserving stable IDs, icons, independent short/long actions and legacy action metadata. Existing V1 compact (`n`/`d`, `a`/`b`/`c`/`d`/`e`) values and the previous unversioned V2 draft array remain readable and are upgraded on the next successful save. The legacy `advanced_symbol_prefs` store is only read during one-way migration and is never modified.
 
 ## Design notes
 
@@ -98,7 +98,7 @@ defaults for missing fields, validates enum values, and reports malformed
 storage so the host can surface a recovery notice. The settings screen and
 runtime application are being built on this contract.
 
-Runtime actions use the sealed `SymbolAction` model, while persistence and per-symbol editing retain the V1 numeric action IDs and text fields verbatim. Actions outside the V1 catalog are not silently serialized into a different schema. Implement `SymbolActionHost` to bridge the
+Runtime actions and V2 persistence use the sealed, versioned `SymbolAction` model. Legacy numeric action IDs and text payloads are retained as compatibility metadata when imported; the manager's current editor exposes the V1-compatible selector, while the public V2 model also supports composite, surround-selection and extension actions. Implement `SymbolActionHost` to bridge the
 actions to a concrete editor. `SymbolActionExecutor` validates IDs, payload
 sizes and composite depth and returns structured execution results. Legacy
 integer actions are translated only by `LegacySymbolActionAdapter` during
