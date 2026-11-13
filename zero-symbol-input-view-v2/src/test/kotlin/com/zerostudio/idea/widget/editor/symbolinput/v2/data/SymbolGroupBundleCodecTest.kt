@@ -230,6 +230,16 @@ class SymbolGroupBundleCodecTest {
         SymbolGroupBundleCodec.encode(listOf(group))
     }
 
+
+    @Test(expected = IllegalArgumentException::class)
+    fun rejectsActionTreesBeyondTheAggregateNodeBudgetBeforePersistence() {
+        val leaves = List(64) { SymbolAction.OpenManager }
+        val branch = SymbolAction.Composite(leaves)
+        val action = SymbolAction.Composite(List(5) { branch })
+        val group = SymbolGroup("g", "Group", listOf(SymbolEntry(1L, "large tree", action)))
+        SymbolGroupBundleCodec.encode(listOf(group))
+    }
+
     @Test(expected = IllegalArgumentException::class)
     fun rejectsCompositeActionsBeyondSupportedDepth() {
         var action: SymbolAction = SymbolAction.InsertText("x")
