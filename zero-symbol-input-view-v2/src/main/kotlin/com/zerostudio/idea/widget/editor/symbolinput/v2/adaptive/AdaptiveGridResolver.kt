@@ -7,11 +7,13 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive
 
 data class AdaptiveGridSpec(
     val columnCount: Int,
-    val horizontalSpacingDp: Int
+    val horizontalSpacingDp: Int,
+    val verticalSpacingDp: Int = horizontalSpacingDp
 ) {
     init {
         require(columnCount >= 1)
         require(horizontalSpacingDp in -10..24)
+        require(verticalSpacingDp in -10..24)
     }
 }
 
@@ -22,12 +24,18 @@ object AdaptiveGridResolver {
         preferredColumns: Int,
         minimumCellWidthDp: Float,
         baseHorizontalSpacingDp: Int,
-        adaptive: Boolean = true
+        adaptive: Boolean = true,
+        baseVerticalSpacingDp: Int = baseHorizontalSpacingDp
     ): AdaptiveGridSpec {
         require(preferredColumns >= 1)
         require(minimumCellWidthDp > 0f)
         require(baseHorizontalSpacingDp in -10..24)
-        if (!adaptive) return AdaptiveGridSpec(preferredColumns, baseHorizontalSpacingDp)
+        require(baseVerticalSpacingDp in -10..24)
+        if (!adaptive) return AdaptiveGridSpec(
+            preferredColumns,
+            baseHorizontalSpacingDp,
+            baseVerticalSpacingDp
+        )
 
         val spacingAdjustment = when (window.sizeClass) {
             WindowSizeClass.COMPACT -> 0
@@ -35,10 +43,11 @@ object AdaptiveGridResolver {
             WindowSizeClass.EXPANDED -> 3
         }
         val spacing = (baseHorizontalSpacingDp + spacingAdjustment).coerceIn(-10, 24)
+        val verticalSpacing = (baseVerticalSpacingDp + spacingAdjustment).coerceIn(-10, 24)
         val effectiveSpacing = spacing.coerceAtLeast(0)
         val columns = (window.availableWidthDp / (minimumCellWidthDp + effectiveSpacing))
             .toInt()
             .coerceIn(1, preferredColumns)
-        return AdaptiveGridSpec(columns, spacing)
+        return AdaptiveGridSpec(columns, spacing, verticalSpacing)
     }
 }
