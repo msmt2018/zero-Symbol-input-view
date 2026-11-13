@@ -42,16 +42,25 @@ class AdaptiveWindowControllerTest {
                 )
                 assertNotNull(controller.current)
                 val snapshots = mutableListOf<Float>()
-                val subscription = controller.addListener({ snapshots += it.widthDp })
+                val callback: (com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowAdaptiveInfo) -> Unit =
+                    { snapshots += it.widthDp }
+                val subscription = controller.addListener(callback)
+                val secondSubscription = controller.addListener(callback)
                 assertTrue(snapshots.isNotEmpty())
 
                 host.layout(0, 0, 520, 700)
                 assertEquals(520f / activity.resources.displayMetrics.density, snapshots.last(), 0.5f)
 
-                val countBeforeClose = snapshots.size
                 subscription.close()
+                val countAfterFirstClose = snapshots.size
+                host.layout(0, 0, 500, 700)
+                assertTrue("Closing one handle must not remove the duplicate subscription", snapshots.size > countAfterFirstClose)
+
+                secondSubscription.close()
+                secondSubscription.close()
+                val countAfterAllClosed = snapshots.size
                 host.layout(0, 0, 480, 700)
-                assertEquals(countBeforeClose, snapshots.size)
+                assertEquals(countAfterAllClosed, snapshots.size)
 
                 controller.updateFoldingFeature(
                     FoldingFeatureInfo(

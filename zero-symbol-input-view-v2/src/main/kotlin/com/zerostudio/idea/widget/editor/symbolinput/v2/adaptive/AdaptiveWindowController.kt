@@ -55,12 +55,8 @@ class AdaptiveWindowController(
             snapshot = if (emitCurrent) latestSnapshot else null
         }
 
-        // Invoke outside the lock. If the callback throws, the caller still
-        // owns a valid subscription and can close it in its normal cleanup.
-        snapshot?.let(listener)
-
         var subscriptionClosed = false
-        return AutoCloseable {
+        val subscription = AutoCloseable {
             synchronized(lock) {
                 if (!subscriptionClosed) {
                     subscriptionClosed = true
@@ -68,6 +64,13 @@ class AdaptiveWindowController(
                 }
             }
         }
+        try {
+            snapshot?.let(listener)
+        } catch (failure: Throwable) {
+            subscription.close()
+            throw failure
+        }
+        return subscription
     }
 
     fun updateFoldingFeature(value: FoldingFeatureInfo) {
