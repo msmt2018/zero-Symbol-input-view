@@ -52,7 +52,10 @@ object LegacySymbolActionCatalog {
         28, 29, 30, 32, 33, 34, 35, 36, 37, 38, 39,
         40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56
     )
-    // Historical IDs 1 and 2 occur in stored long-press payloads but are not new UI choices.\n    val importableValues: Set<Int> = values.toSet() + setOf(1, 2)\n\n    val labels = listOf(
+    // Historical IDs 1 and 2 occur in stored long-press payloads but are not new UI choices.\n    val importableValues: Set<Int> = values.toSet() + setOf(1, 2)\n\n    // Historical IDs 1 and 2 occur in stored long-press payloads but are not new UI choices.
+    val importableValues: Set<Int> = values.toSet() + setOf(1, 2)
+
+    val labels = listOf(
         "插入文本", "删除行", "清空行", "转为大写", "转为小写", "增加缩进 (Tab)",
         "注释/取消注释", "到行首", "到行尾", "光标左移", "光标右移", "光标上移",
         "光标下移", "打开快捷功能栏管理", "到文件开头", "到文件结尾", "全选", "选中括号内容",
