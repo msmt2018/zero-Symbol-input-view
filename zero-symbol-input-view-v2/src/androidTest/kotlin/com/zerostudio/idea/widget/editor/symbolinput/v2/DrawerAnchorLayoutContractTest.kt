@@ -6,6 +6,8 @@ import android.view.MotionEvent
 import android.os.SystemClock
 import android.widget.FrameLayout
 import android.widget.TextView
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.DrawerContainer
@@ -103,7 +105,12 @@ class DrawerAnchorLayoutContractTest {
                 handle.getLocationOnScreen(handleLocation)
                 val handleBottom = handleLocation[1] + handle.height - drawerLocation[1]
                 val bottomGap = drawer.height - handleBottom
-                assertTrue("Collapsed drag handle should remain at the bottom edge", bottomGap in 0..(32f * activity.resources.displayMetrics.density).toInt())
+                val navigationInset = ViewCompat.getRootWindowInsets(drawer)
+                    ?.getInsets(WindowInsetsCompat.Type.navigationBars())
+                    ?.bottom ?: 0
+                val allowedGap = navigationInset +
+                    (32f * activity.resources.displayMetrics.density).toInt()
+                assertTrue("Collapsed drag handle should remain just above the navigation inset", bottomGap in 0..allowedGap)
 
                 val initialHeight = requireNotNull(drawer.controller.currentState()).currentHeightPx
                 val downTime = SystemClock.uptimeMillis()
