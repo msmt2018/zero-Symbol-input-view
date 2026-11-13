@@ -168,11 +168,11 @@ class SymbolDrawerSettingsScreen(
                 section("尺寸与间距")
                 addSeek("每行列数", current.columns, 1, 20) { update { copy(columns = it) } }
                 addSeek("折叠时显示行数", current.collapsedRows, 1, 10) { update { copy(collapsedRows = it) } }
-                addSeek("单元格高度 (dp)", current.cellHeightDp, 20, 96) { update { copy(cellHeightDp = it) } }
+                addSeek("单元格高度 (dp)", current.cellHeightDp, 10, 96) { update { copy(cellHeightDp = it) } }
                 addSeek("横向间距 (dp)", current.cellHorizontalSpacingDp, -10, 24) { update { copy(cellHorizontalSpacingDp = it) } }
                 addSeek("纵向间距 (dp)", current.cellVerticalSpacingDp, -10, 24) { update { copy(cellVerticalSpacingDp = it) } }
                 addSeek("分组栏高度 (dp)", current.indicatorHeightDp, 0, 64) { update { copy(indicatorHeightDp = it) } }
-                addSeek("最大展开高度 (dp)", current.maxExpandedHeightDp, 120, 1200) { update { copy(maxExpandedHeightDp = it) } }
+                addSeek("最大展开高度 (dp)", current.maxExpandedHeightDp, 110, 1200) { update { copy(maxExpandedHeightDp = it) } }
                 addSeek("最小触摸目标 (dp)", current.minimumTouchTargetDp, 32, 80) { update { copy(minimumTouchTargetDp = it) } }
             },
             "交互" to {

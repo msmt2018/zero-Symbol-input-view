@@ -78,6 +78,11 @@ class SymbolDrawerSettingsTest {
         SymbolDrawerSettingsCodec.decodeStrict(json)
     }
 
+    @Test fun compactLayoutDimensionsCanBeReducedBelowLegacyMinimums() {
+        val value = SymbolDrawerSettings(cellHeightDp = 10, maxExpandedHeightDp = 110)
+        assertEquals(value, SymbolDrawerSettingsCodec.decode(SymbolDrawerSettingsCodec.encode(value)))
+    }
+
     @Test fun negativeCellSpacingIsSupportedAndPersisted() {
         val value = SymbolDrawerSettings(cellHorizontalSpacingDp = -10, cellVerticalSpacingDp = -6)
         val restored = SymbolDrawerSettingsCodec.decode(SymbolDrawerSettingsCodec.encode(value))
