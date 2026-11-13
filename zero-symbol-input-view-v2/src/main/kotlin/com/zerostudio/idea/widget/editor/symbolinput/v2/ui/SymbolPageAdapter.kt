@@ -307,7 +307,10 @@ internal class SymbolPageAdapter(
         private var longPressed = false
         private val longPressTask = Runnable {
             if (!cancelled && view.isPressed && hasLongAction) {
+                // Clear the pressed state before dispatching the long action so
+                // the TextView's native ACTION_UP handling cannot also click.
                 longPressed = true
+                view.isPressed = false
                 onLongPress()
             }
         }
@@ -325,7 +328,6 @@ internal class SymbolPageAdapter(
                     downY = event.y
                     cancelled = false
                     longPressed = false
-                    view.isPressed = true
                     if (hasLongAction) view.postDelayed(longPressTask, longPressTimeoutMs.toLong())
                 }
                 MotionEvent.ACTION_MOVE -> {
@@ -335,23 +337,26 @@ internal class SymbolPageAdapter(
                     )) {
                         cancelled = true
                         view.removeCallbacks(longPressTask)
+                        // Keep the normal View/RecyclerView touch pipeline alive:
+                        // scrolling and ViewPager2 swipes must be able to take over.
                         view.isPressed = false
                     }
                 }
                 MotionEvent.ACTION_UP -> {
                     view.removeCallbacks(longPressTask)
-                    val shouldClick = !cancelled && !longPressed
-                    view.isPressed = false
-                    if (shouldClick) view.performClick()
                     cancelled = true
+                    // Do not synthesize a click here. Returning false lets the
+                    // TextView perform its normal click exactly once.
                 }
                 MotionEvent.ACTION_CANCEL, MotionEvent.ACTION_POINTER_DOWN -> {
                     view.removeCallbacks(longPressTask)
-                    view.isPressed = false
                     cancelled = true
+                    view.isPressed = false
                 }
             }
-            return true
+            // Never steal the stream from RecyclerView/ViewPager2. The host view
+            // remains responsible for taps; this listener only observes timing.
+            return false
         }
     }
 
