@@ -84,6 +84,68 @@ class GenericSymbolTextActionsTest {
         assertFalse(run("line.duplicate", doc))
     }
 
+
+    @Test fun newLineAndWhitespaceActionsAreEditorIndependent() {
+        val duplicate = FakeDocument("  alpha\\nbeta", cursor = 4)
+        assertTrue(run("line.duplicateAbove", duplicate))
+        assertEquals("  alpha\\n  alpha\\nbeta", duplicate.text)
+
+        val trim = FakeDocument("    alpha", cursor = 7)
+        assertTrue(run("line.trimLeadingWhitespace", trim))
+        assertEquals("alpha", trim.text)
+        assertEquals(3, trim.cursorOffset)
+
+        val document = FakeDocument("  alpha\\n    beta", cursor = 10)
+        assertTrue(run("document.trimLeadingWhitespace", document))
+        assertEquals("alpha\\nbeta", document.text)
+        assertEquals(6, document.cursorOffset)
+    }
+
+    @Test fun wrappersAndCursorExtensionActionsWork() {
+        val quote = FakeDocument("hello", cursor = 5).apply { setSelection(0, 5) }
+        assertTrue(run("selection.wrapSingleQuotes", quote))
+        assertEquals("'hello'", quote.text)
+        assertEquals(1, quote.selectionStart)
+        assertEquals(6, quote.selectionEnd)
+
+        val tag = FakeDocument("value", cursor = 5).apply { setSelection(0, 5) }
+        assertTrue(GenericSymbolTextActions.createRegistry().execute(
+            SymbolActionId("builtin", "selection.wrapHtmlTag"), tag, "span"
+        )!!)
+        assertEquals("<span>value</span>", tag.text)
+        val invalidTag = FakeDocument("x").apply { setSelection(0, 1) }
+        assertFalse(GenericSymbolTextActions.createRegistry().execute(
+            SymbolActionId("builtin", "selection.wrapHtmlTag"), invalidTag, "bad tag"
+        )!!)
+
+        val cursor = FakeDocument("alpha\\nbeta", cursor = 7)
+        assertTrue(run("cursor.selectToLineStart", cursor))
+        assertEquals(6, cursor.selectionStart)
+        assertEquals(7, cursor.selectionEnd)
+        assertTrue(run("cursor.selectToDocumentStart", cursor))
+        assertEquals(0, cursor.selectionStart)
+        assertEquals(7, cursor.selectionEnd)
+    }
+
+    @Test fun selectedLineOperationsAndFinalNewlineAreStable() {
+        val indented = FakeDocument("one\\ntwo\\nthree", cursor = 0).apply { setSelection(0, 7) }
+        assertTrue(run("selection.indentLines", indented))
+        assertEquals("\\tone\\n\\ttwo\\nthree", indented.text)
+        assertTrue(run("selection.unindentLines", indented))
+        assertEquals("one\\ntwo\\nthree", indented.text)
+
+        val reversed = FakeDocument("c\\na\\nb", cursor = 0).apply { setSelection(0, 5) }
+        assertTrue(run("selection.reverseLines", reversed))
+        assertEquals("b\\na\\nc", reversed.text)
+
+        val finalNewline = FakeDocument("alpha", cursor = 5)
+        assertTrue(GenericSymbolTextActions.createRegistry().execute(
+            SymbolActionId("builtin", "document.ensureFinalNewline"), finalNewline
+        )!!)
+        assertEquals("alpha\\n", finalNewline.text)
+        assertFalse(run("document.ensureFinalNewline", finalNewline))
+    }
+
     private fun run(id: String, document: FakeDocument): Boolean =
         GenericSymbolTextActions.createRegistry().execute(
             SymbolActionId("builtin", id), document

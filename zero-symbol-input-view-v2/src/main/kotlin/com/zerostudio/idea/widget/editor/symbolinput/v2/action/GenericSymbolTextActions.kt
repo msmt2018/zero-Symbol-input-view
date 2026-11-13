@@ -30,6 +30,8 @@ object GenericSymbolTextActions {
         add("line.lowercase") { d, _ -> transformCurrentLine(d) { it.lowercase() } }
         add("line.toggleCase") { d, _ -> transformCurrentLine(d, ::toggleCase) }
         add("line.trimTrailingWhitespace") { d, _ -> trimCurrentLine(d) }
+        add("line.trimLeadingWhitespace") { d, _ -> trimLeadingCurrentLine(d) }
+        add("line.duplicateAbove") { d, _ -> duplicateLineAbove(d) }
         add("line.toggleComment") { d, payload -> toggleLineComments(d, payload ?: "//") }
         add("editor.toggleLineComment") { d, payload -> toggleLineComments(d, payload ?: "//") }
         add("line.indent") { d, payload -> indentCurrentLine(d, payload ?: "\t") }
@@ -44,6 +46,16 @@ object GenericSymbolTextActions {
         add("selection.wrapBrackets") { d, _ -> wrapSelection(d, "[", "]") }
         add("selection.wrapBraces") { d, _ -> wrapSelection(d, "{", "}") }
         add("selection.wrapQuotes") { d, _ -> wrapSelection(d, "\"", "\"") }
+        add("selection.wrapSingleQuotes") { d, _ -> wrapSelection(d, "'", "'") }
+        add("selection.wrapBackticks") { d, _ -> wrapSelection(d, "\u0060", "\u0060") }
+        add("selection.wrapAngleBrackets") { d, _ -> wrapSelection(d, "<", ">") }
+        add("selection.wrapAsterisks") { d, _ -> wrapSelection(d, "*", "*") }
+        add("selection.wrapUnderscores") { d, _ -> wrapSelection(d, "_", "_") }
+        add("selection.wrapHtmlTag") { d, payload -> wrapSelectionWithTag(d, payload) }
+        add("selection.indentLines") { d, payload -> indentSelectedLines(d, payload ?: "\\t") }
+        add("selection.unindentLines") { d, _ -> unindentSelectedLines(d) }
+        add("selection.reverseLines") { d, _ -> reorderSelectedLines(d, reverse = true) }
+        add("selection.sortLines") { d, _ -> reorderSelectedLines(d, reverse = false) }
         add("selection.comment") { d, payload -> toggleLineComments(d, payload ?: "//") }
 
         add("cursor.wordLeft") { d, _ -> moveWord(d, backwards = true) }
@@ -54,6 +66,10 @@ object GenericSymbolTextActions {
         add("cursor.selectLine") { d, _ -> selectCurrentLine(d) }
         add("cursor.lineStart") { d, _ -> moveToLineBoundary(d, start = true) }
         add("cursor.lineEnd") { d, _ -> moveToLineBoundary(d, start = false) }
+        add("cursor.selectToLineStart") { d, _ -> extendSelectionToLineBoundary(d, start = true) }
+        add("cursor.selectToLineEnd") { d, _ -> extendSelectionToLineBoundary(d, start = false) }
+        add("cursor.selectToDocumentStart") { d, _ -> d.setSelection(0, d.cursorOffset); true }
+        add("cursor.selectToDocumentEnd") { d, _ -> d.setSelection(d.cursorOffset, d.textLength); true }
         add("cursor.documentStart") { d, _ -> setCaret(d, 0) }
         add("cursor.documentEnd") { d, _ -> setCaret(d, d.textLength) }
 
@@ -62,6 +78,8 @@ object GenericSymbolTextActions {
             true
         }
         add("document.trimTrailingWhitespace") { d, _ -> trimDocument(d) }
+        add("document.trimLeadingWhitespace") { d, _ -> trimDocumentLeading(d) }
+        add("document.ensureFinalNewline") { d, payload -> ensureFinalNewline(d, payload) }
         add("document.removeBlankLines") { d, _ -> removeBlankLines(d) }
         add("document.toggleComment") { d, payload -> toggleLineComments(d, payload ?: "//") }
     }
@@ -297,6 +315,188 @@ object GenericSymbolTextActions {
         val selected = document.textBetween(start, end)
         if (!document.replace(start, end, prefix + selected + suffix)) return false
         document.setSelection(start + prefix.length, start + prefix.length + selected.length)
+        return true
+    }
+
+
+    private fun trimLeadingCurrentLine(document: SymbolTextDocument): Boolean {
+        if (!document.isEditable) return false
+        val line = currentLine(document)
+        val content = document.lineText(line)
+        val count = content.indexOfFirst { !it.isWhitespace() }.let { if (it < 0) content.length else it }
+        if (count == 0) return false
+        val start = document.lineStartOffset(line)
+        val caret = document.cursorOffset
+        if (!document.replace(start, start + count, "")) return false
+        val nextCaret = (caret - minOf(count, (caret - start).coerceAtLeast(0))).coerceAtLeast(start)
+        document.setSelection(nextCaret, nextCaret)
+        return true
+    }
+
+    private fun duplicateLineAbove(document: SymbolTextDocument): Boolean {
+        if (!document.isEditable) return false
+        val line = currentLine(document)
+        val start = document.lineStartOffset(line)
+        val content = document.lineText(line)
+        if (!document.replace(start, start, content + lineSeparator(document, line))) return false
+        val caret = start + content.length
+        document.setSelection(caret, caret)
+        return true
+    }
+
+    private fun lineSeparator(document: SymbolTextDocument, line: Int): String {
+        val start = document.lineStartOffset(line)
+        if (start > 0) {
+            if (start >= 2 && document.charAt(start - 2) == '\\r' && document.charAt(start - 1) == '\\n') return "\\r\\n"
+            if (document.charAt(start - 1) == '\\r') return "\\r"
+            if (document.charAt(start - 1) == '\\n') return "\\n"
+        }
+        val end = document.lineEndOffset(line)
+        if (end < document.textLength) {
+            if (document.charAt(end) == '\\r') {
+                return if (end + 1 < document.textLength && document.charAt(end + 1) == '\\n') "\\r\\n" else "\\r"
+            }
+            if (document.charAt(end) == '\\n') return "\\n"
+        }
+        return "\\n"
+    }
+
+    private fun wrapSelectionWithTag(document: SymbolTextDocument, payload: String?): Boolean {
+        val tag = payload?.trim()?.takeIf { it.matches(Regex("[A-Za-z][A-Za-z0-9:-]{0,63}")) }
+            ?: return false
+        return wrapSelection(document, "<$tag>", "</$tag>")
+    }
+
+    private fun extendSelectionToLineBoundary(document: SymbolTextDocument, start: Boolean): Boolean {
+        val line = currentLine(document)
+        val boundary = if (start) document.lineStartOffset(line) else document.lineEndOffset(line)
+        document.setSelection(if (start) boundary else document.cursorOffset, if (start) document.cursorOffset else boundary)
+        return true
+    }
+
+    private fun selectedLineRange(document: SymbolTextDocument): IntRange? {
+        val start = document.selectionStart
+        val end = document.selectionEnd
+        if (start == end) return null
+        val first = document.lineForOffset(start).coerceIn(0, document.lineCount - 1)
+        var last = document.lineForOffset(end).coerceIn(0, document.lineCount - 1)
+        if (last > first && end == document.lineStartOffset(last)) last--
+        return if (last >= first) first..last else null
+    }
+
+    private fun indentSelectedLines(document: SymbolTextDocument, indent: String): Boolean {
+        if (!document.isEditable || indent.isEmpty()) return false
+        val range = selectedLineRange(document) ?: return false
+        val oldStart = document.selectionStart
+        val oldEnd = document.selectionEnd
+        for (line in range.last downTo range.first) {
+            val start = document.lineStartOffset(line)
+            if (!document.replace(start, start, indent)) return false
+        }
+        document.setSelection(oldStart + indent.length, oldEnd + indent.length * range.count())
+        return true
+    }
+
+    private fun unindentSelectedLines(document: SymbolTextDocument): Boolean {
+        if (!document.isEditable) return false
+        val range = selectedLineRange(document) ?: return false
+        val oldStart = document.selectionStart
+        val oldEnd = document.selectionEnd
+        val firstStart = document.lineStartOffset(range.first)
+        var firstRemoved = 0
+        var totalRemoved = 0
+        for (line in range.last downTo range.first) {
+            val start = document.lineStartOffset(line)
+            val content = document.lineText(line)
+            val count = when {
+                content.startsWith("\\t") -> 1
+                content.startsWith("    ") -> 4
+                content.startsWith("   ") -> 3
+                content.startsWith("  ") -> 2
+                content.startsWith(" ") -> 1
+                else -> 0
+            }
+            if (count > 0) {
+                if (line == range.first) firstRemoved = count
+                totalRemoved += count
+                if (!document.replace(start, start + count, "")) return false
+            }
+        }
+        if (totalRemoved == 0) return false
+        val startShift = minOf(firstRemoved, (oldStart - firstStart).coerceAtLeast(0))
+        document.setSelection(
+            (oldStart - startShift).coerceAtLeast(0),
+            (oldEnd - totalRemoved).coerceAtLeast(oldStart - startShift)
+        )
+        return true
+    }
+
+    private fun reorderSelectedLines(document: SymbolTextDocument, reverse: Boolean): Boolean {
+        if (!document.isEditable || document.textLength > MAX_DOCUMENT_WIDE_CHARS ||
+            document.lineCount > MAX_DOCUMENT_WIDE_LINES
+        ) return false
+        val range = selectedLineRange(document) ?: return false
+        if (range.count() < 2) return false
+        val original = range.map(document::lineText)
+        val reordered = if (reverse) original.reversed() else original.sorted()
+        if (original == reordered) return false
+        for (offset in range.count() - 1 downTo 0) {
+            val line = range.first + offset
+            if (!document.replace(
+                    document.lineStartOffset(line),
+                    document.lineEndOffset(line),
+                    reordered[offset]
+                )
+            ) return false
+        }
+        return true
+    }
+
+    private fun trimDocumentLeading(document: SymbolTextDocument): Boolean {
+        if (!document.isEditable || document.textLength > MAX_DOCUMENT_WIDE_CHARS ||
+            document.lineCount > MAX_DOCUMENT_WIDE_LINES
+        ) return false
+        val oldStart = document.selectionStart
+        val oldEnd = document.selectionEnd
+        var startShift = 0
+        var endShift = 0
+        var changed = false
+        for (line in document.lineCount - 1 downTo 0) {
+            val content = document.lineText(line)
+            val count = content.indexOfFirst { !it.isWhitespace() }.let { if (it < 0) content.length else it }
+            if (count == 0) continue
+            val start = document.lineStartOffset(line)
+            if (start < oldStart) startShift += minOf(count, oldStart - start)
+            if (start < oldEnd) endShift += minOf(count, oldEnd - start)
+            if (!document.replace(start, start + count, "")) return false
+            changed = true
+        }
+        if (changed) {
+            document.setSelection(
+                (oldStart - startShift).coerceIn(0, document.textLength),
+                (oldEnd - endShift).coerceIn(0, document.textLength)
+            )
+        }
+        return changed
+    }
+
+    private fun ensureFinalNewline(document: SymbolTextDocument, payload: String?): Boolean {
+        if (!document.isEditable || document.textLength == 0) return false
+        val last = document.charAt(document.textLength - 1)
+        if (last == '\\n' || last == '\\r') return false
+        val separator = when (payload) {
+            "\\r\\n" -> "\\r\\n"
+            "\\r" -> "\\r"
+            else -> "\\n"
+        }
+        val oldLength = document.textLength
+        val oldStart = document.selectionStart
+        val oldEnd = document.selectionEnd
+        if (!document.replace(oldLength, oldLength, separator)) return false
+        document.setSelection(
+            if (oldStart == oldLength) oldLength + separator.length else oldStart,
+            if (oldEnd == oldLength) oldLength + separator.length else oldEnd
+        )
         return true
     }
 
