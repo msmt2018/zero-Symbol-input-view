@@ -17,7 +17,6 @@
  *    applicable AGPL terms.
  *
  * 2. GNU General Public License v3.0 only (GPL-3.0-only):
- *    Grants the rights to use, study, modify, and redistribute this work.
  *    Distribution of covered binaries requires compliance with the source
  *    code, license notice, attribution, and other applicable GPL terms.
  *
@@ -31,7 +30,6 @@
  * of the listed licenses.
  *
  * You must comply with the applicable terms of all three licenses.
- * This notice is a summary and does not replace the full license texts.
  *
  * Full license texts:
  * - GNU AGPL v3.0: https://www.gnu.org/licenses/agpl-3.0.html
@@ -58,9 +56,12 @@ import com.google.android.material.tabs.TabLayoutMediator
 /**
  * 底部抽屉 + 分页容器的基础抽象组件。
  *
- * 该类用于兼容仍需要 `TabLayout + ViewPager2` 形态的场景，
+ * 该类用于兼容仍需要 TabLayout + ViewPager2 形态的场景，
  * 同时将布局改为纯代码创建，避免依赖外部 XML 结构。
-  *
+ *
+ * 抽屉绑定只负责同步 BottomSheetBehavior 的展开进度，不接管宿主的触摸事件、
+ * 拖动手势或符号管理逻辑。
+ *
  * @author android_zero
  * @github msmt2018/zero-Symbol-input-view
  */
@@ -73,8 +74,13 @@ abstract class BottomSheetTabPagerContainer @JvmOverloads constructor(
     protected val tabRow: View
 
     private var tabMediator: TabLayoutMediator? = null
+    private var boundTabTitles: List<String>? = null
+    private var bottomSheetView: View? = null
     private var bottomSheetBehavior: BottomSheetBehavior<View>? = null
     private var registeredBottomSheetCallback: BottomSheetBehavior.BottomSheetCallback? = null
+    private var isBottomSheetCallbackRegistered = false
+    private var initialCollapsePending = false
+    private var pendingInitialCollapse: Runnable? = null
 
     init {
         val root = LinearLayout(context).apply {
@@ -109,20 +115,26 @@ abstract class BottomSheetTabPagerContainer @JvmOverloads constructor(
         }
     }
 
-    /** 绑定并监听底部抽屉状态变化。 */
+    /**
+     * 绑定并监听底部抽屉状态变化。
+     *
+     * 保留原有参数和 BottomSheetBehavior 配置，避免破坏既有调用方。
+     * 监听器仅在本容器 attached 时注册；临时 detach 时解绑但保留绑定目标，
+     * 重新 attach 后恢复监听。重复调用会先完整释放旧绑定。
+     */
     open fun setupWithBottomSheet(rootView: View, bottomSheet: View, followView: View? = null) {
-        val behavior = BottomSheetBehavior.from(bottomSheet)
-        bottomSheetBehavior?.let { pb -> registeredBottomSheetCallback?.let { pc -> pb.removeBottomSheetCallback(pc) } }
+        clearBottomSheetBinding()
 
+        val behavior = BottomSheetBehavior.from(bottomSheet)
+        bottomSheetView = bottomSheet
         bottomSheetBehavior = behavior
         behavior.saveFlags = BottomSheetBehavior.SAVE_NONE
         behavior.isHideable = false
         behavior.isDraggable = true
         behavior.skipCollapsed = false
         behavior.isFitToContents = true
-        bottomSheet.post { behavior.state = BottomSheetBehavior.STATE_COLLAPSED }
 
-        val sheetCallback = object : BottomSheetBehavior.BottomSheetCallback() {
+        registeredBottomSheetCallback = object : BottomSheetBehavior.BottomSheetCallback() {
             override fun onStateChanged(bottomSheet: View, newState: Int) {
                 when (newState) {
                     BottomSheetBehavior.STATE_COLLAPSED -> setExpansionFraction(0f)
@@ -135,8 +147,12 @@ abstract class BottomSheetTabPagerContainer @JvmOverloads constructor(
                 setExpansionFraction(slideOffset.coerceIn(0f, 1f))
             }
         }
-        behavior.addBottomSheetCallback(sheetCallback)
-        registeredBottomSheetCallback = sheetCallback
+
+        initialCollapsePending = true
+        if (isAttachedToWindow) {
+            registerBottomSheetCallbackIfNeeded()
+            scheduleInitialCollapse()
+        }
     }
 
     /** 页面恢复时将抽屉重置到折叠态。 */
@@ -144,30 +160,113 @@ abstract class BottomSheetTabPagerContainer @JvmOverloads constructor(
         bottomSheetBehavior?.state = BottomSheetBehavior.STATE_COLLAPSED
     }
 
-    /** 将标题列表绑定到 `TabLayout` 与 `ViewPager2`。 */
+    /** 将标题列表绑定到 TabLayout 与 ViewPager2。 */
     protected fun bindTabs(titles: List<String>) {
+        boundTabTitles = titles.toList()
+        attachTabMediatorIfPossible()
+    }
+
+    private fun attachTabMediatorIfPossible() {
         detachTabMediatorSafely()
+        val titles = boundTabTitles ?: return
         if (titles.isEmpty()) {
-            tabLayout.removeAllTabs(); return
+            tabLayout.removeAllTabs()
+            return
         }
+        // TabLayoutMediator.attach() requires an adapter. A subclass may install
+        // its adapter after this view is reattached, then call bindTabs again.
+        if (viewPager.adapter == null) return
+
         tabMediator = TabLayoutMediator(tabLayout, viewPager) { tab, position ->
-            tab.text = titles.getOrNull(position) ?: "Tab ${position + 1}"
+            tab.text = titles.getOrNull(position) ?: ("Tab " + (position + 1))
         }.apply { attach() }
+    }
+
+    private fun registerBottomSheetCallbackIfNeeded() {
+        val behavior = bottomSheetBehavior ?: return
+        val callback = registeredBottomSheetCallback ?: return
+        if (isBottomSheetCallbackRegistered) return
+
+        behavior.addBottomSheetCallback(callback)
+        isBottomSheetCallbackRegistered = true
+    }
+
+    private fun unregisterBottomSheetCallback() {
+        val behavior = bottomSheetBehavior
+        val callback = registeredBottomSheetCallback
+        if (isBottomSheetCallbackRegistered && behavior != null && callback != null) {
+            behavior.removeBottomSheetCallback(callback)
+        }
+        isBottomSheetCallbackRegistered = false
+    }
+
+    private fun cancelInitialCollapse() {
+        val target = bottomSheetView
+        val runnable = pendingInitialCollapse
+        if (target != null && runnable != null) {
+            target.removeCallbacks(runnable)
+        }
+        pendingInitialCollapse = null
+    }
+
+    private fun scheduleInitialCollapse() {
+        if (!initialCollapsePending || !isAttachedToWindow) return
+        val target = bottomSheetView ?: return
+        val behavior = bottomSheetBehavior ?: return
+
+        cancelInitialCollapse()
+        val runnable = object : Runnable {
+            override fun run() {
+                if (pendingInitialCollapse !== this) return
+                if (bottomSheetView !== target || bottomSheetBehavior !== behavior || !isAttachedToWindow) {
+                    return
+                }
+                if (!target.isAttachedToWindow) {
+                    // The sheet may have detached between posting and execution.
+                    // Re-posting while detached queues the task for its next attach.
+                    target.post(this)
+                    return
+                }
+                pendingInitialCollapse = null
+                behavior.state = BottomSheetBehavior.STATE_COLLAPSED
+                initialCollapsePending = false
+            }
+        }
+        pendingInitialCollapse = runnable
+        target.post(runnable)
+    }
+
+    private fun clearBottomSheetBinding() {
+        cancelInitialCollapse()
+        unregisterBottomSheetCallback()
+        registeredBottomSheetCallback = null
+        bottomSheetBehavior = null
+        bottomSheetView = null
+        initialCollapsePending = false
     }
 
     private fun detachTabMediatorSafely() {
         val mediator = tabMediator ?: return
-        try { mediator.detach() } catch (_: IllegalStateException) {}
+        try {
+            mediator.detach()
+        } catch (_: IllegalStateException) {
+            // The ViewPager2 may already have released its adapter during teardown.
+        }
         tabMediator = null
     }
 
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        attachTabMediatorIfPossible()
+        registerBottomSheetCallbackIfNeeded()
+        scheduleInitialCollapse()
+    }
+
     override fun onDetachedFromWindow() {
+        cancelInitialCollapse()
+        unregisterBottomSheetCallback()
         detachTabMediatorSafely()
-        bottomSheetBehavior?.let { behavior ->
-            registeredBottomSheetCallback?.let { callback -> behavior.removeBottomSheetCallback(callback) }
-        }
-        registeredBottomSheetCallback = null
-        bottomSheetBehavior = null
+        // Keep the target and callback so a temporary detach/attach cycle can rebind.
         super.onDetachedFromWindow()
     }
 
