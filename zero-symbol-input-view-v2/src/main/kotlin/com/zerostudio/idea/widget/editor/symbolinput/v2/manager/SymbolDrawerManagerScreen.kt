@@ -150,33 +150,78 @@ class SymbolDrawerManagerScreen(
         }
     }
 
+    private var groupActionsButton: Button? = null
+
     private fun buildHeader() {
         val row = horizontalRow()
-        row.addView(actionButton("新建分组") { promptGroupName("新建分组") { manager.addGroup(it); selectedGroupId = manager.groups.lastOrNull()?.id; refresh() } })
-        row.addView(actionButton("新建符号") { if (currentGroup() == null) toast("请先创建分组") else editSymbol(null) })
+        val addButton = actionButton("添加") { }
+        addButton.setOnClickListener { showAddMenu(addButton) }
+        row.addView(addButton, LayoutParams(LayoutParams.WRAP_CONTENT, dp(44)))
         addView(row, matchWrap())
     }
 
     private fun buildGroupControls() {
-        addView(groupSpinner, matchWrap())
         val row = horizontalRow()
-        row.addView(actionButton("重命名") {
-            currentGroup()?.let { group -> promptGroupName("重命名分组", group.title) { manager.renameGroup(group.id, it); refresh() } }
+        row.addView(groupSpinner, LinearLayout.LayoutParams(0, dp(48), 1f).apply {
+            marginEnd = dp(8)
         })
-        row.addView(actionButton("复制") {
-            currentGroup()?.let { group -> selectedGroupId = manager.duplicateGroup(group.id).id; refresh() }
-        })
-        row.addView(actionButton("上移") { moveCurrentGroup(-1) })
-        row.addView(actionButton("下移") { moveCurrentGroup(1) })
-        row.addView(actionButton("删除") { confirmDeleteGroup() })
+        groupActionsButton = actionButton("分组操作") { }
+        groupActionsButton?.setOnClickListener { showGroupMenu(it) }
+        row.addView(groupActionsButton, LayoutParams(LayoutParams.WRAP_CONTENT, dp(44)))
         addView(row, matchWrap())
         groupSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
             override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
             override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
                 selectedGroupId = manager.groups.getOrNull(position)?.id
                 refreshSymbols()
+                groupActionsButton?.isEnabled = currentGroup() != null
             }
         }
+    }
+
+    private fun showAddMenu(anchor: View) {
+        val menu = PopupMenu(context, anchor)
+        menu.menu.add("新建分组").setOnMenuItemClickListener {
+            promptGroupName("新建分组") {
+                val created = manager.addGroup(it)
+                selectedGroupId = created.id
+                refresh()
+            }
+            true
+        }
+        val group = currentGroup()
+        menu.menu.add(if (group == null) "新建符号（请先创建分组）" else "在“${group.title}”中新建符号")
+            .apply { isEnabled = group != null }
+            .setOnMenuItemClickListener { editSymbol(null); true }
+        menu.show()
+    }
+
+    private fun showGroupMenu(anchor: View) {
+        val group = currentGroup() ?: return
+        val index = manager.groups.indexOfFirst { it.id == group.id }
+        val menu = PopupMenu(context, anchor)
+        menu.menu.add("当前分组：${group.title}").isEnabled = false
+        menu.menu.add("重命名“${group.title}”").setOnMenuItemClickListener {
+            promptGroupName("重命名分组", group.title) {
+                manager.renameGroup(group.id, it)
+                refresh()
+            }
+            true
+        }
+        menu.menu.add("复制“${group.title}”").setOnMenuItemClickListener {
+            selectedGroupId = manager.duplicateGroup(group.id).id
+            refresh()
+            true
+        }
+        menu.menu.add("上移“${group.title}”").apply { isEnabled = index > 0 }
+            .setOnMenuItemClickListener { moveCurrentGroup(-1); true }
+        menu.menu.add("下移“${group.title}”").apply { isEnabled = index >= 0 && index < manager.groups.lastIndex }
+            .setOnMenuItemClickListener { moveCurrentGroup(1); true }
+        menu.menu.add("删除“${group.title}”").setOnMenuItemClickListener {
+            confirmDeleteGroup()
+            true
+        }
+        menu.show()
     }
 
     private fun buildSearch() {
@@ -194,7 +239,7 @@ class SymbolDrawerManagerScreen(
     }
 
     private fun buildSymbolList() {
-        emptyView.text = "当前分组暂无符号，点击“新建符号”添加"
+        emptyView.text = "当前分组暂无符号，点击“添加”并选择“新建符号”"
         emptyView.textSize = 13f
         emptyView.setTextColor(secondaryTextColor())
         emptyView.alpha = 0.75f
@@ -246,6 +291,7 @@ class SymbolDrawerManagerScreen(
         ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
         if (groups.isNotEmpty()) groupSpinner.setSelection(selectedIndex, false)
         val enabled = groups.isNotEmpty()
+        groupActionsButton?.isEnabled = enabled
         searchField.isEnabled = enabled
         refreshSymbols()
         onGroupsChanged?.invoke(groups)

@@ -195,33 +195,39 @@ class SymbolDrawerSettingsScreen(
                 }
             },
             "数据管理" to {
-                section("设置选项备份")
-                addActionRow(
-                    "复制设置 JSON" to ::copySettingsBackup,
-                    "导出设置文件" to ::exportSettingsFile
+                addDataManagementCard(
+                    "设置备份",
+                    "备份当前外观、布局、交互与性能选项；导入设置不会修改符号分组。",
+                    listOf(
+                        "复制设置 JSON" to ::copySettingsBackup,
+                        "导出设置文件" to ::exportSettingsFile,
+                        "粘贴导入设置" to ::promptImportSettings,
+                        "从文件导入设置" to { pendingImport = ImportKind.SETTINGS; documentPicker.openJson() }
+                    )
                 )
-                addActionRow(
-                    "粘贴导入设置" to ::promptImportSettings,
-                    "从文件导入设置" to { pendingImport = ImportKind.SETTINGS; documentPicker.openJson() }
-                )
-                section("符号组导入与导出")
-                addActionRow(
-                    "复制符号组 JSON" to ::copyGroupsBackup,
-                    "导出符号组文件" to ::exportGroupsFile
-                )
-                addActionRow(
-                    "粘贴导入符号组" to ::promptImportGroups,
-                    "从文件导入符号组" to { pendingImport = ImportKind.GROUPS; documentPicker.openJson() }
+                addDataManagementCard(
+                    "符号组备份",
+                    "包含分组、符号内容及其短按/长按动作。导入会替换当前全部符号组。",
+                    listOf(
+                        "复制符号组 JSON" to ::copyGroupsBackup,
+                        "导出符号组文件" to ::exportGroupsFile,
+                        "粘贴导入符号组" to ::promptImportGroups,
+                        "从文件导入符号组" to { pendingImport = ImportKind.GROUPS; documentPicker.openJson() }
+                    )
                 )
                 addView(TextView(context).apply {
-                    text = "两类备份分别处理，互不覆盖。导入前会校验 JSON 结构、字段类型、动作编号和数据范围。"
+                    text = "数据安全提示：两类备份相互独立。导入前会校验 JSON 结构、字段类型、动作编号和数据范围；建议在覆盖数据前先导出备份。"
                     textSize = 12f
                     setTextColor(onSurfaceColor())
                     alpha = 0.72f
-                    setPadding(dp(2), dp(8), dp(2), dp(12))
+                    setPadding(dp(4), dp(12), dp(4), dp(8))
                 }, matchWrap())
-                activePage?.addView(Button(context).apply {
+                activePage?.addView(com.google.android.material.button.MaterialButton(context).apply {
                     text = "恢复默认设置"
+                    isAllCaps = false
+                    cornerRadius = dp(14)
+                    backgroundTintList = android.content.res.ColorStateList.valueOf(primaryColor())
+                    setTextColor(surfaceColor())
                     setOnClickListener {
                         runCatching {
                             val defaults = SymbolDrawerSettings()
@@ -232,8 +238,8 @@ class SymbolDrawerSettingsScreen(
                             toast("设置已恢复默认并保存")
                         }.onFailure(::reportFailure)
                     }
-                }, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
-                    topMargin = dp(10)
+                }, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, dp(50)).apply {
+                    topMargin = dp(14)
                 })
             }
         )
@@ -267,27 +273,63 @@ class SymbolDrawerSettingsScreen(
         })
     }
 
-    private fun addActionRow(first: Pair<String, () -> Unit>, second: Pair<String, () -> Unit>) {
-        val row = LinearLayout(context).apply {
-            orientation = HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
+    private fun addDataManagementCard(
+        title: String,
+        description: String,
+        actions: List<Pair<String, () -> Unit>>
+    ) {
+        val card = LinearLayout(context).apply {
+            orientation = VERTICAL
+            setPadding(dp(14), dp(14), dp(14), dp(12))
+            background = surfaceBackground(surfaceColor(), 0.10f, 18)
         }
-        row.addView(actionButton(first.first, first.second), LinearLayout.LayoutParams(0, dp(52), 1f).apply {
-            marginEnd = dp(5)
-        })
-        row.addView(actionButton(second.first, second.second), LinearLayout.LayoutParams(0, dp(52), 1f).apply {
-            marginStart = dp(5)
-        })
-        activePage?.addView(row, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
-            bottomMargin = dp(8)
+        card.addView(TextView(context).apply {
+            text = title
+            textSize = 16f
+            setTextColor(onSurfaceColor())
+            setTypeface(typeface, Typeface.BOLD)
+        }, matchWrap())
+        card.addView(TextView(context).apply {
+            text = description
+            textSize = 12f
+            setTextColor(onSurfaceColor())
+            alpha = 0.72f
+            setPadding(0, dp(5), 0, dp(12))
+        }, matchWrap())
+        actions.chunked(2).forEach { pair ->
+            val row = LinearLayout(context).apply {
+                orientation = HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+            }
+            pair.forEachIndexed { index, action ->
+                row.addView(actionButton(action.first, action.second), LinearLayout.LayoutParams(0, dp(48), 1f).apply {
+                    if (index == 0) marginEnd = dp(5) else marginStart = dp(5)
+                })
+            }
+            card.addView(row, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = dp(8)
+            })
+        }
+        activePage?.addView(card, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
+            bottomMargin = dp(12)
         })
     }
 
-    private fun actionButton(title: String, action: () -> Unit) = Button(context).apply {
-        text = title
-        isAllCaps = false
-        setOnClickListener { runCatching(action).onFailure(::reportFailure) }
-    }
+    private fun actionButton(title: String, action: () -> Unit) =
+        com.google.android.material.button.MaterialButton(context).apply {
+            text = title
+            textSize = 12f
+            isAllCaps = false
+            cornerRadius = dp(12)
+            strokeWidth = dp(1)
+            strokeColor = android.content.res.ColorStateList.valueOf(primaryColor())
+            backgroundTintList = android.content.res.ColorStateList.valueOf(surfaceColor())
+            setTextColor(primaryColor())
+            insetTop = 0
+            insetBottom = 0
+            minHeight = dp(48)
+            setOnClickListener { runCatching(action).onFailure(::reportFailure) }
+        }
 
     private fun section(title: String) {
         activePage?.addView(TextView(context).apply {
