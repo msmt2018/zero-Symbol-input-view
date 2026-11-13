@@ -93,7 +93,7 @@ private class MaterialSettingsDrawable(
         val bounds = bounds
         if (bounds.isEmpty) return
         val source = RectF(0f, 0f, 24f, 24f)
-        val target = RectF(bounds)
+        val target = RectF(0f, 0f, bounds.width().toFloat(), bounds.height().toFloat())
         val matrix = Matrix().apply {
             setRectToRect(source, target, Matrix.ScaleToFit.CENTER)
         }
