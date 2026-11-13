@@ -20,6 +20,7 @@ class SoraCodeEditorSymbolActionHost(
 ) : SymbolActionHost {
     private val extensionHandlers = SymbolActionRegistry<SoraCodeEditorSymbolActionHost>()
     private val extensionRegistrations = LinkedHashMap<String, AutoCloseable>()
+    private val genericTextActions = GenericSymbolTextActions.createRegistry()
 
     /** Register an app-defined extension action. Returns false for a blank ID. */
     fun registerExtensionHandler(
@@ -109,11 +110,26 @@ class SoraCodeEditorSymbolActionHost(
         val cursor = editor.cursor
         var start = cursor.left().index
         var end = cursor.right().index
-        if (kind == DeleteKind.CURRENT_LINE) return deleteCurrentLine()
+        if (kind == DeleteKind.CURRENT_LINE) {
+            return genericTextActions.execute(
+                SymbolActionId("builtin", "line.delete"),
+                SoraSymbolTextDocument(editor)
+            ) ?: false
+        }
         if (start == end) {
             when (kind) {
-                DeleteKind.BACKWARD -> start = (start - 1).coerceAtLeast(0)
-                DeleteKind.FORWARD -> end = (end + 1).coerceAtMost(text.length)
+                DeleteKind.BACKWARD -> {
+                    val range = SymbolTextEditing.codePointDeletionRange(text, start, backwards = true)
+                        ?: return false
+                    start = range.start
+                    end = range.end
+                }
+                DeleteKind.FORWARD -> {
+                    val range = SymbolTextEditing.codePointDeletionRange(text, end, backwards = false)
+                        ?: return false
+                    start = range.start
+                    end = range.end
+                }
                 DeleteKind.CURRENT_LINE, DeleteKind.TO_LINE_START, DeleteKind.TO_LINE_END -> {
                     val line = cursor.leftLine
                     val lineStart = text.indexer.getCharPosition(line, 0).index
@@ -152,6 +168,10 @@ class SoraCodeEditorSymbolActionHost(
     }
 
     override fun executeEditorCommand(commandId: String, payload: String?): Boolean {
+        val document = SoraSymbolTextDocument(editor)
+        genericTextActions.execute(SymbolActionId("builtin", commandId), document, payload)?.let {
+            return it
+        }
         val readOnlySafeCommands = setOf(
             "select_all", "selection.selectAll", "copy",
             "undo", "history.undo", "redo", "history.redo"
@@ -164,10 +184,6 @@ class SoraCodeEditorSymbolActionHost(
             "indent", "editor.indent" -> editor.indentOrCommitTab()
             "unindent", "editor.unindent" -> editor.unindentSelection()
             "format", "editor.format" -> editor.formatCodeAsync()
-            "line.clear" -> return clearCurrentLine()
-            "editor.toggleLineComment" -> return toggleLineComment()
-            "line.duplicate" -> return duplicateCurrentLine()
-            "line.replace" -> return replaceCurrentLine(payload)
             "insert_payload" -> editor.commitText(payload.orEmpty())
             else -> return false
         }
@@ -264,8 +280,68 @@ class SoraCodeEditorSymbolActionHost(
         return true
     }
 
-    override fun executeExtension(extensionId: String, payload: String?): Boolean =
-        extensionHandlers.execute(SymbolActionId.extension(extensionId), this, payload) ?: false
+    override fun executeExtension(extensionId: String, payload: String?): Boolean {
+        genericTextActions.execute(SymbolActionId("builtin", extensionId), SoraSymbolTextDocument(editor), payload)
+            ?.let { return it }
+        return extensionHandlers.execute(SymbolActionId.extension(extensionId), this, payload) ?: false
+    }
+
+    private class SoraSymbolTextDocument(
+        private val editor: CodeEditor
+    ) : SymbolTextDocument {
+        private val content get() = editor.text
+
+        override val isEditable: Boolean get() = editor.isEditable
+        override val textLength: Int get() = content.length
+        override val lineCount: Int get() = content.lineCount
+        override val cursorOffset: Int get() = editor.cursor.right().index
+        override val selectionStart: Int get() = editor.cursor.left().index
+        override val selectionEnd: Int get() = editor.cursor.right().index
+
+        override fun lineForOffset(offset: Int): Int =
+            content.indexer.getCharPosition(offset.coerceIn(0, content.length)).line
+
+        override fun lineStartOffset(line: Int): Int =
+            content.indexer.getCharPosition(line, 0).index
+
+        override fun lineEndOffset(line: Int): Int =
+            content.indexer.getCharPosition(line, content.getColumnCount(line)).index
+
+        override fun lineText(line: Int): String = content.getLineString(line)
+
+        override fun textBetween(start: Int, end: Int): String =
+            content.subSequence(start, end).toString()
+
+        override fun charAt(offset: Int): Char =
+            content.subSequence(offset, offset + 1)[0]
+
+        override fun replace(start: Int, end: Int, replacement: String): Boolean {
+            if (!editor.isEditable) return false
+            val safeStart = start.coerceIn(0, content.length)
+            val safeEnd = end.coerceIn(safeStart, content.length)
+            val from = content.indexer.getCharPosition(safeStart)
+            val to = content.indexer.getCharPosition(safeEnd)
+            content.beginBatchEdit()
+            try {
+                if (safeStart < safeEnd) content.delete(from.line, from.column, to.line, to.column)
+                if (replacement.isNotEmpty()) {
+                    val insertion = content.indexer.getCharPosition(safeStart)
+                    content.insert(insertion.line, insertion.column, replacement)
+                }
+            } finally {
+                content.endBatchEdit()
+            }
+            return true
+        }
+
+        override fun setSelection(start: Int, end: Int) {
+            val safeStart = start.coerceIn(0, content.length)
+            val safeEnd = end.coerceIn(0, content.length)
+            val from = content.indexer.getCharPosition(safeStart)
+            val to = content.indexer.getCharPosition(safeEnd)
+            editor.setSelectionRegion(from.line, from.column, to.line, to.column)
+        }
+    }
 
     private fun selectedText(): String =
         if (editor.cursor.isSelected) editor.text.subSequence(

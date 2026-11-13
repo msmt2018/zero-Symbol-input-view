@@ -31,6 +31,7 @@ object GenericSymbolTextActions {
         add("line.toggleCase") { d, _ -> transformCurrentLine(d, ::toggleCase) }
         add("line.trimTrailingWhitespace") { d, _ -> trimCurrentLine(d) }
         add("line.toggleComment") { d, payload -> toggleLineComments(d, payload ?: "//") }
+        add("editor.toggleLineComment") { d, payload -> toggleLineComments(d, payload ?: "//") }
         add("line.indent") { d, payload -> indentCurrentLine(d, payload ?: "\t") }
         add("line.unindent") { d, _ -> unindentCurrentLine(d) }
 
