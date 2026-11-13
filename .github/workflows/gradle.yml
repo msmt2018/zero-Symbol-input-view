@@ -55,6 +55,17 @@ jobs:
       - name: Compile V2 symbol drawer instrumentation tests
         run: ./gradlew :zero-symbol-input-view-v2:assembleDebugAndroidTest
 
+      - name: Run V2 instrumentation tests on Android 15
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          script: ./gradlew :zero-symbol-input-view-v2:connectedDebugAndroidTest
+
       - name: Validate V2 Maven publication
         run: |
           set -euo pipefail
