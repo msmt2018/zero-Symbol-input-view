@@ -102,22 +102,32 @@ internal class JsonDocumentPicker(
     }
 
     fun openJson() {
-        val launcher = openLauncher ?: error("JSON file picker requires a ComponentActivity host")
-        // Document providers often label JSON as application/octet-stream.
-        // Select broadly, then validate the actual contents with the JSON codecs.
-        launcher.launch(arrayOf("*/*"))
+        runCatching {
+            val launcher = openLauncher
+                ?: error("JSON file picker requires a ComponentActivity host")
+            // Document providers often label JSON as application/octet-stream.
+            // Select broadly, then validate the actual contents with the JSON codecs.
+            launcher.launch(arrayOf("*/*"))
+        }.onFailure { error -> runCatching { onError(error) } }
     }
 
     fun saveJson(fileName: String, json: String) {
-        val launcher = saveLauncher ?: error("JSON file picker requires a ComponentActivity host")
+        val launcher = saveLauncher
+        if (launcher == null) {
+            runCatching { onError(IllegalStateException("JSON file picker requires a ComponentActivity host")) }
+            return
+        }
         pendingExport = json
-        runCatching { launcher.launch(fileName) }.onFailure {
+        runCatching { launcher.launch(fileName) }.onFailure { error ->
             pendingExport = null
-            onError(it)
+            runCatching { onError(error) }
         }
     }
 
     private fun read(uri: Uri) {
+        // Include decoding AND the import callback in the same failure boundary.
+        // Schema errors (including unsupported legacy action IDs) must be reported
+        // to the settings UI rather than escaping through ActivityResult delivery.
         runCatching {
             val input = activity?.contentResolver?.openInputStream(uri)
                 ?: error("Unable to open selected JSON file")
@@ -132,9 +142,9 @@ internal class JsonDocumentPicker(
                     require(total <= MAX_IMPORT_BYTES) { "Selected JSON file exceeds the 16 MiB import limit" }
                     output.write(buffer, 0, count)
                 }
-                output.toString(Charsets.UTF_8.name())
-            }
-        }.onSuccess(onImported).onFailure(onError)
+                output.toString(Charsets.UTF_8.name()).removePrefix("\uFEFF")
+            }.also(onImported)
+        }.onFailure { error -> runCatching { onError(error) } }
     }
 
     private fun write(uri: Uri) {

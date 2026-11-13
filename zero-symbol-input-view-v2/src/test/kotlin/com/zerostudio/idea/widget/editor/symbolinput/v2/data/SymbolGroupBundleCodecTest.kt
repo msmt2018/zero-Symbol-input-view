@@ -236,4 +236,55 @@ class SymbolGroupBundleCodecTest {
         assertEquals(33, restored[0].symbols[1].legacyShortActionId)
     }
 
+    @Test fun importsTheSuppliedV1BackupWithBracketSelectionActionId26() {
+        val json = """[
+          {"n":"backup","d":[
+            {"a":11,"b":"注释","d":11},{"a":18,"b":"←","d":16},
+            {"a":20,"b":"↑","d":23},{"a":19,"b":"→","d":17},
+            {"a":0,"b":"\"","c":"\""},{"a":0,"b":"'","c":"'"},
+            {"a":0,"b":".","c":"."},{"a":0,"b":",","c":","},
+            {"a":0,"b":"/","c":"/"},{"a":0,"b":"//","c":"//"},
+            {"a":21,"b":"↓","d":24},{"a":0,"b":":","c":":"},
+            {"a":0,"b":";","c":";"},{"a":0,"b":"#","c":"#"},
+            {"a":0,"b":"+","c":"+"},{"a":0,"b":"-","c":"-"},
+            {"a":0,"b":"*","c":"*"},{"a":0,"b":"=","c":"="},
+            {"a":0,"b":"|","c":"|"},{"a":0,"b":"_","c":"_"},
+            {"a":0,"b":"(","c":"("},{"a":0,"b":")","c":")"},
+            {"a":0,"b":"(\"","c":"(\""},{"a":0,"b":"\")","c":"\")"},
+            {"a":0,"b":"{","c":"{"},{"a":0,"b":"}","c":"}"},
+            {"a":0,"b":"()","c":"()","d":0,"e":"($T)"},
+            {"a":0,"b":"[]","c":"[]","d":0,"e":"[$T]"},
+            {"a":0,"b":"{}","c":"{$S$T$E}","d":0,"e":"{$T}"},
+            {"a":0,"b":"<","c":"<"},{"a":0,"b":">","c":">"},
+            {"a":0,"b":"\\","c":"\\"},{"a":0,"b":"$","c":"$"},
+            {"a":0,"b":"&","c":"&"},{"a":0,"b":"/*","c":"/**"},
+            {"a":0,"b":"*/","c":"*/"}
+          ]},
+          {"n":"特殊","d":[
+            {"a":22,"b":"…"},{"a":26,"b":"选中括号内容","d":25},
+            {"a":0,"b":"return ","c":"return "},
+            {"a":0,"b":"插入字符串","c":"const-string v0, \"\""},
+            {"a":0,"b":"赋值1/0","c":"const v0,1","d":0,"e":"const v0,0"},
+            {"a":0,"b":"const-wide","c":"const-wide v0,0x"},
+            {"a":9,"b":"Tab"},{"a":4,"b":"清空行"},{"a":3,"b":"删除行"},
+            {"a":29,"b":"剪切","d":2},{"a":28,"b":"复制","d":1},
+            {"a":30,"b":"粘贴"},{"a":16,"b":"到行首"},{"a":17,"b":"到行尾"},
+            {"a":23,"b":"到开头"},{"a":24,"b":"到结尾"},
+            {"a":0,"b":"腾讯gradle镜像源","c":"mirrors.cloud.tencent.com/gradle"},
+            {"a":32,"b":"格式化","d":33},{"a":7,"b":"A/a","d":8},{"a":22,"b":"…"}
+          ]}
+        ]"""
+        val groups = SymbolGroupBundleCodec.decode(json)
+        assertEquals(listOf("backup", "特殊"), groups.map { it.title })
+        assertEquals(2, groups.size)
+        assertTrue(groups[0].symbols.size >= 30)
+        assertEquals(20, groups[1].symbols.size)
+        val bracket = groups[1].symbols.first { it.label == "选中括号内容" }
+        assertEquals(26, bracket.legacyShortActionId)
+        assertEquals(SymbolAction.Extension("legacy.action.26"), bracket.shortAction)
+        assertEquals(25, bracket.legacyLongActionId)
+        assertEquals(SymbolAction.EditorCommand("selection.selectAll"), bracket.longAction)
+        assertEquals("const-string v0, \"\"", groups[1].symbols[3].legacyShortText)
+    }
+
 }

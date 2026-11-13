@@ -51,7 +51,7 @@ class DrawerApiLabActivity : AppCompatActivity() {
         drawer.setPeekContent(objectPanel("Peek panel", "This compact panel is independent from the expanded content."))
         drawer.controller.setPages(samplePages())
         drawer.controller.addStateListener { state ->
-            status.text = "Anchor: ${state.currentAnchorId}  ·  Height: ${state.currentHeightPx}px  ·  Dragging: ${state.isDragging}  ·  Animating: ${state.isAnimating}"
+            status.text = "当前锚点：${state.currentAnchorId} · 当前高度：${state.currentHeightPx}px\n" + state.anchors.joinToString("  |  ") { "${it.id}=${it.heightPx}px" } + "\n拖动：${state.isDragging} · 动画：${state.isAnimating}"
         }
     }
 
@@ -77,40 +77,73 @@ class DrawerApiLabActivity : AppCompatActivity() {
             setPadding(0, dp(8), 0, dp(16))
         })
         root.addView(section("锚点与布局"))
-        root.addView(button("现有高度（两档）") {
+        root.addView(button("两档高度 · Peek / Expanded") {
+            configureBottomSheet()
             drawer.controller.setAnchorStrategy(DrawerAnchorStrategies.existingHeight())
-            drawer.controller.setDimensions(drawer.controller.currentState()?.let { DrawerDimensions(peekHeightDp = 56f, expandedMaxHeightDp = 640f) } ?: DrawerDimensions())
-            drawer.expand()
+            drawer.refreshAnchors()
+            drawer.controller.moveToAnchor("expanded", false)
         })
-        root.addView(button("三分屏（Peek / Half / Expanded）") {
-            drawer.controller.setAnchorStrategy(DrawerAnchorStrategies.threeStage(0.48f, true))
-            drawer.controller.expand()
+        root.addView(button("三段式 · Peek / Half / Expanded") {
+            configureBottomSheet()
+            drawer.controller.setAnchorStrategy(DrawerAnchorStrategies.threeStage(0.5f, false))
+            drawer.refreshAnchors()
+            drawer.controller.moveToAnchor("half", false)
         })
-        root.addView(button("内容自适应高度") {
+        root.addView(button("三段式 · 逐级展开至 Expanded") {
+            configureBottomSheet()
+            drawer.controller.setAnchorStrategy(DrawerAnchorStrategies.threeStage(0.5f, false))
+            drawer.refreshAnchors()
+            drawer.controller.moveToAnchor("expanded", true)
+        })
+        root.addView(button("内容自适应 · 短内容") {
+            configureBottomSheet()
+            drawer.controller.setPages(emptyList())
+            drawer.controller.setExpandedContent(objectPanel("内容自适应", "内容较少时抽屉按实际内容高度收缩。", 3))
             drawer.controller.setAnchorStrategy(DrawerAnchorStrategies.contentBased())
-            drawer.expand()
+            drawer.refreshAnchors()
+            drawer.controller.moveToAnchor("content", true)
         })
-        root.addView(button("自定义四档锚点") {
-            val max = (resources.displayMetrics.heightPixels * 0.92f).toInt()
+        root.addView(button("内容自适应 · 长内容") {
+            drawer.controller.setExpandedContent(objectPanel("内容自适应", "增加内容后重新测量，锚点随内容高度变化。", 14))
+            drawer.controller.setAnchorStrategy(DrawerAnchorStrategies.contentBased())
+            drawer.refreshAnchors()
+            drawer.controller.moveToAnchor("content", true)
+        })
+        root.addView(button("自定义四锚点 · 真实容器尺寸") {
+            configureBottomSheet()
+            val maxDp = (drawer.height / resources.displayMetrics.density).toInt()
+                .coerceAtLeast(360).coerceAtMost(720)
+            drawer.controller.setDimensions(DrawerDimensions(
+                peekHeightDp = 64f, expandedMaxHeightDp = maxDp.toFloat()
+            ))
+            val expanded = dp(maxDp)
             drawer.controller.setAnchorStrategy(DrawerAnchorStrategies.custom(listOf(
-                DrawerAnchor("peek", dp(56), DrawerAnchorState.PEEK),
-                DrawerAnchor("compact", dp(220), DrawerAnchorState.CUSTOM),
-                DrawerAnchor("half", max / 2, DrawerAnchorState.HALF_EXPANDED),
-                DrawerAnchor("expanded", max, DrawerAnchorState.EXPANDED)
+                DrawerAnchor("peek", dp(64), DrawerAnchorState.PEEK),
+                DrawerAnchor("compact", (expanded * 0.34f).toInt(), DrawerAnchorState.CUSTOM),
+                DrawerAnchor("half", (expanded * 0.62f).toInt(), DrawerAnchorState.HALF_EXPANDED),
+                DrawerAnchor("expanded", expanded, DrawerAnchorState.EXPANDED)
             )))
-            drawer.expand()
+            drawer.refreshAnchors()
+            drawer.controller.moveToAnchor("compact", false)
         })
-        root.addView(button("展开 / 折叠") { drawer.expand(); drawer.postDelayed({ drawer.collapse() }, 900) })
-        root.addView(button("切换为全屏容器") {
+        root.addView(button("全屏三段式 · Peek / Half / Full") {
             drawer.controller.setPresentationMode(DrawerPresentationMode.FULL_SCREEN)
-            drawer.controller.setAnchorStrategy(DrawerAnchorStrategies.threeStage(0.5f, true))
-            drawer.expand()
+            drawer.controller.setDimensions(DrawerDimensions(peekHeightDp = 64f, expandedMaxHeightDp = 720f))
+            drawer.controller.setAnchorStrategy(DrawerAnchorStrategies.threeStage(0.5f, false))
+            drawer.refreshAnchors()
+            drawer.controller.moveToAnchor("expanded", true)
         })
-        root.addView(button("退出全屏容器") {
-            drawer.controller.setPresentationMode(DrawerPresentationMode.BOTTOM_SHEET)
-            drawer.controller.setAnchorStrategy(DrawerAnchorStrategies.existingHeight())
-            drawer.controller.setDimensions(DrawerDimensions(peekHeightDp = 56f, expandedMaxHeightDp = 640f))
-            drawer.collapse()
+        root.addView(button("全屏三段式 · 回到 Half") {
+            drawer.controller.moveToAnchor("half", true)
+        })
+        root.addView(button("全屏三段式 · 回到 Peek") {
+            drawer.controller.moveToAnchor("peek", true)
+        })
+        root.addView(button("退出全屏并恢复底部抽屉") {
+            configureBottomSheet()
+            drawer.controller.setAnchorStrategy(DrawerAnchorStrategies.threeStage(0.5f, false))
+            drawer.refreshAnchors()
+            drawer.controller.moveToAnchor("peek", false)
         })
         root.addView(section("预设样式"))
         DrawerPreset.values().forEach { preset ->
@@ -246,6 +279,16 @@ class DrawerApiLabActivity : AppCompatActivity() {
         return scroll
     }
 
+
+    private fun configureBottomSheet() {
+        drawer.controller.setPresentationMode(DrawerPresentationMode.BOTTOM_SHEET)
+        val availableDp = (drawer.height / resources.displayMetrics.density).toInt().coerceAtLeast(360)
+        drawer.controller.setDimensions(DrawerDimensions(
+            peekHeightDp = 64f,
+            expandedMaxHeightDp = availableDp.coerceAtMost(720).toFloat()
+        ))
+    }
+
     private fun samplePages() = listOf(
         DrawerPage("overview", "Overview", content("Overview page", "Generic page hosting, lifecycle and page switching."),
             systemIcon(android.R.drawable.ic_menu_view)),
@@ -259,14 +302,14 @@ class DrawerApiLabActivity : AppCompatActivity() {
 
     private fun systemIcon(resourceId: Int) = resources.getDrawable(resourceId, theme)
 
-    private fun content(title: String, description: String) = object : DrawerPanelContent {
-        override fun createView(): View = panel(this@DrawerApiLabActivity, title, description)
-        override fun createView(context: Context): View = panel(context, title, description)
+    private fun content(title: String, description: String, rows: Int = 18) = object : DrawerPanelContent {
+        override fun createView(): View = panel(this@DrawerApiLabActivity, title, description, rows)
+        override fun createView(context: Context): View = panel(context, title, description, rows)
     }
 
-    private fun objectPanel(title: String, description: String) = content(title, description)
+    private fun objectPanel(title: String, description: String, rows: Int = 18) = content(title, description, rows)
 
-    private fun panel(context: Context, title: String, description: String): View {
+    private fun panel(context: Context, title: String, description: String, rows: Int = 18): View {
         val card = MaterialCardView(context).apply {
             radius = dp(18).toFloat()
             cardElevation = dp(1).toFloat()
@@ -276,7 +319,7 @@ class DrawerApiLabActivity : AppCompatActivity() {
             orientation = LinearLayout.VERTICAL
             addView(TextView(context).apply { text = title; textSize = 20f })
             addView(TextView(context).apply {
-                text = (1..18).joinToString("\n") { "$description\nScrollable content row $it" }
+                text = (1..rows.coerceAtLeast(1)).joinToString("\n") { "$description\nScrollable content row $it" }
                 textSize = 14f
                 setPadding(0, dp(context, 10), 0, 0)
             })
