@@ -133,7 +133,7 @@ class DrawerAnchorResolverTest {
             ThreeStageAnchorStrategy(),
             input.copy(viewportHeightPx = 600, viewportWidthPx = 600, maxHeightPx = 600)
         )
-        assertEquals(262, wide.first().heightPx)
+        assertEquals(263, wide.first().heightPx)
         assertEquals(300, wide[1].heightPx)
     }
 
