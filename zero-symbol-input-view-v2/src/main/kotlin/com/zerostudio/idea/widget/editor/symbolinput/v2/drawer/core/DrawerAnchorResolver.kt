@@ -55,12 +55,20 @@ object DrawerAnchorResolver {
         strategy: DrawerAnchorStrategy,
         input: DrawerAnchorInput
     ): List<DrawerAnchor> {
+        require(strategy.id.isNotBlank()) { "Anchor strategy ID must not be blank" }
         val resolved = strategy.resolve(input)
         require(resolved.isNotEmpty()) { "Anchor strategy returned no anchors" }
+        require(resolved.map { it.id }.distinct().size == resolved.size) {
+            "Anchor IDs returned by strategy '${strategy.id}' must be unique"
+        }
 
         val normalized = resolved.map {
             it.copy(heightPx = it.heightPx.coerceIn(input.minHeightPx, input.maxHeightPx))
-        }.sortedWith(compareBy<DrawerAnchor> { it.heightPx }.thenBy { rank(it.state) })
+        }.sortedWith(
+            compareBy<DrawerAnchor> { it.heightPx }
+                .thenBy { rank(it.state) }
+                .thenBy { it.id }
+        )
 
         val unique = LinkedHashMap<Int, DrawerAnchor>()
         normalized.forEach { candidate ->
@@ -72,9 +80,18 @@ object DrawerAnchorResolver {
         return unique.values.toList()
     }
 
+    /**
+     * Selects the closest stable anchor. Exact midpoint ties resolve toward the
+     * lower visible height (the more collapsed position), independent of input order.
+     */
     fun nearestAnchor(anchors: List<DrawerAnchor>, heightPx: Int): DrawerAnchor {
         require(anchors.isNotEmpty()) { "Cannot select from an empty anchor list" }
-        return anchors.minBy { kotlin.math.abs(it.heightPx - heightPx) }
+        return anchors.minWith(
+            compareBy<DrawerAnchor> { kotlin.math.abs(it.heightPx.toLong() - heightPx.toLong()) }
+                .thenBy { it.heightPx }
+                .thenBy { rank(it.state) }
+                .thenBy { it.id }
+        )
     }
 
     /** Resolve a fling target without allowing a single gesture to skip every stage. */
@@ -85,7 +102,13 @@ object DrawerAnchorResolver {
         minimumFlingVelocity: Float
     ): DrawerAnchor {
         require(anchors.isNotEmpty()) { "Cannot select from an empty anchor list" }
-        val ordered = anchors.sortedBy { it.heightPx }
+        require(velocityY.isFinite()) { "Fling velocity must be finite" }
+        require(minimumFlingVelocity.isFinite() && minimumFlingVelocity >= 0f) {
+            "Minimum fling velocity must be finite and non-negative"
+        }
+        val ordered = anchors.sortedWith(
+            compareBy<DrawerAnchor> { it.heightPx }.thenBy { rank(it.state) }.thenBy { it.id }
+        )
         if (kotlin.math.abs(velocityY) < minimumFlingVelocity) {
             return nearestAnchor(ordered, currentHeightPx)
         }

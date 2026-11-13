@@ -150,4 +150,60 @@ class DrawerAnchorResolverTest {
         assertEquals("half", DrawerAnchorResolver.nearestAnchor(anchors, 530).id)
         assertTrue(anchors.zipWithNext().all { (a, b) -> a.heightPx <= b.heightPx })
     }
+
+    @Test fun resolverRejectsDuplicateIdsFromThirdPartyStrategies() {
+        val strategy = object : DrawerAnchorStrategy {
+            override val id = "invalid-duplicate-ids"
+            override fun resolve(input: DrawerAnchorInput) = listOf(
+                DrawerAnchor("same", input.minHeightPx, DrawerAnchorState.PEEK),
+                DrawerAnchor("same", input.maxHeightPx, DrawerAnchorState.EXPANDED)
+            )
+        }
+        try {
+            DrawerAnchorResolver.resolve(strategy, input)
+            throw AssertionError("Expected duplicate anchor IDs to be rejected")
+        } catch (expected: IllegalArgumentException) {
+            assertTrue(expected.message.orEmpty().contains("must be unique"))
+        }
+    }
+
+    @Test fun nearestAnchorMidpointTieAlwaysChoosesMoreCollapsedAnchor() {
+        val low = DrawerAnchor("peek", 200, DrawerAnchorState.PEEK)
+        val high = DrawerAnchor("expanded", 400, DrawerAnchorState.EXPANDED)
+        assertEquals("peek", DrawerAnchorResolver.nearestAnchor(listOf(high, low), 300).id)
+        assertEquals("peek", DrawerAnchorResolver.nearestAnchor(listOf(low, high), 300).id)
+    }
+
+    @Test fun nearestAnchorUsesLongDistanceArithmeticForExtremeHeights() {
+        val low = DrawerAnchor("low", 0, DrawerAnchorState.PEEK)
+        val high = DrawerAnchor("high", Int.MAX_VALUE, DrawerAnchorState.EXPANDED)
+        assertEquals("low", DrawerAnchorResolver.nearestAnchor(listOf(high, low), Int.MIN_VALUE).id)
+    }
+
+    @Test fun flingRejectsNonFiniteVelocityAndNegativeThreshold() {
+        val anchors = DrawerAnchorResolver.resolve(ThreeStageAnchorStrategy(), input)
+        try {
+            DrawerAnchorResolver.flingTarget(anchors, 400, Float.NaN, 500f)
+            throw AssertionError("Expected NaN velocity to be rejected")
+        } catch (expected: IllegalArgumentException) {
+            assertTrue(expected.message.orEmpty().contains("finite"))
+        }
+        try {
+            DrawerAnchorResolver.flingTarget(anchors, 400, 1200f, -1f)
+            throw AssertionError("Expected negative threshold to be rejected")
+        } catch (expected: IllegalArgumentException) {
+            assertTrue(expected.message.orEmpty().contains("non-negative"))
+        }
+    }
+
+    @Test fun drawerStateRequiresCurrentAnchorToBelongToSnapshot() {
+        val anchors = DrawerAnchorResolver.resolve(ThreeStageAnchorStrategy(), input)
+        try {
+            DrawerState("missing", 500, anchors)
+            throw AssertionError("Expected missing current anchor to be rejected")
+        } catch (expected: IllegalArgumentException) {
+            assertTrue(expected.message.orEmpty().contains("must exist"))
+        }
+    }
+
 }

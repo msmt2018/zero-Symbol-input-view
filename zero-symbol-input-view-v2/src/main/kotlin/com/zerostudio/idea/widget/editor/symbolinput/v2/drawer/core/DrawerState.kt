@@ -57,6 +57,12 @@ data class DrawerState(
         require(currentAnchorId.isNotBlank())
         require(currentHeightPx >= 0)
         require(anchors.isNotEmpty())
+        require(anchors.map { it.id }.distinct().size == anchors.size) {
+            "Drawer state anchor IDs must be unique"
+        }
+        require(anchors.any { it.id == currentAnchorId }) {
+            "Current anchor '$currentAnchorId' must exist in the state anchor list"
+        }
     }
 
     val currentAnchor: DrawerAnchor?
