@@ -156,8 +156,12 @@ data class CustomAnchorStrategy(
         }
     }
 
+    // Snapshot caller-owned collections so later mutations cannot silently
+    // change the strategy's output between layout passes.
+    private val anchorSnapshot: List<DrawerAnchor> = anchors.toList()
+
     override val id: String = ID
-    override fun resolve(input: DrawerAnchorInput): List<DrawerAnchor> = anchors
+    override fun resolve(input: DrawerAnchorInput): List<DrawerAnchor> = anchorSnapshot
 
     companion object {
         const val ID = "custom"
