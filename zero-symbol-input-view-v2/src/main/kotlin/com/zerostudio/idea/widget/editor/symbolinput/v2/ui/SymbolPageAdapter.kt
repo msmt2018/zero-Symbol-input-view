@@ -342,9 +342,10 @@ internal class SymbolPageAdapter(
                 }
                 MotionEvent.ACTION_UP -> {
                     view.removeCallbacks(longPressTask)
+                    if (cancelled || longPressed) view.isPressed = false
                     cancelled = true
                     // Do not synthesize a click here. Returning false lets the
-                    // TextView perform its normal click exactly once.
+                    // TextView perform its normal click exactly once for taps.
                 }
                 MotionEvent.ACTION_CANCEL, MotionEvent.ACTION_POINTER_DOWN -> {
                     view.removeCallbacks(longPressTask)
