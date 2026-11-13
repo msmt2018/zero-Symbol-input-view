@@ -72,7 +72,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
 import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowAdaptiveInfo
-import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowSizeClass
+import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.AdaptiveGridResolver
 
 /**
  * Material Symbols Outlined "settings" vector, rendered directly from Kotlin.
@@ -141,7 +141,8 @@ internal class SymbolPageAdapter(
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
             setBackgroundColor(HostThemeColors.surface(context))
-            layoutManager = GridLayoutManager(context, config.columns)
+            val adaptiveGridLayout = GridLayoutManager(context, config.columns)
+            layoutManager = adaptiveGridLayout
             isNestedScrollingEnabled = false
             overScrollMode = RecyclerView.OVER_SCROLL_NEVER
             itemAnimator = null
@@ -158,24 +159,24 @@ internal class SymbolPageAdapter(
                 val availableWidth = right - left
                 if (availableWidth <= 0) return@addOnLayoutChangeListener
                 val density = resources.displayMetrics.density
-                val sizeClass = WindowAdaptiveInfo(
+                val fixedDimensions =
+                    settings.largeScreenLayoutMode == com.zerostudio.idea.widget.editor.symbolinput.v2.settings.LargeScreenLayoutMode.BOTTOM
+                val info = WindowAdaptiveInfo(
                     availableWidth / density,
                     (bottom - top).coerceAtLeast(0) / density,
                     density
-                ).sizeClass
-                val fixedDimensions =
-                    settings.largeScreenLayoutMode == com.zerostudio.idea.widget.editor.symbolinput.v2.settings.LargeScreenLayoutMode.BOTTOM
-                val adaptiveExtra = if (fixedDimensions) 0 else when (sizeClass) {
-                    WindowSizeClass.COMPACT -> 0
-                    WindowSizeClass.MEDIUM -> 1
-                    WindowSizeClass.EXPANDED -> 3
+                )
+                val gridSpec = AdaptiveGridResolver.resolve(
+                    window = info,
+                    preferredColumns = config.columns,
+                    minimumCellWidthDp = maxOf(36f, settings.minimumTouchTargetDp.toFloat()),
+                    baseHorizontalSpacingDp = config.cellHorizontalSpacingDp,
+                    adaptive = !fixedDimensions
+                )
+                if (adaptiveGridLayout.spanCount != gridSpec.columnCount) {
+                    adaptiveGridLayout.spanCount = gridSpec.columnCount
                 }
-                val horizontalDp = if (fixedDimensions) {
-                    config.cellHorizontalSpacingDp
-                } else {
-                    (config.cellHorizontalSpacingDp + adaptiveExtra).coerceIn(-10, 24)
-                }
-                val horizontal = dp(context, horizontalDp)
+                val horizontal = dp(context, gridSpec.horizontalSpacingDp.coerceAtLeast(0))
                 if (horizontal != appliedHorizontalPadding) {
                     appliedHorizontalPadding = horizontal
                     view.setPadding(horizontal, view.paddingTop, horizontal, view.paddingBottom)
