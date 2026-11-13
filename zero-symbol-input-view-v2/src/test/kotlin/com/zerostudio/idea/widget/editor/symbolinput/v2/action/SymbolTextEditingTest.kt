@@ -8,33 +8,33 @@ class SymbolTextEditingTest {
     @Test fun macroOffsetsAreMeasuredAfterTextAndSelectionSubstitution() {
         assertEquals(
             SymbolTextMacroExpansion("abcdef", 1, 3),
-            SymbolTextEditing.expandMacro("a$Sbc$Edef", "")
+            SymbolTextEditing.expandMacro("a\$Sbc\$Edef", "")
         )
         assertEquals(
             SymbolTextMacroExpansion("aXY", 1, 3),
-            SymbolTextEditing.expandMacro("a$S$T$E", "XY")
+            SymbolTextEditing.expandMacro("a\$S\$T\$E", "XY")
         )
         assertEquals(
             SymbolTextMacroExpansion("[long]", 6, 6),
-            SymbolTextEditing.expandMacro("[$T]$S$E", "long")
+            SymbolTextEditing.expandMacro("[\$T]\$S\$E", "long")
         )
     }
 
     @Test fun macroKeepsEscapedDollarAndUnknownTokensLiteral() {
         assertEquals(
-            SymbolTextMacroExpansion("$Sx", 2, 3),
-            SymbolTextEditing.expandMacro("\\$S\\$Sx\\$E", "")
+            SymbolTextMacroExpansion("\$Sx", 2, 3),
+            SymbolTextEditing.expandMacro("\$\$S\$Sx\$E", "")
         )
         assertEquals(
-            SymbolTextMacroExpansion("before$Qafter", 13, 13),
-            SymbolTextEditing.expandMacro("before$Qafter", "")
+            SymbolTextMacroExpansion("before\$Qafter", 13, 13),
+            SymbolTextEditing.expandMacro("before\$Qafter", "")
         )
     }
 
     @Test fun macroWithoutMarkersLeavesCursorAtExpandedOutputEnd() {
         assertEquals(
             SymbolTextMacroExpansion("a<selected>b", 12, 12),
-            SymbolTextEditing.expandMacro("a$Tb", "<selected>")
+            SymbolTextEditing.expandMacro("a\$Tb", "<selected>")
         )
     }
 
