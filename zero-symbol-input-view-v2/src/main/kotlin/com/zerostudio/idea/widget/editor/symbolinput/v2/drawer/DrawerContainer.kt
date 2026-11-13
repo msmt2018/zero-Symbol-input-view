@@ -60,6 +60,7 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.view.NestedScrollingParent3
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.NestedScrollingParentHelper
 import androidx.core.view.ViewCompat
 import com.google.android.material.tabs.TabLayout
@@ -121,6 +122,8 @@ class DrawerContainer @JvmOverloads constructor(
     private var expandedContentVisible = false
     private var containerAttached = false
     private var hostContent: View? = null
+    private var systemBarTopInset = 0
+    private var systemBarBottomInset = 0
     private val stateListeners = LinkedHashSet<(DrawerState) -> Unit>()
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
     private val nestedScrollHelper = NestedScrollingParentHelper(this)
@@ -132,6 +135,15 @@ class DrawerContainer @JvmOverloads constructor(
     init {
         clipChildren = false
         clipToPadding = false
+        ViewCompat.setOnApplyWindowInsetsListener(this) { _, insets ->
+            val bars = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+            )
+            systemBarTopInset = bars.top
+            systemBarBottomInset = bars.bottom
+            applyVisualStyle()
+            insets
+        }
         addView(scrim, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
         scrim.setOnClickListener {
             if (currentConfig.dismissOnScrimTap) controller.collapse()
@@ -349,8 +361,15 @@ class DrawerContainer @JvmOverloads constructor(
         }
         sheet.elevation = if (fullScreen) 0f else dp(style.elevationDp).toFloat()
         handleTouchTarget.visibility = if (!currentConfig.dragHandleEnabled) GONE else VISIBLE
-        sheet.setPadding(dp(style.dimensions.horizontalPaddingDp), 0,
-            dp(style.dimensions.horizontalPaddingDp), dp(style.dimensions.verticalPaddingDp))
+        val topInset = if (currentConfig.enableEdgeToEdge) systemBarTopInset else 0
+        val bottomInset = if (currentConfig.enableEdgeToEdge) systemBarBottomInset else 0
+        val verticalPadding = dp(style.dimensions.verticalPaddingDp)
+        sheet.setPadding(
+            dp(style.dimensions.horizontalPaddingDp),
+            verticalPadding + topInset,
+            dp(style.dimensions.horizontalPaddingDp),
+            verticalPadding + bottomInset
+        )
         scrim.setBackgroundColor(colors.scrim ?: Color.BLACK)
         scrim.visibility = if (style.drawScrim) VISIBLE else GONE
         title.visibility = if (title.text.isNullOrEmpty()) GONE else VISIBLE
@@ -612,6 +631,7 @@ class DrawerContainer @JvmOverloads constructor(
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
         containerAttached = true
+        ViewCompat.requestApplyInsets(this)
         updateVisualState()
     }
 
@@ -704,7 +724,13 @@ class DrawerContainer @JvmOverloads constructor(
             handleTouchTarget.isClickable = enabled
         }
         override fun setNestedScrollEnabled(enabled: Boolean) { currentConfig = currentConfig.copy(enableNestedScroll = enabled) }
-        override fun setEdgeToEdgeEnabled(enabled: Boolean) { currentConfig = currentConfig.copy(enableEdgeToEdge = enabled) }
+        override fun setEdgeToEdgeEnabled(enabled: Boolean) {
+            if (currentConfig.enableEdgeToEdge == enabled) return
+            currentConfig = currentConfig.copy(enableEdgeToEdge = enabled)
+            ViewCompat.requestApplyInsets(this)
+            applyVisualStyle()
+            recalculateAnchors()
+        }
         override fun setDismissOnScrimTap(enabled: Boolean) { currentConfig = currentConfig.copy(dismissOnScrimTap = enabled); updateVisualState() }
         override fun setDismissOnBack(enabled: Boolean) { currentConfig = currentConfig.copy(dismissOnBack = enabled) }
         override fun setDragHandleEnabled(enabled: Boolean) {
