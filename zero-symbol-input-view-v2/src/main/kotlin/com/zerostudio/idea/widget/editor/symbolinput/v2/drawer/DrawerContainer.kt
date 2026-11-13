@@ -175,6 +175,7 @@ class DrawerContainer @JvmOverloads constructor(
 
         addView(sheet, LayoutParams(LayoutParams.MATCH_PARENT, dp(640), Gravity.BOTTOM))
         handleTouchTarget.apply {
+            tag = "drawer_drag_handle"
             minimumHeight = dp(48)
             contentDescription = "Drag drawer"
             isFocusable = true

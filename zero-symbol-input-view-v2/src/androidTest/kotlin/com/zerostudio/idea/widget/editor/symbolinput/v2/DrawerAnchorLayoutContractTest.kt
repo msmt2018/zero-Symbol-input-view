@@ -95,7 +95,7 @@ class DrawerAnchorLayoutContractTest {
                 drawer.refreshAnchors()
                 drawer.controller.moveToAnchor("peek", false)
 
-                val handle = findView(drawer) { it.contentDescription == "Drag drawer" }
+                val handle = findView(drawer) { it.tag == "drawer_drag_handle" }
                 assertEquals(View.VISIBLE, handle.visibility)
                 val drawerLocation = IntArray(2)
                 val handleLocation = IntArray(2)
