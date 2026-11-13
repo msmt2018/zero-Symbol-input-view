@@ -250,6 +250,7 @@ class DrawerApiLabActivity : AppCompatActivity() {
                 ))
                 drawer.controller.setPages(samplePages())
                 drawer.setTitle("Preset · $preset")
+                exitFullScreenButton.visibility = if (preset == DrawerPreset.FULL_SCREEN) View.VISIBLE else View.GONE
                 if (preset == DrawerPreset.FULL_SCREEN) drawer.expand()
             })
         }
@@ -397,6 +398,7 @@ class DrawerApiLabActivity : AppCompatActivity() {
     }
 
     private fun configureBottomSheet() {
+        exitFullScreenButton.visibility = View.GONE
         // Every demo starts from a known panel configuration. In particular,
         // content-sized examples must not inherit a previous scenario's large
         // Peek panel or expanded content.
