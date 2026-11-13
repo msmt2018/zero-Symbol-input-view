@@ -3,6 +3,7 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import android.widget.LinearLayout
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.recyclerview.widget.GridLayoutManager
