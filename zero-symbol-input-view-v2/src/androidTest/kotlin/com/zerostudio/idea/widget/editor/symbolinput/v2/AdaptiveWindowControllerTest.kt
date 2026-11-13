@@ -109,7 +109,7 @@ class AdaptiveWindowControllerTest {
                     WindowInsetsMode.VIEW_BOUNDS_ALREADY_EXCLUDE_INSETS
                 )
                 val snapshots = mutableListOf<Pair<Float, Float>>()
-                val subscription = controller.addListener({ snapshots += it.widthDp to it.heightDp })
+                val subscription = controller.addListener({ snapshots.add(it.widthDp to it.heightDp) })
 
                 // A portrait -> landscape bounds swap is the geometry change
                 // delivered to the observer during a real configuration rotation.
