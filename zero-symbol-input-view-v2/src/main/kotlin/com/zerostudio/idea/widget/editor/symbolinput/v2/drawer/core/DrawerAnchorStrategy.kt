@@ -146,22 +146,37 @@ class ContentBasedAnchorStrategy : DrawerAnchorStrategy {
 }
 
 /** Application-defined anchor heights in pixels. Heights are clamped by the resolver. */
-data class CustomAnchorStrategy(
-    val anchors: List<DrawerAnchor>
-) : DrawerAnchorStrategy {
+class CustomAnchorStrategy(anchors: List<DrawerAnchor>) : DrawerAnchorStrategy {
+    /**
+     * Immutable defensive snapshot. Neither mutations to the constructor list
+     * nor casts of this property can change the strategy after construction.
+     */
+    val anchors: List<DrawerAnchor> =
+        java.util.Collections.unmodifiableList(java.util.ArrayList(anchors))
+
     init {
-        require(anchors.isNotEmpty()) { "At least one custom anchor is required" }
-        require(anchors.map { it.id }.distinct().size == anchors.size) {
+        require(this.anchors.isNotEmpty()) { "Custom anchors must not be empty" }
+        require(this.anchors.map(DrawerAnchor::id).distinct().size == this.anchors.size) {
             "Custom anchor IDs must be unique"
         }
     }
 
-    // Snapshot caller-owned collections so later mutations cannot silently
-    // change the strategy's output between layout passes.
-    private val anchorSnapshot: List<DrawerAnchor> = anchors.toList()
-
     override val id: String = ID
-    override fun resolve(input: DrawerAnchorInput): List<DrawerAnchor> = anchorSnapshot
+
+    override fun resolve(input: DrawerAnchorInput): List<DrawerAnchor> = anchors
+
+    /** Retains data-class-style copy semantics while always taking a new snapshot. */
+    fun copy(anchors: List<DrawerAnchor> = this.anchors): CustomAnchorStrategy =
+        CustomAnchorStrategy(anchors)
+
+    operator fun component1(): List<DrawerAnchor> = anchors
+
+    override fun equals(other: Any?): Boolean =
+        other is CustomAnchorStrategy && anchors == other.anchors
+
+    override fun hashCode(): Int = anchors.hashCode()
+
+    override fun toString(): String = "CustomAnchorStrategy(anchors=$anchors)"
 
     companion object {
         const val ID = "custom"

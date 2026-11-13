@@ -46,6 +46,10 @@ class DrawerAnchorStrategyContractTest {
         val strategy = CustomAnchorStrategy(source)
         source.clear()
         assertEquals(listOf("second", "first"), strategy.resolve(input).map { it.id })
+        assertEquals(listOf("second", "first"), strategy.copy().resolve(input).map { it.id })
+        assertThrows(UnsupportedOperationException::class.java) {
+            (strategy.anchors as MutableList<DrawerAnchor>).clear()
+        }
     }
 
     @Test fun threeStageSupportsViewportAndMinMaxBoundaries() {
