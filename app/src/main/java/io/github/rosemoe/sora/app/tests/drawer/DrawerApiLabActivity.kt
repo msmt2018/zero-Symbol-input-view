@@ -78,6 +78,11 @@ class DrawerApiLabActivity : AppCompatActivity() {
         if (!::drawer.isInitialized || !drawer.handleBack()) super.onBackPressed()
     }
 
+    override fun onStop() {
+        if (::playerController.isInitialized) playerController.pause()
+        super.onStop()
+    }
+
     override fun onDestroy() {
         if (::playerController.isInitialized) playerController.close()
         super.onDestroy()

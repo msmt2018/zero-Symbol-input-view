@@ -86,6 +86,16 @@ internal class DrawerDemoPlayerController(
         if (prepared && current != null) startPreparedPlayer(current) else loadCurrentTrack()
     }
 
+    fun pause() {
+        if (closed || !prepared) return
+        val current = player ?: return
+        if (runCatching { current.isPlaying }.getOrDefault(false)) {
+            runCatching { current.pause() }
+            mainHandler.removeCallbacks(progressTask)
+            publish(state.copy(isPlaying = false))
+        }
+    }
+
     fun togglePlayback() {
         if (closed) return
         val current = player
