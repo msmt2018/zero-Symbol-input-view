@@ -46,6 +46,7 @@
 package com.zerostudio.idea.widget.editor.symbolinput.v2
 
 import android.animation.ValueAnimator
+import android.app.AlertDialog
 import android.content.Context
 import android.os.Parcel
 import android.os.Parcelable
@@ -69,6 +70,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.HapticMode
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SharedPreferencesSymbolDrawerSettingsRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
+import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettingsScreen
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.ThemeMode
 import com.zerostudio.idea.widget.editor.symbolinput.v2.state.DrawerGeometry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.adapter.SymbolDrawerAnchorAdapter
@@ -106,7 +108,7 @@ class SymbolDrawerView @JvmOverloads constructor(
     private val hasPersistedSettings = settingsRepository.hasStoredSettings()
     private var settings = settingsRepository.load().settings.copy(themeMode = ThemeMode.SYSTEM)
     private val indicator = SymbolGroupIndicator(context) { selectGroup(it, true) }.apply {
-        onSettingsClick = { (onOpenSettingsListener ?: onOpenManagerListener)?.invoke() }
+        onSettingsClick = { openSettings() }
     }
     private val pager = ViewPager2(context).apply {
         orientation = ViewPager2.ORIENTATION_HORIZONTAL
@@ -199,6 +201,29 @@ class SymbolDrawerView @JvmOverloads constructor(
             onGroupChangedListener?.invoke(restored, groups.getOrNull(restored))
             recalculateGeometry()
         }
+    }
+
+    private fun openSettings() {
+        onOpenSettingsListener?.let {
+            it.invoke()
+            return
+        }
+        val screen = SymbolDrawerSettingsScreen(
+            context,
+            settingsRepository,
+            repository
+        ).apply {
+            onSettingsChanged = { applySettings(it) }
+            onGroupsChanged = {
+                submitGroups(it)
+                saveGroups()
+            }
+        }
+        AlertDialog.Builder(context)
+            .setTitle("符号抽屉设置")
+            .setView(screen)
+            .setPositiveButton("完成", null)
+            .show()
     }
 
     fun getSettings(): SymbolDrawerSettings = settings
