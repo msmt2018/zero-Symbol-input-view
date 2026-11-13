@@ -1,0 +1,149 @@
+/*
+ * This file is part of ZeroStudio.
+ * Copyright (C) 2026 android_zero
+ * SPDX-License-Identifier: AGPL-3.0-only AND GPL-3.0-only AND Apache-2.0
+ */
+package com.zerostudio.idea.widget.editor.symbolinput.v2.action
+
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.*
+import org.junit.Assert.*
+import org.junit.Test
+
+class SymbolActionExecutorContractTest {
+    private class Host : SymbolActionHost {
+        val calls = mutableListOf<String>()
+        var supported = true
+        var thrown: Throwable? = null
+        private fun result(call: String): Boolean {
+            calls += call
+            thrown?.let { throw it }
+            return supported
+        }
+        override fun insertText(template: String) = result("insert:$template")
+        override fun replaceSelection(text: String) = result("replace:$text")
+        override fun surroundSelection(prefix: String, suffix: String) = result("surround:$prefix:$suffix")
+        override fun moveCursor(target: CursorTarget) = result("cursor:$target")
+        override fun delete(kind: DeleteKind) = result("delete:$kind")
+        override fun transformSelection(transform: SelectionTransform) = result("transform:$transform")
+        override fun executeEditorCommand(commandId: String, payload: String?) = result("command:$commandId:$payload")
+        override fun performClipboard(operation: ClipboardOperation) = result("clipboard:$operation")
+        override fun openManager() = result("manager")
+        override fun executeExtension(extensionId: String, payload: String?) = result("extension:$extensionId:$payload")
+    }
+
+    private val executor = SymbolActionExecutor()
+
+    @Test fun dispatchesEveryLeafActionToTheMatchingHostMethod() {
+        val cases = listOf(
+            SymbolAction.InsertText("x") to "insert:x",
+            SymbolAction.ReplaceSelection("y") to "replace:y",
+            SymbolAction.SurroundSelection("[", "]") to "surround:[:]",
+            SymbolAction.MoveCursor(CursorTarget.DOCUMENT_END) to "cursor:DOCUMENT_END",
+            SymbolAction.Delete(DeleteKind.CURRENT_LINE) to "delete:CURRENT_LINE",
+            SymbolAction.TransformSelection(SelectionTransform.TOGGLE_CASE) to "transform:TOGGLE_CASE",
+            SymbolAction.EditorCommand("editor.format", "json") to "command:editor.format:json",
+            SymbolAction.Clipboard(ClipboardOperation.PASTE) to "clipboard:PASTE",
+            SymbolAction.OpenManager to "manager",
+            SymbolAction.Extension("plugin.action", "data") to "extension:plugin.action:data"
+        )
+        cases.forEach { (action, expected) ->
+            val host = Host()
+            assertEquals(expected, SymbolActionResult.Executed, executor.execute(action, host))
+            assertEquals(listOf(expected), host.calls)
+        }
+    }
+
+    @Test fun returnsUnsupportedForEveryHostCapabilityThatDeclines() {
+        val actions = listOf(
+            SymbolAction.InsertText("x"), SymbolAction.ReplaceSelection("x"),
+            SymbolAction.SurroundSelection("(", ")"), SymbolAction.MoveCursor(CursorTarget.LEFT),
+            SymbolAction.Delete(DeleteKind.BACKWARD),
+            SymbolAction.TransformSelection(SelectionTransform.UPPERCASE),
+            SymbolAction.EditorCommand("editor.run"), SymbolAction.Clipboard(ClipboardOperation.COPY),
+            SymbolAction.OpenManager, SymbolAction.Extension("plugin.run")
+        )
+        actions.forEach { action ->
+            val host = Host().apply { supported = false }
+            assertEquals(SymbolActionResult.Unsupported(action), executor.execute(action, host))
+            assertEquals(1, host.calls.size)
+        }
+    }
+
+    @Test fun convertsHostExceptionsIntoFailedResults() {
+        val error = IllegalStateException("host unavailable")
+        val result = executor.execute(SymbolAction.OpenManager, Host().apply { thrown = error })
+        assertTrue(result is SymbolActionResult.Failed)
+        assertSame(error, (result as SymbolActionResult.Failed).cause)
+    }
+
+    @Test fun reportsFailureWithoutPartialWrapperWhenFirstCompositeActionFails() {
+        val host = Host().apply { supported = false }
+        val result = executor.execute(
+            SymbolAction.Composite(listOf(SymbolAction.InsertText("first"), SymbolAction.InsertText("second"))),
+            host
+        )
+        assertEquals(SymbolActionResult.Unsupported(SymbolAction.InsertText("first")), result)
+        assertEquals(listOf("insert:first"), host.calls)
+    }
+
+    @Test fun nestedCompositeExecutesDepthFirstInDeclaredOrder() {
+        val host = Host()
+        val action = SymbolAction.Composite(listOf(
+            SymbolAction.InsertText("a"),
+            SymbolAction.Composite(listOf(SymbolAction.ReplaceSelection("b"), SymbolAction.OpenManager)),
+            SymbolAction.Extension("plugin.done")
+        ))
+        assertEquals(SymbolActionResult.Executed, executor.execute(action, host))
+        assertEquals(listOf("insert:a", "replace:b", "manager", "extension:plugin.done:null"), host.calls)
+    }
+
+    @Test fun rejectsEmptyCompositeAndActionCountOverflowBeforeHostCalls() {
+        val host = Host()
+        assertTrue(executor.execute(SymbolAction.Composite(emptyList()), host) is SymbolActionResult.Invalid)
+        assertTrue(SymbolActionExecutor(maxCompositeActions = 1).execute(
+            SymbolAction.Composite(listOf(SymbolAction.OpenManager, SymbolAction.OpenManager)), host
+        ) is SymbolActionResult.Invalid)
+        assertTrue(host.calls.isEmpty())
+    }
+
+    @Test fun rejectsNestedCompositeBeyondConfiguredDepthBeforeExecution() {
+        var action: SymbolAction = SymbolAction.OpenManager
+        repeat(4) { action = SymbolAction.Composite(listOf(action)) }
+        val host = Host()
+        assertTrue(SymbolActionExecutor(maxNestingDepth = 2).execute(action, host) is SymbolActionResult.Invalid)
+        assertTrue(host.calls.isEmpty())
+    }
+
+    @Test fun rejectsInvalidExtensionIdsAndCommandIds() {
+        val host = Host()
+        listOf("", "../x", "has space", "-bad").forEach { id ->
+            assertTrue(executor.execute(SymbolAction.EditorCommand(id), host) is SymbolActionResult.Invalid)
+            assertTrue(executor.execute(SymbolAction.Extension(id), host) is SymbolActionResult.Invalid)
+        }
+        assertTrue(host.calls.isEmpty())
+    }
+
+    @Test fun acceptsMaximumConfiguredTextLengthAndRejectsOneCharacterOver() {
+        val host = Host()
+        val bounded = SymbolActionExecutor(maxTextLength = 4)
+        assertEquals(SymbolActionResult.Executed, bounded.execute(SymbolAction.InsertText("1234"), host))
+        assertTrue(bounded.execute(SymbolAction.InsertText("12345"), host) is SymbolActionResult.Invalid)
+        assertTrue(bounded.execute(SymbolAction.ReplaceSelection("12345"), host) is SymbolActionResult.Invalid)
+        assertTrue(bounded.execute(SymbolAction.SurroundSelection("12", "345"), host) is SymbolActionResult.Invalid)
+        assertEquals(1, host.calls.size)
+    }
+
+    @Test fun constructorRejectsOutOfRangeResourceLimits() {
+        assertFails { SymbolActionExecutor(maxCompositeActions = 0) }
+        assertFails { SymbolActionExecutor(maxCompositeActions = 257) }
+        assertFails { SymbolActionExecutor(maxNestingDepth = 0) }
+        assertFails { SymbolActionExecutor(maxNestingDepth = 17) }
+        assertFails { SymbolActionExecutor(maxTextLength = 0) }
+        assertFails { SymbolActionExecutor(maxTextLength = 4_194_305) }
+    }
+
+    private fun assertFails(block: () -> Unit) {
+        try { block(); fail("Expected IllegalArgumentException") }
+        catch (_: IllegalArgumentException) { }
+    }
+}
