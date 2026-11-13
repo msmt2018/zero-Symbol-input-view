@@ -6,6 +6,18 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class GenericSymbolTextActionsTest {
+
+    @Test fun indentAndUnindentPreserveCaretOffset() {
+        val document = FakeDocument("alpha", cursor = 3)
+        val registry = GenericSymbolTextActions.createRegistry()
+        assertTrue(registry.execute(SymbolActionId("builtin", "line.indent"), document, "  ")!!)
+        assertEquals("  alpha", document.text)
+        assertEquals(5, document.cursorOffset)
+        assertTrue(registry.execute(SymbolActionId("builtin", "line.unindent"), document, "  ")!!)
+        assertEquals("alpha", document.text)
+        assertEquals(3, document.cursorOffset)
+    }
+
     @Test fun registryExposesMoreThanThirtyEditorIndependentActions() {
         val registry = GenericSymbolTextActions.createRegistry()
         assertTrue(GenericSymbolTextActions.supportedCommandIds().size >= 30)
