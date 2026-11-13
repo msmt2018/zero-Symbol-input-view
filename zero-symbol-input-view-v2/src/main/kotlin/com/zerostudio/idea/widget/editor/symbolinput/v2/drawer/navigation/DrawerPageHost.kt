@@ -80,6 +80,11 @@ class DrawerPageHost @JvmOverloads constructor(
 
     fun setPages(pages: List<DrawerPage>, preserveSelection: Boolean = true) {
         check(!disposed) { "DrawerPageHost has been disposed" }
+        // Validate before invoking lifecycle callbacks or evicting cached views.
+        // A rejected update must leave the currently rendered page untouched.
+        require(pages.map { it.id }.distinct().size == pages.size) {
+            "Drawer page IDs must be unique"
+        }
         val oldPages = navigationController.pages().associateBy { it.id }
         val newPages = pages.associateBy { it.id }
         val invalidatedIds = pageViews.keys.filter { id ->
@@ -120,8 +125,15 @@ class DrawerPageHost @JvmOverloads constructor(
         render(selectedId)
     }
 
-    fun selectPage(id: String): Boolean = navigationController.selectPage(id)
-    fun selectPage(index: Int): Boolean = navigationController.selectPage(index)
+    fun selectPage(id: String): Boolean {
+        check(!disposed) { "DrawerPageHost has been disposed" }
+        return navigationController.selectPage(id)
+    }
+
+    fun selectPage(index: Int): Boolean {
+        check(!disposed) { "DrawerPageHost has been disposed" }
+        return navigationController.selectPage(index)
+    }
     fun currentPage(): DrawerPage? = navigationController.selectedPage()
 
     fun measureCurrentContentHeight(maxWidthPx: Int, maxHeightPx: Int): Int {
