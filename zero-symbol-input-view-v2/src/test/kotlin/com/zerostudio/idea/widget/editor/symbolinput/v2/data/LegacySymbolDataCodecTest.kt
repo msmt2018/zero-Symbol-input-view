@@ -5,11 +5,11 @@ import org.junit.Test
 
 class LegacySymbolDataCodecTest {
     @Test fun historicalClipboardActionIdsRoundTripWithoutRenumbering() {
-        val legacy = """[{"n":"剪贴板","d":[{"a":1,"b":"复制"},{"a":2,"b":"剪切"}]}]"""
+        val legacy = """[{"n":"剪贴板","d":[{"a":0,"b":"复制","d":1},{"a":0,"b":"剪切","d":2}]}]"""
         val decoded = LegacySymbolDataCodec.decode(legacy)
         val roundTrip = LegacySymbolDataCodec.decode(LegacySymbolDataCodec.encode(decoded))
-        assertEquals(1, roundTrip[0].symbols[0].legacyShortActionId)
-        assertEquals(2, roundTrip[0].symbols[1].legacyShortActionId)
+        assertEquals(1, roundTrip[0].symbols[0].legacyLongActionId)
+        assertEquals(2, roundTrip[0].symbols[1].legacyLongActionId)
     }
 
     @Test fun historicalLineDeleteIdKeepsItsV1DeleteSemantics() {
