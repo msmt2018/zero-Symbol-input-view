@@ -49,10 +49,15 @@ import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.*
 
-/** Explicit discriminator-based codec; never relies on Gson polymorphic reflection. */
+/**
+ * Versioned, bounded action codec. Missing schemaVersion is accepted as V1 for
+ * compatibility with early V2 snapshots; all newly written actions declare V1.
+ * Decoding is bounded independently of the executor so imported data cannot
+ * construct an arbitrarily large action tree before execution validation.
+ */
 object SymbolActionJsonCodec {
     fun encode(action: SymbolAction): JsonObject {
-        val json = JsonObject()
+        val json = JsonObject().apply { addProperty("schemaVersion", CURRENT_SCHEMA_VERSION) }
         when (action) {
             is SymbolAction.InsertText -> { json.addProperty("kind", "insertText"); json.addProperty("template", action.template) }
             is SymbolAction.ReplaceSelection -> { json.addProperty("kind", "replaceSelection"); json.addProperty("text", action.text) }
@@ -85,7 +90,28 @@ object SymbolActionJsonCodec {
     }
 
     fun decode(json: JsonObject, depth: Int = 0): SymbolAction {
-        require(depth <= 8) { "Action JSON nesting limit exceeded" }
+        require(depth in 0..MAX_NESTING_DEPTH) { "Action JSON nesting limit exceeded" }
+        return decodeInternal(json, depth, DecodeBudget())
+    }
+
+    private fun decodeInternal(
+        json: JsonObject,
+        depth: Int,
+        budget: DecodeBudget
+    ): SymbolAction {
+        require(depth <= MAX_NESTING_DEPTH) { "Action JSON nesting limit exceeded" }
+        budget.consumeNode()
+        val version = json.get("schemaVersion")?.let { raw ->
+            require(raw.isJsonPrimitive && raw.asJsonPrimitive.isNumber) {
+                "Invalid action schemaVersion"
+            }
+            raw.asInt.also {
+                require(raw.asDouble == it.toDouble()) { "Action schemaVersion must be an integer" }
+            }
+        } ?: LEGACY_SCHEMA_VERSION
+        require(version == CURRENT_SCHEMA_VERSION) {
+            "Unsupported action schema version: $version"
+        }
         fun required(name: String): String {
             val value = json.get(name)
                 ?: throw IllegalArgumentException("Missing action field: $name")
@@ -102,18 +128,28 @@ object SymbolActionJsonCodec {
             }
             return value.asString
         }
+        fun bounded(name: String): String = required(name).also {
+            require(it.length <= MAX_TEXT_LENGTH) { "Action field $name exceeds the size limit" }
+        }
+        fun boundedOptional(name: String): String? = optional(name)?.also {
+            require(it.length <= MAX_TEXT_LENGTH) { "Action field $name exceeds the size limit" }
+        }
         fun <T : Enum<T>> enumValueOf(name: String, values: Array<T>): T =
             values.firstOrNull { it.name == required(name) }
                 ?: throw IllegalArgumentException("Invalid action enum: $name")
 
         return when (required("kind")) {
-            "insertText" -> SymbolAction.InsertText(required("template"))
-            "replaceSelection" -> SymbolAction.ReplaceSelection(required("text"))
-            "surroundSelection" -> SymbolAction.SurroundSelection(required("prefix"), required("suffix"))
+            "insertText" -> SymbolAction.InsertText(bounded("template"))
+            "replaceSelection" -> SymbolAction.ReplaceSelection(bounded("text"))
+            "surroundSelection" -> SymbolAction.SurroundSelection(bounded("prefix"), bounded("suffix"))
             "moveCursor" -> SymbolAction.MoveCursor(enumValueOf("target", CursorTarget.values()))
             "delete" -> SymbolAction.Delete(enumValueOf("deleteKind", DeleteKind.values()))
             "transformSelection" -> SymbolAction.TransformSelection(enumValueOf("transform", SelectionTransform.values()))
-            "editorCommand" -> SymbolAction.EditorCommand(required("commandId"), optional("payload"))
+            "editorCommand" -> {
+                val id = required("commandId")
+                require(COMMAND_ID.matches(id)) { "Invalid editor command ID" }
+                SymbolAction.EditorCommand(id, boundedOptional("payload"))
+            }
             "clipboard" -> SymbolAction.Clipboard(enumValueOf("operation", ClipboardOperation.values()))
             "openManager" -> SymbolAction.OpenManager
             "composite" -> {
@@ -122,11 +158,30 @@ object SymbolActionJsonCodec {
                 require(array.size() in 1..64) { "Invalid composite action size" }
                 SymbolAction.Composite(array.map { element ->
                     require(element.isJsonObject) { "Composite action entries must be objects" }
-                    decode(element.asJsonObject, depth + 1)
+                    decodeInternal(element.asJsonObject, depth + 1, budget)
                 })
             }
-            "extension" -> SymbolAction.Extension(required("extensionId"), optional("payload"))
+            "extension" -> {
+                val id = required("extensionId")
+                require(EXTENSION_ID.matches(id)) { "Invalid extension ID" }
+                SymbolAction.Extension(id, boundedOptional("payload"))
+            }
             else -> throw IllegalArgumentException("Unknown action kind")
         }
     }
+
+    private class DecodeBudget(var nodesRemaining: Int = MAX_ACTION_NODES) {
+        fun consumeNode() {
+            nodesRemaining--
+            require(nodesRemaining >= 0) { "Action JSON contains too many nested actions" }
+        }
+    }
+
+    private const val CURRENT_SCHEMA_VERSION = 1
+    private const val LEGACY_SCHEMA_VERSION = 1
+    private const val MAX_NESTING_DEPTH = 8
+    private const val MAX_ACTION_NODES = 256
+    private const val MAX_TEXT_LENGTH = 1_048_576
+    private val COMMAND_ID = Regex("[a-zA-Z][a-zA-Z0-9_.-]{0,127}")
+    private val EXTENSION_ID = Regex("[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}")
 }
