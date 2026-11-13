@@ -141,7 +141,14 @@ object SymbolActionJsonCodec {
         return when (required("kind")) {
             "insertText" -> SymbolAction.InsertText(bounded("template"))
             "replaceSelection" -> SymbolAction.ReplaceSelection(bounded("text"))
-            "surroundSelection" -> SymbolAction.SurroundSelection(bounded("prefix"), bounded("suffix"))
+            "surroundSelection" -> {
+                val prefix = bounded("prefix")
+                val suffix = bounded("suffix")
+                require(prefix.length.toLong() + suffix.length <= MAX_TEXT_LENGTH) {
+                    "Surround template exceeds the size limit"
+                }
+                SymbolAction.SurroundSelection(prefix, suffix)
+            }
             "moveCursor" -> SymbolAction.MoveCursor(enumValueOf("target", CursorTarget.values()))
             "delete" -> SymbolAction.Delete(enumValueOf("deleteKind", DeleteKind.values()))
             "transformSelection" -> SymbolAction.TransformSelection(enumValueOf("transform", SelectionTransform.values()))
