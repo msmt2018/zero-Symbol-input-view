@@ -137,9 +137,9 @@ class SymbolGroupBundleCodecTest {
             ))
         )
         val encoded = SymbolGroupStorageCodec.encode(groups)
-        assertTrue(encoded.contains("\\"format\\":\\"zero-symbol-drawer\\""))
-        assertTrue(encoded.contains("\\"version\\":1"))
-        assertTrue(encoded.contains("\\"shortAction\\":"))
+        assertTrue(encoded.contains("\"format\":\"zero-symbol-drawer\""))
+        assertTrue(encoded.contains("\"version\":1"))
+        assertTrue(encoded.contains("\"shortAction\":"))
         assertEquals(groups, SymbolGroupStorageCodec.decode(encoded))
     }
 
@@ -152,7 +152,7 @@ class SymbolGroupBundleCodecTest {
                     shortAction = SymbolAction.SurroundSelection("[", "]"),
                     longAction = SymbolAction.Composite(listOf(
                         SymbolAction.InsertText("before"),
-                        SymbolAction.Extension("my.editor.action", "{\\"mode\\":1}")
+                        SymbolAction.Extension("my.editor.action", "{\"mode\":1}")
                     )),
                     icon = "W"
                 ),
