@@ -103,6 +103,23 @@ class DrawerAnchorResolverTest {
         assertEquals("expanded", target.id)
     }
 
+    @Test fun threeStageDragStaysAtAnchorUntilHysteresisThresholdIsCrossed() {
+        val anchors = DrawerAnchorResolver.resolve(ThreeStageAnchorStrategy(), input)
+        assertEquals("peek", DrawerAnchorResolver.dragTarget(anchors, 0, 300).id)
+        assertEquals("half", DrawerAnchorResolver.dragTarget(anchors, 0, 330).id)
+        assertEquals("half", DrawerAnchorResolver.dragTarget(anchors, 1, 700).id)
+        assertEquals("expanded", DrawerAnchorResolver.dragTarget(anchors, 1, 710).id)
+        assertEquals("half", DrawerAnchorResolver.dragTarget(anchors, 2, 660).id)
+        assertEquals("peek", DrawerAnchorResolver.dragTarget(anchors, 1, 290).id)
+    }
+
+    @Test fun dragHysteresisPreventsAnchorJitterAroundMidpoint() {
+        val anchors = DrawerAnchorResolver.resolve(ThreeStageAnchorStrategy(), input)
+        assertEquals("peek", DrawerAnchorResolver.dragTarget(anchors, 0, 300).id)
+        assertEquals("half", DrawerAnchorResolver.dragTarget(anchors, 0, 330).id)
+        assertEquals("half", DrawerAnchorResolver.dragTarget(anchors, 1, 290).id)
+    }
+
     @Test fun nearestAnchorChoosesClosestHeight() {
         val anchors = DrawerAnchorResolver.resolve(ThreeStageAnchorStrategy(), input)
         assertEquals("half", DrawerAnchorResolver.nearestAnchor(anchors, 530).id)
