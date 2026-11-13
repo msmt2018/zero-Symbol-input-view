@@ -70,7 +70,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.HapticMode
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SharedPreferencesSymbolDrawerSettingsRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.ThemeMode
-import com.zerostudio.idea.widget.editor.symbolinput.v2.state.DrawerGeometry
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.adapter.SymbolDrawerAnchorAdapter
 import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.SymbolGroupIndicator
 import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.SymbolPageAdapter
 import kotlin.math.abs
@@ -456,14 +456,18 @@ class SymbolDrawerView @JvmOverloads constructor(
     }
 
     private fun recalculateGeometry() {
-        val density = resources.displayMetrics.density
         val oldFraction = expansion
-        collapsedHeight = DrawerGeometry.collapsedHeightPx(config, density)
-        expandedGridHeight = DrawerGeometry.expandedHeightPx(groups, config, density)
-        val indicatorHeight = (config.indicatorHeightDp * density).roundToInt()
-        // The indicator must still be revealable when every group fits in the
-        // collapsed grid; its height is part of the expanded drawer geometry.
-        expandedHeight = maxOf(collapsedHeight, expandedGridHeight) + indicatorHeight
+        // Resolve the symbol-specific geometry through the public Drawer anchor
+        // contract. The adapter deliberately preserves the established pixel
+        // formulas; this is a policy migration, not a visual/layout redesign.
+        val resolved = SymbolDrawerAnchorAdapter.resolve(
+            groups = groups,
+            config = config,
+            density = resources.displayMetrics.density
+        )
+        collapsedHeight = resolved.collapsedHeightPx
+        expandedGridHeight = resolved.expandedGridHeightPx
+        expandedHeight = resolved.expandedHeightPx
         setExpansionFromHeight(
             (collapsedHeight + (expandedHeight - collapsedHeight) * oldFraction).roundToInt()
         )
