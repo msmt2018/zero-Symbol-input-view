@@ -126,6 +126,11 @@ internal class SymbolPageAdapter(
     private val onSymbolAction: (SymbolEntry, Boolean) -> Unit
 ) : ListAdapter<SymbolGroup, SymbolPageAdapter.PageHolder>(GROUP_DIFF) {
 
+    private data class GridSpacingState(
+        var horizontalSpacingDp: Int,
+        var verticalSpacingDp: Int
+    )
+
     private val recycledPool = RecyclerView.RecycledViewPool().apply {
         setMaxRecycledViews(0, config.columns * 4)
     }
@@ -142,6 +147,10 @@ internal class SymbolPageAdapter(
             )
             setBackgroundColor(HostThemeColors.surface(context))
             val adaptiveGridLayout = GridLayoutManager(context, config.columns)
+            val spacingState = GridSpacingState(
+                config.cellHorizontalSpacingDp,
+                config.cellVerticalSpacingDp
+            )
             layoutManager = adaptiveGridLayout
             isNestedScrollingEnabled = false
             overScrollMode = RecyclerView.OVER_SCROLL_NEVER
@@ -169,19 +178,39 @@ internal class SymbolPageAdapter(
                     preferredColumns = config.columns,
                     minimumCellWidthDp = maxOf(36f, settings.minimumTouchTargetDp.toFloat()),
                     baseHorizontalSpacingDp = config.cellHorizontalSpacingDp,
-                    adaptive = true
+                    adaptive = true,
+                    baseVerticalSpacingDp = config.cellVerticalSpacingDp
                 )
                 if (adaptiveGridLayout.spanCount != gridSpec.columnCount) {
                     adaptiveGridLayout.spanCount = gridSpec.columnCount
                 }
+                spacingState.horizontalSpacingDp = gridSpec.horizontalSpacingDp
+                spacingState.verticalSpacingDp = gridSpec.verticalSpacingDp
                 val horizontal = dp(context, gridSpec.horizontalSpacingDp.coerceAtLeast(0))
                 if (horizontal != appliedHorizontalPadding) {
                     appliedHorizontalPadding = horizontal
                     view.setPadding(horizontal, view.paddingTop, horizontal, view.paddingBottom)
                 }
+                for (index in 0 until view.childCount) {
+                    val child = view.getChildAt(index)
+                    val params = child.layoutParams as? RecyclerView.LayoutParams ?: continue
+                    val halfHorizontal = dp(context, gridSpec.horizontalSpacingDp / 2)
+                    val halfVertical = dp(context, gridSpec.verticalSpacingDp / 2)
+                    if (params.marginStart != halfHorizontal ||
+                        params.marginEnd != halfHorizontal ||
+                        params.topMargin != halfVertical ||
+                        params.bottomMargin != halfVertical
+                    ) {
+                        params.marginStart = halfHorizontal
+                        params.marginEnd = halfHorizontal
+                        params.topMargin = halfVertical
+                        params.bottomMargin = halfVertical
+                        child.layoutParams = params
+                    }
+                }
             }
         }
-        return PageHolder(grid, config, settings, onSymbolAction)
+        return PageHolder(grid, config, settings, onSymbolAction, spacingState)
     }
 
     override fun onBindViewHolder(holder: PageHolder, position: Int) {
@@ -196,9 +225,10 @@ internal class SymbolPageAdapter(
         private val grid: RecyclerView,
         config: DrawerConfig,
         settings: SymbolDrawerSettings,
-        onSymbolAction: (SymbolEntry, Boolean) -> Unit
+        onSymbolAction: (SymbolEntry, Boolean) -> Unit,
+        spacingState: GridSpacingState
     ) : RecyclerView.ViewHolder(grid) {
-        private val symbolsAdapter = SymbolAdapter(config, settings, onSymbolAction)
+        private val symbolsAdapter = SymbolAdapter(config, settings, onSymbolAction, spacingState)
         init { grid.adapter = symbolsAdapter }
         fun bind(symbols: List<SymbolEntry>) = symbolsAdapter.submitList(symbols.toList())
         fun clear() = symbolsAdapter.submitList(emptyList())
@@ -207,7 +237,8 @@ internal class SymbolPageAdapter(
     private class SymbolAdapter(
         private val config: DrawerConfig,
         private val settings: SymbolDrawerSettings,
-        private val onSymbolAction: (SymbolEntry, Boolean) -> Unit
+        private val onSymbolAction: (SymbolEntry, Boolean) -> Unit,
+        private val spacingState: GridSpacingState
     ) : ListAdapter<SymbolEntry, SymbolHolder>(SYMBOL_DIFF) {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SymbolHolder {
             val label = TextView(parent.context).apply {
@@ -232,10 +263,10 @@ internal class SymbolPageAdapter(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     dp(context, maxOf(config.cellHeightDp, config.minimumTouchTargetDp))
                 ).apply {
-                    marginStart = dp(context, config.cellHorizontalSpacingDp / 2)
-                    marginEnd = dp(context, config.cellHorizontalSpacingDp / 2)
-                    topMargin = dp(context, config.cellVerticalSpacingDp / 2)
-                    bottomMargin = dp(context, config.cellVerticalSpacingDp / 2)
+                    marginStart = dp(context, spacingState.horizontalSpacingDp / 2)
+                    marginEnd = dp(context, spacingState.horizontalSpacingDp / 2)
+                    topMargin = dp(context, spacingState.verticalSpacingDp / 2)
+                    bottomMargin = dp(context, spacingState.verticalSpacingDp / 2)
                 }
             }
             return SymbolHolder(label)
