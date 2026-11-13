@@ -142,6 +142,36 @@ class SymbolActionExecutorContractTest {
         assertFails { SymbolActionExecutor(maxTextLength = 4_194_305) }
     }
 
+
+    @Test fun enforcesAnAggregateCompositeActionBudgetBeforeHostCalls() {
+        val action = SymbolAction.Composite(listOf(
+            SymbolAction.Composite(listOf(SymbolAction.OpenManager, SymbolAction.OpenManager)),
+            SymbolAction.OpenManager
+        ))
+        val host = Host()
+        val result = SymbolActionExecutor(maxTotalActions = 3).execute(action, host)
+        assertTrue(result is SymbolActionResult.Invalid)
+        assertTrue(host.calls.isEmpty())
+    }
+
+    @Test fun doesNotConvertFatalErrorsIntoOrdinaryActionFailures() {
+        val fatal = AssertionError("fatal")
+        val host = Host().apply { thrown = fatal }
+        try {
+            executor.execute(SymbolAction.OpenManager, host)
+            fail("Fatal JVM errors must propagate")
+        } catch (actual: AssertionError) {
+            assertSame(fatal, actual)
+        }
+    }
+
+    @Test fun rejectsSurroundActionsWhoseCombinedTextExceedsTheLimit() {
+        val json = com.google.gson.JsonParser.parseString(
+            """{"kind":"surroundSelection","prefix":"1234","suffix":"5678"}"""
+        ).asJsonObject
+        assertTrue(runCatching { SymbolActionJsonCodec.decode(json) }.isFailure)
+    }
+
     private fun assertFails(block: () -> Unit) {
         try { block(); fail("Expected IllegalArgumentException") }
         catch (_: IllegalArgumentException) { }
