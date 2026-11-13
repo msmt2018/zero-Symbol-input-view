@@ -27,4 +27,34 @@ class WindowAdaptiveInfoTest {
         assertEquals(600f, info.widthDp)
         assertEquals(WindowSizeClass.MEDIUM, info.sizeClass)
     }
+
+    @Test fun rotationReclassifiesUsingTheNewWindowWidth() {
+        val portrait = WindowAdaptiveInfo(430f, 900f)
+        val landscape = WindowAdaptiveInfo(900f, 430f)
+        assertEquals(WindowSizeClass.COMPACT, portrait.sizeClass)
+        assertEquals(WindowSizeClass.EXPANDED, landscape.sizeClass)
+    }
+
+    @Test fun splitScreenUsesTheResizedAppWindowInsteadOfPhysicalDisplayWidth() {
+        val fullWindow = WindowAdaptiveInfo(1200f, 800f)
+        val splitWindow = WindowAdaptiveInfo(560f, 800f)
+        assertEquals(WindowSizeClass.EXPANDED, fullWindow.sizeClass)
+        assertEquals(WindowSizeClass.COMPACT, splitWindow.sizeClass)
+    }
+
+    @Test fun foldingFeatureCanChangeWithoutChangingWindowDimensions() {
+        val flat = WindowAdaptiveInfo(800f, 900f)
+        val folded = flat.copy(
+            foldingFeature = FoldingFeatureInfo(
+                posture = WindowPosture.HALF_OPENED,
+                isSeparating = true,
+                boundsLeftDp = 390f,
+                boundsRightDp = 410f,
+                boundsBottomDp = 900f
+            )
+        )
+        assertEquals(flat.widthDp, folded.widthDp)
+        assertEquals(WindowPosture.UNKNOWN, flat.foldingFeature.posture)
+        assertEquals(WindowPosture.HALF_OPENED, folded.foldingFeature.posture)
+    }
 }
