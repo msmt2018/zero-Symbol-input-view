@@ -86,9 +86,22 @@ object SymbolActionJsonCodec {
 
     fun decode(json: JsonObject, depth: Int = 0): SymbolAction {
         require(depth <= 8) { "Action JSON nesting limit exceeded" }
-        fun required(name: String) = json.get(name)?.takeIf { !it.isJsonNull }?.asString
-            ?: throw IllegalArgumentException("Missing action field: $name")
-        fun optional(name: String) = json.get(name)?.takeIf { !it.isJsonNull }?.asString
+        fun required(name: String): String {
+            val value = json.get(name)
+                ?: throw IllegalArgumentException("Missing action field: $name")
+            require(value.isJsonPrimitive && value.asJsonPrimitive.isString) {
+                "Invalid action field: $name must be a string"
+            }
+            return value.asString
+        }
+        fun optional(name: String): String? {
+            val value = json.get(name) ?: return null
+            if (value.isJsonNull) return null
+            require(value.isJsonPrimitive && value.asJsonPrimitive.isString) {
+                "Invalid action field: $name must be a string"
+            }
+            return value.asString
+        }
         fun <T : Enum<T>> enumValueOf(name: String, values: Array<T>): T =
             values.firstOrNull { it.name == required(name) }
                 ?: throw IllegalArgumentException("Invalid action enum: $name")
@@ -107,7 +120,10 @@ object SymbolActionJsonCodec {
                 val array = json.getAsJsonArray("actions")
                     ?: throw IllegalArgumentException("Composite action has no actions")
                 require(array.size() in 1..64) { "Invalid composite action size" }
-                SymbolAction.Composite(array.map { decode(it.asJsonObject, depth + 1) })
+                SymbolAction.Composite(array.map { element ->
+                    require(element.isJsonObject) { "Composite action entries must be objects" }
+                    decode(element.asJsonObject, depth + 1)
+                })
             }
             "extension" -> SymbolAction.Extension(required("extensionId"), optional("payload"))
             else -> throw IllegalArgumentException("Unknown action kind")
