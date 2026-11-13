@@ -505,7 +505,7 @@ class SymbolDrawerSettingsScreen(
             .setPositiveButton("继续") { _, _ ->
                 runCatching { imported(input.text.toString()) }.onFailure(::reportFailure)
             }
-            .show()
+            .showAdaptiveDialog()
     }
 
     private fun handleImportedJson(json: String) {
@@ -539,7 +539,26 @@ class SymbolDrawerSettingsScreen(
                     toast("符号组已导入")
                 }.onFailure(::reportFailure)
             }
-            .show()
+            .showAdaptiveDialog()
+    }
+
+    private fun AlertDialog.Builder.showAdaptiveDialog(): AlertDialog {
+        val dialog = create()
+        dialog.setOnShowListener {
+            val density = resources.displayMetrics.density
+            val root = rootView
+            val widthPx = root.width.takeIf { it > 0 } ?: resources.displayMetrics.widthPixels
+            val heightPx = root.height.takeIf { it > 0 } ?: resources.displayMetrics.heightPixels
+            val window = WindowAdaptiveInfo(widthPx / density, heightPx / density, density)
+            val dialogWidth = AdaptiveContentLayoutResolver.resolveDialogWidthPx(
+                windowWidthPx = widthPx,
+                density = density,
+                window = window
+            )
+            dialog.window?.setLayout(dialogWidth, ViewGroup.LayoutParams.WRAP_CONTENT)
+        }
+        dialog.show()
+        return dialog
     }
 
     private fun update(transform: SymbolDrawerSettings.() -> SymbolDrawerSettings) {
