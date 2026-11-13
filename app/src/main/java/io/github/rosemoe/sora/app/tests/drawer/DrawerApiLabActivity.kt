@@ -153,6 +153,7 @@ class DrawerApiLabActivity : AppCompatActivity() {
             drawer.controller.moveToAnchor("compact", false)
         })
         root.addView(button("全屏三段式 · Peek / Half / Full") {
+            configureBottomSheet()
             drawer.controller.setPresentationMode(DrawerPresentationMode.FULL_SCREEN)
             updateDimensions { it.copy(peekHeightDp = 64f, expandedMaxHeightDp = 720f) }
             drawer.controller.setAnchorStrategy(DrawerAnchorStrategies.threeStage(0.5f, false))
