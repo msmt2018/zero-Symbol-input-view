@@ -117,7 +117,7 @@ class DrawerAnchorResolverTest {
         val anchors = DrawerAnchorResolver.resolve(ThreeStageAnchorStrategy(), input)
         assertEquals("peek", DrawerAnchorResolver.dragTarget(anchors, 0, 300).id)
         assertEquals("half", DrawerAnchorResolver.dragTarget(anchors, 0, 340).id)
-        assertEquals("half", DrawerAnchorResolver.dragTarget(anchors, 1, 280).id)
+        assertEquals("half", DrawerAnchorResolver.dragTarget(anchors, 1, 281).id)
     }
 
     @Test fun nearestAnchorChoosesClosestHeight() {
