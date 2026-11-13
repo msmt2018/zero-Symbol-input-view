@@ -119,7 +119,7 @@ class SymbolDrawerSettingsScreen(
         setPadding(horizontal, dp(12), horizontal, dp(8))
         gravity = Gravity.CENTER_HORIZONTAL
         val params = content.layoutParams as? LayoutParams ?: return
-        val targetWidth = minOf(w, dp(spec.maxContentWidthDp.toInt()))
+        val targetWidth = minOf((w - horizontal * 2).coerceAtLeast(0), dp(spec.maxContentWidthDp.toInt()))
         if (params.width != targetWidth) {
             params.width = targetWidth
             content.layoutParams = params
