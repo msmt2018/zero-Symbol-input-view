@@ -4,6 +4,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.recyclerview.widget.GridLayoutManager
@@ -172,6 +173,27 @@ class DrawerUiContractTest {
         }
     }
 
+
+
+    @Test fun settingsTypographyReflowsWithWindowSizeClass() {
+        ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val screen = SymbolDrawerSettingsScreen(activity, Settings(), Groups(sample()))
+                val density = activity.resources.displayMetrics.density
+                screen.layout(0, 0, (500f * density).toInt(), (800f * density).toInt())
+                val compactTitle = find(screen) {
+                    it is TextView && it.text == "符号抽屉设置"
+                } as TextView
+                val compactTextSize = compactTitle.textSize
+
+                screen.layout(0, 0, (1000f * density).toInt(), (800f * density).toInt())
+                val expandedTitle = find(screen) {
+                    it is TextView && it.text == "符号抽屉设置"
+                } as TextView
+                assertTrue(expandedTitle.textSize > compactTextSize)
+            }
+        }
+    }
 
     @Test fun symbolEditorFormScrollViewIsCappedToAvailableWindowHeight() {
         ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
