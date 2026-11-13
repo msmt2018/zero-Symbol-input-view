@@ -667,17 +667,63 @@ class DrawerContainer @JvmOverloads constructor(
 
     override fun onNestedScroll(
         target: View, dxConsumed: Int, dyConsumed: Int, dxUnconsumed: Int, dyUnconsumed: Int
-    ) = Unit
+    ) {
+        onNestedScroll(
+            target, dxConsumed, dyConsumed, dxUnconsumed, dyUnconsumed,
+            ViewCompat.TYPE_TOUCH, IntArray(2)
+        )
+    }
 
     override fun onNestedScroll(
         target: View, dxConsumed: Int, dyConsumed: Int, dxUnconsumed: Int,
         dyUnconsumed: Int, type: Int
-    ) = Unit
+    ) {
+        onNestedScroll(target, dxConsumed, dyConsumed, dxUnconsumed, dyUnconsumed, type, IntArray(2))
+    }
 
     override fun onNestedScroll(
         target: View, dxConsumed: Int, dyConsumed: Int, dxUnconsumed: Int,
         dyUnconsumed: Int, type: Int, consumed: IntArray
-    ) = Unit
+    ) {
+        if (!currentConfig.enableNestedScroll || anchors.isEmpty() || dyUnconsumed == 0) return
+        val current = state?.currentHeightPx ?: anchors.first().heightPx
+        val minHeight = anchors.first().heightPx
+        val maxHeight = anchors.last().heightPx
+        // Nested-scroll deltas use content coordinates (positive = content moves up),
+        // while drawer height grows in the opposite direction.
+        val next = (current - dyUnconsumed).coerceIn(minHeight, maxHeight)
+        val drawerDelta = current - next
+        if (drawerDelta != 0) {
+            consumed[1] += drawerDelta
+            updateHeightFromNestedScroll(next)
+        }
+    }
+
+    override fun onNestedPreFling(target: View, velocityX: Float, velocityY: Float): Boolean {
+        if (!currentConfig.enableNestedScroll || anchors.size < 2 || velocityY == 0f) return false
+        val current = state?.currentHeightPx ?: anchors.first().heightPx
+        val maximum = anchors.last().heightPx
+        val minimum = anchors.first().heightPx
+        val canExpand = velocityY > 0f && current < maximum
+        val canCollapse = velocityY < 0f && current > minimum && !target.canScrollVertically(-1)
+        if (!canExpand && !canCollapse) return false
+        val maximumVelocity = dp(currentConfig.style.motion.maximumFlingVelocityDp).toFloat()
+        val minimumVelocity = dp(currentConfig.style.motion.minimumFlingVelocityDp).toFloat()
+        val bounded = velocityY.coerceIn(-maximumVelocity, maximumVelocity)
+        val targetAnchor = DrawerAnchorResolver.flingTarget(
+            anchors, current, bounded, minimumVelocity
+        )
+        if (targetAnchor.heightPx == current) return false
+        moveTo(targetAnchor, true)
+        return true
+    }
+
+    override fun onNestedFling(
+        target: View, velocityX: Float, velocityY: Float, consumed: Boolean
+    ): Boolean {
+        if (consumed) return false
+        return onNestedPreFling(target, velocityX, velocityY)
+    }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
