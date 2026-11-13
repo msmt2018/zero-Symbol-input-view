@@ -67,7 +67,7 @@ class DrawerAnchorResolverTest {
 
     @Test fun threeStageStrategyCreatesIndependentThreeAnchors() {
         val anchors = DrawerAnchorResolver.resolve(ThreeStageAnchorStrategy(), input)
-        assertEquals(listOf(499, 500, 900), anchors.map { it.heightPx })
+        assertEquals(listOf(120, 500, 900), anchors.map { it.heightPx })
         assertEquals(
             listOf(DrawerAnchorState.PEEK, DrawerAnchorState.HALF_EXPANDED, DrawerAnchorState.EXPANDED),
             anchors.map { it.state }
@@ -124,14 +124,17 @@ class DrawerAnchorResolverTest {
         assertEquals("expanded", DrawerAnchorResolver.nearestAnchor(anchors, 780).id)
     }
 
-    @Test fun automaticPeekUsesMeasuredWidthAndMaterialKeylineBoundedByHalfState() {
-        val anchors = DrawerAnchorResolver.resolve(ThreeStageAnchorStrategy(), input)
-        assertEquals(499, anchors.first().heightPx)
-        val landscape = DrawerAnchorResolver.resolve(
+    @Test fun automaticPeekUsesMeasuredWidthWithoutCollapsingHalfState() {
+        val portrait = DrawerAnchorResolver.resolve(ThreeStageAnchorStrategy(), input)
+        assertEquals(120, portrait.first().heightPx)
+        assertEquals(500, portrait[1].heightPx)
+
+        val wide = DrawerAnchorResolver.resolve(
             ThreeStageAnchorStrategy(),
-            input.copy(viewportHeightPx = 600, viewportWidthPx = 1000, maxHeightPx = 600)
+            input.copy(viewportHeightPx = 600, viewportWidthPx = 600, maxHeightPx = 600)
         )
-        assertEquals(120, landscape.first().heightPx)
+        assertEquals(262, wide.first().heightPx)
+        assertEquals(300, wide[1].heightPx)
     }
 
     @Test fun halfAndExpandedAreDerivedFromMeasuredViewportAndMaximum() {

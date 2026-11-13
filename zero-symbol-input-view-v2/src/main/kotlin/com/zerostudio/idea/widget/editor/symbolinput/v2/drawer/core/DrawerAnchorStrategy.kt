@@ -104,8 +104,14 @@ data class ThreeStageAnchorStrategy(
         } else {
             input.minHeightPx
         }
-        val peekMaximum = maxOf(input.minHeightPx, minOf(half - 1, expanded))
-        val peek = keylinePeek.coerceIn(input.minHeightPx, peekMaximum)
+        // If the 16:9 keyline would place Collapsed above Half-Expanded,
+        // retain the configured minimum peek instead of creating a meaningless
+        // one-pixel gap between two otherwise distinct stable states.
+        val peek = if (keylinePeek < half) {
+            keylinePeek.coerceAtLeast(input.minHeightPx).coerceAtMost(expanded)
+        } else {
+            input.minHeightPx.coerceAtMost(expanded)
+        }
         return listOf(
             DrawerAnchor("peek", peek, DrawerAnchorState.PEEK),
             DrawerAnchor("half", half, DrawerAnchorState.HALF_EXPANDED),
