@@ -130,7 +130,6 @@ object LegacySymbolDataCodec {
         require(root.asJsonArray.size() <= SymbolGroupBundleCodec.MAX_GROUPS) {
             "Too many groups in symbol group JSON"
         }
-        val actionIds = LegacySymbolActionCatalog.importableValues
         var total = 0
         root.asJsonArray.forEachIndexed { groupIndex, groupElement ->
             require(groupElement.isJsonObject) { "Group #${groupIndex + 1} must be an object" }
@@ -153,8 +152,10 @@ object LegacySymbolDataCodec {
                 }
                 val shortId = item.get("a")
                 val display = item.get("b")
-                require(shortId.isJsonPrimitive && shortId.asJsonPrimitive.isNumber &&
-                    shortId.asDouble == shortId.asInt.toDouble() && shortId.asInt in actionIds) { "Symbol #${itemIndex + 1} has an unsupported short action ID" }
+                val parsedShortId = integerActionId(shortId)
+                require(parsedShortId != null && parsedShortId >= 0) {
+                    "Symbol #${itemIndex + 1} has an invalid short action ID"
+                }
                 require(display.isJsonPrimitive && display.asJsonPrimitive.isString &&
                     display.asString.isNotEmpty() && display.asString.length <= 4096) {
                     "Symbol #${itemIndex + 1} has an invalid display field"
@@ -168,15 +169,20 @@ object LegacySymbolDataCodec {
                     }
                 }
                 val longId = item.get("d")
+                val parsedLongId = longId?.takeUnless { it.isJsonNull }?.let(::integerActionId)
                 require(longId == null || longId.isJsonNull ||
-                    (longId.isJsonPrimitive && longId.asJsonPrimitive.isNumber &&
-                        longId.asDouble == longId.asInt.toDouble() && longId.asInt in actionIds)) {
-                    "Symbol #${itemIndex + 1} has an unsupported long action ID"
+                    (parsedLongId != null && parsedLongId >= 0)) {
+                    "Symbol #${itemIndex + 1} has an invalid long action ID"
                 }
             }
             total += items.asJsonArray.size()
             require(total <= SymbolGroupBundleCodec.MAX_TOTAL_SYMBOLS) { "Too many symbols in import" }
         }
+    }
+
+    private fun integerActionId(value: com.google.gson.JsonElement): Int? {
+        if (!value.isJsonPrimitive || !value.asJsonPrimitive.isNumber) return null
+        return runCatching { value.asBigDecimal.intValueExact() }.getOrNull()
     }
 
     private fun toLegacy(action: SymbolAction): LegacySymbolAction = when (action) {
