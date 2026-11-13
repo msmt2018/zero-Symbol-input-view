@@ -159,8 +159,6 @@ internal class SymbolPageAdapter(
                 val availableWidth = (right - left - view.paddingLeft - view.paddingRight).coerceAtLeast(1)
                 if (availableWidth <= 0) return@addOnLayoutChangeListener
                 val density = resources.displayMetrics.density
-                val fixedDimensions =
-                    settings.largeScreenLayoutMode == com.zerostudio.idea.widget.editor.symbolinput.v2.settings.LargeScreenLayoutMode.BOTTOM
                 val info = WindowAdaptiveInfo(
                     availableWidth / density,
                     (bottom - top).coerceAtLeast(0) / density,
@@ -171,12 +169,12 @@ internal class SymbolPageAdapter(
                     preferredColumns = config.columns,
                     minimumCellWidthDp = maxOf(36f, settings.minimumTouchTargetDp.toFloat()),
                     baseHorizontalSpacingDp = config.cellHorizontalSpacingDp,
-                    adaptive = !fixedDimensions
+                    adaptive = true
                 )
                 if (adaptiveGridLayout.spanCount != gridSpec.columnCount) {
                     adaptiveGridLayout.spanCount = gridSpec.columnCount
                 }
-                val horizontal = dp(context, if (fixedDimensions) gridSpec.horizontalSpacingDp else gridSpec.horizontalSpacingDp.coerceAtLeast(0))
+                val horizontal = dp(context, gridSpec.horizontalSpacingDp.coerceAtLeast(0))
                 if (horizontal != appliedHorizontalPadding) {
                     appliedHorizontalPadding = horizontal
                     view.setPadding(horizontal, view.paddingTop, horizontal, view.paddingBottom)
