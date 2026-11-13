@@ -135,7 +135,7 @@ Nested vertical scrolling is coordinated through `NestedScrollingParent3`: upwar
 The app module exposes a dedicated Activity through MainActivity's menu. It exercises:
 
 - Existing-height, three-stage, content-sized and custom four-anchor strategies.
-- Standard, Compact, Full Screen and Split Panel presets.
+- Standard, Compact, Full Screen and Split Panel presets. Full Screen is a distinct full-viewport presentation mode, not merely a larger bottom-sheet height.
 - Host-following, explicit light/dark overlays and custom color palettes.
 - Navigation top/bottom/hidden placement, line/pill indicators, scrollable tabs and page selection.
 - Independent Peek/Expanded content, runtime page replacement and cached page hosting.

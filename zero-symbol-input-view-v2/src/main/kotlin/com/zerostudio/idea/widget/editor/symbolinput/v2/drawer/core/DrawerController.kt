@@ -46,6 +46,7 @@
 package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core
 
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.config.DrawerConfig
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.config.DrawerPresentationMode
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerNavigationConfig
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.panel.DrawerPanelContent
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerPage
@@ -68,6 +69,7 @@ interface DrawerController {
 
     /** Replace the active strategy and recalculate anchors against current measurements. */
     fun setAnchorStrategy(strategy: DrawerAnchorStrategy)
+    fun setPresentationMode(mode: DrawerPresentationMode)
 
     /** Apply a complete immutable configuration atomically. */
     fun applyConfig(config: DrawerConfig)

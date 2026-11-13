@@ -46,6 +46,7 @@
 package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.preset
 
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.config.DrawerConfig
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.config.DrawerPresentationMode
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorStrategies
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerDimensions
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerShape
@@ -76,16 +77,20 @@ object DrawerPresets {
                     shape = DrawerShape(20f, 20f)
                 ))
             DrawerPreset.FULL_SCREEN -> builder
+                .setPresentationMode(DrawerPresentationMode.FULL_SCREEN)
                 .setAnchorStrategy(DrawerAnchorStrategies.threeStage(0.5f, 1f))
                 .setStyle(DrawerStyle(
                     dimensions = DrawerDimensions(
                         peekHeightDp = 64f,
                         expandedMaxHeightDp = 1000f,
-                        cornerRadiusDp = 16f,
+                        cornerRadiusDp = 0f,
                         horizontalPaddingDp = 16f,
                         verticalPaddingDp = 12f
                     ),
-                    shape = DrawerShape(16f, 16f)
+                    shape = DrawerShape(0f, 0f),
+                    drawScrim = false,
+                    clipContentToShape = false,
+                    elevationDp = 0f
                 ))
             DrawerPreset.SPLIT_PANEL -> builder
                 .setAnchorStrategy(DrawerAnchorStrategies.threeStage())

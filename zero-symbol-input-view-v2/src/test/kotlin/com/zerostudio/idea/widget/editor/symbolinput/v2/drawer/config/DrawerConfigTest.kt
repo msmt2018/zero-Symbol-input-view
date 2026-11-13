@@ -46,6 +46,7 @@
 package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.config
 
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.ThreeStageAnchorStrategy
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.config.DrawerPresentationMode
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.preset.DrawerPreset
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.preset.DrawerPresets
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerIndicatorShape
@@ -118,6 +119,10 @@ class DrawerConfigTest {
         val compact = DrawerPresets.config(DrawerPreset.COMPACT)
         val full = DrawerPresets.config(DrawerPreset.FULL_SCREEN)
         assertTrue(compact.style.dimensions.expandedMaxHeightDp < full.style.dimensions.expandedMaxHeightDp)
+        assertEquals(DrawerPresentationMode.FULL_SCREEN, full.presentationMode)
+        assertEquals(0f, full.style.shape.topStartRadiusDp)
+        assertEquals(0f, full.style.shape.topEndRadiusDp)
+        assertFalse(full.style.drawScrim)
         assertTrue(DrawerConfig.builder().setStyle(compact.style).setPeekHeightDp(72f)
             .build().style.dimensions.peekHeightDp == 72f)
     }

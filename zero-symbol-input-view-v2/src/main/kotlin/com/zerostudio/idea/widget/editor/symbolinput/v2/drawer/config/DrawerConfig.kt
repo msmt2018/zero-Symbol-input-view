@@ -58,6 +58,9 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerStyle
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerThemeMode
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerTypography
 
+/** Defines whether the drawer behaves as a floating bottom sheet or a full-viewport surface. */
+enum class DrawerPresentationMode { BOTTOM_SHEET, FULL_SCREEN }
+
 /** Declarative, feature-neutral configuration consumed by a future DrawerContainer. */
 data class DrawerConfig(
     val anchorStrategy: DrawerAnchorStrategy = DrawerAnchorStrategies.existingHeight(),
@@ -71,7 +74,8 @@ data class DrawerConfig(
     val dismissOnBack: Boolean = true,
     val dragHandleEnabled: Boolean = true,
     val accessibilityEnabled: Boolean = true,
-    val navigationConfig: DrawerNavigationConfig = DrawerNavigationConfig()
+    val navigationConfig: DrawerNavigationConfig = DrawerNavigationConfig(),
+    val presentationMode: DrawerPresentationMode = DrawerPresentationMode.BOTTOM_SHEET
 ) {
     class Builder {
         private var anchorStrategy: DrawerAnchorStrategy = DrawerAnchorStrategies.existingHeight()
@@ -86,8 +90,10 @@ data class DrawerConfig(
         private var dragHandleEnabled = true
         private var accessibilityEnabled = true
         private var navigationConfig = DrawerNavigationConfig()
+        private var presentationMode = DrawerPresentationMode.BOTTOM_SHEET
 
         fun setAnchorStrategy(value: DrawerAnchorStrategy) = apply { anchorStrategy = value }
+        fun setPresentationMode(value: DrawerPresentationMode) = apply { presentationMode = value }
         fun setPeekContent(value: DrawerPanelContent?) = apply { peekContent = value }
         fun setExpandedContent(value: DrawerPanelContent?) = apply { expandedContent = value }
         fun setDragEnabled(value: Boolean) = apply { enableDrag = value }
@@ -212,7 +218,7 @@ data class DrawerConfig(
         fun build(): DrawerConfig = DrawerConfig(
             anchorStrategy, style, peekContent, expandedContent, enableDrag,
             enableNestedScroll, enableEdgeToEdge, dismissOnScrimTap, dismissOnBack,
-            dragHandleEnabled, accessibilityEnabled, navigationConfig
+            dragHandleEnabled, accessibilityEnabled, navigationConfig, presentationMode
         )
     }
 

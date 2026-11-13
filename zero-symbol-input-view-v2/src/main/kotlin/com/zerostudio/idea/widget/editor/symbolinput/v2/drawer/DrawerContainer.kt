@@ -64,6 +64,7 @@ import androidx.core.view.NestedScrollingParentHelper
 import androidx.core.view.ViewCompat
 import com.google.android.material.tabs.TabLayout
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.config.DrawerConfig
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.config.DrawerPresentationMode
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchor
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorInput
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorResolver
@@ -102,6 +103,7 @@ class DrawerContainer @JvmOverloads constructor(
     private val scrim = View(context)
     private val sheet = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
     private val handle = View(context)
+    private val handleTouchTarget = FrameLayout(context)
     private val title = TextView(context)
     private val tabs = TabLayout(context)
     private val peekHost = DrawerPanelHost(context, DrawerPanelSlot.PEEK)
@@ -136,11 +138,21 @@ class DrawerContainer @JvmOverloads constructor(
         }
 
         addView(sheet, LayoutParams(LayoutParams.MATCH_PARENT, dp(640), Gravity.BOTTOM))
-        sheet.addView(handle, LinearLayout.LayoutParams(dp(36), dp(4)).apply {
-            gravity = Gravity.CENTER_HORIZONTAL
-            topMargin = dp(10)
-            bottomMargin = dp(8)
-        })
+        handleTouchTarget.apply {
+            minimumHeight = dp(48)
+            contentDescription = "Drag drawer"
+            isFocusable = true
+            importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
+            addView(handle, FrameLayout.LayoutParams(dp(36), dp(4), Gravity.CENTER))
+            setOnClickListener {
+                val current = state?.currentHeightPx ?: anchors.firstOrNull()?.heightPx ?: 0
+                val next = anchors.firstOrNull { it.heightPx > current }
+                if (next != null) moveTo(next, true) else controller.collapse()
+            }
+        }
+        sheet.addView(handleTouchTarget, LinearLayout.LayoutParams(
+            LayoutParams.MATCH_PARENT, dp(48)
+        ))
         sheet.addView(title, LinearLayout.LayoutParams(
             LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT
         ).apply { leftMargin = dp(20); rightMargin = dp(20); bottomMargin = dp(8) })
@@ -156,13 +168,7 @@ class DrawerContainer @JvmOverloads constructor(
         expandedHost.addView(pageHost, FrameLayout.LayoutParams(
             LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT
         ))
-        handle.setOnTouchListener(::onHandleTouch)
-        sheet.setOnTouchListener { _, event ->
-            if (event.actionMasked == MotionEvent.ACTION_DOWN) {
-                downY = event.rawY
-                true
-            } else false
-        }
+        handleTouchTarget.setOnTouchListener(::onHandleTouch)
         tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab) {
                 (tab.tag as? String)?.let(pageHost::selectPage)
@@ -310,14 +316,20 @@ class DrawerContainer @JvmOverloads constructor(
     private fun applyVisualStyle() {
         val style = currentConfig.style
         val colors = resolvedColors()
-        val radius = style.shape.topStartRadiusDp.takeIf { it > 0f } ?: style.dimensions.cornerRadiusDp
+        val fullScreen = currentConfig.presentationMode == DrawerPresentationMode.FULL_SCREEN
+        val topStart = if (fullScreen) 0f else
+            (style.shape.topStartRadiusDp.takeIf { it > 0f } ?: style.dimensions.cornerRadiusDp)
+        val topEnd = if (fullScreen) 0f else
+            (style.shape.topEndRadiusDp.takeIf { it > 0f } ?: style.dimensions.cornerRadiusDp)
+        val bottomEnd = if (fullScreen) 0f else style.shape.bottomEndRadiusDp
+        val bottomStart = if (fullScreen) 0f else style.shape.bottomStartRadiusDp
         sheet.background = GradientDrawable().apply {
             setColor(colors.surface ?: Color.WHITE)
-            cornerRadii = floatArrayOf(dp(radius).toFloat(), dp(radius).toFloat(),
-                dp(radius).toFloat(), dp(radius).toFloat(),
-                dp(style.shape.bottomEndRadiusDp).toFloat(), dp(style.shape.bottomEndRadiusDp).toFloat(),
-                dp(style.shape.bottomStartRadiusDp).toFloat(), dp(style.shape.bottomStartRadiusDp).toFloat())
-            if (style.shape.outlineWidthDp > 0f) {
+            cornerRadii = floatArrayOf(dp(topStart).toFloat(), dp(topStart).toFloat(),
+                dp(topEnd).toFloat(), dp(topEnd).toFloat(),
+                dp(bottomEnd).toFloat(), dp(bottomEnd).toFloat(),
+                dp(bottomStart).toFloat(), dp(bottomStart).toFloat())
+            if (!fullScreen && style.shape.outlineWidthDp > 0f) {
                 setStroke(dp(style.shape.outlineWidthDp), colors.outline ?: (colors.primaryText ?: Color.GRAY))
             }
         }
@@ -335,7 +347,8 @@ class DrawerContainer @JvmOverloads constructor(
             width = dp(style.dimensions.handleWidthDp)
             height = dp(style.dimensions.handleHeightDp)
         }
-        sheet.elevation = dp(style.elevationDp).toFloat()
+        sheet.elevation = if (fullScreen) 0f else dp(style.elevationDp).toFloat()
+        handleTouchTarget.visibility = if (fullScreen || !currentConfig.dragHandleEnabled) GONE else VISIBLE
         sheet.setPadding(dp(style.dimensions.horizontalPaddingDp), 0,
             dp(style.dimensions.horizontalPaddingDp), dp(style.dimensions.verticalPaddingDp))
         scrim.setBackgroundColor(colors.scrim ?: Color.BLACK)
@@ -357,7 +370,11 @@ class DrawerContainer @JvmOverloads constructor(
     private fun recalculateAnchors() {
         if (height <= 0) return
         val density = resources.displayMetrics.density
-        val maxHeight = min(height, dp(currentConfig.style.dimensions.expandedMaxHeightDp))
+        val maxHeight = if (currentConfig.presentationMode == DrawerPresentationMode.FULL_SCREEN) {
+            height
+        } else {
+            min(height, dp(currentConfig.style.dimensions.expandedMaxHeightDp))
+        }
         val minHeight = min(maxHeight, dp(currentConfig.style.dimensions.peekHeightDp))
         sheet.layoutParams = sheet.layoutParams.apply { this.height = maxHeight }
         val contentWidth = width.takeIf { it > 0 } ?: resources.displayMetrics.widthPixels
@@ -368,7 +385,8 @@ class DrawerContainer @JvmOverloads constructor(
                 pageHost.measureCurrentContentHeight(contentWidth, maxHeight)
             )
         )
-        val headerHeight = dp(currentConfig.style.dimensions.handleHeightDp + 18f) +
+        val headerHeight = (if (currentConfig.presentationMode == DrawerPresentationMode.FULL_SCREEN) 0
+            else dp(48)) +
             (if (title.visibility == VISIBLE) dp(36) else 0) +
             (if (tabs.visibility == VISIBLE) dp(48) else 0) +
             dp(currentConfig.style.dimensions.verticalPaddingDp)
@@ -477,18 +495,22 @@ class DrawerContainer @JvmOverloads constructor(
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 velocityTracker?.addMovement(event)
-                velocityTracker?.computeCurrentVelocity(1000)
-                val velocityY = velocityTracker?.yVelocity ?: 0f
+                val cancelled = event.actionMasked == MotionEvent.ACTION_CANCEL
+                if (!cancelled) velocityTracker?.computeCurrentVelocity(1000)
+                val velocityY = if (cancelled) 0f else velocityTracker?.yVelocity ?: 0f
                 velocityTracker?.recycle()
                 velocityTracker = null
                 val currentHeight = state?.currentHeightPx ?: dragStartHeight
                 val maximumVelocity = dp(currentConfig.style.motion.maximumFlingVelocityDp).toFloat()
                 val boundedVelocity = velocityY.coerceIn(-maximumVelocity, maximumVelocity)
-                val target = if (abs(boundedVelocity) >= dp(currentConfig.style.motion.minimumFlingVelocityDp)) {
+                val wasDragging = dragging
+                val target = if (!cancelled && wasDragging &&
+                    abs(boundedVelocity) >= dp(currentConfig.style.motion.minimumFlingVelocityDp)) {
                     DrawerAnchorResolver.flingTarget(anchors, currentHeight, -boundedVelocity,
                         dp(currentConfig.style.motion.minimumFlingVelocityDp).toFloat())
                 } else DrawerAnchorResolver.nearestAnchor(anchors, currentHeight)
-                moveTo(target, true)
+                if (!wasDragging && !cancelled) view.performClick()
+                else moveTo(target, true)
                 dragging = false
                 return true
             }
@@ -616,6 +638,11 @@ class DrawerContainer @JvmOverloads constructor(
             currentConfig = currentConfig.copy(anchorStrategy = strategy)
             recalculateAnchors()
         }
+        override fun setPresentationMode(mode: DrawerPresentationMode) {
+            currentConfig = currentConfig.copy(presentationMode = mode)
+            applyVisualStyle()
+            recalculateAnchors()
+        }
         override fun applyConfig(config: DrawerConfig) {
             currentConfig = config
             val themedContext = contentThemeContext()
@@ -667,12 +694,20 @@ class DrawerContainer @JvmOverloads constructor(
             currentConfig = currentConfig.copy(navigationConfig = config)
             applyVisualStyle()
         }
-        override fun setDragEnabled(enabled: Boolean) { currentConfig = currentConfig.copy(enableDrag = enabled); handle.isEnabled = enabled }
+        override fun setDragEnabled(enabled: Boolean) {
+            currentConfig = currentConfig.copy(enableDrag = enabled)
+            handleTouchTarget.isEnabled = enabled
+            handleTouchTarget.isClickable = enabled
+        }
         override fun setNestedScrollEnabled(enabled: Boolean) { currentConfig = currentConfig.copy(enableNestedScroll = enabled) }
         override fun setEdgeToEdgeEnabled(enabled: Boolean) { currentConfig = currentConfig.copy(enableEdgeToEdge = enabled) }
         override fun setDismissOnScrimTap(enabled: Boolean) { currentConfig = currentConfig.copy(dismissOnScrimTap = enabled); updateVisualState() }
         override fun setDismissOnBack(enabled: Boolean) { currentConfig = currentConfig.copy(dismissOnBack = enabled) }
-        override fun setDragHandleEnabled(enabled: Boolean) { currentConfig = currentConfig.copy(dragHandleEnabled = enabled); handle.visibility = if (enabled) VISIBLE else GONE }
+        override fun setDragHandleEnabled(enabled: Boolean) {
+            currentConfig = currentConfig.copy(dragHandleEnabled = enabled)
+            handleTouchTarget.visibility = if (enabled &&
+                currentConfig.presentationMode != DrawerPresentationMode.FULL_SCREEN) VISIBLE else GONE
+        }
         override fun setAccessibilityEnabled(enabled: Boolean) {
             currentConfig = currentConfig.copy(accessibilityEnabled = enabled)
             sheet.importantForAccessibility = if (enabled) View.IMPORTANT_FOR_ACCESSIBILITY_AUTO else View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
