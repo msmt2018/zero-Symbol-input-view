@@ -49,6 +49,10 @@ plugins {
 
 android {
     namespace = "com.zerostudio.idea.widget.editor.symbolinput.v2"
+
+    defaultConfig {
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
 }
 
 dependencies {
@@ -61,4 +65,7 @@ dependencies {
     implementation(libs.gson)
     api(libs.androidx.annotation)
     testImplementation(libs.junit)
+    androidTestImplementation("androidx.test:runner:1.6.2")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test:core:1.6.1")
 }
