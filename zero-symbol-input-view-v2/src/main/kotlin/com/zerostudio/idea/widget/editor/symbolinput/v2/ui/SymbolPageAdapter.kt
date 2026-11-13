@@ -163,15 +163,19 @@ internal class SymbolPageAdapter(
                     (bottom - top).coerceAtLeast(0) / density,
                     density
                 ).sizeClass
-                val adaptiveExtra = if (
+                val fixedDimensions =
                     settings.largeScreenLayoutMode == com.zerostudio.idea.widget.editor.symbolinput.v2.settings.LargeScreenLayoutMode.BOTTOM
-                ) 0 else when (sizeClass) {
+                val adaptiveExtra = if (fixedDimensions) 0 else when (sizeClass) {
                     WindowSizeClass.COMPACT -> 0
                     WindowSizeClass.MEDIUM -> 1
                     WindowSizeClass.EXPANDED -> 3
                 }
-                val horizontal = dp(context, (config.cellHorizontalSpacingDp + adaptiveExtra)
-                    .coerceIn(0, 24))
+                val horizontalDp = if (fixedDimensions) {
+                    config.cellHorizontalSpacingDp
+                } else {
+                    (config.cellHorizontalSpacingDp + adaptiveExtra).coerceIn(-10, 24)
+                }
+                val horizontal = dp(context, horizontalDp)
                 if (horizontal != appliedHorizontalPadding) {
                     appliedHorizontalPadding = horizontal
                     view.setPadding(horizontal, view.paddingTop, horizontal, view.paddingBottom)
