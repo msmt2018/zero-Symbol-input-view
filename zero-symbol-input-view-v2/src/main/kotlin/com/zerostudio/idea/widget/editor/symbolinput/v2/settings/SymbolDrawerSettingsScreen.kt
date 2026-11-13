@@ -546,7 +546,7 @@ class SymbolDrawerSettingsScreen(
         val dialog = create()
         dialog.setOnShowListener {
             val density = resources.displayMetrics.density
-            val root = rootView
+            val root = this@SymbolDrawerSettingsScreen.rootView
             val widthPx = root.width.takeIf { it > 0 } ?: resources.displayMetrics.widthPixels
             val heightPx = root.height.takeIf { it > 0 } ?: resources.displayMetrics.heightPixels
             val window = WindowAdaptiveInfo(widthPx / density, heightPx / density, density)
