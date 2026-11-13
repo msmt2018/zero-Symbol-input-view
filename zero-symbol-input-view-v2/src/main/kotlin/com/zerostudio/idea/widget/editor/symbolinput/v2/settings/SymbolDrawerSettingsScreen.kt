@@ -268,7 +268,7 @@ class SymbolDrawerSettingsScreen(
                     textSize = 12f
                     setTextColor(onSurfaceColor())
                     alpha = 0.72f
-                    setPadding(dp(4), dp(12), dp(4), dp(8))
+                    setPadding(spaceDp(4), spaceDp(12), spaceDp(4), spaceDp(8))
                 }, matchWrap())
                 activePage?.addView(actionButton("恢复默认设置") {
                     runCatching {
@@ -280,7 +280,7 @@ class SymbolDrawerSettingsScreen(
                         toast("设置已恢复默认并保存")
                     }.onFailure(::reportFailure)
                 }, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, dp(50)).apply {
-                    topMargin = dp(14)
+                    topMargin = spaceDp(14)
                 })
             }
         )
@@ -410,14 +410,14 @@ class SymbolDrawerSettingsScreen(
                 setOnCheckedChangeListener { _, value -> changed(value) }
             }, LinearLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT))
         }, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
-            bottomMargin = dp(8)
+            bottomMargin = spaceDp(8)
         })
     }
 
     private fun <T : Enum<T>> addChoice(title: String, values: List<T>, selected: T, changed: (T) -> Unit) {
         val row = LinearLayout(context).apply {
             orientation = VERTICAL
-            setPadding(dp(14), dp(10), dp(14), dp(10))
+            setPadding(spaceDp(14), spaceDp(10), spaceDp(14), spaceDp(10))
             background = surfaceBackground(surfaceColor(), 0.08f, 14)
         }
         row.addView(label(title), matchWrap())
@@ -450,14 +450,14 @@ class SymbolDrawerSettingsScreen(
         }
         row.addView(spinner, matchWrap())
         activePage?.addView(row, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
-            bottomMargin = dp(8)
+            bottomMargin = spaceDp(8)
         })
     }
 
     private fun addSeek(title: String, value: Int, minimum: Int, maximum: Int, changed: (Int) -> Unit) {
         val row = LinearLayout(context).apply {
             orientation = VERTICAL
-            setPadding(dp(10), dp(6), dp(10), dp(6))
+            setPadding(spaceDp(10), spaceDp(6), spaceDp(10), spaceDp(6))
             background = surfaceBackground(surfaceColor(), 0.05f, 12)
         }
         val valueLabel = label("$title：$value")
@@ -474,7 +474,7 @@ class SymbolDrawerSettingsScreen(
             })
         }, matchWrap())
         activePage?.addView(row, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
-            bottomMargin = dp(8)
+            bottomMargin = spaceDp(8)
         })
     }
 

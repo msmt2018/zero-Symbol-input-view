@@ -13,13 +13,24 @@ import android.view.View
  * A control can subscribe to the same controller instead of installing its own
  * layout/insets listeners. The controller owns one observer and fans out
  * immutable snapshots to registered listeners.
+ *
+ * Subscriptions are independent: registering the same callback more than once
+ * creates distinct handles, and closing one handle never removes another.
+ * Listener collection changes are synchronized; callbacks are always invoked
+ * outside the lock so listeners may safely add/remove subscriptions reentrantly.
  */
 class AdaptiveWindowController(
     hostView: View,
     insetsMode: WindowInsetsMode = WindowInsetsMode.SUBTRACT_SYSTEM_INSETS
 ) : AutoCloseable {
-    private val listeners = LinkedHashSet<(WindowAdaptiveInfo) -> Unit>()
+    private val lock = Any()
+    private val listeners = LinkedHashMap<Long, (WindowAdaptiveInfo) -> Unit>()
+    private var nextListenerId = 0L
+
+    @Volatile
     private var closed = false
+
+    @Volatile
     private var latestSnapshot: WindowAdaptiveInfo? = null
 
     private val observer = AdaptiveWindowObserver(
@@ -35,10 +46,28 @@ class AdaptiveWindowController(
         listener: (WindowAdaptiveInfo) -> Unit,
         emitCurrent: Boolean = true
     ): AutoCloseable {
-        check(!closed) { "AdaptiveWindowController is closed" }
-        listeners += listener
-        if (emitCurrent) latestSnapshot?.let(listener)
-        return AutoCloseable { listeners -= listener }
+        val id: Long
+        val snapshot: WindowAdaptiveInfo?
+        synchronized(lock) {
+            check(!closed) { "AdaptiveWindowController is closed" }
+            id = ++nextListenerId
+            listeners[id] = listener
+            snapshot = if (emitCurrent) latestSnapshot else null
+        }
+
+        // Invoke outside the lock. If the callback throws, the caller still
+        // owns a valid subscription and can close it in its normal cleanup.
+        snapshot?.let(listener)
+
+        var subscriptionClosed = false
+        return AutoCloseable {
+            synchronized(lock) {
+                if (!subscriptionClosed) {
+                    subscriptionClosed = true
+                    listeners.remove(id)
+                }
+            }
+        }
     }
 
     fun updateFoldingFeature(value: FoldingFeatureInfo) {
@@ -52,16 +81,23 @@ class AdaptiveWindowController(
     }
 
     private fun dispatch(snapshot: WindowAdaptiveInfo) {
-        if (closed) return
-        latestSnapshot = snapshot
-        listeners.toList().forEach { it(snapshot) }
+        val callbacks = synchronized(lock) {
+            if (closed) return
+            latestSnapshot = snapshot
+            listeners.values.toList()
+        }
+        callbacks.forEach { it(snapshot) }
     }
 
     override fun close() {
-        if (closed) return
-        closed = true
+        synchronized(lock) {
+            if (closed) return
+            closed = true
+            listeners.clear()
+            latestSnapshot = null
+        }
+        // Detach the observer after making the controller inert. Any callback
+        // racing with close will see closed=true and will be ignored.
         observer.close()
-        listeners.clear()
-        latestSnapshot = null
     }
 }
