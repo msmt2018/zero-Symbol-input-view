@@ -104,6 +104,16 @@ class DrawerAnchorResolverTest {
         assertEquals("expanded", target.id)
     }
 
+    @Test fun flingChoosesFirstAnchorInTravelDirectionFromIntermediateHeight() {
+        val anchors = DrawerAnchorResolver.resolve(
+            ThreeStageAnchorStrategy(useAutomaticPeekHeight = false), input
+        )
+        assertEquals("half", DrawerAnchorResolver.flingTarget(anchors, 430, 1600f, 500f).id)
+        assertEquals("expanded", DrawerAnchorResolver.flingTarget(anchors, 570, 1600f, 500f).id)
+        assertEquals("half", DrawerAnchorResolver.flingTarget(anchors, 570, -1600f, 500f).id)
+        assertEquals("peek", DrawerAnchorResolver.flingTarget(anchors, 430, -1600f, 500f).id)
+    }
+
     @Test fun dragIntermediateHeightsAreNotQuantizedToAnchors() {
         val anchors = DrawerAnchorResolver.resolve(
             ThreeStageAnchorStrategy(useAutomaticPeekHeight = false), input

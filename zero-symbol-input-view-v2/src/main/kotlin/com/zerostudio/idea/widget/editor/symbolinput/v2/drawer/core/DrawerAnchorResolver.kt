@@ -86,13 +86,19 @@ object DrawerAnchorResolver {
     ): DrawerAnchor {
         require(anchors.isNotEmpty()) { "Cannot select from an empty anchor list" }
         val ordered = anchors.sortedBy { it.heightPx }
-        val currentIndex = ordered.indices.minBy { kotlin.math.abs(ordered[it].heightPx - currentHeightPx) }
         if (kotlin.math.abs(velocityY) < minimumFlingVelocity) {
             return nearestAnchor(ordered, currentHeightPx)
         }
-        val nextIndex = (currentIndex + if (velocityY > 0f) 1 else -1)
-            .coerceIn(ordered.indices)
-        return ordered[nextIndex]
+
+        // velocityY is expressed in visible-height coordinates: positive expands.
+        // Select the first stable anchor in the fling direction from the actual
+        // intermediate height, rather than stepping from the nearest anchor
+        // (which can incorrectly skip a stage when released between anchors).
+        return if (velocityY > 0f) {
+            ordered.firstOrNull { it.heightPx > currentHeightPx } ?: ordered.last()
+        } else {
+            ordered.lastOrNull { it.heightPx < currentHeightPx } ?: ordered.first()
+        }
     }
 
     private fun rank(state: DrawerAnchorState): Int = when (state) {
