@@ -67,6 +67,9 @@ interface DrawerController {
     fun collapse(animated: Boolean = true)
     fun moveToAnchor(anchorId: String, animated: Boolean = true)
 
+    /** Re-measure panel content and resolve anchors after asynchronous content-size changes. */
+    fun refreshAnchors()
+
     /** Replace the active strategy and recalculate anchors against current measurements. */
     fun setAnchorStrategy(strategy: DrawerAnchorStrategy)
     fun setPresentationMode(mode: DrawerPresentationMode)

@@ -254,6 +254,8 @@ class DrawerContainer @JvmOverloads constructor(
 
     fun expand(animated: Boolean = true) = controller.expand(animated)
     fun collapse(animated: Boolean = true) = controller.collapse(animated)
+    /** Re-measure panel content and resolve anchors after asynchronous content-size changes. */
+    fun refreshAnchors() = recalculateAnchors()
 
     fun handleBack(): Boolean {
         if (!currentConfig.dismissOnBack) return false
@@ -865,6 +867,7 @@ class DrawerContainer @JvmOverloads constructor(
         override fun moveToAnchor(anchorId: String, animated: Boolean) {
             anchors.firstOrNull { it.id == anchorId }?.let { moveTo(it, animated) }
         }
+        override fun refreshAnchors() = this@DrawerContainer.refreshAnchors()
         override fun setAnchorStrategy(strategy: DrawerAnchorStrategy) {
             currentConfig = currentConfig.copy(anchorStrategy = strategy)
             recalculateAnchors()
