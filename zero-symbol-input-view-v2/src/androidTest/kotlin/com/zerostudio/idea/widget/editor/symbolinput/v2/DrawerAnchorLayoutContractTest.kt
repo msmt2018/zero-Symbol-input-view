@@ -1,6 +1,9 @@
 package com.zerostudio.idea.widget.editor.symbolinput.v2
 
 import android.view.View
+import android.view.ViewGroup
+import android.view.MotionEvent
+import android.os.SystemClock
 import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.test.core.app.ActivityScenario
@@ -75,6 +78,59 @@ class DrawerAnchorLayoutContractTest {
                 assertEquals(maxHeight, anchors.last().heightPx)
             }
         }
+    }
+
+
+    @Test fun collapsedHandleIsBottomAlignedAndReceivesDragGestures() {
+        ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val drawer = attachedDrawer(activity)
+                drawer.setTitle("")
+                drawer.setPeekContent(null)
+                drawer.controller.setExpandedContent(null)
+                drawer.controller.setPages(emptyList())
+                drawer.controller.setDragEnabled(true)
+                drawer.controller.setDragHandleEnabled(true)
+                drawer.controller.setAnchorStrategy(DrawerAnchorStrategies.threeStage(0.5f, false))
+                drawer.refreshAnchors()
+                drawer.controller.moveToAnchor("peek", false)
+
+                val handle = findView(drawer) { it.contentDescription == "Drag drawer" }
+                assertEquals(View.VISIBLE, handle.visibility)
+                val drawerLocation = IntArray(2)
+                val handleLocation = IntArray(2)
+                drawer.getLocationOnScreen(drawerLocation)
+                handle.getLocationOnScreen(handleLocation)
+                val handleBottom = handleLocation[1] + handle.height - drawerLocation[1]
+                val bottomGap = drawer.height - handleBottom
+                assertTrue("Collapsed drag handle should remain at the bottom edge", bottomGap in 0..(32f * activity.resources.displayMetrics.density).toInt())
+
+                val initialHeight = requireNotNull(drawer.controller.currentState()).currentHeightPx
+                val downTime = SystemClock.uptimeMillis()
+                val down = MotionEvent.obtain(downTime, downTime, MotionEvent.ACTION_DOWN, 20f, 20f, 0)
+                handle.dispatchTouchEvent(down)
+                down.recycle()
+                val move = MotionEvent.obtain(downTime, downTime + 100, MotionEvent.ACTION_MOVE, 20f, -120f, 0)
+                handle.dispatchTouchEvent(move)
+                move.recycle()
+                assertTrue("Dragging the visible handle must update drawer height",
+                    requireNotNull(drawer.controller.currentState()).currentHeightPx > initialHeight)
+                val up = MotionEvent.obtain(downTime, downTime + 120, MotionEvent.ACTION_UP, 20f, -120f, 0)
+                handle.dispatchTouchEvent(up)
+                up.recycle()
+            }
+        }
+    }
+
+    private fun findView(root: View, predicate: (View) -> Boolean): View {
+        if (predicate(root)) return root
+        if (root is ViewGroup) {
+            for (index in 0 until root.childCount) {
+                val child = runCatching { findView(root.getChildAt(index), predicate) }.getOrNull()
+                if (child != null) return child
+            }
+        }
+        error("Required drawer view not found")
     }
 
     @Test fun contentBasedAnchorTracksMeasuredPanelContentChanges() {
