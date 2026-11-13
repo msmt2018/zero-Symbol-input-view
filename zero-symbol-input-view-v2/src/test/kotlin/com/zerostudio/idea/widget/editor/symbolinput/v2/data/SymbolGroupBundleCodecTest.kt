@@ -186,6 +186,16 @@ class SymbolGroupBundleCodecTest {
         LegacySymbolDataCodec.decode("""[{"name":"not-a-v1-group","items":[]}]""")
     }
 
+
+    @Test fun unknownLegacyActionIdsSurviveStrictV1ImportAsExtensionActions() {
+        val json = """[{"n":"custom","d":[{"a":987,"b":"custom short","c":"short payload","d":988,"e":"long payload"}]}]"""
+        val symbol = LegacySymbolDataCodec.decode(json).single().symbols.single()
+        assertEquals(SymbolAction.Extension("legacy.action.987", "short payload"), symbol.shortAction)
+        assertEquals(SymbolAction.Extension("legacy.action.988", "long payload"), symbol.longAction)
+        assertEquals(987, symbol.legacyShortActionId)
+        assertEquals(988, symbol.legacyLongActionId)
+    }
+
     @Test(expected = IllegalArgumentException::class)
     fun rejectsLegacyGroupsWithWrongActionIdType() {
         LegacySymbolDataCodec.decode("""[{"n":"g","d":[{"a":2.5,"b":"x"}]}]""")
