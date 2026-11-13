@@ -61,6 +61,24 @@ class DrawerUiContractTest {
         }
     }
 
+    @Test fun drawerCanDetachAndReattachWithoutLosingStableUiState() {
+        ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val drawer = SymbolDrawerView(activity)
+                activity.content.addView(drawer, FrameLayout.LayoutParams(-1, 480))
+                drawer.submitGroups(sample())
+                drawer.selectGroup(1, false)
+                drawer.setExpanded(true, false)
+
+                activity.content.removeView(drawer)
+                activity.content.addView(drawer, FrameLayout.LayoutParams(-1, 480))
+
+                assertEquals(1, drawer.getCurrentGroupIndex())
+                assertTrue(drawer.isExpanded())
+            }
+        }
+    }
+
     @Test fun managerScreenInflatesTabsAndBackupImportRoundTrips() {
         ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
