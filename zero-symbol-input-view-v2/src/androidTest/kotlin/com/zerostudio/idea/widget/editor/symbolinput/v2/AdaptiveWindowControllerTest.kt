@@ -82,6 +82,44 @@ class AdaptiveWindowControllerTest {
             }
         }
     }
+
+    @Test
+    fun oneFailingListenerDoesNotStarveOtherSubscribers() {
+        ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val host = FrameLayout(activity)
+                activity.content.addView(
+                    host,
+                    FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                )
+                host.measure(
+                    android.view.View.MeasureSpec.makeMeasureSpec(600, android.view.View.MeasureSpec.EXACTLY),
+                    android.view.View.MeasureSpec.makeMeasureSpec(700, android.view.View.MeasureSpec.EXACTLY)
+                )
+                host.layout(0, 0, 600, 700)
+
+                val controller = AdaptiveWindowController(
+                    host,
+                    WindowInsetsMode.VIEW_BOUNDS_ALREADY_EXCLUDE_INSETS
+                )
+                var delivered = 0
+                controller.addListener(
+                    { throw IllegalStateException("expected listener failure") },
+                    emitCurrent = false
+                )
+                controller.addListener({ delivered++ }, emitCurrent = false)
+
+                val failure = runCatching { host.layout(0, 0, 520, 700) }.exceptionOrNull()
+                assertEquals("expected listener failure", failure?.message)
+                assertEquals(1, delivered)
+                controller.close()
+            }
+        }
+    }
+
     @Test
     fun closeIsIdempotentAndRejectsFurtherOperations() {
         ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
