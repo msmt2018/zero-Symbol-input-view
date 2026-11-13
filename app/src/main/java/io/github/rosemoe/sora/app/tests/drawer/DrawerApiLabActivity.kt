@@ -7,6 +7,7 @@ import android.view.View
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import androidx.core.view.WindowCompat
 import androidx.core.widget.NestedScrollView
 import android.content.Context
 import androidx.appcompat.app.AppCompatActivity
@@ -47,6 +48,7 @@ class DrawerApiLabActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        WindowCompat.setDecorFitsSystemWindows(window, true)
         val standard = DrawerPresets.config(DrawerPreset.STANDARD)
         demoDimensions = standard.style.dimensions
         drawer = DrawerContainer(this, standard.copy(peekContent = null, expandedContent = null))

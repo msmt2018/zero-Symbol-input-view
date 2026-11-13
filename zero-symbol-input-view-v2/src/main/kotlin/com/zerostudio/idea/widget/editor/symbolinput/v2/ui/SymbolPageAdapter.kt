@@ -181,7 +181,8 @@ internal class SymbolPageAdapter(
                     minimumCellWidthDp = maxOf(36f, settings.minimumTouchTargetDp.toFloat()),
                     baseHorizontalSpacingDp = config.cellHorizontalSpacingDp,
                     adaptive = true,
-                    baseVerticalSpacingDp = config.cellVerticalSpacingDp
+                    baseVerticalSpacingDp = config.cellVerticalSpacingDp,
+                    lockColumnCount = true
                 )
                 if (adaptiveGridLayout.spanCount != gridSpec.columnCount) {
                     adaptiveGridLayout.spanCount = gridSpec.columnCount

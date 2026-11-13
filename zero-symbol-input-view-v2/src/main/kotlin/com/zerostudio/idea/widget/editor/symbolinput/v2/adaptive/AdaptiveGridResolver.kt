@@ -25,7 +25,8 @@ object AdaptiveGridResolver {
         minimumCellWidthDp: Float,
         baseHorizontalSpacingDp: Int,
         adaptive: Boolean = true,
-        baseVerticalSpacingDp: Int = baseHorizontalSpacingDp
+        baseVerticalSpacingDp: Int = baseHorizontalSpacingDp,
+        lockColumnCount: Boolean = false
     ): AdaptiveGridSpec {
         require(preferredColumns >= 1)
         require(minimumCellWidthDp > 0f)
@@ -45,9 +46,11 @@ object AdaptiveGridResolver {
         val spacing = (baseHorizontalSpacingDp + spacingAdjustment).coerceIn(-10, 24)
         val verticalSpacing = (baseVerticalSpacingDp + spacingAdjustment).coerceIn(-10, 24)
         val effectiveSpacing = spacing.coerceAtLeast(0)
-        val columns = (window.availableWidthDp / (minimumCellWidthDp + effectiveSpacing))
-            .toInt()
-            .coerceIn(1, preferredColumns)
+        val columns = if (lockColumnCount) preferredColumns else {
+            (window.availableWidthDp / (minimumCellWidthDp + effectiveSpacing))
+                .toInt()
+                .coerceIn(1, preferredColumns)
+        }
         return AdaptiveGridSpec(columns, spacing, verticalSpacing)
     }
 }

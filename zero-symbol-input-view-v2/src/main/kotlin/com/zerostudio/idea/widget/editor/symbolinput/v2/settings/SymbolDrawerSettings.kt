@@ -65,7 +65,7 @@ data class SymbolDrawerSettings(
     val collapsedRows: Int = 2,
     val cellHeightDp: Int = 28,
     val cellHorizontalSpacingDp: Int = 2,
-    val cellVerticalSpacingDp: Int = 2,
+    val cellVerticalSpacingDp: Int = -2,
     val indicatorHeightDp: Int = 26,
     val indicatorStyle: GroupIndicatorStyle = GroupIndicatorStyle.UNDERLINE,
     val showGroupTitles: Boolean = true,

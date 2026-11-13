@@ -59,6 +59,18 @@ class AdaptiveGridResolverTest {
         assertEquals(9, spec.verticalSpacingDp)
     }
 
+
+    @Test fun explicitColumnPreferenceIsNotSilentlyReducedOnCompactWindows() {
+        val spec = AdaptiveGridResolver.resolve(
+            window = WindowAdaptiveInfo(360f, 800f),
+            preferredColumns = 6,
+            minimumCellWidthDp = 48f,
+            baseHorizontalSpacingDp = 2,
+            lockColumnCount = true
+        )
+        assertEquals(6, spec.columnCount)
+    }
+
     @Test fun gridAlwaysKeepsAtLeastOneColumn() {
         val spec = AdaptiveGridResolver.resolve(
             window = WindowAdaptiveInfo(100f, 800f),

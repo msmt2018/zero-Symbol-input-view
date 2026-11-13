@@ -110,7 +110,6 @@ class SymbolDrawerView @JvmOverloads constructor(
     private var settingsDialog: AlertDialog? = null
     internal val isSettingsDialogShowing: Boolean get() = settingsDialog?.isShowing == true
     private val indicator = SymbolGroupIndicator(context) { selectGroup(it, true) }.apply {
-        onSettingsClick = { openSettings() }
     }
     private val pager = ViewPager2(context).apply {
         orientation = ViewPager2.ORIENTATION_HORIZONTAL

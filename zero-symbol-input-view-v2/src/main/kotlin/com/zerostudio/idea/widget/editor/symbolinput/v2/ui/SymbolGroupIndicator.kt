@@ -48,12 +48,10 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.ui
 import android.content.Context
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
-import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
-import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
@@ -80,33 +78,11 @@ internal class SymbolGroupIndicator(
         overScrollMode = OVER_SCROLL_NEVER
         isHorizontalScrollBarEnabled = false
     }
-    private val settingsButton = ImageButton(context).apply {
-        val selectable = TypedValue()
-        if (context.theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, selectable, true) &&
-            selectable.resourceId != 0
-        ) setBackgroundResource(selectable.resourceId)
-        setImageResource(android.R.drawable.ic_menu_preferences)
-        setColorFilter(HostThemeColors.primary(context))
-        contentDescription = "符号设置"
-        isFocusable = true
-        isClickable = true
-        minimumWidth = dp(context, 48)
-        minimumHeight = dp(context, 48)
-        scaleType = android.widget.ImageView.ScaleType.CENTER
-    }
-
-    /** Called by the pinned, non-scrolling settings entry. */
-    var onSettingsClick: (() -> Unit)? = null
-
     init {
         setBackgroundColor(HostThemeColors.surface(context))
         addView(groupList, LayoutParams(
             LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT
-        ).apply { marginEnd = dp(context, 48) })
-        addView(settingsButton, LayoutParams(
-            dp(context, 48), LayoutParams.MATCH_PARENT, Gravity.END or Gravity.CENTER_VERTICAL
         ))
-        settingsButton.setOnClickListener { onSettingsClick?.invoke() }
     }
 
     fun submitGroups(groups: List<SymbolGroup>) = groupAdapter.submitGroups(groups)
@@ -121,7 +97,7 @@ internal class SymbolGroupIndicator(
         super.onSizeChanged(w, h, oldw, oldh)
         if (w > 0) {
             groupAdapter.updateWindowWidth(
-                (w - dp(context, 48)).coerceAtLeast(1),
+                w.coerceAtLeast(1),
                 resources.displayMetrics.density
             )
         }
