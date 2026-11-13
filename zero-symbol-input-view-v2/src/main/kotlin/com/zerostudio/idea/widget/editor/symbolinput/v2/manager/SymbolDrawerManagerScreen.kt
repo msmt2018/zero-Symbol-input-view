@@ -94,7 +94,7 @@ private class SymbolHolder(val root: LinearLayout, val title: TextView, val deta
  * become independently scrollable instead of extending beyond split-screen
  * or compact landscape bounds.
  */
-private class CappedScrollView(
+internal class CappedScrollView(
     context: Context,
     private val maxHeightPx: Int
 ) : ScrollView(context) {

@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.tabs.TabLayout
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.manager.SymbolDrawerManagerScreen
+import com.zerostudio.idea.widget.editor.symbolinput.v2.manager.CappedScrollView
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
@@ -166,6 +167,38 @@ class DrawerUiContractTest {
                 screen.reload()
                 assertEquals(-10, screen.getSettings().cellHorizontalSpacingDp)
                 assertEquals(-8, screen.getSettings().cellVerticalSpacingDp)
+            }
+        }
+    }
+
+
+    @Test fun symbolEditorFormScrollViewIsCappedToAvailableWindowHeight() {
+        ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val cap = (420f * activity.resources.displayMetrics.density).toInt()
+                val scroll = CappedScrollView(activity, cap)
+                val content = LinearLayout(activity).apply {
+                    orientation = LinearLayout.VERTICAL
+                    repeat(30) {
+                        addView(View(activity), LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            (48f * activity.resources.displayMetrics.density).toInt()
+                        ))
+                    }
+                }
+                scroll.addView(content)
+                scroll.measure(
+                    View.MeasureSpec.makeMeasureSpec(
+                        (600f * activity.resources.displayMetrics.density).toInt(),
+                        View.MeasureSpec.AT_MOST
+                    ),
+                    View.MeasureSpec.makeMeasureSpec(
+                        (900f * activity.resources.displayMetrics.density).toInt(),
+                        View.MeasureSpec.AT_MOST
+                    )
+                )
+                assertTrue("Long edit forms must not exceed the available height cap", scroll.measuredHeight <= cap)
+                assertTrue("Long edit forms must remain scrollable", scroll.getChildAt(0).measuredHeight > scroll.measuredHeight)
             }
         }
     }

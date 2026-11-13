@@ -42,8 +42,12 @@ class AdaptiveWindowControllerTest {
                 )
                 assertNotNull(controller.current)
                 val snapshots = mutableListOf<Float>()
+                val postures = mutableListOf<WindowPosture>()
                 val callback: (com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowAdaptiveInfo) -> Unit =
-                    { snapshots += it.widthDp }
+                    {
+                        snapshots += it.widthDp
+                        postures += it.foldingFeature.posture
+                    }
                 val subscription = controller.addListener(callback)
                 val secondSubscription = controller.addListener(callback)
                 assertTrue(snapshots.isNotEmpty())
@@ -72,6 +76,7 @@ class AdaptiveWindowControllerTest {
                     )
                 )
                 assertEquals(WindowPosture.HALF_OPENED, controller.current?.foldingFeature?.posture)
+                assertEquals(WindowPosture.HALF_OPENED, postures.last())
                 controller.close()
                 assertNull(controller.current)
             }
