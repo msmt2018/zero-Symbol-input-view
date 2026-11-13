@@ -212,6 +212,7 @@ class DrawerContainer @JvmOverloads constructor(
     private fun contentThemeContext() = DrawerThemeResolver.contextFor(context, currentConfig.style)
 
     fun setPeekContent(content: DrawerPanelContent?) {
+        currentConfig = currentConfig.copy(peekContent = content)
         val changed = peekHost.content() !== content
         peekHost.setContent(content, contentThemeContext())
         peekHost.visibility = if (content == null) GONE else VISIBLE
@@ -220,6 +221,7 @@ class DrawerContainer @JvmOverloads constructor(
     }
 
     fun setExpandedContent(content: DrawerPanelContent?) {
+        currentConfig = currentConfig.copy(expandedContent = content)
         pageHost.visibility = if (content == null && pageHost.navigationController.pages().isNotEmpty()) VISIBLE else GONE
         val changed = expandedHost.content() !== content
         expandedHost.setContent(content, contentThemeContext())
@@ -228,6 +230,7 @@ class DrawerContainer @JvmOverloads constructor(
     }
 
     fun setPages(pages: List<DrawerPage>, preserveSelection: Boolean = true) {
+        currentConfig = currentConfig.copy(expandedContent = null)
         expandedHost.content()?.let { expandedHost.setContent(null) }
         pageHost.visibility = VISIBLE
         pageHost.setPages(pages, preserveSelection)
