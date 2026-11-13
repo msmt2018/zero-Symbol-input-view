@@ -35,7 +35,7 @@ SymbolDrawerView
 - **SymbolPageAdapter**: pages are recycled by ViewPager2; each page uses a grid RecyclerView and shared recycled pool.
 - **Action configuration**: every symbol exposes independent V1-compatible short-press and optional long-press action selectors, using the exact V1 action IDs, ordering and text-parameter rules. The manager list is also embedded in the settings screen.
 - **Settings repository and screen**: immutable schema-versioned settings snapshots persisted independently from symbol data; the programmatic settings screen exposes each setting and reports saved snapshots to the host. `SymbolDrawerView.applySettings` applies grid geometry, expansion cap, indicator style, labels, touch targets, long-press timing, haptics, motion, cache and fling behavior.
-- **Bundle codec**: import/export and SharedPreferences writes use the original V1 compact JSON schema (`n`, `d`, `a`, `b`, `c`, `d`, `e`). Runtime-only IDs are synthesized because V1 did not store IDs; raw action IDs and payloads are retained to keep round trips lossless.
+- **Versioned persistence and bundle codec**: new SharedPreferences writes and import/export use the versioned V2 typed-action envelope. Stable group/symbol IDs, icons, independent short/long typed actions and legacy action metadata are preserved. The decoder continues to read the original V1 compact JSON schema and the previous unversioned V2 draft array.
 
 ## Gesture arbitration
 
@@ -69,5 +69,5 @@ The V2 interaction contract must continue to be validated against the legacy con
 
 ## Deliberate non-goals for this foundation
 
-- The V1 compact data classes are retained in `model.legacy`; migration and all new persistence writes use the same original JSON schema. Action IDs and payloads are preserved verbatim.
+- The V1 compact data classes are retained in `model.legacy`; migration reads the legacy schema without modifying it. New V2 persistence writes use the versioned typed-action envelope, while legacy IDs and payloads remain attached as compatibility metadata.
 - The settings screen embeds the symbol manager. Each symbol row opens the V1-style editor for its own short/long action configuration.
