@@ -85,9 +85,13 @@ data class DrawerDimensions(
     val handleHeightDp: Float = 4f
 ) {
     init {
+        require(peekHeightDp.isFinite() && expandedMaxHeightDp.isFinite())
         require(peekHeightDp >= 0f && expandedMaxHeightDp >= peekHeightDp)
+        require(cornerRadiusDp.isFinite() && horizontalPaddingDp.isFinite())
         require(cornerRadiusDp >= 0f && horizontalPaddingDp >= 0f)
+        require(verticalPaddingDp.isFinite() && panelSpacingDp.isFinite())
         require(verticalPaddingDp >= 0f && panelSpacingDp >= 0f)
+        require(handleWidthDp.isFinite() && handleHeightDp.isFinite())
         require(handleWidthDp >= 0f && handleHeightDp >= 0f)
     }
 }
@@ -101,6 +105,7 @@ data class DrawerTypography(
     val fontFamily: String? = null
 ) {
     init {
+        require(titleSizeSp.isFinite() && bodySizeSp.isFinite() && captionSizeSp.isFinite())
         require(titleSizeSp > 0f && bodySizeSp > 0f && captionSizeSp > 0f)
     }
 }
@@ -114,9 +119,9 @@ data class DrawerMotion(
 ) {
     init {
         require(settleDurationMs >= 0L)
-        require(dragResistance in 0.05f..1f)
-        require(minimumFlingVelocityDp >= 0f)
-        require(maximumFlingVelocityDp >= minimumFlingVelocityDp)
+        require(dragResistance.isFinite() && dragResistance in 0.05f..1f)
+        require(minimumFlingVelocityDp.isFinite() && minimumFlingVelocityDp >= 0f)
+        require(maximumFlingVelocityDp.isFinite() && maximumFlingVelocityDp >= minimumFlingVelocityDp)
     }
 }
 
@@ -128,9 +133,11 @@ data class DrawerShape(
     val outlineWidthDp: Float = 0f
 ) {
     init {
+        require(topStartRadiusDp.isFinite() && topEndRadiusDp.isFinite())
         require(topStartRadiusDp >= 0f && topEndRadiusDp >= 0f)
+        require(bottomStartRadiusDp.isFinite() && bottomEndRadiusDp.isFinite())
         require(bottomStartRadiusDp >= 0f && bottomEndRadiusDp >= 0f)
-        require(outlineWidthDp >= 0f)
+        require(outlineWidthDp.isFinite() && outlineWidthDp >= 0f)
     }
 }
 
@@ -147,5 +154,5 @@ data class DrawerStyle(
     val drawScrim: Boolean = true,
     val clipContentToShape: Boolean = true
 ) {
-    init { require(elevationDp >= 0f) }
+    init { require(elevationDp.isFinite() && elevationDp >= 0f) }
 }

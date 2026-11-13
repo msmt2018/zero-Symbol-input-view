@@ -73,6 +73,7 @@ class DrawerAnchorStrategyContractTest {
         assertThrows(IllegalArgumentException::class.java) { input.copy(existingExpandedHeightPx = -1) }
         assertThrows(IllegalArgumentException::class.java) { input.copy(density = 0f) }
         assertThrows(IllegalArgumentException::class.java) { input.copy(density = Float.NaN) }
+        assertThrows(IllegalArgumentException::class.java) { input.copy(density = Float.POSITIVE_INFINITY) }
         assertThrows(IllegalArgumentException::class.java) { input.copy(viewportWidthPx = -1) }
     }
 

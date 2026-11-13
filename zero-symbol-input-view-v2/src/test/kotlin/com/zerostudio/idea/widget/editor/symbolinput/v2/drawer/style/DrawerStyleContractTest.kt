@@ -26,6 +26,7 @@ class DrawerStyleContractTest {
         assertThrows(IllegalArgumentException::class.java) { DrawerDimensions(panelSpacingDp = -1f) }
         assertThrows(IllegalArgumentException::class.java) { DrawerDimensions(handleWidthDp = -1f) }
         assertThrows(IllegalArgumentException::class.java) { DrawerDimensions(handleHeightDp = -1f) }
+        assertThrows(IllegalArgumentException::class.java) { DrawerDimensions(cornerRadiusDp = Float.POSITIVE_INFINITY) }
     }
 
     @Test fun typographyRequiresPositiveFiniteSizes() {

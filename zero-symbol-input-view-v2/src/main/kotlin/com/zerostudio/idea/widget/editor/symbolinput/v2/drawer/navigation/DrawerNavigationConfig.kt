@@ -60,9 +60,9 @@ data class DrawerIndicatorStyle(
     val animate: Boolean = true
 ) {
     init {
-        require(heightDp >= 0f)
-        require(widthFraction in 0f..1f)
-        require(cornerRadiusDp >= 0f)
+        require(heightDp.isFinite() && heightDp >= 0f)
+        require(widthFraction.isFinite() && widthFraction in 0f..1f)
+        require(cornerRadiusDp.isFinite() && cornerRadiusDp >= 0f)
     }
 }
 
@@ -84,8 +84,10 @@ data class DrawerNavigationConfig(
     val showInPeekPanel: Boolean = false
 ) {
     init {
-        require(itemMinWidthDp >= 0f)
+        require(itemMinWidthDp.isFinite() && itemMinWidthDp >= 0f)
+        require(itemHorizontalPaddingDp.isFinite() && itemVerticalPaddingDp.isFinite())
         require(itemHorizontalPaddingDp >= 0f && itemVerticalPaddingDp >= 0f)
+        require(titleTextSizeSp.isFinite() && selectedTitleTextSizeSp.isFinite())
         require(titleTextSizeSp > 0f && selectedTitleTextSizeSp > 0f)
     }
 }

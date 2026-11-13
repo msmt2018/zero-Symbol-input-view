@@ -27,6 +27,7 @@ class DrawerNavigationConfigContractTest {
         assertThrows(IllegalArgumentException::class.java) { DrawerNavigationConfig(itemVerticalPaddingDp = -1f) }
         assertThrows(IllegalArgumentException::class.java) { DrawerNavigationConfig(titleTextSizeSp = 0f) }
         assertThrows(IllegalArgumentException::class.java) { DrawerNavigationConfig(selectedTitleTextSizeSp = -1f) }
+        assertThrows(IllegalArgumentException::class.java) { DrawerNavigationConfig(itemMinWidthDp = Float.POSITIVE_INFINITY) }
     }
 
     @Test fun navigationModesAndVisibilityFlagsAreIndependent() {

@@ -81,7 +81,7 @@ data class DrawerAnchorInput(
         require(viewportHeightPx >= 0)
         require(contentHeightPx >= 0)
         require(existingExpandedHeightPx >= 0)
-        require(density > 0f)
+        require(density.isFinite() && density > 0f)
         require(viewportWidthPx >= 0)
     }
 }
