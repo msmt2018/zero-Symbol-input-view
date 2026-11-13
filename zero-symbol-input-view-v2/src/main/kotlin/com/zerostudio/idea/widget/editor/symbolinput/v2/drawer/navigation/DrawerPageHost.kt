@@ -67,6 +67,7 @@ class DrawerPageHost @JvmOverloads constructor(
     private var visiblePageContent: DrawerPanelContent? = null
     private var hostAttached = false
     private var panelVisible = false
+    private var disposed = false
     private val navigationListener = DrawerNavigationController.Listener { snapshot, _ ->
         render(snapshot.selectedPageId)
     }
@@ -78,6 +79,7 @@ class DrawerPageHost @JvmOverloads constructor(
     }
 
     fun setPages(pages: List<DrawerPage>, preserveSelection: Boolean = true) {
+        check(!disposed) { "DrawerPageHost has been disposed" }
         val oldPages = navigationController.pages().associateBy { it.id }
         val newPages = pages.associateBy { it.id }
         val invalidatedIds = pageViews.keys.filter { id ->
@@ -100,6 +102,7 @@ class DrawerPageHost @JvmOverloads constructor(
     }
 
     fun setContentContext(value: Context, recreateCachedViews: Boolean = false) {
+        check(!disposed) { "DrawerPageHost has been disposed" }
         contentContext = value
         if (!recreateCachedViews || pageViews.isEmpty()) return
         val selectedId = visiblePageId
@@ -175,7 +178,7 @@ class DrawerPageHost @JvmOverloads constructor(
     }
 
     fun setPanelVisible(visible: Boolean) {
-        if (panelVisible == visible) return
+        if (disposed || panelVisible == visible) return
         panelVisible = visible
         if (hostAttached) dispatchCurrentPageVisible(visible)
     }
@@ -189,13 +192,20 @@ class DrawerPageHost @JvmOverloads constructor(
         navigationController.pages().firstOrNull { it.id == id }
 
     fun dispose() {
+        if (disposed) return
+        disposed = true
         navigationController.removeListener(navigationListener)
         navigationController.pages().forEach { page ->
             if (pageViews.containsKey(page.id)) {
-                if (hostAttached && panelVisible && page.id == visiblePageId) page.content.onPanelHidden()
+                if (hostAttached && panelVisible && page.id == visiblePageId) {
+                    page.content.onPanelHidden()
+                }
                 page.content.onPanelDetached()
             }
         }
+        // Mark the panel hidden before detachment can arrive later. This makes
+        // dispose() idempotent and prevents a second onPanelHidden callback.
+        panelVisible = false
         pageViews.values.forEach { view ->
             if (view.parent === this) removeView(view)
         }
