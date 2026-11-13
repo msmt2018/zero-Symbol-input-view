@@ -108,6 +108,20 @@ internal class CappedScrollView(
 }
 
 /**
+ * Keeps the editor form strictly inside the app window even when the window is
+ * shorter than the normal dialog chrome reservation (compact landscape and
+ * heavily constrained split-screen windows).
+ */
+internal fun resolveEditorFormMaxHeightPx(
+    windowHeightPx: Int,
+    reservedHeightPx: Int
+): Int {
+    require(windowHeightPx >= 0) { "windowHeightPx must not be negative" }
+    require(reservedHeightPx >= 0) { "reservedHeightPx must not be negative" }
+    return (windowHeightPx - reservedHeightPx).coerceAtLeast(1)
+}
+
+/**
  * First-party manager screen for groups and symbols. The screen is intentionally
  * a View rather than an Activity so the host controls navigation and window policy.
  */
@@ -588,7 +602,7 @@ class SymbolDrawerManagerScreen(
             ?: resources.displayMetrics.heightPixels
         val formScroll = CappedScrollView(
             context,
-            (windowHeight - dp(96)).coerceAtLeast(dp(240))
+            resolveEditorFormMaxHeightPx(windowHeight, dp(96))
         ).apply {
             isFillViewport = false
             addView(form, ViewGroup.LayoutParams(

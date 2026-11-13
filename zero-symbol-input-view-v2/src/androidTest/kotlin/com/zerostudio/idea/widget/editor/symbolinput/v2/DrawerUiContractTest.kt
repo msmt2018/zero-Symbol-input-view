@@ -13,6 +13,7 @@ import com.google.android.material.tabs.TabLayout
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.manager.SymbolDrawerManagerScreen
 import com.zerostudio.idea.widget.editor.symbolinput.v2.manager.CappedScrollView
+import com.zerostudio.idea.widget.editor.symbolinput.v2.manager.resolveEditorFormMaxHeightPx
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
@@ -222,6 +223,45 @@ class DrawerUiContractTest {
                 )
                 assertTrue("Long edit forms must not exceed the available height cap", scroll.measuredHeight <= cap)
                 assertTrue("Long edit forms must remain scrollable", scroll.getChildAt(0).measuredHeight > scroll.measuredHeight)
+            }
+        }
+    }
+
+
+    @Test fun editorFormHeightNeverUsesAnOversizedMinimumInTinyWindows() {
+        ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val density = activity.resources.displayMetrics.density
+                val windowHeight = (180f * density).toInt()
+                val reservedChrome = (96f * density).toInt()
+                val cap = resolveEditorFormMaxHeightPx(windowHeight, reservedChrome)
+                assertEquals(1, cap)
+                assertTrue("The editor form cap must never exceed the available window height", cap <= windowHeight)
+            }
+        }
+    }
+
+    @Test fun cappedEditorFormAlsoHonorsATighterParentMeasureConstraint() {
+        ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val density = activity.resources.displayMetrics.density
+                val cap = (500f * density).toInt()
+                val parentLimit = (160f * density).toInt()
+                val scroll = CappedScrollView(activity, cap)
+                val content = View(activity)
+                scroll.addView(content, ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    (900f * density).toInt()
+                ))
+                scroll.measure(
+                    View.MeasureSpec.makeMeasureSpec(
+                        (400f * density).toInt(),
+                        View.MeasureSpec.AT_MOST
+                    ),
+                    View.MeasureSpec.makeMeasureSpec(parentLimit, View.MeasureSpec.AT_MOST)
+                )
+                assertTrue(scroll.measuredHeight <= parentLimit)
+                assertTrue(content.measuredHeight > scroll.measuredHeight)
             }
         }
     }
