@@ -28,18 +28,6 @@
         <item>@string/action_enter_key</item>
         <item>@string/action_tab_key</item>
         <item>@string/action_shift_tab</item>
-        <item>@string/action_f1</item>
-        <item>@string/action_f2</item>
-        <item>@string/action_f3</item>
-        <item>@string/action_f4</item>
-        <item>@string/action_f5</item>
-        <item>@string/action_f6</item>
-        <item>@string/action_f7</item>
-        <item>@string/action_f8</item>
-        <item>@string/action_f9</item>
-        <item>@string/action_f10</item>
-        <item>@string/action_f11</item>
-        <item>@string/action_f12</item>
         <item>@string/action_ctrl_c</item>
         <item>@string/action_ctrl_x</item>
         <item>@string/action_ctrl_v</item>
@@ -76,18 +64,6 @@
         <item>37</item>
         <item>38</item>
         <item>39</item>
-        <item>40</item>
-        <item>41</item>
-        <item>42</item>
-        <item>43</item>
-        <item>44</item>
-        <item>45</item>
-        <item>46</item>
-        <item>47</item>
-        <item>48</item>
-        <item>49</item>
-        <item>50</item>
-        <item>51</item>
         <item>52</item>
         <item>53</item>
         <item>54</item>

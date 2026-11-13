@@ -118,6 +118,23 @@ class LegacySymbolActionAdapterTest {
         }
     }
 
+    @Test fun actionPickerContainsOnlyImplementedLegacyActions() {
+        assertEquals(LegacySymbolActionCatalog.values.size, LegacySymbolActionCatalog.labels.size)
+        assertFalse(LegacySymbolActionCatalog.values.contains(26))
+        for (id in 40..51) {
+            assertFalse("F$id must not be offered as a real function-key action",
+                LegacySymbolActionCatalog.values.contains(id))
+            assertTrue("F$id remains readable for existing V1 data",
+                id in LegacySymbolActionCatalog.importableValues)
+            assertEquals(
+                SymbolAction.InsertText("<F${id - 39}>"),
+                LegacySymbolActionAdapter.convert(LegacySymbolAction(id))
+            )
+        }
+        assertEquals(listOf("复制", "剪切", "粘贴"),
+            LegacySymbolActionCatalog.labels.takeLast(5).take(3))
+    }
+
     @Test fun preservesDollarMacroPayloadForLegacyInsert() {
         assertEquals(
             SymbolAction.InsertText("val name = \$Svalue\$E"),

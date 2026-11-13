@@ -113,9 +113,9 @@
     <string name="action_f10">F10 key</string>
     <string name="action_f11">F11 key</string>
     <string name="action_f12">F12 key</string>
-    <string name="action_ctrl_c">Ctrl + C</string>
-    <string name="action_ctrl_x">Ctrl + X</string>
-    <string name="action_ctrl_v">Ctrl + V</string>
+    <string name="action_ctrl_c">复制</string>
+    <string name="action_ctrl_x">剪切</string>
+    <string name="action_ctrl_v">粘贴</string>
     <string name="action_undo">Undo</string>
     <string name="action_redo">Redo</string>
     <string name="tab_action_move_left">Move Left</string>
