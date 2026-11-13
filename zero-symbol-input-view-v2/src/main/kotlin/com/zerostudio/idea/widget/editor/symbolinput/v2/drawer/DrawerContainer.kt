@@ -78,6 +78,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchor
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerController
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerState
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerNavigationConfig
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerNavigationController
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerNavigationPlacement
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerPage
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerPageHost
@@ -125,6 +126,12 @@ class DrawerContainer @JvmOverloads constructor(
     private var restoredAnchorId: String? = null
     private var restoredHeightPx: Int? = null
     private var restoredPageId: String? = null
+    private data class PendingAnchorRequest(
+        val anchorId: String?,
+        val expanded: Boolean?,
+        val animated: Boolean
+    )
+    private var pendingAnchorRequest: PendingAnchorRequest? = null
     private var dragging = false
     private var peekContentVisible = false
     private var expandedContentVisible = false
@@ -139,6 +146,11 @@ class DrawerContainer @JvmOverloads constructor(
     // overlapping sessions while a scrolling child transitions from drag to fling.
     private val activeNestedScrollTypes = LinkedHashSet<Int>()
     private val controllerImpl = Controller()
+    private val navigationTabListener = DrawerNavigationController.Listener { _, selectedIndex ->
+        if (selectedIndex in 0 until tabs.tabCount && tabs.selectedTabPosition != selectedIndex) {
+            tabs.getTabAt(selectedIndex)?.select()
+        }
+    }
 
     val controller: DrawerController get() = controllerImpl
     val navigationHost: DrawerPageHost get() = pageHost
@@ -201,6 +213,7 @@ class DrawerContainer @JvmOverloads constructor(
             override fun onTabUnselected(tab: TabLayout.Tab) = Unit
             override fun onTabReselected(tab: TabLayout.Tab) = Unit
         })
+        pageHost.navigationController.addListener(navigationTabListener)
         controllerImpl.applyConfig(config)
         post { recalculateAnchors() }
     }
@@ -423,7 +436,24 @@ class DrawerContainer @JvmOverloads constructor(
         } else {
             min(height, dp(currentConfig.style.dimensions.expandedMaxHeightDp))
         }
-        val minHeight = min(maxHeight, dp(currentConfig.style.dimensions.peekHeightDp))
+        val navigation = currentConfig.navigationConfig
+        val hasNavigationTabs = navigation.enabled &&
+            navigation.placement != DrawerNavigationPlacement.HIDDEN &&
+            pageHost.visibility == VISIBLE &&
+            pageHost.navigationController.pages().isNotEmpty()
+        val verticalPadding = dp(currentConfig.style.dimensions.verticalPaddingDp)
+        val topInset = if (currentConfig.enableEdgeToEdge) systemBarTopInset else 0
+        val bottomInset = if (currentConfig.enableEdgeToEdge) systemBarBottomInset else 0
+        val collapsedChromeHeight = topInset + bottomInset + verticalPadding * 2 +
+            (if (currentConfig.dragHandleEnabled) dp(48) else 0) +
+            (if (title.text.isNullOrEmpty()) 0 else dp(44)) +
+            (if (hasNavigationTabs && navigation.showInPeekPanel) dp(48) else 0)
+        val peekBodyMinimum = if (peekHost.content() != null) dp(48) else 0
+        val minHeight = min(
+            maxHeight,
+            max(dp(currentConfig.style.dimensions.peekHeightDp),
+                collapsedChromeHeight + peekBodyMinimum)
+        )
         sheet.layoutParams = sheet.layoutParams.apply { this.height = maxHeight }
         // Use the measured container width for split-screen and embedded layouts.
         val contentWidth = width
@@ -439,10 +469,11 @@ class DrawerContainer @JvmOverloads constructor(
             systemBarTopInset + systemBarBottomInset
         } else 0
         val headerHeight = insetHeight +
-            (if (currentConfig.presentationMode == DrawerPresentationMode.FULL_SCREEN) 0 else dp(48)) +
-            (if (title.visibility == VISIBLE) dp(36) else 0) +
-            (if (tabs.visibility == VISIBLE) dp(48) else 0) +
-            dp(currentConfig.style.dimensions.verticalPaddingDp) * 2
+            (if (currentConfig.dragHandleEnabled &&
+                currentConfig.presentationMode != DrawerPresentationMode.FULL_SCREEN) dp(48) else 0) +
+            (if (title.text.isNullOrEmpty()) 0 else dp(44)) +
+            (if (hasNavigationTabs) dp(48) else 0) +
+            verticalPadding * 2
         val contentHeight = (bodyHeight + headerHeight).coerceAtMost(maxHeight)
         anchors = DrawerAnchorResolver.resolve(
             currentConfig.anchorStrategy,
@@ -469,6 +500,15 @@ class DrawerContainer @JvmOverloads constructor(
         state = DrawerState(nearest.id, resolvedHeight, anchors, false, false)
         updateVisualState()
         state?.let { snapshot -> stateListeners.toList().forEach { it(snapshot) } }
+        pendingAnchorRequest?.let { request ->
+            pendingAnchorRequest = null
+            val target = when {
+                request.expanded == true -> anchors.lastOrNull()
+                request.expanded == false -> anchors.firstOrNull()
+                else -> anchors.firstOrNull { it.id == request.anchorId }
+            }
+            target?.let { moveTo(it, request.animated) }
+        }
     }
 
     private fun updateState(anchor: DrawerAnchor, isDragging: Boolean, isAnimating: Boolean) {
@@ -626,6 +666,9 @@ class DrawerContainer @JvmOverloads constructor(
 
     private fun updateHeightFromNestedScroll(heightPx: Int) {
         if (anchors.isEmpty()) return
+        // A real nested-scroll gesture takes ownership from any pending settle.
+        animator?.cancel()
+        animator = null
         val minHeight = anchors.first().heightPx
         val maxHeight = anchors.last().heightPx
         val bounded = heightPx.coerceIn(minHeight, maxHeight)
@@ -636,7 +679,8 @@ class DrawerContainer @JvmOverloads constructor(
     }
 
     override fun onStartNestedScroll(child: View, target: View, axes: Int): Boolean =
-        currentConfig.enableNestedScroll && (axes and ViewCompat.SCROLL_AXIS_VERTICAL) != 0
+        child === sheet && currentConfig.enableNestedScroll &&
+            (axes and ViewCompat.SCROLL_AXIS_VERTICAL) != 0
 
     override fun onStartNestedScroll(child: View, target: View, axes: Int, type: Int): Boolean =
         onStartNestedScroll(child, target, axes)
@@ -805,7 +849,7 @@ class DrawerContainer @JvmOverloads constructor(
         }
     }
 
-    private class SavedState : BaseSavedState {
+    internal class SavedState : BaseSavedState {
         var anchorId: String? = null
         var heightPx: Int = 0
         var pageId: String? = null
@@ -864,16 +908,35 @@ class DrawerContainer @JvmOverloads constructor(
         super.onDetachedFromWindow()
     }
 
+    private fun requestAnchor(anchorId: String?, expanded: Boolean?, animated: Boolean) {
+        val target = when {
+            expanded == true -> anchors.lastOrNull()
+            expanded == false -> anchors.firstOrNull()
+            else -> anchors.firstOrNull { it.id == anchorId }
+        }
+        if (target == null) {
+            pendingAnchorRequest = PendingAnchorRequest(anchorId, expanded, animated)
+        } else {
+            pendingAnchorRequest = null
+            moveTo(target, animated)
+        }
+    }
+
+    private fun syncInteractionConfig() {
+        handleTouchTarget.isEnabled = currentConfig.enableDrag
+        handleTouchTarget.isClickable = currentConfig.enableDrag
+        sheet.importantForAccessibility = if (currentConfig.accessibilityEnabled) {
+            View.IMPORTANT_FOR_ACCESSIBILITY_AUTO
+        } else {
+            View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
+        }
+    }
+
     private inner class Controller : DrawerController {
-        override fun expand(animated: Boolean) {
-            anchors.lastOrNull()?.let { moveTo(it, animated) }
-        }
-        override fun collapse(animated: Boolean) {
-            anchors.firstOrNull()?.let { moveTo(it, animated) }
-        }
-        override fun moveToAnchor(anchorId: String, animated: Boolean) {
-            anchors.firstOrNull { it.id == anchorId }?.let { moveTo(it, animated) }
-        }
+        override fun expand(animated: Boolean) = requestAnchor(null, true, animated)
+        override fun collapse(animated: Boolean) = requestAnchor(null, false, animated)
+        override fun moveToAnchor(anchorId: String, animated: Boolean) =
+            requestAnchor(anchorId, null, animated)
         override fun refreshAnchors() = this@DrawerContainer.refreshAnchors()
         override fun setAnchorStrategy(strategy: DrawerAnchorStrategy) {
             currentConfig = currentConfig.copy(anchorStrategy = strategy)
@@ -886,6 +949,7 @@ class DrawerContainer @JvmOverloads constructor(
         }
         override fun applyConfig(config: DrawerConfig) {
             currentConfig = config
+            syncInteractionConfig()
             val themedContext = contentThemeContext()
             if (peekHost.content() === config.peekContent) peekHost.refreshContentContext(themedContext)
             else peekHost.setContent(config.peekContent, themedContext)
@@ -933,8 +997,7 @@ class DrawerContainer @JvmOverloads constructor(
         }
         override fun setDragEnabled(enabled: Boolean) {
             currentConfig = currentConfig.copy(enableDrag = enabled)
-            handleTouchTarget.isEnabled = enabled
-            handleTouchTarget.isClickable = enabled
+            syncInteractionConfig()
         }
         override fun setNestedScrollEnabled(enabled: Boolean) { currentConfig = currentConfig.copy(enableNestedScroll = enabled) }
         override fun setEdgeToEdgeEnabled(enabled: Boolean) {
@@ -953,7 +1016,7 @@ class DrawerContainer @JvmOverloads constructor(
         }
         override fun setAccessibilityEnabled(enabled: Boolean) {
             currentConfig = currentConfig.copy(accessibilityEnabled = enabled)
-            sheet.importantForAccessibility = if (enabled) View.IMPORTANT_FOR_ACCESSIBILITY_AUTO else View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
+            syncInteractionConfig()
         }
         override fun currentState(): DrawerState? = state
         override fun addStateListener(listener: (DrawerState) -> Unit) { stateListeners += listener; state?.let(listener) }

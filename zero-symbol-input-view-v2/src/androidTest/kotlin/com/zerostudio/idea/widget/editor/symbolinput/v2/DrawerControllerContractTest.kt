@@ -6,6 +6,8 @@ import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.core.view.ViewCompat
+import com.google.android.material.tabs.TabLayout
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.DrawerContainer
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.config.DrawerConfig
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.config.DrawerPresentationMode
@@ -21,6 +23,8 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerStyle
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerThemeMode
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerTypography
 import com.zerostudio.idea.widget.editor.symbolinput.v2.testing.DrawerTestHostActivity
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -69,7 +73,17 @@ class DrawerControllerContractTest {
                 controller.setExpandedContent(null)
                 controller.setPages(pages, preserveSelection = false)
                 assertTrue(controller.selectPage("second"))
+                val tabs = findView(drawer) { it is TabLayout } as TabLayout
+                assertEquals(1, tabs.selectedTabPosition)
                 controller.setTitle("Controller contract")
+
+                val hostContent = TextView(activity)
+                drawer.setMainContent(hostContent)
+                assertFalse(
+                    drawer.onStartNestedScroll(
+                        hostContent, hostContent, ViewCompat.SCROLL_AXIS_VERTICAL
+                    )
+                )
 
                 controller.setAnchorStrategy(DrawerAnchorStrategies.threeStage())
                 controller.setPresentationMode(DrawerPresentationMode.FULL_SCREEN)
@@ -95,7 +109,12 @@ class DrawerControllerContractTest {
                 controller.setDragHandleEnabled(false)
                 controller.setDragHandleEnabled(true)
                 controller.setAccessibilityEnabled(false)
-                controller.setAccessibilityEnabled(true)
+                controller.setDragEnabled(false)
+                controller.applyConfig(DrawerConfig.builder().build())
+                val sheet = drawer.getChildAt(drawer.childCount - 1) as android.widget.LinearLayout
+                val handleTarget = sheet.getChildAt(0)
+                assertTrue(handleTarget.isEnabled)
+                assertEquals(View.IMPORTANT_FOR_ACCESSIBILITY_AUTO, sheet.importantForAccessibility)
 
                 val observedStates = mutableListOf<String>()
                 val listener: (com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerState) -> Unit = {
@@ -118,4 +137,42 @@ class DrawerControllerContractTest {
             }
         }
     }
+
+    @Test
+    fun expansionRequestedBeforeFirstLayoutIsAppliedAfterAnchorsResolve() {
+        ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val drawer = DrawerContainer(activity)
+                drawer.controller.expand(animated = false)
+                activity.content.addView(
+                    drawer,
+                    FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                )
+                val width = activity.resources.displayMetrics.widthPixels
+                val height = activity.resources.displayMetrics.heightPixels
+                drawer.measure(
+                    View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
+                )
+                drawer.layout(0, 0, width, height)
+                val state = requireNotNull(drawer.controller.currentState())
+                assertEquals(state.anchors.last().id, state.currentAnchorId)
+            }
+        }
+    }
+
+    private fun findView(root: View, predicate: (View) -> Boolean): View? {
+        if (predicate(root)) return root
+        if (root is ViewGroup) {
+            for (index in 0 until root.childCount) {
+                findView(root.getChildAt(index), predicate)?.let { return it }
+            }
+        }
+        return null
+    }
+
+
 }
