@@ -128,6 +128,8 @@ drawer.controller.expand()
 
 `DrawerPanelContent.createView(context)` is the theme-aware construction hook. The no-argument `createView()` remains supported for existing implementations. On explicit theme-mode changes, the container recreates cached page/panel views using the new themed context and dispatches lifecycle callbacks around replacement.
 
+When `enableEdgeToEdge` is enabled, the container consumes system-bar and display-cutout insets for its content padding while its surface can draw edge-to-edge. The host Activity must enable edge-to-edge at the Window level; the reusable View does not mutate host Window flags.
+
 Nested vertical scrolling is coordinated through `NestedScrollingParent3`: upward scroll expands the drawer until its active maximum anchor; downward scroll collapses it only after the nested child reaches its top. Drag flings settle to at most the adjacent anchor. Horizontal child gestures are not intercepted by the handle drag recognizer.
 
 ## API lab coverage

@@ -404,11 +404,14 @@ class DrawerContainer @JvmOverloads constructor(
                 pageHost.measureCurrentContentHeight(contentWidth, maxHeight)
             )
         )
-        val headerHeight = (if (currentConfig.presentationMode == DrawerPresentationMode.FULL_SCREEN) 0
-            else dp(48)) +
+        val insetHeight = if (currentConfig.enableEdgeToEdge) {
+            systemBarTopInset + systemBarBottomInset
+        } else 0
+        val headerHeight = insetHeight +
+            (if (currentConfig.presentationMode == DrawerPresentationMode.FULL_SCREEN) 0 else dp(48)) +
             (if (title.visibility == VISIBLE) dp(36) else 0) +
             (if (tabs.visibility == VISIBLE) dp(48) else 0) +
-            dp(currentConfig.style.dimensions.verticalPaddingDp)
+            dp(currentConfig.style.dimensions.verticalPaddingDp) * 2
         val contentHeight = (bodyHeight + headerHeight).coerceAtMost(maxHeight)
         anchors = DrawerAnchorResolver.resolve(
             currentConfig.anchorStrategy,
@@ -735,8 +738,8 @@ class DrawerContainer @JvmOverloads constructor(
         override fun setDismissOnBack(enabled: Boolean) { currentConfig = currentConfig.copy(dismissOnBack = enabled) }
         override fun setDragHandleEnabled(enabled: Boolean) {
             currentConfig = currentConfig.copy(dragHandleEnabled = enabled)
-            handleTouchTarget.visibility = if (enabled &&
-                currentConfig.presentationMode != DrawerPresentationMode.FULL_SCREEN) VISIBLE else GONE
+            updateVisualState()
+            if (!enabled) handleTouchTarget.visibility = GONE
         }
         override fun setAccessibilityEnabled(enabled: Boolean) {
             currentConfig = currentConfig.copy(accessibilityEnabled = enabled)
