@@ -48,12 +48,17 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.data
 import com.google.gson.JsonParser
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.*
 
-/** V1 compact JSON is the canonical write format; previous V2 drafts remain readable. */
+/** Versioned V2 storage writes; legacy V1 and early V2 snapshots remain readable. */
 object SymbolGroupStorageCodec {
     fun encode(groups: List<SymbolGroup>): String {
         SymbolGroupBundleCodec.validateGroups(groups)
-        return LegacySymbolDataCodec.encode(groups).also {
-            require(it.length <= SymbolGroupBundleCodec.MAX_BUNDLE_CHARS) { "Stored symbol groups exceed the size limit" }
+        // The V2 store must preserve typed actions that have no V1 numeric-ID
+        // equivalent (composites, surround-selection and app extensions).
+        // decode() remains backward compatible with compact V1 arrays.
+        return SymbolGroupBundleCodec.encode(groups).also {
+            require(it.length <= SymbolGroupBundleCodec.MAX_BUNDLE_CHARS) {
+                "Stored symbol groups exceed the size limit"
+            }
         }
     }
 
