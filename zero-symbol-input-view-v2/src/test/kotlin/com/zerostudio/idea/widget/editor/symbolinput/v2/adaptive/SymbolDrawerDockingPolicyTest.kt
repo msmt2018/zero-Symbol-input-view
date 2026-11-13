@@ -13,6 +13,22 @@ class SymbolDrawerDockingPolicyTest {
         assertEquals(SymbolDrawerDocking.RIGHT, SymbolDrawerDockingPolicy.resolve(settings, window(600)))
     }
 
+    @Test fun automaticModeUsesAvailableWidthAfterInsets() {
+        val settings = SymbolDrawerSettings()
+        val insetWindow = WindowAdaptiveInfo(
+            widthDp = 620f,
+            heightDp = 900f,
+            insets = com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowInsetsDp(
+                left = 16f,
+                right = 16f
+            )
+        )
+        assertEquals(
+            SymbolDrawerDocking.BOTTOM,
+            SymbolDrawerDockingPolicy.resolve(settings, insetWindow)
+        )
+    }
+
     @Test fun manualBottomOverridesLargeWindow() {
         val settings = SymbolDrawerSettings(largeScreenLayoutMode = LargeScreenLayoutMode.BOTTOM)
         assertEquals(SymbolDrawerDocking.BOTTOM, SymbolDrawerDockingPolicy.resolve(settings, window(1000)))

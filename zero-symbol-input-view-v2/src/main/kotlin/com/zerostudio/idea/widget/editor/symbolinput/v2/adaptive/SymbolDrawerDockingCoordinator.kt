@@ -30,14 +30,18 @@ class SymbolDrawerDockingCoordinator(
     private var currentWindow: WindowAdaptiveInfo? = null
     private var closed = false
 
-    private val observer = AdaptiveWindowObserver(hostView) { window ->
-        currentWindow = window
-        dispatch()
+    private val observer by lazy(LazyThreadSafetyMode.NONE) {
+        AdaptiveWindowObserver(hostView) { window ->
+            currentWindow = window
+            dispatch()
+        }
     }
 
     init {
         require(bottomCollapsedHeightDp >= 0f)
         require(bottomExpandedHeightDp >= bottomCollapsedHeightDp)
+        // Attach only after constructor invariants are validated.
+        observer
     }
 
     /** Update after settings are edited or restored from persistent storage. */
