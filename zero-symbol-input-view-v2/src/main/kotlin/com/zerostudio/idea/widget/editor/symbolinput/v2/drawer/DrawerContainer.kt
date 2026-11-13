@@ -244,9 +244,7 @@ class DrawerContainer @JvmOverloads constructor(
         expandedHost.content()?.let { expandedHost.setContent(null) }
         pageHost.visibility = VISIBLE
         pageHost.setPages(pages, preserveSelection)
-        restoredPageId?.let { pageId ->
-            if (pageHost.selectPage(pageId)) restoredPageId = null
-        }
+        applyRestoredPageSelection()
         rebuildTabs()
         recalculateAnchors()
     }
@@ -773,7 +771,19 @@ class DrawerContainer @JvmOverloads constructor(
         restoredAnchorId = state.anchorId
         restoredHeightPx = state.heightPx.coerceAtLeast(0)
         restoredPageId = state.pageId
+        // Pages may already have been installed by the host before Android
+        // dispatches restoration. Apply immediately when possible; otherwise
+        // setPages() will retry after the page collection becomes available.
+        applyRestoredPageSelection()
         if (width > 0 && height > 0) recalculateAnchors()
+    }
+
+    private fun applyRestoredPageSelection() {
+        val pageId = restoredPageId ?: return
+        if (pageHost.selectPage(pageId)) {
+            restoredPageId = null
+            rebuildTabs()
+        }
     }
 
     private class SavedState : BaseSavedState {
