@@ -80,9 +80,15 @@ object LegacySymbolDataMigration {
             repository.markLegacyMigrationComplete()
             return false
         }
-        repository.saveGroups(imported)
-        repository.markLegacyMigrationComplete()
-        return true
+        // Model validation and persistence are part of the same failure
+        // boundary as decoding. Keep the original preference untouched and
+        // leave migration pending when either operation rejects the snapshot.
+        return runCatching {
+            SymbolGroupBundleCodec.validateGroups(imported)
+            repository.saveGroups(imported)
+            repository.markLegacyMigrationComplete()
+            true
+        }.getOrDefault(false)
     }
 
 }

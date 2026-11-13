@@ -470,12 +470,22 @@ class SymbolDrawerSettingsScreen(
         row.addView(SeekBar(context).apply {
             max = maximum - minimum
             progress = (value - minimum).coerceIn(0, max)
+            var trackingTouch = false
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(bar: SeekBar?, progress: Int, fromUser: Boolean) {
                     valueLabel.text = "$title：${progress + minimum}"
+                    // Keyboard and accessibility adjustments do not dispatch
+                    // onStart/onStopTrackingTouch. Persist those user changes
+                    // immediately, while touch drags still commit once on release.
+                    if (fromUser && !trackingTouch) changed(progress + minimum)
                 }
-                override fun onStartTrackingTouch(bar: SeekBar?) = Unit
-                override fun onStopTrackingTouch(bar: SeekBar?) { changed((bar?.progress ?: 0) + minimum) }
+                override fun onStartTrackingTouch(bar: SeekBar?) {
+                    trackingTouch = true
+                }
+                override fun onStopTrackingTouch(bar: SeekBar?) {
+                    trackingTouch = false
+                    changed((bar?.progress ?: 0) + minimum)
+                }
             })
         }, matchWrap())
         activePage?.addView(row, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {

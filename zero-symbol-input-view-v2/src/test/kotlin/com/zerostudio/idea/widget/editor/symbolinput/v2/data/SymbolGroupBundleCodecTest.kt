@@ -126,6 +126,35 @@ class SymbolGroupBundleCodecTest {
         assertTrue(restored.single().symbols.any { it.label == "\t" })
     }
 
+    @Test fun legacyExportUsesCurrentTypedActionInsteadOfStalePayloadMetadata() {
+        val groups = listOf(SymbolGroup(
+            "legacy", "Legacy", listOf(SymbolEntry(
+                id = 1L,
+                label = "replace",
+                shortAction = SymbolAction.EditorCommand("line.replace", "new"),
+                legacyShortActionId = 36,
+                legacyShortText = "old"
+            ))
+        ))
+        val restored = LegacySymbolDataCodec.decode(LegacySymbolDataCodec.encode(groups))
+        assertEquals(
+            SymbolAction.EditorCommand("line.replace", "new"),
+            restored.single().symbols.single().shortAction
+        )
+    }
+
+    @Test fun legacyExportRejectsDeleteKindsThatV1CannotRepresent() {
+        val groups = listOf(SymbolGroup(
+            "legacy", "Legacy", listOf(SymbolEntry(
+                id = 1L,
+                label = "delete to line start",
+                shortAction = SymbolAction.Delete(DeleteKind.TO_LINE_START)
+            ))
+        ))
+        val failure = runCatching { LegacySymbolDataCodec.encode(groups) }.exceptionOrNull()
+        assertTrue(failure is IllegalStateException)
+    }
+
     @Test fun emptyBackupIsValid() {
         assertTrue(SymbolGroupBundleCodec.decode(SymbolGroupBundleCodec.encode(emptyList())).isEmpty())
     }

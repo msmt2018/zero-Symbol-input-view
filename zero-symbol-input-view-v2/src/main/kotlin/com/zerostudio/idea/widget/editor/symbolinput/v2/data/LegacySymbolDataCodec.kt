@@ -64,13 +64,13 @@ object LegacySymbolDataCodec {
                 addProperty("n", group.title)
                 add("d", com.google.gson.JsonArray().apply {
                     group.symbols.forEach { symbol ->
-                        val short = symbol.legacyShortActionId?.let {
-                            LegacySymbolAction(it, symbol.legacyShortText)
-                        } ?: toLegacy(symbol.shortAction)
+                        val short = legacyOverrideIfUnchanged(
+                            symbol.legacyShortActionId, symbol.legacyShortText, symbol.shortAction
+                        ) ?: toLegacy(symbol.shortAction)
                         val long = symbol.longAction?.let { action ->
-                            symbol.legacyLongActionId?.let {
-                                LegacySymbolAction(it, symbol.legacyLongText)
-                            } ?: toLegacy(action)
+                            legacyOverrideIfUnchanged(
+                                symbol.legacyLongActionId, symbol.legacyLongText, action
+                            ) ?: toLegacy(action)
                         }
                         add(com.google.gson.JsonObject().apply {
                             addProperty("a", short.type)
@@ -185,9 +185,28 @@ object LegacySymbolDataCodec {
         return runCatching { value.asBigDecimal.intValueExact() }.getOrNull()
     }
 
+    /**
+     * Legacy metadata is a compatibility hint, not the source of truth. Retain
+     * it only while decoding that ID/payload still produces the current action.
+     * This prevents an edited typed action from being overwritten by stale V1 data.
+     */
+    private fun legacyOverrideIfUnchanged(
+        id: Int?,
+        payload: String?,
+        action: SymbolAction
+    ): LegacySymbolAction? {
+        val legacy = id?.let { LegacySymbolAction(it, payload) } ?: return null
+        return legacy.takeIf {
+            runCatching { LegacySymbolActionAdapter.convert(it) == action }.getOrDefault(false)
+        }
+    }
+
     private fun toLegacy(action: SymbolAction): LegacySymbolAction = when (action) {
         is SymbolAction.InsertText -> LegacySymbolAction(0, action.template)
-        is SymbolAction.Delete -> LegacySymbolAction(if (action.kind == DeleteKind.TO_LINE_START || action.kind == DeleteKind.TO_LINE_END) 4 else 3)
+        is SymbolAction.Delete -> when (action.kind) {
+            DeleteKind.CURRENT_LINE -> LegacySymbolAction(3)
+            else -> error("V1 format cannot preserve delete kind ${action.kind}")
+        }
         is SymbolAction.TransformSelection -> when (action.transform) {
             SelectionTransform.UPPERCASE -> LegacySymbolAction(7)
             SelectionTransform.LOWERCASE -> LegacySymbolAction(8)

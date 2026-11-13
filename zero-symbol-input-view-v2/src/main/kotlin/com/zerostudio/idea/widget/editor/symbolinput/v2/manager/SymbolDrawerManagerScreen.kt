@@ -400,6 +400,10 @@ class SymbolDrawerManagerScreen(
     }
 
     private fun refresh() {
+        // Undo snapshots are valid only until another manager mutation or reload.
+        // Clearing them here prevents an old delete/import snapshot from replacing
+        // newer edits when the user later presses Undo.
+        invalidateUndo()
         val groups = manager.groups
         val selectedIndex = groups.indexOfFirst { it.id == selectedGroupId }.takeIf { it >= 0 } ?: 0
         selectedGroupId = groups.getOrNull(selectedIndex)?.id
@@ -798,6 +802,11 @@ class SymbolDrawerManagerScreen(
         background = roundedSurface(surfaceColor(), 12)
         setPadding(dp(8), dp(2), dp(8), dp(2))
         setOnClickListener { runCatching(action).onFailure(::reportError) }
+    }
+
+    private fun invalidateUndo() {
+        pendingUndo = null
+        undoBar.visibility = View.GONE
     }
 
     private fun showUndo(message: String, restore: () -> Unit) {
