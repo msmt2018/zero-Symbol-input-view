@@ -35,6 +35,11 @@ class AdaptiveWindowObserver(
         dispatchIfChanged(force = true)
     }
 
+    /** Re-emits the current snapshot after host settings or layout constraints change. */
+    fun refresh() {
+        dispatchIfChanged(force = true)
+    }
+
     override fun onLayoutChange(
         changedView: View,
         left: Int,
