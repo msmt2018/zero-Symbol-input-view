@@ -95,6 +95,7 @@ class SymbolDrawerSettingsScreen(
     private var activePage: LinearLayout? = null
     private var pendingImport: ImportKind = ImportKind.SETTINGS
     private var adaptiveSpacingScale: Float = 1f
+    private var adaptiveTypographyScale: Float = 1f
     private var selectedTabIndex: Int = 0
     private var activeScrollView: ScrollView? = null
     private var spacingReflowInProgress = false
@@ -124,8 +125,15 @@ class SymbolDrawerSettingsScreen(
             com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowSizeClass.MEDIUM -> 1f
             com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowSizeClass.EXPANDED -> 1.08f
         }
-        val spacingChanged = nextSpacingScale != adaptiveSpacingScale
+        val nextTypographyScale = when (window.sizeClass) {
+            com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowSizeClass.COMPACT -> 0.98f
+            com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowSizeClass.MEDIUM -> 1f
+            com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowSizeClass.EXPANDED -> 1.04f
+        }
+        val metricsChanged = nextSpacingScale != adaptiveSpacingScale ||
+            nextTypographyScale != adaptiveTypographyScale
         adaptiveSpacingScale = nextSpacingScale
+        adaptiveTypographyScale = nextTypographyScale
         val horizontal = dp(spec.horizontalPaddingDp.toInt())
         setPadding(horizontal, dp(12), horizontal, dp(8))
         gravity = Gravity.CENTER_HORIZONTAL
@@ -135,7 +143,7 @@ class SymbolDrawerSettingsScreen(
             params.width = targetWidth
             content.layoutParams = params
         }
-        if (spacingChanged && !spacingReflowInProgress && content.childCount > 0) {
+        if (metricsChanged && !spacingReflowInProgress && content.childCount > 0) {
             spacingReflowInProgress = true
             val previousScroll = activeScrollView?.scrollY ?: 0
             render()
@@ -164,13 +172,13 @@ class SymbolDrawerSettingsScreen(
             background = surfaceBackground(surfaceColor(), 0.10f, 22)
             addView(TextView(context).apply {
                 text = "符号抽屉设置"
-                textSize = 23f
+                textSize = textSp(23f)
                 setTextColor(primaryColor())
                 setTypeface(typeface, Typeface.BOLD)
             }, matchWrap())
             addView(TextView(context).apply {
                 text = "按类别管理外观、布局、交互、性能与数据"
-                textSize = 13f
+                textSize = textSp(13f)
                 setTextColor(onSurfaceColor())
                 alpha = 0.72f
                 setPadding(0, dp(5), 0, 0)
@@ -265,7 +273,7 @@ class SymbolDrawerSettingsScreen(
                 )
                 addView(TextView(context).apply {
                     text = "数据安全提示：两类备份相互独立。导入前会校验 JSON 结构、字段类型、动作编号和数据范围；建议在覆盖数据前先导出备份。"
-                    textSize = 12f
+                    textSize = textSp(12f)
                     setTextColor(onSurfaceColor())
                     alpha = 0.72f
                     setPadding(spaceDp(4), spaceDp(12), spaceDp(4), spaceDp(8))
@@ -329,13 +337,13 @@ class SymbolDrawerSettingsScreen(
         }
         card.addView(TextView(context).apply {
             text = title
-            textSize = 16f
+            textSize = textSp(16f)
             setTextColor(onSurfaceColor())
             setTypeface(typeface, Typeface.BOLD)
         }, matchWrap())
         card.addView(TextView(context).apply {
             text = description
-            textSize = 12f
+            textSize = textSp(12f)
             setTextColor(onSurfaceColor())
             alpha = 0.72f
             setPadding(0, spaceDp(5), 0, spaceDp(12))
@@ -362,7 +370,7 @@ class SymbolDrawerSettingsScreen(
     private fun actionButton(title: String, action: () -> Unit) =
         com.google.android.material.button.MaterialButton(context).apply {
             text = title
-            textSize = 12f
+            textSize = textSp(12f)
             isAllCaps = false
             cornerRadius = dp(12)
             strokeWidth = dp(1)
@@ -378,7 +386,7 @@ class SymbolDrawerSettingsScreen(
     private fun section(title: String) {
         activePage?.addView(TextView(context).apply {
             text = title
-            textSize = 17f
+            textSize = textSp(17f)
             setTextColor(onSurfaceColor())
             setTypeface(typeface, Typeface.BOLD)
             setPadding(spaceDp(2), spaceDp(22), spaceDp(2), spaceDp(10))
@@ -388,7 +396,7 @@ class SymbolDrawerSettingsScreen(
     private fun addHint(message: String) {
         activePage?.addView(TextView(context).apply {
             text = message
-            textSize = 12f
+            textSize = textSp(12f)
             setTextColor(onSurfaceColor())
             alpha = 0.72f
             setPadding(spaceDp(6), spaceDp(2), spaceDp(6), spaceDp(12))
@@ -402,7 +410,7 @@ class SymbolDrawerSettingsScreen(
             background = surfaceBackground(surfaceColor(), 0.08f, 14)
             addView(TextView(context).apply {
                 text = title
-                textSize = 14f
+                textSize = textSp(14f)
                 setTextColor(onSurfaceColor())
             }, LinearLayout.LayoutParams(0, dp(48), 1f))
             addView(Switch(context).apply {
@@ -596,7 +604,7 @@ class SymbolDrawerSettingsScreen(
 
     private fun label(value: String) = TextView(context).apply {
         text = value
-        textSize = 14f
+        textSize = textSp(14f)
         setTextColor(onSurfaceColor())
         gravity = Gravity.CENTER_VERTICAL
     }
@@ -622,6 +630,7 @@ class SymbolDrawerSettingsScreen(
     private fun matchWrap() = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
     private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
     private fun spaceDp(value: Int) = (value * resources.displayMetrics.density * adaptiveSpacingScale).toInt()
+    private fun textSp(value: Float) = value * adaptiveTypographyScale
 
     private enum class ImportKind { SETTINGS, GROUPS }
 }
