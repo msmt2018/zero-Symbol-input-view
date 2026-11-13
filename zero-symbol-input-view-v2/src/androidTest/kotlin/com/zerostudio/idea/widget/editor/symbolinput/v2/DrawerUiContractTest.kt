@@ -103,7 +103,6 @@ class DrawerUiContractTest {
                 val drawer = SymbolDrawerView(activity)
                 activity.content.addView(drawer, FrameLayout.LayoutParams(-1, 480))
                 drawer.submitGroups(sample())
-                drawer.setExpanded(true, false)
                 val width = (420f * activity.resources.displayMetrics.density).toInt()
                 val height = (480f * activity.resources.displayMetrics.density).toInt()
                 drawer.measure(
@@ -111,6 +110,7 @@ class DrawerUiContractTest {
                     View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
                 )
                 drawer.layout(0, 0, width, height)
+                drawer.setExpanded(true, false)
                 val settings = find(drawer) { it.contentDescription == "符号设置" }
                 assertTrue(settings.performClick())
                 assertTrue(drawer.isSettingsDialogShowing)
