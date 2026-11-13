@@ -430,6 +430,15 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
         return true
     }
 
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        // A detached drawer may be reattached to a different host container or
+        // after a density/configuration change. Recompute pixel geometry while
+        // preserving the current expansion fraction instead of reusing stale
+        // dimensions from the previous attachment.
+        recalculateGeometry()
+    }
+
     override fun onDetachedFromWindow() {
         heightAnimator?.cancel()
         heightAnimator = null
