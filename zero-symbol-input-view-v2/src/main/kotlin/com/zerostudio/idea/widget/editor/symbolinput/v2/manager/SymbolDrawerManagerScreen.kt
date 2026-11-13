@@ -218,12 +218,13 @@ class SymbolDrawerManagerScreen(
         val group = manager.groups.firstOrNull { it.id == groupId } ?: return
         selectedGroupId = group.id
         val index = manager.groups.indexOfFirst { it.id == group.id }
+        groupTabs.getTabAt(index)?.select()
         PopupMenu(context, anchor).apply {
             menu.add("左移").apply { isEnabled = index > 0 }
                 .setOnMenuItemClickListener { moveGroup(group.id, -1); true }
             menu.add("右移").apply { isEnabled = index >= 0 && index < manager.groups.lastIndex }
                 .setOnMenuItemClickListener { moveGroup(group.id, 1); true }
-            menu.add("添加").setOnMenuItemClickListener { showAddMenu(anchor); true }
+            menu.add("添加").setOnMenuItemClickListener { showAddGroupDialog(); true }
             menu.add("复制到…").apply { isEnabled = manager.groups.size > 1 }
                 .setOnMenuItemClickListener { promptCopyGroupTo(group.id); true }
             menu.add("重命名").setOnMenuItemClickListener {
@@ -235,6 +236,14 @@ class SymbolDrawerManagerScreen(
             }
             menu.add("删除").setOnMenuItemClickListener { confirmDeleteGroup(group.id); true }
             show()
+        }
+    }
+
+    private fun showAddGroupDialog() {
+        promptGroupName("新建分组") {
+            val created = manager.addGroup(it)
+            selectedGroupId = created.id
+            refresh()
         }
     }
 

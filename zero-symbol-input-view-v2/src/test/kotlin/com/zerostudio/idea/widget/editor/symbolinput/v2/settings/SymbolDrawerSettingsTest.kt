@@ -78,6 +78,18 @@ class SymbolDrawerSettingsTest {
         SymbolDrawerSettingsCodec.decodeStrict(json)
     }
 
+    @Test fun negativeCellSpacingIsSupportedAndPersisted() {
+        val value = SymbolDrawerSettings(cellHorizontalSpacingDp = -10, cellVerticalSpacingDp = -6)
+        val restored = SymbolDrawerSettingsCodec.decode(SymbolDrawerSettingsCodec.encode(value))
+        assertEquals(-10, restored.cellHorizontalSpacingDp)
+        assertEquals(-6, restored.cellVerticalSpacingDp)
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun rejectsCellSpacingBelowFineAdjustmentLimit() {
+        SymbolDrawerSettings(cellHorizontalSpacingDp = -11)
+    }
+
     @Test fun drawerConfigHonorsReducedMotion() {
         val config = SymbolDrawerSettings(animationDurationMs = 350, reduceMotion = true).toDrawerConfig()
         assertEquals(0L, config.animationDurationMs)
