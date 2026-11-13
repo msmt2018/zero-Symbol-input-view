@@ -172,6 +172,38 @@ class SymbolActionExecutorContractTest {
         assertTrue(runCatching { SymbolActionJsonCodec.decode(json) }.isFailure)
     }
 
+
+    @Test fun cancellationBeforeExecutionPreventsHostCalls() {
+        val host = Host()
+        val result = executor.execute(SymbolAction.OpenManager, host, SymbolActionCancellation { true })
+        assertEquals(SymbolActionResult.Cancelled(0), result)
+        assertTrue(host.calls.isEmpty())
+    }
+
+    @Test fun compositeCancellationStopsBeforeTheNextStepAndReportsCompletedLeaves() {
+        val host = Host()
+        var cancelled = false
+        val token = SymbolActionCancellation { cancelled }
+        val cancelAfterFirst = object : SymbolActionHost by host {
+            override fun insertText(template: String): Boolean {
+                val result = host.insertText(template)
+                cancelled = true
+                return result
+            }
+        }
+        val result = executor.execute(
+            SymbolAction.Composite(listOf(
+                SymbolAction.InsertText("first"),
+                SymbolAction.InsertText("second"),
+                SymbolAction.OpenManager
+            )),
+            cancelAfterFirst,
+            token
+        )
+        assertEquals(SymbolActionResult.Cancelled(1), result)
+        assertEquals(listOf("insert:first"), host.calls)
+    }
+
     private fun assertFails(block: () -> Unit) {
         try { block(); fail("Expected IllegalArgumentException") }
         catch (_: IllegalArgumentException) { }
