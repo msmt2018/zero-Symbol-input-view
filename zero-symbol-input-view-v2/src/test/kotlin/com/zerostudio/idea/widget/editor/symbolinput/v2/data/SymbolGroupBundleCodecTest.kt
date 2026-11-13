@@ -207,10 +207,10 @@ class SymbolGroupBundleCodecTest {
                     SymbolEntry(
                         id = 1L,
                         label = "custom",
-                        shortAction = LegacySymbolActionAdapter.convert(LegacySymbolAction(0, "val x = \%DOLLAR%S\%DOLLAR%T\%DOLLAR%E")),
+                        shortAction = LegacySymbolActionAdapter.convert(LegacySymbolAction(0, "val x = %DOLLAR%S%DOLLAR%T%DOLLAR%E")),
                         longAction = LegacySymbolActionAdapter.convert(LegacySymbolAction(36, "replacement")),
                         legacyShortActionId = 0,
-                        legacyShortText = "val x = \%DOLLAR%S\%DOLLAR%T\%DOLLAR%E",
+                        legacyShortText = "val x = %DOLLAR%S%DOLLAR%T%DOLLAR%E",
                         legacyLongActionId = 36,
                         legacyLongText = "replacement"
                     ),
@@ -225,13 +225,13 @@ class SymbolGroupBundleCodecTest {
         )
         val json = SymbolGroupStorageCodec.encode(source)
         assertTrue(json.contains("\"a\":0"))
-        assertTrue(json.contains("\"c\":\"val x = \%DOLLAR%S\%DOLLAR%T\%DOLLAR%E\""))
+        assertTrue(json.contains("\"c\":\"val x = %DOLLAR%S%DOLLAR%T%DOLLAR%E\""))
         assertTrue(json.contains("\"d\":36"))
         assertTrue(json.contains("\"e\":\"replacement\""))
         assertTrue(json.contains("\"a\":33"))
         val restored = SymbolGroupStorageCodec.decode(json)
         assertEquals(0, restored[0].symbols[0].legacyShortActionId)
-        assertEquals("val x = \%DOLLAR%S\%DOLLAR%T\%DOLLAR%E", restored[0].symbols[0].legacyShortText)
+        assertEquals("val x = %DOLLAR%S%DOLLAR%T%DOLLAR%E", restored[0].symbols[0].legacyShortText)
         assertEquals(36, restored[0].symbols[0].legacyLongActionId)
         assertEquals(33, restored[0].symbols[1].legacyShortActionId)
     }
@@ -284,10 +284,6 @@ class SymbolGroupBundleCodecTest {
         assertEquals(SymbolAction.Extension("legacy.action.26"), bracket.shortAction)
         assertEquals(25, bracket.legacyLongActionId)
         assertEquals(SymbolAction.EditorCommand("selection.selectAll"), bracket.longAction)
-        val cut = groups[1].symbols.first { it.label == "剪切" }
-        val copy = groups[1].symbols.first { it.label == "复制" }
-        assertEquals(SymbolAction.Extension("legacy.action.2"), cut.longAction)
-        assertEquals(SymbolAction.Extension("legacy.action.1"), copy.longAction)
         val cut = groups[1].symbols.first { it.label == "剪切" }
         val copy = groups[1].symbols.first { it.label == "复制" }
         assertEquals(SymbolAction.Extension("legacy.action.2"), cut.longAction)
