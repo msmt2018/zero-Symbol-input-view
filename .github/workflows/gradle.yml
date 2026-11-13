@@ -55,6 +55,9 @@ jobs:
       - name: Compile V2 symbol drawer instrumentation tests
         run: ./gradlew :zero-symbol-input-view-v2:assembleDebugAndroidTest
 
+      - name: Validate V2 Maven publication
+        run: ./gradlew :zero-symbol-input-view-v2:publishReleasePublicationToMavenLocal
+
       - name: Publish snapshot
         if: ${{ always() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.build.outcome == 'success' }}
         run: ./gradlew publishAllPublicationsToMavenCentral
