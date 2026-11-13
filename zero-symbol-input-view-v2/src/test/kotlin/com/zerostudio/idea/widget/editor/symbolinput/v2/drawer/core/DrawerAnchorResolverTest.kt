@@ -92,7 +92,7 @@ class DrawerAnchorResolverTest {
     @Test fun duplicateHeightsAreCollapsed() {
         val anchors = DrawerAnchorResolver.resolve(
             ThreeStageAnchorStrategy(halfExpandedFraction = 0.1f, useAutomaticPeekHeight = false),
-            input.copy(viewportHeightPx = 100, minHeightPx = 120)
+            input.copy(viewportHeightPx = 100, minHeightPx = 120, maxHeightPx = 120)
         )
         assertEquals(1, anchors.size)
         assertEquals(120, anchors.single().heightPx)
