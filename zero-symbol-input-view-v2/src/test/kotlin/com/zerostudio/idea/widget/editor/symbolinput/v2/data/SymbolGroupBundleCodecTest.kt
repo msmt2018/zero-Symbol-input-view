@@ -75,6 +75,28 @@ class SymbolGroupBundleCodecTest {
     }
 
 
+    @Test fun bundlePreservesV2ActionsAndLegacyMetadataWhenCompactV1CannotRepresentThem() {
+        val source = listOf(
+            SymbolGroup("modern", "Modern", listOf(
+                SymbolEntry(
+                    id = 42L,
+                    label = "toggle",
+                    shortAction = SymbolAction.TransformSelection(SelectionTransform.TOGGLE_CASE),
+                    longAction = SymbolAction.Composite(listOf(
+                        SymbolAction.InsertText("a"),
+                        SymbolAction.SurroundSelection("[", "]")
+                    )),
+                    icon = "T",
+                    legacyShortActionId = 33,
+                    legacyShortText = "kept"
+                )
+            ))
+        )
+        val json = SymbolGroupBundleCodec.encode(source)
+        assertTrue(json.contains("\\"format\\":\\"zero-symbol-drawer\\""))
+        assertEquals(source, SymbolGroupBundleCodec.decode(json))
+    }
+
     @Test fun storageAcceptsWhitespaceOnlyLabelsForControlKeys() {
         val groups = listOf(
             SymbolGroup(

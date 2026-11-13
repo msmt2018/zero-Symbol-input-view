@@ -62,7 +62,44 @@ object SymbolGroupBundleCodec {
 
     fun encode(groups: List<SymbolGroup>): String {
         validateGroups(groups)
-        return LegacySymbolDataCodec.encode(groups).also {
+        // Keep the compact V1 export whenever every typed action has an exact
+        // legacy representation. New V2 actions must use the typed envelope;
+        // silently coercing them to legacy IDs would lose user data.
+        val compact = runCatching { LegacySymbolDataCodec.encode(groups) }.getOrNull()
+        if (compact != null) {
+            require(compact.length <= MAX_BUNDLE_CHARS) { "Backup is too large" }
+            return compact
+        }
+        val envelope = JsonObject().apply {
+            addProperty("format", "zero-symbol-drawer")
+            addProperty("version", CURRENT_VERSION)
+            add("groups", JsonArray().also { array ->
+                groups.forEach { group ->
+                    array.add(JsonObject().apply {
+                        addProperty("id", group.id)
+                        addProperty("title", group.title)
+                        add("symbols", JsonArray().also { symbols ->
+                            group.symbols.forEach { symbol ->
+                                symbols.add(JsonObject().apply {
+                                    addProperty("id", symbol.id)
+                                    addProperty("label", symbol.label)
+                                    add("shortAction", SymbolActionJsonCodec.encode(symbol.shortAction))
+                                    symbol.longAction?.let {
+                                        add("longAction", SymbolActionJsonCodec.encode(it))
+                                    }
+                                    symbol.icon?.let { addProperty("icon", it) }
+                                    symbol.legacyShortActionId?.let { addProperty("legacyShortActionId", it) }
+                                    symbol.legacyShortText?.let { addProperty("legacyShortText", it) }
+                                    symbol.legacyLongActionId?.let { addProperty("legacyLongActionId", it) }
+                                    symbol.legacyLongText?.let { addProperty("legacyLongText", it) }
+                                })
+                            }
+                        })
+                    })
+                }
+            })
+        }
+        return envelope.toString().also {
             require(it.length <= MAX_BUNDLE_CHARS) { "Backup is too large" }
         }
     }
@@ -115,7 +152,11 @@ object SymbolGroupBundleCodec {
                     require(element.isJsonObject) { "Symbol entry must be an object" }
                     val symbol = element.asJsonObject
                     require(symbol.keySet().containsAll(setOf("id", "label", "shortAction")) &&
-                        symbol.keySet().all { it in setOf("id", "label", "shortAction", "longAction", "icon") }) {
+                        symbol.keySet().all { it in setOf(
+                            "id", "label", "shortAction", "longAction", "icon",
+                            "legacyShortActionId", "legacyShortText",
+                            "legacyLongActionId", "legacyLongText"
+                        ) }) {
                         "Symbol entry does not match the supported schema"
                     }
                     require(symbol.get("id").isJsonPrimitive && symbol.get("id").asJsonPrimitive.isNumber &&
@@ -129,7 +170,11 @@ object SymbolGroupBundleCodec {
                         label = symbol.get("label")?.asString ?: error("Symbol label is missing"),
                         shortAction = SymbolActionJsonCodec.decode(short),
                         longAction = long,
-                        icon = symbol.get("icon")?.takeUnless { it.isJsonNull }?.asString
+                        icon = symbol.get("icon")?.takeUnless { it.isJsonNull }?.asString,
+                        legacyShortActionId = symbol.get("legacyShortActionId")?.takeUnless { it.isJsonNull }?.asInt,
+                        legacyShortText = symbol.get("legacyShortText")?.takeUnless { it.isJsonNull }?.asString,
+                        legacyLongActionId = symbol.get("legacyLongActionId")?.takeUnless { it.isJsonNull }?.asInt,
+                        legacyLongText = symbol.get("legacyLongText")?.takeUnless { it.isJsonNull }?.asString
                     )
                 }
             )

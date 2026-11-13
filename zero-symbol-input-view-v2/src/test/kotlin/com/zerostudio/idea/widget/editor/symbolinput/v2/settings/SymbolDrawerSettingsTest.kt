@@ -95,6 +95,20 @@ class SymbolDrawerSettingsTest {
         SymbolDrawerSettings(cellHorizontalSpacingDp = -11)
     }
 
+    @Test fun everySettingsLayoutBoundaryConvertsToDrawerConfig() {
+        val compact = SymbolDrawerSettings(
+            cellHeightDp = 10,
+            cellHorizontalSpacingDp = -10,
+            cellVerticalSpacingDp = -10,
+            maxExpandedHeightDp = 110
+        )
+        val config = compact.toDrawerConfig()
+        assertEquals(10, config.cellHeightDp)
+        assertEquals(-10, config.cellHorizontalSpacingDp)
+        assertEquals(-10, config.cellVerticalSpacingDp)
+        assertEquals(110, config.maxExpandedHeightDp)
+    }
+
     @Test fun drawerConfigHonorsReducedMotion() {
         val config = SymbolDrawerSettings(animationDurationMs = 350, reduceMotion = true).toDrawerConfig()
         assertEquals(0L, config.animationDurationMs)

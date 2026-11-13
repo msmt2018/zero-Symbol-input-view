@@ -108,13 +108,13 @@ data class DrawerConfig(
     init {
         require(columns in 1..20) { "columns must be in 1..20" }
         require(collapsedRows in 1..10) { "collapsedRows must be in 1..10" }
-        require(cellHeightDp in 20..96) { "cellHeightDp must be in 20..96" }
+        require(cellHeightDp in 10..96) { "cellHeightDp must be in 10..96" }
         require(indicatorHeightDp in 0..64) { "indicatorHeightDp must be in 0..64" }
-        require(cellHorizontalSpacingDp in 0..24)
-        require(cellVerticalSpacingDp in 0..24)
+        require(cellHorizontalSpacingDp in -10..24)
+        require(cellVerticalSpacingDp in -10..24)
         require(animationDurationMs in 0L..1200L)
         require(flingVelocityDpPerSecond in 100..6000)
-        require(maxExpandedHeightDp in 120..1200)
+        require(maxExpandedHeightDp in 110..1200)
         require(minimumTouchTargetDp in 20..80)
     }
 }
