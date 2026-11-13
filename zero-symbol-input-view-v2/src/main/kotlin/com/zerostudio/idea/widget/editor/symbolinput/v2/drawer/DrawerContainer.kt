@@ -648,10 +648,12 @@ class DrawerContainer @JvmOverloads constructor(
     }
 
     private fun settleAfterNestedScroll() {
-        val currentHeight = state?.currentHeightPx ?: return
-        if (anchors.isNotEmpty()) {
-            moveTo(DrawerAnchorResolver.nearestAnchor(anchors, currentHeight), true)
-        }
+        val current = state ?: return
+        // A nested pre-fling may already have started a directional settle
+        // animation. Do not replace that target with a nearest-anchor decision
+        // based on the animation's transient starting position.
+        if (current.isAnimating || !current.isDragging || anchors.isEmpty()) return
+        moveTo(DrawerAnchorResolver.nearestAnchor(anchors, current.currentHeightPx), true)
     }
 
     override fun getNestedScrollAxes(): Int = nestedScrollHelper.nestedScrollAxes
