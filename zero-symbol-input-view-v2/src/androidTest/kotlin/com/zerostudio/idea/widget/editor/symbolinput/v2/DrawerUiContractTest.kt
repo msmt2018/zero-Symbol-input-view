@@ -5,6 +5,7 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
+import java.lang.reflect.Modifier
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.recyclerview.widget.GridLayoutManager
@@ -49,6 +50,13 @@ class DrawerUiContractTest {
         SymbolGroup("one", "One", listOf(SymbolEntry(1L, "a", SymbolAction.InsertText("a")))),
         SymbolGroup("two", "Two", listOf(SymbolEntry(2L, "b", SymbolAction.InsertText("b"))))
     )
+
+
+    @Test fun drawerSavedStateCreatorIsPublicForParcelReflection() {
+        val savedStateClass = SymbolDrawerView.DrawerSavedState::class.java
+        assertTrue(Modifier.isPublic(savedStateClass.modifiers))
+        assertTrue(Modifier.isPublic(savedStateClass.getField("CREATOR").modifiers))
+    }
 
     @Test fun advancedDrawerInflatesAndAcceptsNegativeSpacing() {
         ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->

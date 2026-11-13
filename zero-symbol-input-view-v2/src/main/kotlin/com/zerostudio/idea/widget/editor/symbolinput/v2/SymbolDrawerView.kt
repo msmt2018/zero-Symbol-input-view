@@ -574,7 +574,7 @@ class SymbolDrawerView @JvmOverloads constructor(
         indicator.visibility = if (indicatorHeight == 0) View.INVISIBLE else View.VISIBLE
     }
 
-    private class DrawerSavedState : View.BaseSavedState {
+    internal class DrawerSavedState : View.BaseSavedState {
         var selectedGroupId: String? = null
         var expansion: Float = 0f
 
