@@ -222,14 +222,11 @@ class SymbolDrawerSettingsScreen(
                 addSeek("最小触摸目标 (dp)", current.minimumTouchTargetDp, 32, 80) { update { copy(minimumTouchTargetDp = it) } }
             },
             "平板模式" to {
-                section("大屏设备布局")
-                addChoice(
-                    "大屏布局模式",
-                    listOf(LargeScreenLayoutMode.AUTO, LargeScreenLayoutMode.BOTTOM),
-                    current.largeScreenLayoutMode.takeUnless { it == LargeScreenLayoutMode.SIDE }
-                        ?: LargeScreenLayoutMode.AUTO
-                ) { update { copy(largeScreenLayoutMode = it) } }
-                addHint("工具栏始终固定在屏幕底部。自动模式根据当前窗口宽度调整内部控件尺寸、网格与间距；固定底部模式保留基础尺寸。")
+                section("底部工具栏与平板适配")
+                addHint(
+                    "工具栏始终固定在屏幕底部。平板、分屏、折叠屏和窗口尺寸变化时，" +
+                        "仅自适应内部控件尺寸、网格与间距；不改变抽屉高度、手势、锚点或展开比例。"
+                )
             },
             "交互" to {
                 section("手势与动作")
