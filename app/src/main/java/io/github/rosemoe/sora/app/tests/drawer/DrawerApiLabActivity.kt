@@ -4,6 +4,7 @@ import android.graphics.Color
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -42,6 +43,7 @@ class DrawerApiLabActivity : AppCompatActivity() {
     private lateinit var drawer: DrawerContainer
     private lateinit var status: TextView
     private lateinit var playerController: DrawerDemoPlayerController
+    private lateinit var exitFullScreenButton: MaterialButton
     private var demoDimensions = DrawerDimensions()
     private var filterSummary = "全部内容"
     private var customPalette = false
@@ -58,7 +60,27 @@ class DrawerApiLabActivity : AppCompatActivity() {
                     (playerState.error ?: if (playerState.isPreparing) "准备中" else if (playerState.isPlaying) "播放中" else "暂停")
             }
         }
-        setContentView(drawer)
+        exitFullScreenButton = MaterialButton(this).apply {
+            text = "退出全屏"
+            isAllCaps = false
+            visibility = View.GONE
+            setOnClickListener { restoreBottomSheetDemo() }
+        }
+        val activityRoot = FrameLayout(this).apply {
+            addView(drawer, FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            ))
+            addView(exitFullScreenButton, FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.TOP or Gravity.END
+            ).apply {
+                topMargin = dp(12)
+                marginEnd = dp(12)
+            })
+        }
+        setContentView(activityRoot)
         drawer.setTitle("")
         drawer.setMainContent(buildDashboard())
         // Start with only the real handle visible. Each scenario supplies its own panels.
@@ -162,6 +184,7 @@ class DrawerApiLabActivity : AppCompatActivity() {
         root.addView(button("全屏三段式 · Peek / Half / Full") {
             configureBottomSheet()
             drawer.controller.setPresentationMode(DrawerPresentationMode.FULL_SCREEN)
+            exitFullScreenButton.visibility = View.VISIBLE
             updateDimensions { it.copy(peekHeightDp = 64f, expandedMaxHeightDp = 720f) }
             drawer.controller.setAnchorStrategy(DrawerAnchorStrategies.threeStage(0.5f, false))
             drawer.refreshAnchors()
@@ -174,10 +197,7 @@ class DrawerApiLabActivity : AppCompatActivity() {
             drawer.controller.moveToAnchor("peek", true)
         })
         root.addView(button("退出全屏并恢复底部抽屉") {
-            configureBottomSheet()
-            drawer.controller.setAnchorStrategy(DrawerAnchorStrategies.threeStage(0.5f, false))
-            drawer.refreshAnchors()
-            drawer.controller.moveToAnchor("peek", false)
+            restoreBottomSheetDemo()
         })
         root.addView(section("底部抽屉业务场景"))
         root.addView(button("播放器抽屉 · 黑胶唱片 / 上一曲 / 播放 / 下一曲") {
@@ -365,6 +385,16 @@ class DrawerApiLabActivity : AppCompatActivity() {
         return scroll
     }
 
+
+    private fun restoreBottomSheetDemo() {
+        configureBottomSheet()
+        drawer.controller.setAnchorStrategy(DrawerAnchorStrategies.threeStage(0.5f, false))
+        drawer.refreshAnchors()
+        drawer.controller.setDragEnabled(true)
+        drawer.controller.setDragHandleEnabled(true)
+        drawer.controller.moveToAnchor("peek", false)
+        exitFullScreenButton.visibility = View.GONE
+    }
 
     private fun configureBottomSheet() {
         // Every demo starts from a known panel configuration. In particular,
