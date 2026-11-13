@@ -71,6 +71,8 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.DrawerConfig
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
+import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowAdaptiveInfo
+import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowSizeClass
 
 /**
  * Material Symbols Outlined "settings" vector, rendered directly from Kotlin.
@@ -151,6 +153,28 @@ internal class SymbolPageAdapter(
                 dp(context, 4)
             )
             clipToPadding = false
+            var appliedHorizontalPadding = Int.MIN_VALUE
+            addOnLayoutChangeListener { view, left, top, right, bottom, _, _, _, _ ->
+                val availableWidth = right - left
+                if (availableWidth <= 0) return@addOnLayoutChangeListener
+                val density = resources.displayMetrics.density
+                val sizeClass = WindowAdaptiveInfo(
+                    availableWidth / density,
+                    (bottom - top).coerceAtLeast(0) / density,
+                    density
+                ).sizeClass
+                val scale = when (sizeClass) {
+                    WindowSizeClass.COMPACT -> 0.85f
+                    WindowSizeClass.MEDIUM -> 1f
+                    WindowSizeClass.EXPANDED -> 1.15f
+                }
+                val horizontal = dp(context, (config.cellHorizontalSpacingDp * scale)
+                    .coerceIn(0f, 24f).toInt())
+                if (horizontal != appliedHorizontalPadding) {
+                    appliedHorizontalPadding = horizontal
+                    view.setPadding(horizontal, view.paddingTop, horizontal, view.paddingBottom)
+                }
+            }
         }
         return PageHolder(grid, config, settings, onSymbolAction)
     }

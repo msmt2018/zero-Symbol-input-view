@@ -60,6 +60,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.GroupIndicatorStyle
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
+import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowAdaptiveInfo
+import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowSizeClass
 
 /** Horizontal group navigation with a persistent selected-item indicator. */
 internal class SymbolGroupIndicator(
@@ -80,6 +82,11 @@ internal class SymbolGroupIndicator(
     fun submitGroups(groups: List<SymbolGroup>) = groupAdapter.submitGroups(groups)
     fun applySettings(settings: SymbolDrawerSettings) = groupAdapter.applySettings(settings)
 
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        if (w > 0) groupAdapter.updateWindowWidth(w, resources.displayMetrics.density)
+    }
+
     fun setSelectedIndex(index: Int) {
         groupAdapter.setSelectedIndex(index)
         if (index in 0 until groupAdapter.itemCount) {
@@ -92,6 +99,19 @@ internal class SymbolGroupIndicator(
     ) : ListAdapter<SymbolGroup, GroupHolder>(DIFF) {
         private var selectedIndex = 0
         private var settings = SymbolDrawerSettings()
+        private var horizontalPaddingDp = 14
+
+        fun updateWindowWidth(widthPx: Int, density: Float) {
+            val info = WindowAdaptiveInfo(widthPx / density, 0f, density)
+            val next = when (info.sizeClass) {
+                WindowSizeClass.COMPACT -> 10
+                WindowSizeClass.MEDIUM -> 14
+                WindowSizeClass.EXPANDED -> 18
+            }
+            if (next == horizontalPaddingDp) return
+            horizontalPaddingDp = next
+            notifyItemRangeChanged(0, itemCount)
+        }
 
         fun applySettings(value: SymbolDrawerSettings) {
             settings = value
@@ -106,7 +126,7 @@ internal class SymbolGroupIndicator(
             val root = LinearLayout(parent.context).apply {
                 orientation = LinearLayout.VERTICAL
                 gravity = Gravity.CENTER
-                setPadding(dp(this, 14), 0, dp(this, 14), 0)
+                setPadding(dp(this, horizontalPaddingDp), 0, dp(this, horizontalPaddingDp), 0)
                 layoutParams = RecyclerView.LayoutParams(
                     RecyclerView.LayoutParams.WRAP_CONTENT,
                     RecyclerView.LayoutParams.MATCH_PARENT
@@ -141,6 +161,10 @@ internal class SymbolGroupIndicator(
             val group = getItem(position)
             val selected = position == selectedIndex
             val context = holder.title.context
+            holder.root.setPadding(
+                dp(holder.root, horizontalPaddingDp), 0,
+                dp(holder.root, horizontalPaddingDp), 0
+            )
             holder.title.text = if (settings.showGroupTitles) group.title else (position + 1).toString()
             holder.title.alpha = if (selected) 1f else 0.68f
             holder.title.setTypeface(null, if (selected) Typeface.BOLD else Typeface.NORMAL)
