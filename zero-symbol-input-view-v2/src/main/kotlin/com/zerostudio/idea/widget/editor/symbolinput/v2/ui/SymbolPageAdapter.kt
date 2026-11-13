@@ -126,7 +126,7 @@ internal class SymbolPageAdapter(
     private val onSymbolAction: (SymbolEntry, Boolean) -> Unit
 ) : ListAdapter<SymbolGroup, SymbolPageAdapter.PageHolder>(GROUP_DIFF) {
 
-    private data class GridSpacingState(
+    data class GridSpacingState(
         var horizontalSpacingDp: Int,
         var verticalSpacingDp: Int
     )
