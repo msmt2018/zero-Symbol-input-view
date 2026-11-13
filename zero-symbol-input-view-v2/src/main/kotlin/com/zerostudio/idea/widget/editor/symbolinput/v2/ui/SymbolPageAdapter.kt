@@ -136,6 +136,10 @@ internal class SymbolPageAdapter(
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PageHolder {
+        val spacingState = GridSpacingState(
+            config.cellHorizontalSpacingDp,
+            config.cellVerticalSpacingDp
+        )
         val grid = RecyclerView(parent.context).apply {
             // ViewPager2 validates the direct page child's LayoutParams when it
             // attaches it. RecyclerView's generated default is not guaranteed
@@ -147,10 +151,6 @@ internal class SymbolPageAdapter(
             )
             setBackgroundColor(HostThemeColors.surface(context))
             val adaptiveGridLayout = GridLayoutManager(context, config.columns)
-            val spacingState = GridSpacingState(
-                config.cellHorizontalSpacingDp,
-                config.cellVerticalSpacingDp
-            )
             layoutManager = adaptiveGridLayout
             isNestedScrollingEnabled = false
             overScrollMode = RecyclerView.OVER_SCROLL_NEVER
