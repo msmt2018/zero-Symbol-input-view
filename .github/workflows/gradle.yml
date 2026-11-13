@@ -46,6 +46,20 @@ jobs:
       - name: Build debug APK
         run: ./gradlew assembleDebug
 
+      - name: Verify stable debug APK signing certificate
+        run: |
+          set -euo pipefail
+          APK="app/build/outputs/apk/debug/app-debug.apk"
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Android/Sdk}}"
+          APKSIGNER="$(find "$SDK_ROOT/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          test -x "$APKSIGNER"
+          "$APKSIGNER" verify --verbose "$APK"
+          "$APKSIGNER" verify --print-certs "$APK" > "$RUNNER_TEMP/apk-signature.txt"
+          ACTUAL="$(sed -n 's/.*Signer #1 certificate SHA-256 digest: //p' "$RUNNER_TEMP/apk-signature.txt" | head -n 1 | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
+          EXPECTED="a2e40e2ca4f9d280c08e2e2629beac0580bfe8e501f7ae233a824f5eb12e1582"
+          test "$ACTUAL" = "$EXPECTED"
+          echo "Verified stable debug signing certificate SHA-256: $ACTUAL"
+
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         if: ${{ !github.head_ref }}
