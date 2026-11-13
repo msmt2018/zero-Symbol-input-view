@@ -49,6 +49,7 @@ import android.content.Context
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.panel.DrawerPanelContent
 
 /**
  * Generic page content host. It owns view attachment and visibility lifecycle,
