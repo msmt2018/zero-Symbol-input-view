@@ -187,6 +187,11 @@ class SymbolDrawerSettingsScreen(
                     SideDockEdge.values().toList(),
                     current.sideDockEdge
                 ) { update { copy(sideDockEdge = it) } }
+                addSwitch("自动适配大屏窗口", current.largeScreenLayoutMode == LargeScreenLayoutMode.AUTO) {
+                    update {
+                        copy(largeScreenLayoutMode = if (it) LargeScreenLayoutMode.AUTO else LargeScreenLayoutMode.BOTTOM)
+                    }
+                }
                 addHint("自动模式会根据当前应用窗口宽度决定底部或侧边布局；手动模式可固定使用底部或侧边布局。侧边模式下可选择左侧或右侧。")
             },
             "交互" to {
@@ -390,13 +395,13 @@ class SymbolDrawerSettingsScreen(
             context,
             android.R.layout.simple_spinner_dropdown_item,
             values.map { value ->
-                when (value.name) {
-                    "SYSTEM" -> "跟随宿主 Activity"
-                    "AUTO" -> "自动适配大屏"
-                    "BOTTOM" -> "固定底部"
-                    "SIDE" -> "固定侧边"
-                    "LEFT" -> "左侧"
-                    "RIGHT" -> "右侧"
+                when (value) {
+                    ThemeMode.SYSTEM -> "跟随宿主 Activity"
+                    LargeScreenLayoutMode.AUTO -> "自动适配大屏"
+                    LargeScreenLayoutMode.BOTTOM -> "固定底部"
+                    LargeScreenLayoutMode.SIDE -> "固定侧边"
+                    SideDockEdge.LEFT -> "左侧"
+                    SideDockEdge.RIGHT -> "右侧"
                     else -> value.name.lowercase().replace('_', ' ')
                 }
             }
