@@ -104,6 +104,8 @@ class DrawerApiLabActivity : AppCompatActivity() {
             drawer.controller.moveToAnchor("content", true)
         })
         root.addView(button("内容自适应 · 长内容") {
+            configureBottomSheet()
+            drawer.controller.setPages(emptyList())
             drawer.controller.setExpandedContent(objectPanel("内容自适应", "增加内容后重新测量，锚点随内容高度变化。", 14))
             drawer.controller.setAnchorStrategy(DrawerAnchorStrategies.contentBased())
             drawer.refreshAnchors()
