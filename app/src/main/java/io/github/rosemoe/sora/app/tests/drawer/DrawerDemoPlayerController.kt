@@ -87,11 +87,24 @@ internal class DrawerDemoPlayerController(
     }
 
     fun pause() {
-        if (closed || !prepared) return
+        if (closed) return
+        mainHandler.removeCallbacks(progressTask)
+        if (state.isPreparing) {
+            // Invalidate a pending download/prepare callback so backgrounding
+            // the Activity cannot unexpectedly start music later.
+            generation++
+            downloadThread?.interrupt()
+            downloadThread = null
+            runCatching { player?.release() }
+            player = null
+            prepared = false
+            publish(state.copy(isPreparing = false, isPlaying = false))
+            return
+        }
+        if (!prepared) return
         val current = player ?: return
         if (runCatching { current.isPlaying }.getOrDefault(false)) {
             runCatching { current.pause() }
-            mainHandler.removeCallbacks(progressTask)
             publish(state.copy(isPlaying = false))
         }
     }
