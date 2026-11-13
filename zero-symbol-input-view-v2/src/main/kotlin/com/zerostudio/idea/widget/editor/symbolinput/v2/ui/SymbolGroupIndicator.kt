@@ -48,9 +48,12 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.ui
 import android.content.Context
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.widget.FrameLayout
+import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
@@ -67,10 +70,9 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowSizeClass
 internal class SymbolGroupIndicator(
     context: Context,
     onGroupSelected: (Int) -> Unit
-) : RecyclerView(context) {
+) : FrameLayout(context) {
     private val groupAdapter = GroupAdapter(onGroupSelected)
-
-    init {
+    private val groupList = RecyclerView(context).apply {
         layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
         setBackgroundColor(HostThemeColors.surface(context))
         adapter = groupAdapter
@@ -78,21 +80,62 @@ internal class SymbolGroupIndicator(
         overScrollMode = OVER_SCROLL_NEVER
         isHorizontalScrollBarEnabled = false
     }
+    private val settingsButton = ImageButton(context).apply {
+        val selectable = TypedValue()
+        if (context.theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, selectable, true) &&
+            selectable.resourceId != 0
+        ) setBackgroundResource(selectable.resourceId)
+        setImageResource(android.R.drawable.ic_menu_preferences)
+        setColorFilter(HostThemeColors.primary(context))
+        contentDescription = "符号设置"
+        isFocusable = true
+        isClickable = true
+        minimumWidth = dp(context, 48)
+        minimumHeight = dp(context, 48)
+        scaleType = android.widget.ImageView.ScaleType.CENTER
+    }
+
+    /** Called by the pinned, non-scrolling settings entry. */
+    var onSettingsClick: (() -> Unit)? = null
+
+    init {
+        setBackgroundColor(HostThemeColors.surface(context))
+        addView(groupList, LayoutParams(
+            LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT
+        ).apply { marginEnd = dp(context, 48) })
+        addView(settingsButton, LayoutParams(
+            dp(context, 48), LayoutParams.MATCH_PARENT, Gravity.END or Gravity.CENTER_VERTICAL
+        ))
+        settingsButton.setOnClickListener { onSettingsClick?.invoke() }
+    }
 
     fun submitGroups(groups: List<SymbolGroup>) = groupAdapter.submitGroups(groups)
     fun applySettings(settings: SymbolDrawerSettings) = groupAdapter.applySettings(settings)
 
+    override fun setBackgroundColor(color: Int) {
+        super.setBackgroundColor(color)
+        groupList.setBackgroundColor(color)
+    }
+
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
-        if (w > 0) groupAdapter.updateWindowWidth(w, resources.displayMetrics.density)
+        if (w > 0) {
+            groupAdapter.updateWindowWidth(
+                (w - dp(context, 48)).coerceAtLeast(1),
+                resources.displayMetrics.density
+            )
+        }
     }
 
     fun setSelectedIndex(index: Int) {
         groupAdapter.setSelectedIndex(index)
         if (index in 0 until groupAdapter.itemCount) {
-            (layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(index, 0)
+            (groupList.layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(index, 0)
         }
     }
+
+    private fun dp(context: Context, value: Int) =
+        (value * context.resources.displayMetrics.density + 0.5f).toInt()
 
     private class GroupAdapter(
         private val onGroupSelected: (Int) -> Unit

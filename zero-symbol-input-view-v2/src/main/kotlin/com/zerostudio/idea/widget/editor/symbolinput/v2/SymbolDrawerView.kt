@@ -98,12 +98,16 @@ class SymbolDrawerView @JvmOverloads constructor(
 
     var onSymbolActionListener: OnSymbolActionListener? = null
     var onOpenManagerListener: (() -> Unit)? = null
+    /** Optional dedicated settings entry callback; falls back to the manager callback for V1 hosts. */
+    var onOpenSettingsListener: (() -> Unit)? = null
     var onGroupChangedListener: ((Int, SymbolGroup?) -> Unit)? = null
 
     private val settingsRepository = SharedPreferencesSymbolDrawerSettingsRepository(context.applicationContext)
     private val hasPersistedSettings = settingsRepository.hasStoredSettings()
     private var settings = settingsRepository.load().settings.copy(themeMode = ThemeMode.SYSTEM)
-    private val indicator = SymbolGroupIndicator(context) { selectGroup(it, true) }
+    private val indicator = SymbolGroupIndicator(context) { selectGroup(it, true) }.apply {
+        onSettingsClick = { (onOpenSettingsListener ?: onOpenManagerListener)?.invoke() }
+    }
     private val pager = ViewPager2(context).apply {
         orientation = ViewPager2.ORIENTATION_HORIZONTAL
         offscreenPageLimit = 1

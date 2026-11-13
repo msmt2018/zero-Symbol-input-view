@@ -69,6 +69,33 @@ class DrawerUiContractTest {
         }
     }
 
+
+    @Test fun settingsEntryStaysPinnedBesideScrollableGroupTabs() {
+        ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val drawer = SymbolDrawerView(activity)
+                var opened = 0
+                drawer.onOpenSettingsListener = { opened++ }
+                activity.content.addView(drawer, FrameLayout.LayoutParams(-1, 480))
+                drawer.submitGroups(sample())
+                drawer.setExpanded(true, false)
+
+                val width = (420f * activity.resources.displayMetrics.density).toInt()
+                val height = (480f * activity.resources.displayMetrics.density).toInt()
+                drawer.measure(
+                    View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
+                )
+                drawer.layout(0, 0, width, height)
+
+                val settings = find(drawer) { it.contentDescription == "符号设置" }
+                assertEquals(width, (settings.parent as View).right)
+                assertTrue(settings.performClick())
+                assertEquals(1, opened)
+            }
+        }
+    }
+
     @Test fun drawerCanDetachAndReattachWithoutLosingStableUiState() {
         ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
             lateinit var drawer: SymbolDrawerView
