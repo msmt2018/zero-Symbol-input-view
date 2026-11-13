@@ -103,13 +103,18 @@ internal class JsonDocumentPicker(
 
     fun openJson() {
         val launcher = openLauncher ?: error("JSON file picker requires a ComponentActivity host")
-        launcher.launch(arrayOf("application/json", "text/json", "text/plain"))
+        // Document providers often label JSON as application/octet-stream.
+        // Select broadly, then validate the actual contents with the JSON codecs.
+        launcher.launch(arrayOf("*/*"))
     }
 
     fun saveJson(fileName: String, json: String) {
-        pendingExport = json
         val launcher = saveLauncher ?: error("JSON file picker requires a ComponentActivity host")
-        launcher.launch(fileName)
+        pendingExport = json
+        runCatching { launcher.launch(fileName) }.onFailure {
+            pendingExport = null
+            onError(it)
+        }
     }
 
     private fun read(uri: Uri) {
