@@ -359,9 +359,17 @@ class DrawerApiLabActivity : AppCompatActivity() {
 
 
     private fun configureBottomSheet() {
+        // Every demo starts from a known panel configuration. In particular,
+        // content-sized examples must not inherit a previous scenario's large
+        // Peek panel or expanded content.
         drawer.controller.setPresentationMode(DrawerPresentationMode.BOTTOM_SHEET)
         drawer.controller.setDragHandleEnabled(true)
         drawer.controller.setDragEnabled(true)
+        drawer.setTitle("")
+        drawer.setPeekContent(null)
+        drawer.controller.setExpandedContent(null)
+        drawer.controller.setPages(samplePages())
+        drawer.controller.setAnchorStrategy(DrawerAnchorStrategies.threeStage(0.5f, false))
         val availableDp = (drawer.height / resources.displayMetrics.density).toInt().coerceAtLeast(360)
         updateDimensions {
             it.copy(
