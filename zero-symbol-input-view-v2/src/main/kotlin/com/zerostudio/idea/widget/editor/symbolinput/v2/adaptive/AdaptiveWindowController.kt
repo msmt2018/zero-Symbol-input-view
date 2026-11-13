@@ -89,7 +89,17 @@ class AdaptiveWindowController(
             latestSnapshot = snapshot
             listeners.values.toList()
         }
-        callbacks.forEach { it(snapshot) }
+        var firstFailure: Exception? = null
+        callbacks.forEach { callback ->
+            try {
+                callback(snapshot)
+            } catch (failure: Exception) {
+                if (firstFailure == null) firstFailure = failure
+                else firstFailure?.addSuppressed(failure)
+            }
+        }
+        // Deliver to every subscriber before propagating callback failures.
+        firstFailure?.let { throw it }
     }
 
     override fun close() {
