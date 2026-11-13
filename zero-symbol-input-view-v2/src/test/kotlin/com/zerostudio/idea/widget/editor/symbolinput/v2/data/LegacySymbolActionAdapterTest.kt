@@ -47,6 +47,7 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.data
 
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.*
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
