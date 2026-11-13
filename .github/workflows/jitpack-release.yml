@@ -116,7 +116,7 @@ jobs:
           POM="$BASE/zero-symbol-input-view-v2-$RELEASE_TAG.pom"
           AAR="$BASE/zero-symbol-input-view-v2-$RELEASE_TAG.aar"
           echo "Requesting JitPack artifact: $POM"
-          for attempt in $(seq 1 36); do
+          for attempt in $(seq 1 90); do
             POM_STATUS="$(curl -L -sS -o /dev/null -w '%{http_code}' "$POM" || true)"
             AAR_STATUS="$(curl -L -sS -o /dev/null -w '%{http_code}' "$AAR" || true)"
             if [[ "$POM_STATUS" == "200" && "$AAR_STATUS" == "200" ]]; then
@@ -130,7 +130,7 @@ jobs:
               } >> "$GITHUB_STEP_SUMMARY"
               exit 0
             fi
-            echo "Attempt $attempt/36: POM=$POM_STATUS AAR=$AAR_STATUS"
+            echo "Attempt $attempt/90: POM=$POM_STATUS AAR=$AAR_STATUS"
             sleep 10
           done
           echo "::error::JitPack did not expose both artifacts before timeout."
