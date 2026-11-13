@@ -46,12 +46,6 @@
 package com.zerostudio.idea.widget.editor.symbolinput.v2.data
 
 import android.content.Context
-import com.zerostudio.idea.widget.editor.symbolinput.v2.model.LegacySymbolAction
-import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
-import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
-import com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolGroup as LegacySymbolGroup
 
 /**
  * One-way, non-destructive migration from the legacy compact JSON schema.
@@ -75,30 +69,11 @@ object LegacySymbolDataMigration {
                 return false
             }
 
+        // Reuse the strict V1 codec so migration enforces the same schema,
+        // identifier, action-ID, payload and size limits as explicit imports.
+        // This avoids an unbounded Gson parse of untrusted legacy preferences.
         val imported = runCatching {
-            val type = object : TypeToken<List<LegacySymbolGroup>>() {}.type
-            val legacy: List<LegacySymbolGroup> = Gson().fromJson(json, type) ?: emptyList()
-            legacy.mapIndexedNotNull { groupIndex, group ->
-                val symbols = group.items.mapIndexed { symbolIndex, item ->
-                    SymbolEntry(
-                        id = ((groupIndex.toLong() shl 32) or (symbolIndex.toLong() and 0xffffffffL)) + 1L,
-                        label = item.display,
-                        shortAction = LegacySymbolActionAdapter.convert(LegacySymbolAction(item.shortAction, item.shortText)),
-                        longAction = item.longAction?.let {
-                            LegacySymbolActionAdapter.convert(LegacySymbolAction(it, item.longText))
-                        },
-                        legacyShortActionId = item.shortAction,
-                        legacyShortText = item.shortText,
-                        legacyLongActionId = item.longAction,
-                        legacyLongText = item.longText
-                    )
-                }
-                if (symbols.isEmpty()) null else SymbolGroup(
-                    id = "legacy-$groupIndex-${group.name.hashCode()}",
-                    title = group.name,
-                    symbols = symbols
-                )
-            }
+            LegacySymbolDataCodec.decode(json).filter { it.symbols.isNotEmpty() }
         }.getOrElse { return false }
 
         if (imported.isEmpty()) {
