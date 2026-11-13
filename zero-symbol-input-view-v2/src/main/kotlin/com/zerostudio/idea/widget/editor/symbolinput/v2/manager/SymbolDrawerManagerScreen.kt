@@ -89,6 +89,24 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.AdaptiveContent
 private class SymbolHolder(val root: LinearLayout, val title: TextView, val detail: TextView) : RecyclerView.ViewHolder(root)
 
 /**
+ * Caps an editor form to the available app-window height. AlertDialog can then
+ * keep its normal wrap-content behavior for short forms while long forms
+ * become independently scrollable instead of extending beyond split-screen
+ * or compact landscape bounds.
+ */
+private class CappedScrollView(
+    context: Context,
+    private val maxHeightPx: Int
+) : ScrollView(context) {
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        val parentLimit = View.MeasureSpec.getSize(heightMeasureSpec)
+        val cap = minOf(maxHeightPx.coerceAtLeast(1), parentLimit.takeIf { it > 0 } ?: maxHeightPx)
+        val cappedHeight = View.MeasureSpec.makeMeasureSpec(cap, View.MeasureSpec.AT_MOST)
+        super.onMeasure(widthMeasureSpec, cappedHeight)
+    }
+}
+
+/**
  * First-party manager screen for groups and symbols. The screen is intentionally
  * a View rather than an Activity so the host controls navigation and window policy.
  */
@@ -523,7 +541,12 @@ class SymbolDrawerManagerScreen(
                 alpha = 0.7f
             }, matchWrap())
         }
-        val formScroll = ScrollView(context).apply {
+        val windowHeight = rootView.height.takeIf { it > 0 }
+            ?: resources.displayMetrics.heightPixels
+        val formScroll = CappedScrollView(
+            context,
+            (windowHeight - dp(96)).coerceAtLeast(dp(240))
+        ).apply {
             isFillViewport = false
             addView(form, ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
