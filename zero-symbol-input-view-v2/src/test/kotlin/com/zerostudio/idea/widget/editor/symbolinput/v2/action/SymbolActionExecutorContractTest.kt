@@ -166,9 +166,20 @@ class SymbolActionExecutorContractTest {
     }
 
     @Test fun rejectsSurroundActionsWhoseCombinedTextExceedsTheLimit() {
-        val json = com.google.gson.JsonParser.parseString(
-            """{"kind":"surroundSelection","prefix":"1234","suffix":"5678"}"""
-        ).asJsonObject
+        val host = Host()
+        val limitedExecutor = SymbolActionExecutor(maxTextLength = 7)
+        val action = SymbolAction.SurroundSelection("1234", "5678")
+        assertTrue(limitedExecutor.execute(action, host) is SymbolActionResult.Invalid)
+        assertTrue(host.calls.isEmpty())
+
+        // Each field is individually below the codec limit, but their combined
+        // size exceeds it and must be rejected before a SymbolAction is created.
+        val json = com.google.gson.JsonObject().apply {
+            addProperty("schemaVersion", 1)
+            addProperty("kind", "surroundSelection")
+            addProperty("prefix", "p".repeat(524_289))
+            addProperty("suffix", "s".repeat(524_288))
+        }
         assertTrue(runCatching { SymbolActionJsonCodec.decode(json) }.isFailure)
     }
 
