@@ -119,6 +119,16 @@ class DrawerUiContractTest {
                 )
                 screen.layout(0, 0, compactWidth, height)
                 assertEquals(1, (list.layoutManager as GridLayoutManager).spanCount)
+
+                // A landscape/split-height change must not alter the column
+                // decision: the policy is based on the app window width.
+                val landscapeHeight = (360f * density).toInt()
+                screen.measure(
+                    View.MeasureSpec.makeMeasureSpec(compactWidth, View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(landscapeHeight, View.MeasureSpec.EXACTLY)
+                )
+                screen.layout(0, 0, compactWidth, landscapeHeight)
+                assertEquals(1, (list.layoutManager as GridLayoutManager).spanCount)
             }
         }
     }
@@ -131,6 +141,27 @@ class DrawerUiContractTest {
                 activity.content.addView(screen, FrameLayout.LayoutParams(-1, -1))
                 val tabs = find(screen) { it is TabLayout } as TabLayout
                 assertTrue(tabs.tabCount >= 5)
+                tabs.getTabAt(2)?.select()
+                val density = activity.resources.displayMetrics.density
+                val expandedWidth = (1000f * density).toInt()
+                val expandedHeight = (800f * density).toInt()
+                screen.measure(
+                    View.MeasureSpec.makeMeasureSpec(expandedWidth, View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(expandedHeight, View.MeasureSpec.EXACTLY)
+                )
+                screen.layout(0, 0, expandedWidth, expandedHeight)
+                val reflowedTabs = find(screen) { it is TabLayout } as TabLayout
+                assertEquals(2, reflowedTabs.selectedTabPosition)
+
+                val compactWidth = (500f * density).toInt()
+                screen.measure(
+                    View.MeasureSpec.makeMeasureSpec(compactWidth, View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(expandedHeight, View.MeasureSpec.EXACTLY)
+                )
+                screen.layout(0, 0, compactWidth, expandedHeight)
+                val compactTabs = find(screen) { it is TabLayout } as TabLayout
+                assertEquals(2, compactTabs.selectedTabPosition)
+
                 settings.save(SymbolDrawerSettings(cellHorizontalSpacingDp = -10, cellVerticalSpacingDp = -8))
                 screen.reload()
                 assertEquals(-10, screen.getSettings().cellHorizontalSpacingDp)
