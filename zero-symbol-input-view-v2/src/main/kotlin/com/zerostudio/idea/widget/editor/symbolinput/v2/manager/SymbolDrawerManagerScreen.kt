@@ -50,6 +50,7 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
 import android.view.ViewGroup
+import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
@@ -526,7 +527,9 @@ class SymbolDrawerManagerScreen(
                 ?: (existing?.shortAction as? com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.InsertText)?.template
                 ?: (existing?.shortAction as? com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.EditorCommand)
                     ?.takeIf { it.commandId == "line.replace" }?.payload.orEmpty())
-            isEnabled = !preserveShortAction
+            isEnabled = !preserveShortAction && LegacySymbolActionCatalog.hasTextPayload(
+                LegacySymbolActionCatalog.values[shortIndex - shortOffset]
+            )
         }
         val longText = EditText(context).apply {
             hint = "动作参数文本（插入文本/替换行等动作使用）"
@@ -536,7 +539,34 @@ class SymbolDrawerManagerScreen(
                 ?: (existing?.longAction as? com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.InsertText)?.template
                 ?: (existing?.longAction as? com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.EditorCommand)
                     ?.takeIf { it.commandId == "line.replace" }?.payload.orEmpty())
-            isEnabled = !preserveLongAction
+            isEnabled = !preserveLongAction && longLegacyIndex?.let { index ->
+                LegacySymbolActionCatalog.hasTextPayload(LegacySymbolActionCatalog.values[index])
+            } == true
+        }
+        shortAction.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+                shortText.isEnabled = false
+            }
+
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val actionId = if (preserveShortAction && position == 0) null
+                    else LegacySymbolActionCatalog.values[position - shortOffset]
+                shortText.isEnabled = actionId?.let(LegacySymbolActionCatalog::hasTextPayload) == true
+            }
+        }
+        longAction.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+                longText.isEnabled = false
+            }
+
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val actionId = when {
+                    preserveLongAction && position <= 1 -> null
+                    !preserveLongAction && position == 0 -> null
+                    else -> LegacySymbolActionCatalog.values[position - longOffset]
+                }
+                longText.isEnabled = actionId?.let(LegacySymbolActionCatalog::hasTextPayload) == true
+            }
         }
         val form = LinearLayout(context).apply {
             orientation = VERTICAL
