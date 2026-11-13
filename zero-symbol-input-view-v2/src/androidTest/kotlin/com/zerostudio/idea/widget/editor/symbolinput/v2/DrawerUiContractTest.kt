@@ -96,6 +96,31 @@ class DrawerUiContractTest {
         }
     }
 
+
+    @Test fun pinnedSettingsEntryOpensBuiltInSettingsWhenNoHostCallbackIsInstalled() {
+        ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val drawer = SymbolDrawerView(activity)
+                activity.content.addView(drawer, FrameLayout.LayoutParams(-1, 480))
+                drawer.submitGroups(sample())
+                drawer.setExpanded(true, false)
+                val width = (420f * activity.resources.displayMetrics.density).toInt()
+                val height = (480f * activity.resources.displayMetrics.density).toInt()
+                drawer.measure(
+                    View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
+                )
+                drawer.layout(0, 0, width, height)
+                val settings = find(drawer) { it.contentDescription == "符号设置" }
+                assertTrue(settings.performClick())
+                val dialogTitle = find(activity.window.decorView) {
+                    it is TextView && it.text == "符号抽屉设置"
+                }
+                assertTrue(dialogTitle is TextView)
+            }
+        }
+    }
+
     @Test fun drawerCanDetachAndReattachWithoutLosingStableUiState() {
         ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
             lateinit var drawer: SymbolDrawerView
