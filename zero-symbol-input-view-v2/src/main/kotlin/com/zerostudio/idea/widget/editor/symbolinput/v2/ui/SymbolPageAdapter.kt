@@ -165,6 +165,7 @@ internal class SymbolPageAdapter(
             clipToPadding = false
             var appliedHorizontalPadding = Int.MIN_VALUE
             addOnLayoutChangeListener { view, left, top, right, bottom, _, _, _, _ ->
+                val gridView = view as? RecyclerView ?: return@addOnLayoutChangeListener
                 val availableWidth = (right - left - view.paddingLeft - view.paddingRight).coerceAtLeast(1)
                 if (availableWidth <= 0) return@addOnLayoutChangeListener
                 val density = resources.displayMetrics.density
@@ -191,8 +192,8 @@ internal class SymbolPageAdapter(
                     appliedHorizontalPadding = horizontal
                     view.setPadding(horizontal, view.paddingTop, horizontal, view.paddingBottom)
                 }
-                for (index in 0 until view.childCount) {
-                    val child = view.getChildAt(index)
+                for (index in 0 until gridView.childCount) {
+                    val child = gridView.getChildAt(index)
                     val params = child.layoutParams as? RecyclerView.LayoutParams ?: continue
                     val halfHorizontal = dp(context, gridSpec.horizontalSpacingDp / 2)
                     val halfVertical = dp(context, gridSpec.verticalSpacingDp / 2)
