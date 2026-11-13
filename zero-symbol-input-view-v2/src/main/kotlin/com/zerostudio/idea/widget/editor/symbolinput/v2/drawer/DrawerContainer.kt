@@ -45,6 +45,8 @@
 
 package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Color
@@ -143,6 +145,7 @@ class DrawerContainer @JvmOverloads constructor(
             systemBarTopInset = bars.top
             systemBarBottomInset = bars.bottom
             applyVisualStyle()
+            recalculateAnchors()
             insets
         }
         addView(scrim, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
@@ -208,6 +211,7 @@ class DrawerContainer @JvmOverloads constructor(
     fun setTitle(value: CharSequence?) {
         title.text = value ?: ""
         title.visibility = if (title.text.isNullOrEmpty()) GONE else VISIBLE
+        recalculateAnchors()
     }
 
     private fun contentThemeContext() = DrawerThemeResolver.contextFor(context, currentConfig.style)
@@ -502,11 +506,20 @@ class DrawerContainer @JvmOverloads constructor(
             addUpdateListener { value ->
                 val heightPx = value.animatedValue as Int
                 val nearest = DrawerAnchorResolver.nearestAnchor(anchors, heightPx)
-                val intermediate = nearest.copy(heightPx = heightPx)
                 state = DrawerState(nearest.id, heightPx, anchors, false, true)
                 updateVisualState()
-                stateListeners.toList().forEach { it(state!!) }
+                state?.let { snapshot -> stateListeners.toList().forEach { it(snapshot) } }
             }
+            addListener(object : AnimatorListenerAdapter() {
+                private var cancelled = false
+                override fun onAnimationCancel(animation: Animator) {
+                    cancelled = true
+                }
+                override fun onAnimationEnd(animation: Animator) {
+                    if (!cancelled) updateState(anchor, false, false)
+                    if (animator === this@apply) animator = null
+                }
+            })
             start()
         }
     }
@@ -760,6 +773,7 @@ class DrawerContainer @JvmOverloads constructor(
         override fun setNavigationConfig(config: DrawerNavigationConfig) {
             currentConfig = currentConfig.copy(navigationConfig = config)
             applyVisualStyle()
+            recalculateAnchors()
         }
         override fun setDragEnabled(enabled: Boolean) {
             currentConfig = currentConfig.copy(enableDrag = enabled)
