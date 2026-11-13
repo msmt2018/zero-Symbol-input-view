@@ -220,6 +220,9 @@ class MainActivity : AppCompatActivity() {
         symbolInputView.onOpenManagerListener = {
             showSymbolDrawerManager(symbolInputView)
         }
+        symbolInputView.onOpenSettingsListener = {
+            showSymbolDrawerSettings(symbolInputView)
+        }
         
 
         // Commit search when text changed
@@ -1201,6 +1204,20 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun showSymbolDrawerSettings(drawer: SymbolDrawerView) {
+        val settings = SymbolDrawerSettingsScreen(this).apply {
+            onSettingsChanged = drawer::applySettings
+            onError = { error ->
+                Toast.makeText(this@MainActivity, "设置保存失败：${error.message}", Toast.LENGTH_LONG).show()
+            }
+        }
+        MaterialAlertDialogBuilder(this)
+            .setTitle("符号抽屉设置")
+            .setView(settings)
+            .setPositiveButton("完成", null)
+            .show()
+    }
+
     private fun showSymbolDrawerManager(drawer: SymbolDrawerView) {
         val manager = SymbolDrawerManagerScreen(this).apply {
             onGroupsChanged = { groups -> drawer.submitGroups(groups) }
@@ -1212,19 +1229,7 @@ class MainActivity : AppCompatActivity() {
             .setTitle("符号管理")
             .setView(manager)
             .setPositiveButton("关闭", null)
-            .setNeutralButton("设置") { _, _ ->
-                val settings = SymbolDrawerSettingsScreen(this).apply {
-                    onSettingsChanged = drawer::applySettings
-                    onError = { error ->
-                        Toast.makeText(this@MainActivity, "设置保存失败：${error.message}", Toast.LENGTH_LONG).show()
-                    }
-                }
-                MaterialAlertDialogBuilder(this)
-                    .setTitle("符号抽屉设置")
-                    .setView(settings)
-                    .setPositiveButton("完成", null)
-                    .show()
-            }
+            .setNeutralButton("设置") { _, _ -> showSymbolDrawerSettings(drawer) }
             .setOnDismissListener { drawer.reloadGroups() }
             .show()
     }
