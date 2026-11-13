@@ -18,6 +18,7 @@ class AdaptiveGridResolverTest {
         )
         assertEquals(8, spec.columnCount)
         assertEquals(2, spec.horizontalSpacingDp)
+        assertEquals(2, spec.verticalSpacingDp)
     }
 
     @Test fun expandedWindowsUseMoreColumnsWithoutExceedingConfiguredMaximum() {
@@ -29,6 +30,7 @@ class AdaptiveGridResolverTest {
         )
         assertEquals(18, spec.columnCount)
         assertEquals(5, spec.horizontalSpacingDp)
+        assertEquals(5, spec.verticalSpacingDp)
     }
 
     @Test fun fixedDimensionModePreservesConfiguredColumnsAndSpacing() {
@@ -41,6 +43,20 @@ class AdaptiveGridResolverTest {
         )
         assertEquals(12, spec.columnCount)
         assertEquals(-8, spec.horizontalSpacingDp)
+        assertEquals(-8, spec.verticalSpacingDp)
+    }
+
+
+    @Test fun horizontalAndVerticalSpacingCanUseDifferentBaseValues() {
+        val spec = AdaptiveGridResolver.resolve(
+            window = WindowAdaptiveInfo(1000f, 800f),
+            preferredColumns = 12,
+            minimumCellWidthDp = 40f,
+            baseHorizontalSpacingDp = 2,
+            baseVerticalSpacingDp = 6
+        )
+        assertEquals(5, spec.horizontalSpacingDp)
+        assertEquals(9, spec.verticalSpacingDp)
     }
 
     @Test fun gridAlwaysKeepsAtLeastOneColumn() {
