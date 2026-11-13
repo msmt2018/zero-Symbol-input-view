@@ -207,10 +207,10 @@ class SymbolGroupBundleCodecTest {
                     SymbolEntry(
                         id = 1L,
                         label = "custom",
-                        shortAction = LegacySymbolActionAdapter.convert(LegacySymbolAction(0, "val x = \$S\$T\$E")),
+                        shortAction = LegacySymbolActionAdapter.convert(LegacySymbolAction(0, "val x = \${'$'}S\${'$'}T\${'$'}E")),
                         longAction = LegacySymbolActionAdapter.convert(LegacySymbolAction(36, "replacement")),
                         legacyShortActionId = 0,
-                        legacyShortText = "val x = \$S\$T\$E",
+                        legacyShortText = "val x = \${'$'}S\${'$'}T\${'$'}E",
                         legacyLongActionId = 36,
                         legacyLongText = "replacement"
                     ),
@@ -225,13 +225,13 @@ class SymbolGroupBundleCodecTest {
         )
         val json = SymbolGroupStorageCodec.encode(source)
         assertTrue(json.contains("\"a\":0"))
-        assertTrue(json.contains("\"c\":\"val x = \$S\$T\$E\""))
+        assertTrue(json.contains("\"c\":\"val x = \${'$'}S\${'$'}T\${'$'}E\""))
         assertTrue(json.contains("\"d\":36"))
         assertTrue(json.contains("\"e\":\"replacement\""))
         assertTrue(json.contains("\"a\":33"))
         val restored = SymbolGroupStorageCodec.decode(json)
         assertEquals(0, restored[0].symbols[0].legacyShortActionId)
-        assertEquals("val x = \$S\$T\$E", restored[0].symbols[0].legacyShortText)
+        assertEquals("val x = \${'$'}S\${'$'}T\${'$'}E", restored[0].symbols[0].legacyShortText)
         assertEquals(36, restored[0].symbols[0].legacyLongActionId)
         assertEquals(33, restored[0].symbols[1].legacyShortActionId)
     }
@@ -252,9 +252,9 @@ class SymbolGroupBundleCodecTest {
             {"a":0,"b":"(","c":"("},{"a":0,"b":")","c":")"},
             {"a":0,"b":"(\"","c":"(\""},{"a":0,"b":"\")","c":"\")"},
             {"a":0,"b":"{","c":"{"},{"a":0,"b":"}","c":"}"},
-            {"a":0,"b":"()","c":"()","d":0,"e":"($T)"},
-            {"a":0,"b":"[]","c":"[]","d":0,"e":"[$T]"},
-            {"a":0,"b":"{}","c":"{$S$T$E}","d":0,"e":"{$T}"},
+            {"a":0,"b":"()","c":"()","d":0,"e":"(${'$'}T)"},
+            {"a":0,"b":"[]","c":"[]","d":0,"e":"[${'$'}T]"},
+            {"a":0,"b":"{}","c":"{${'$'}S${'$'}T${'$'}E}","d":0,"e":"{${'$'}T}"},
             {"a":0,"b":"<","c":"<"},{"a":0,"b":">","c":">"},
             {"a":0,"b":"\\","c":"\\"},{"a":0,"b":"$","c":"$"},
             {"a":0,"b":"&","c":"&"},{"a":0,"b":"/*","c":"/**"},

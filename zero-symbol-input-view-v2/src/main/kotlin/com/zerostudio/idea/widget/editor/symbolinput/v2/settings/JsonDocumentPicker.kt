@@ -154,7 +154,7 @@ internal class JsonDocumentPicker(
                 ?: error("Unable to create selected JSON file")
             output.bufferedWriter(Charsets.UTF_8).use { it.write(payload) }
             pendingExport = null
-        }.onSuccess { }.onFailure(onError)
+        }.onSuccess { }.onFailure { error -> runCatching { onError(error) } }
     }
 
     private fun Context.findComponentActivity(): ComponentActivity? {
