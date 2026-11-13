@@ -62,6 +62,7 @@ import android.view.ViewGroup
 import android.util.TypedValue
 import android.widget.TextView
 import androidx.core.widget.TextViewCompat
+import androidx.core.view.ViewCompat
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.GridLayoutManager
@@ -302,17 +303,31 @@ internal class SymbolPageAdapter(
                 val current = holder.bindingAdapterPosition
                 if (current != RecyclerView.NO_POSITION) onSymbolAction(getItem(current), false)
             }
+            holder.accessibilityLongActionId?.let {
+                ViewCompat.removeAccessibilityAction(holder.label, it)
+            }
+            holder.accessibilityLongActionId = null
+            val dispatchLongAction = {
+                val current = holder.bindingAdapterPosition
+                if (current != RecyclerView.NO_POSITION && getItem(current).id == item.id) {
+                    onSymbolAction(getItem(current), true)
+                }
+            }
+            if (item.longAction != null) {
+                holder.accessibilityLongActionId = ViewCompat.addAccessibilityAction(
+                    holder.label,
+                    "执行长按动作"
+                ) { _, _ ->
+                    dispatchLongAction()
+                    true
+                }
+            }
             holder.touchListener?.cancel()
             holder.touchListener = SymbolCellTouchListener(
                 view = holder.label,
                 longPressTimeoutMs = settings.longPressTimeoutMs,
                 hasLongAction = item.longAction != null,
-                onLongPress = {
-                    val current = holder.bindingAdapterPosition
-                    if (current != RecyclerView.NO_POSITION && getItem(current).id == item.id) {
-                        onSymbolAction(getItem(current), true)
-                    }
-                }
+                onLongPress = dispatchLongAction
             )
             holder.label.setOnTouchListener(holder.touchListener)
         }
@@ -394,6 +409,7 @@ internal class SymbolPageAdapter(
     private class SymbolHolder(view: TextView) : RecyclerView.ViewHolder(view) {
         val label: TextView = view
         var touchListener: SymbolCellTouchListener? = null
+        var accessibilityLongActionId: Int? = null
     }
 
     private companion object {

@@ -59,7 +59,8 @@ class DrawerPageHost @JvmOverloads constructor(
     context: Context,
     val navigationController: DrawerNavigationController = DrawerNavigationController()
 ) : FrameLayout(context) {
-    private val pageViews = LinkedHashMap<String, View>()
+    private data class CachedPageView(val content: DrawerPanelContent, val view: View)
+    private val pageViews = LinkedHashMap<String, CachedPageView>()
     private var contentContext: Context = context
     private var visiblePageId: String? = null
     // Keep the exact content instance: a page may be replaced while retaining
@@ -69,6 +70,7 @@ class DrawerPageHost @JvmOverloads constructor(
     private var panelVisible = false
     private var disposed = false
     private val navigationListener = DrawerNavigationController.Listener { snapshot, _ ->
+        reconcilePageCache()
         render(snapshot.selectedPageId)
     }
 
@@ -85,24 +87,6 @@ class DrawerPageHost @JvmOverloads constructor(
         require(pages.map { it.id }.distinct().size == pages.size) {
             "Drawer page IDs must be unique"
         }
-        val oldPages = navigationController.pages().associateBy { it.id }
-        val newPages = pages.associateBy { it.id }
-        val invalidatedIds = pageViews.keys.filter { id ->
-            val oldContent = oldPages[id]?.content
-            val newContent = newPages[id]?.content
-            id !in newPages || (oldContent != null && newContent !== oldContent)
-        }
-        invalidatedIds.forEach { id ->
-            val oldContent = oldPages[id]?.content
-            if (id == visiblePageId && oldContent != null) {
-                if (hostAttached && panelVisible) oldContent.onPanelHidden()
-                visiblePageContent = null
-            }
-            oldContent?.onPanelDetached()
-            pageViews.remove(id)?.let { view ->
-                if (view.parent === this) removeView(view)
-            }
-        }
         navigationController.submitPages(pages, preserveSelection)
     }
 
@@ -111,13 +95,10 @@ class DrawerPageHost @JvmOverloads constructor(
         contentContext = value
         if (!recreateCachedViews || pageViews.isEmpty()) return
         val selectedId = visiblePageId
-        if (hostAttached && panelVisible) {
-            navigationController.pages().firstOrNull { it.id == selectedId }?.content?.onPanelHidden()
-        }
-        navigationController.pages().filter { pageViews.containsKey(it.id) }
-            .forEach { it.content.onPanelDetached() }
-        pageViews.values.forEach { view ->
-            if (view.parent === this) removeView(view)
+        if (hostAttached && panelVisible) visiblePageContent?.onPanelHidden()
+        pageViews.values.forEach { cached ->
+            cached.content.onPanelDetached()
+            if (cached.view.parent === this) removeView(cached.view)
         }
         pageViews.clear()
         visiblePageId = null
@@ -138,12 +119,33 @@ class DrawerPageHost @JvmOverloads constructor(
 
     fun measureCurrentContentHeight(maxWidthPx: Int, maxHeightPx: Int): Int {
         val selectedId = navigationController.snapshot().selectedPageId ?: return 0
-        val view = pageViews[selectedId] ?: return 0
+        val view = pageViews[selectedId]?.view ?: return 0
         view.measure(
             View.MeasureSpec.makeMeasureSpec(maxWidthPx.coerceAtLeast(0), View.MeasureSpec.EXACTLY),
             View.MeasureSpec.makeMeasureSpec(maxHeightPx.coerceAtLeast(0), View.MeasureSpec.AT_MOST)
         )
         return view.measuredHeight
+    }
+
+    /**
+     * Reconcile cached views on every controller submission, not only calls
+     * routed through setPages(). navigationController is intentionally public,
+     * so hosts may submit replacement providers directly.
+     */
+    private fun reconcilePageCache() {
+        val currentPages = navigationController.pages().associateBy { it.id }
+        pageViews.toList().forEach { (id, cached) ->
+            val current = currentPages[id]
+            if (current == null || current.content !== cached.content) {
+                if (id == visiblePageId) {
+                    if (hostAttached && panelVisible) cached.content.onPanelHidden()
+                    visiblePageContent = null
+                }
+                cached.content.onPanelDetached()
+                if (cached.view.parent === this) removeView(cached.view)
+                pageViews.remove(id)
+            }
+        }
     }
 
     private fun render(pageId: String?) {
@@ -153,7 +155,7 @@ class DrawerPageHost @JvmOverloads constructor(
         val previousContent = visiblePageContent
         if (hostAttached && panelVisible) previousContent?.onPanelHidden()
         if (visiblePageId != null) {
-            pageViews[visiblePageId]?.let { old ->
+            pageViews[visiblePageId]?.view?.let { old ->
                 if (old.parent === this) removeView(old)
             }
         }
@@ -169,11 +171,13 @@ class DrawerPageHost @JvmOverloads constructor(
         visiblePageId = pageId
         visiblePageContent = page?.content
         page ?: return
-        val isNewView = !pageViews.containsKey(page.id)
-        val view = pageViews.getOrPut(page.id) { page.content.createView(contentContext) }
+        val cached = pageViews[page.id]
+        val entry = cached ?: CachedPageView(page.content, page.content.createView(contentContext))
+            .also { pageViews[page.id] = it }
+        val view = entry.view
         (view.parent as? ViewGroup)?.removeView(view)
         addView(view, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
-        if (isNewView) page.content.onPanelAttached()
+        if (cached == null) page.content.onPanelAttached()
         if (hostAttached && panelVisible) page.content.onPanelVisible()
     }
 
@@ -207,19 +211,17 @@ class DrawerPageHost @JvmOverloads constructor(
         if (disposed) return
         disposed = true
         navigationController.removeListener(navigationListener)
-        navigationController.pages().forEach { page ->
-            if (pageViews.containsKey(page.id)) {
-                if (hostAttached && panelVisible && page.id == visiblePageId) {
-                    page.content.onPanelHidden()
-                }
-                page.content.onPanelDetached()
+        pageViews.forEach { (id, cached) ->
+            if (hostAttached && panelVisible && id == visiblePageId) {
+                cached.content.onPanelHidden()
             }
+            cached.content.onPanelDetached()
         }
         // Mark the panel hidden before detachment can arrive later. This makes
         // dispose() idempotent and prevents a second onPanelHidden callback.
         panelVisible = false
-        pageViews.values.forEach { view ->
-            if (view.parent === this) removeView(view)
+        pageViews.values.forEach { cached ->
+            if (cached.view.parent === this) removeView(cached.view)
         }
         pageViews.clear()
         visiblePageId = null

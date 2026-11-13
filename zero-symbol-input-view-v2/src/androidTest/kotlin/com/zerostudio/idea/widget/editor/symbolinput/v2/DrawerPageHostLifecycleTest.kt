@@ -76,6 +76,37 @@ class DrawerPageHostLifecycleTest {
     }
 
     @Test
+    fun directControllerSubmissionInvalidatesReplacedNonSelectedPageView() {
+        ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val events = mutableListOf<String>()
+                val host = DrawerPageHost(activity)
+                activity.content.addView(host)
+                val oldFirst = TrackedContent(activity, "old-first", events)
+                val currentSecond = TrackedContent(activity, "second", events)
+                val newFirst = TrackedContent(activity, "new-first", events)
+                host.setPages(listOf(
+                    DrawerPage("first", "First", oldFirst),
+                    DrawerPage("second", "Second", currentSecond)
+                ))
+                host.setPanelVisible(true)
+                assertTrue(host.selectPage("second"))
+
+                // Exercise the public controller path that bypasses host.setPages().
+                host.navigationController.submitPages(listOf(
+                    DrawerPage("first", "First updated", newFirst),
+                    DrawerPage("second", "Second", currentSecond)
+                ))
+                assertTrue(host.selectPage("first"))
+                assertTrue(events.contains("old-first:detached"))
+                assertTrue(events.contains("new-first:attached"))
+                assertTrue(events.contains("new-first:visible"))
+                host.dispose()
+            }
+        }
+    }
+
+    @Test
     fun rejectedDuplicatePageUpdateDoesNotEvictCurrentPage() {
         ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
