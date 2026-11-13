@@ -17,10 +17,10 @@ The module directory is intentionally nested at:
 ## Basic use
 
 ```kotlin
-val drawer = findViewById<AdvancedSymbolDrawerView>(R.id.symbol_drawer_v2)
+val drawer = findViewById<SymbolDrawerView>(R.id.symbol_drawer_v2)
 
 drawer.onSymbolActionListener =
-    AdvancedSymbolDrawerView.OnSymbolActionListener { symbol, isLongPress ->
+    SymbolDrawerView.OnSymbolActionListener { symbol, isLongPress ->
         val action = if (isLongPress) symbol.longAction else symbol.shortAction
         if (action != null) {
             // Existing Sora Editor integration can reuse the legacy executor:

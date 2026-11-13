@@ -16,7 +16,7 @@ The legacy library remains untouched and is the behavioural reference during V2 
 ## Runtime composition
 
 ```text
-AdvancedSymbolDrawerView
+SymbolDrawerView
 ├── SymbolGroupIndicator (horizontal RecyclerView)
 └── ViewPager2 (horizontal paging)
     └── SymbolPageAdapter
@@ -26,7 +26,7 @@ AdvancedSymbolDrawerView
 
 ## Responsibilities
 
-- **AdvancedSymbolDrawerView**: owns the integrated interaction, height, indicator reveal, pager synchronization and public API. Its expansion geometry includes indicator height separately from grid height, so the indicator remains revealable even when every symbol group fits in the collapsed grid.
+- **SymbolDrawerView**: owns the integrated interaction, height, indicator reveal, pager synchronization and public API. Its expansion geometry includes indicator height separately from grid height, so the indicator remains revealable even when every symbol group fits in the collapsed grid.
 - **DrawerGeometry**: pure row/height/reveal calculations; no View dependencies.
 - **SymbolGroupRepository**: persistence boundary. The default SharedPreferences implementation uses a V2-only namespace.
 - **LegacySymbolDataMigration**: one-way imports the legacy compact JSON preference when the V2 store is empty; it never writes to the legacy store.
@@ -34,7 +34,7 @@ AdvancedSymbolDrawerView
 - **SymbolGroupIndicator**: recycles group labels and only updates changed selection rows.
 - **SymbolPageAdapter**: pages are recycled by ViewPager2; each page uses a grid RecyclerView and shared recycled pool.
 - **Action configuration**: every symbol exposes independent V1-compatible short-press and optional long-press action selectors, using the exact V1 action IDs, ordering and text-parameter rules. The manager list is also embedded in the settings screen.
-- **Settings repository and screen**: immutable schema-versioned settings snapshots persisted independently from symbol data; the programmatic settings screen exposes each setting and reports saved snapshots to the host. `AdvancedSymbolDrawerView.applySettings` applies grid geometry, expansion cap, indicator style, labels, touch targets, long-press timing, haptics, motion, cache and fling behavior.
+- **Settings repository and screen**: immutable schema-versioned settings snapshots persisted independently from symbol data; the programmatic settings screen exposes each setting and reports saved snapshots to the host. `SymbolDrawerView.applySettings` applies grid geometry, expansion cap, indicator style, labels, touch targets, long-press timing, haptics, motion, cache and fling behavior.
 - **Bundle codec**: import/export and SharedPreferences writes use the original V1 compact JSON schema (`n`, `d`, `a`, `b`, `c`, `d`, `e`). Runtime-only IDs are synthesized because V1 did not store IDs; raw action IDs and payloads are retained to keep round trips lossless.
 
 ## Gesture arbitration

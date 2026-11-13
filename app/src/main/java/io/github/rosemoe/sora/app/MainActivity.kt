@@ -121,7 +121,7 @@ import java.io.FileOutputStream
 import java.lang.ref.WeakReference
 import java.util.zip.ZipFile
 import java.util.regex.PatternSyntaxException
-import com.zerostudio.idea.widget.editor.symbolinput.v2.AdvancedSymbolDrawerView
+import com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawerView
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionExecutor
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionResult
 import com.zerostudio.idea.widget.editor.symbolinput.v2.manager.SymbolDrawerManagerScreen
@@ -201,14 +201,14 @@ class MainActivity : AppCompatActivity() {
         // inputView.bindEditor(binding.editor)
         // inputView.addSymbols(SYMBOLS, SYMBOL_INSERT_TEXT)
         // inputView.forEachButton { it.typeface = typeface }
-        val symbolInputView = findViewById<AdvancedSymbolDrawerView>(R.id.advanced_symbol_input)
+        val symbolInputView = findViewById<SymbolDrawerView>(R.id.advanced_symbol_input)
         symbolInputView.applySettings(SharedPreferencesSymbolDrawerSettingsRepository(this).load().settings)
         val actionExecutor = SymbolActionExecutor()
         val actionHost = SoraCodeEditorSymbolActionHost(binding.editor) {
             showSymbolDrawerManager(symbolInputView)
         }
         symbolInputView.onSymbolActionListener =
-            AdvancedSymbolDrawerView.OnSymbolActionListener { symbol, longPress ->
+            SymbolDrawerView.OnSymbolActionListener { symbol, longPress ->
                 val action = if (longPress) symbol.longAction else symbol.shortAction
                 if (action != null) {
                     val result = actionExecutor.execute(action, actionHost)
@@ -1201,7 +1201,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun showSymbolDrawerManager(drawer: AdvancedSymbolDrawerView) {
+    private fun showSymbolDrawerManager(drawer: SymbolDrawerView) {
         val manager = SymbolDrawerManagerScreen(this).apply {
             onGroupsChanged = { groups -> drawer.submitGroups(groups) }
             onError = { error ->
@@ -1231,7 +1231,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        findViewById<AdvancedSymbolDrawerView>(R.id.advanced_symbol_input)?.onHostResume()
+        findViewById<SymbolDrawerView>(R.id.advanced_symbol_input)?.onHostResume()
     }
 
 }

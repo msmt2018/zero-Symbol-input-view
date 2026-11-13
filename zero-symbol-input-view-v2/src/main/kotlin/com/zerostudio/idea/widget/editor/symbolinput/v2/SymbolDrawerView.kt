@@ -84,7 +84,7 @@ import kotlin.math.roundToInt
  * Symbol actions are exposed as callbacks; this view has no dependency on a
  * particular editor implementation.
  */
-class AdvancedSymbolDrawerView @JvmOverloads constructor(
+class SymbolDrawerView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0,
@@ -288,7 +288,7 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
     override fun onSaveInstanceState(): Parcelable {
         return DrawerSavedState(super.onSaveInstanceState()).apply {
             selectedGroupId = groups.getOrNull(pager.currentItem)?.id
-            expansion = this@AdvancedSymbolDrawerView.expansion
+            expansion = this@SymbolDrawerView.expansion
         }
     }
 
@@ -549,3 +549,8 @@ class AdvancedSymbolDrawerView @JvmOverloads constructor(
         }
     }
 }
+
+
+/** @deprecated Use [SymbolDrawerView]. */
+@Deprecated("Use SymbolDrawerView")
+typealias AdvancedSymbolDrawerView = SymbolDrawerView

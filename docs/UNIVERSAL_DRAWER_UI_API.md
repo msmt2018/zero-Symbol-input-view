@@ -37,7 +37,7 @@ The three-stage strategy follows a BottomSheetBehavior-style stable-state model:
 - drawer.style: host theme resolver, immutable style tokens, Material 3 theme overlays, and typography/shape/motion settings.
 - drawer.DrawerContainer: reusable bottom drawer implementation with anchor measurement, animation, drag handle, scrim, nested vertical scrolling, optional navigation, and runtime setters.
 
-The runtime container is independent of AdvancedSymbolDrawerView. The symbol view remains unchanged until the public API is sufficiently verified and a separate parity migration is planned.
+The runtime container is independent of SymbolDrawerView. The symbol view remains unchanged until the public API is sufficiently verified and a separate parity migration is planned.
 
 ## Panel composition
 

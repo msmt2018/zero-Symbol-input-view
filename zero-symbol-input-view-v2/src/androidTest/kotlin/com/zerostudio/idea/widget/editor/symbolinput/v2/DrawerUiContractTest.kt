@@ -45,7 +45,7 @@ class DrawerUiContractTest {
     @Test fun advancedDrawerInflatesAndAcceptsNegativeSpacing() {
         ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
-                val drawer = AdvancedSymbolDrawerView(activity)
+                val drawer = SymbolDrawerView(activity)
                 activity.content.addView(drawer, FrameLayout.LayoutParams(-1, 480))
                 val value = SymbolDrawerSettings(
                     cellHorizontalSpacingDp = -10,
