@@ -99,7 +99,7 @@ class DrawerControllerContractTest {
 
                 val observedStates = mutableListOf<String>()
                 val listener: (com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerState) -> Unit = {
-                    observedStates += it.anchorId
+                    observedStates += it.currentAnchorId
                 }
                 controller.addStateListener(listener)
                 controller.refreshAnchors()
