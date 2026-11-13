@@ -198,15 +198,23 @@ object SymbolGroupBundleCodec {
             }
             require(group.symbols.map { it.id }.distinct().size == group.symbols.size) { "Duplicate symbol IDs in group ${group.id}" }
             group.symbols.forEach { symbol ->
-                validateAction(symbol.shortAction, 0)
-                symbol.longAction?.let { validateAction(it, 0) }
+                validateAction(symbol.shortAction, 0, ActionBudget())
+                symbol.longAction?.let { validateAction(it, 0, ActionBudget()) }
             }
         }
         require(totalSymbols <= MAX_TOTAL_SYMBOLS) { "Too many symbols in backup" }
     }
 
-    private fun validateAction(action: SymbolAction, depth: Int) {
+    private class ActionBudget(private var remaining: Int = SymbolActionJsonCodec.MAX_ACTION_NODES) {
+        fun consume() {
+            remaining--
+            require(remaining >= 0) { "Action tree contains too many nested actions" }
+        }
+    }
+
+    private fun validateAction(action: SymbolAction, depth: Int, budget: ActionBudget) {
         require(depth <= 8) { "Action nesting limit exceeded" }
+        budget.consume()
         when (action) {
             is SymbolAction.InsertText -> require(action.template.length <= MAX_ACTION_TEXT_CHARS) { "Insert action is too large" }
             is SymbolAction.ReplaceSelection -> require(action.text.length <= MAX_ACTION_TEXT_CHARS) { "Replace action is too large" }
@@ -221,7 +229,7 @@ object SymbolGroupBundleCodec {
             }
             is SymbolAction.Composite -> {
                 require(action.actions.size in 1..64) { "Invalid composite action size" }
-                action.actions.forEach { validateAction(it, depth + 1) }
+                action.actions.forEach { validateAction(it, depth + 1, budget) }
             }
             is SymbolAction.MoveCursor, is SymbolAction.Delete, is SymbolAction.TransformSelection,
             is SymbolAction.Clipboard, SymbolAction.OpenManager -> Unit
