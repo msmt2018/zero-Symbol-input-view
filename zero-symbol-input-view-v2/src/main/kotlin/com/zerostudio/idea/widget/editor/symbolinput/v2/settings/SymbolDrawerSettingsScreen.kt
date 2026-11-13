@@ -198,17 +198,11 @@ class SymbolDrawerSettingsScreen(
                 section("大屏设备布局")
                 addChoice(
                     "大屏布局模式",
-                    LargeScreenLayoutMode.values().toList(),
-                    current.largeScreenLayoutMode
+                    listOf(LargeScreenLayoutMode.AUTO, LargeScreenLayoutMode.BOTTOM),
+                    current.largeScreenLayoutMode.takeUnless { it == LargeScreenLayoutMode.SIDE }
+                        ?: LargeScreenLayoutMode.AUTO
                 ) { update { copy(largeScreenLayoutMode = it) } }
-                if (current.largeScreenLayoutMode != LargeScreenLayoutMode.BOTTOM) {
-                    addChoice(
-                        "侧边停靠位置",
-                        SideDockEdge.values().toList(),
-                        current.sideDockEdge
-                    ) { update { copy(sideDockEdge = it) } }
-                }
-                addHint("自动模式会根据当前应用窗口宽度决定底部或侧边布局；手动模式可固定使用底部或侧边布局。侧边模式下可选择左侧或右侧。")
+                addHint("工具栏始终固定在屏幕底部。自动模式根据当前窗口宽度调整内部控件尺寸、网格与间距；固定底部模式保留基础尺寸。")
             },
             "交互" to {
                 section("手势与动作")
