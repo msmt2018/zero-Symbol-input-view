@@ -72,6 +72,8 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupBundleCo
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.HostThemeColors
+import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowAdaptiveInfo
+import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.AdaptiveContentLayoutResolver
 
 /**
  * Settings-only surface. Symbol-group editing stays in the dedicated manager
@@ -105,6 +107,23 @@ class SymbolDrawerSettingsScreen(
         setPadding(dp(12), dp(12), dp(12), dp(8))
         addView(content, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
         render()
+    }
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        if (w <= 0) return
+        val density = resources.displayMetrics.density
+        val window = WindowAdaptiveInfo(w / density, h / density, density)
+        val spec = AdaptiveContentLayoutResolver.resolve(window)
+        val horizontal = dp(spec.horizontalPaddingDp.toInt())
+        setPadding(horizontal, dp(12), horizontal, dp(8))
+        gravity = Gravity.CENTER_HORIZONTAL
+        val params = content.layoutParams as? LayoutParams ?: return
+        val targetWidth = minOf(w, dp(spec.maxContentWidthDp.toInt()))
+        if (params.width != targetWidth) {
+            params.width = targetWidth
+            content.layoutParams = params
+        }
     }
 
     fun reload() {
