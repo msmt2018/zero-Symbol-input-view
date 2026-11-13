@@ -1,0 +1,5 @@
+jdk:
+  - openjdk17
+
+install:
+  - ./gradlew :zero-symbol-input-view-v2:build :zero-symbol-input-view-v2:publishReleasePublicationToMavenLocal --no-daemon

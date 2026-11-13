@@ -1,3 +1,5 @@
+import org.gradle.api.publish.maven.MavenPublication
+
 /*
  * This file is part of ZeroStudio.
  *
@@ -68,4 +70,27 @@ dependencies {
     androidTestImplementation("androidx.test:runner:1.6.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test:core:1.6.1")
+}
+
+android {
+    publishing {
+        singleVariant("release") {
+            withSourcesJar()
+        }
+    }
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            register<MavenPublication>("release") {
+                from(components["release"])
+                groupId = "com.github.msmt2018.zero-Symbol-input-view"
+                artifactId = "zero-symbol-input-view-v2"
+                version = providers.environmentVariable("VERSION")
+                    .orElse(project.version.toString())
+                    .get()
+            }
+        }
+    }
 }

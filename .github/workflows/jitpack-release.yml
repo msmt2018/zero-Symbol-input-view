@@ -1,0 +1,129 @@
+name: Publish V2 library to JitPack
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Git tag to publish (for example v0.25.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: jitpack-release-${{ inputs.release_tag }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Build, tag and publish V2 AAR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate release tag
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$RELEASE_TAG" =~ ^v?[0-9][0-9A-Za-z._+-]*$ ]]; then
+            echo "::error::Invalid release tag: $RELEASE_TAG"
+            exit 1
+          fi
+          if [[ "$RELEASE_TAG" == *"/"* ]]; then
+            echo "::error::Release tag must not contain '/'."
+            exit 1
+          fi
+
+      - name: Checkout selected branch
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.ref }}
+          fetch-depth: 0
+          submodules: true
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          java-version: 17
+          distribution: temurin
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Grant Gradle wrapper permission
+        run: chmod +x ./gradlew
+
+      - name: Run V2 unit tests
+        run: ./gradlew :zero-symbol-input-view-v2:testDebugUnitTest --no-daemon
+        env:
+          VERSION: ${{ inputs.release_tag }}
+
+      - name: Build V2 release AAR
+        run: ./gradlew :zero-symbol-input-view-v2:assembleRelease --no-daemon
+        env:
+          VERSION: ${{ inputs.release_tag }}
+
+      - name: Publish V2 release to local Maven repository
+        run: ./gradlew :zero-symbol-input-view-v2:publishReleasePublicationToMavenLocal --no-daemon
+        env:
+          VERSION: ${{ inputs.release_tag }}
+
+      - name: Verify local Maven publication
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          REPOSITORY="$HOME/.m2/repository/com/github/msmt2018/zero-Symbol-input-view/zero-symbol-input-view-v2/$RELEASE_TAG"
+          test -s "$REPOSITORY/zero-symbol-input-view-v2-$RELEASE_TAG.pom"
+          test -s "$REPOSITORY/zero-symbol-input-view-v2-$RELEASE_TAG.aar"
+          echo "Verified local Maven publication:"
+          find "$REPOSITORY" -maxdepth 1 -type f -printf '%f\n'
+
+      - name: Create and push Git tag
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          git fetch --tags origin
+          if git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "::error::Tag $RELEASE_TAG already exists. Use a new version."
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$RELEASE_TAG" -m "Release $RELEASE_TAG"
+          git push origin "refs/tags/$RELEASE_TAG"
+
+      - name: Trigger and verify JitPack build
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          BASE="https://jitpack.io/com/github/msmt2018/zero-Symbol-input-view/zero-symbol-input-view-v2/$RELEASE_TAG"
+          POM="$BASE/zero-symbol-input-view-v2-$RELEASE_TAG.pom"
+          AAR="$BASE/zero-symbol-input-view-v2-$RELEASE_TAG.aar"
+          echo "Requesting JitPack artifact: $POM"
+          for attempt in $(seq 1 36); do
+            POM_STATUS="$(curl -L -sS -o /dev/null -w '%{http_code}' "$POM" || true)"
+            AAR_STATUS="$(curl -L -sS -o /dev/null -w '%{http_code}' "$AAR" || true)"
+            if [[ "$POM_STATUS" == "200" && "$AAR_STATUS" == "200" ]]; then
+              echo "JitPack publication verified (POM and AAR available)."
+              {
+                echo "## JitPack publication"
+                echo ""
+                echo "- Tag: `$RELEASE_TAG`"
+                echo "- Coordinate: `com.github.msmt2018.zero-Symbol-input-view:zero-symbol-input-view-v2:$RELEASE_TAG`"
+                echo "- JitPack: https://jitpack.io/#msmt2018/zero-Symbol-input-view"
+              } >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            echo "Attempt $attempt/36: POM=$POM_STATUS AAR=$AAR_STATUS"
+            sleep 10
+          done
+          echo "::error::JitPack did not expose both artifacts before timeout."
+          curl -fsSL "https://jitpack.io/com/github/msmt2018/zero-Symbol-input-view/$RELEASE_TAG/build.log" || true
+          exit 1
