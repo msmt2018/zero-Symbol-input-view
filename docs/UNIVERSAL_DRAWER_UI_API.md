@@ -25,9 +25,9 @@ The four anchor strategies are alternatives selected through the same DrawerAnch
 | ContentBased | ContentBasedAnchorStrategy | Peek plus a content-measured height bounded by the viewport and configured maximum. |
 | Custom | CustomAnchorStrategy | Application-provided anchor IDs, semantic states, and pixel heights. |
 
-All strategies resolve through DrawerAnchorResolver, which clamps heights, sorts them, removes duplicate pixel positions, and provides nearest-anchor and one-stage fling targeting. The container will provide measured viewport/content sizes and convert dp-based public configuration into pixels.
+All strategies resolve through DrawerAnchorResolver, which clamps heights, sorts them, removes duplicate pixel positions, and provides nearest-anchor and one-stage fling targeting. Anchor heights represent the visible sheet height measured upward from the parent's bottom edge; viewport dimensions come from the measured container, not guessed device display metrics. The container will provide measured viewport/content sizes and convert dp-based public configuration into pixels.
 
-The three-stage strategy defaults to a half point at 50% of the viewport and an expanded point at 92%. If the available height makes two or more anchors coincide, the resolver collapses duplicates instead of creating zero-distance states.
+The three-stage strategy follows a BottomSheetBehavior-style stable-state model: Collapsed/Peek, Half-Expanded, and Expanded. The half-expanded visible sheet height defaults to 50% of the measured parent height. Expanded uses the actual available maximum height (the measured container or configured max-height constraint), never a fixed viewport fraction. Automatic Peek follows the Material 16:9 keyline (`parentHeight - parentWidth * 9/16`) when width is measured and is bounded below the half state; callers can disable automatic Peek and use the configured minimum height. If measured constraints make anchors coincide, the resolver collapses duplicate pixel positions rather than manufacturing zero-distance states.
 
 ## Public API foundation and runtime container
 
@@ -130,7 +130,7 @@ drawer.controller.expand()
 
 When `enableEdgeToEdge` is enabled, the container consumes system-bar and display-cutout insets for its content padding while its surface can draw edge-to-edge. The host Activity must enable edge-to-edge at the Window level; the reusable View does not mutate host Window flags.
 
-Nested vertical scrolling is coordinated through `NestedScrollingParent3`: upward scroll expands the drawer until its active maximum anchor; downward scroll collapses it only after the nested child reaches its top. Drag flings settle to at most the adjacent anchor. Horizontal child gestures are not intercepted by the handle drag recognizer.
+Nested vertical scrolling is coordinated through `NestedScrollingParent3`: upward scroll expands the drawer until its active maximum anchor; downward scroll collapses it only after the nested child reaches its top. Direct handle dragging remains continuous at every intermediate pixel; the nearest anchor is only semantic metadata during the drag. On release, low-velocity gestures settle to the nearest stable anchor, while a qualifying fling advances at most one adjacent anchor. Cancellation returns to the gesture's starting anchor. Horizontal child gestures are not intercepted by the handle drag recognizer.
 
 ## API lab coverage
 

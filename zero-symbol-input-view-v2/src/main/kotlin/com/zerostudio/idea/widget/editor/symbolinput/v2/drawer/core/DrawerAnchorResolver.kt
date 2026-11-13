@@ -77,45 +77,6 @@ object DrawerAnchorResolver {
         return anchors.minBy { kotlin.math.abs(it.heightPx - heightPx) }
     }
 
-    /**
-     * Magnetic drag selection with hysteresis.
-     *
-     * The current anchor remains selected until the dragged position crosses
-     * the midpoint to its neighbor plus/minus a small hysteresis band. This
-     * prevents jitter around a midpoint and lets a multi-stage drawer hover
-     * at each anchor while the pointer is still down.
-     */
-    fun dragTarget(
-        anchors: List<DrawerAnchor>,
-        currentIndex: Int,
-        proposedHeightPx: Int,
-        hysteresisFraction: Float = 0.08f
-    ): DrawerAnchor {
-        require(anchors.isNotEmpty()) { "Cannot select from an empty anchor list" }
-        require(hysteresisFraction in 0f..0.45f) {
-            "Hysteresis fraction must be between 0 and 0.45"
-        }
-        val ordered = anchors.sortedBy { it.heightPx }
-        var index = currentIndex.coerceIn(ordered.indices)
-        val proposed = proposedHeightPx.coerceIn(ordered.first().heightPx, ordered.last().heightPx)
-
-        while (index < ordered.lastIndex) {
-            val lower = ordered[index].heightPx
-            val upper = ordered[index + 1].heightPx
-            val hysteresis = ((upper - lower) * hysteresisFraction).toInt()
-            val threshold = lower + (upper - lower) / 2 + hysteresis
-            if (proposed >= threshold) index++ else break
-        }
-        while (index > 0) {
-            val lower = ordered[index - 1].heightPx
-            val upper = ordered[index].heightPx
-            val hysteresis = ((upper - lower) * hysteresisFraction).toInt()
-            val threshold = lower + (upper - lower) / 2 - hysteresis
-            if (proposed <= threshold) index-- else break
-        }
-        return ordered[index]
-    }
-
     /** Resolve a fling target without allowing a single gesture to skip every stage. */
     fun flingTarget(
         anchors: List<DrawerAnchor>,

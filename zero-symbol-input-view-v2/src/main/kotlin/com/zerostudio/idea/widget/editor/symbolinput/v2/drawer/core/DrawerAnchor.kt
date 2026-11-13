@@ -72,7 +72,8 @@ data class DrawerAnchorInput(
     val viewportHeightPx: Int,
     val contentHeightPx: Int,
     val existingExpandedHeightPx: Int = maxHeightPx,
-    val density: Float = 1f
+    val density: Float = 1f,
+    val viewportWidthPx: Int = 0
 ) {
     init {
         require(minHeightPx >= 0)
@@ -81,5 +82,6 @@ data class DrawerAnchorInput(
         require(contentHeightPx >= 0)
         require(existingExpandedHeightPx >= 0)
         require(density > 0f)
+        require(viewportWidthPx >= 0)
     }
 }

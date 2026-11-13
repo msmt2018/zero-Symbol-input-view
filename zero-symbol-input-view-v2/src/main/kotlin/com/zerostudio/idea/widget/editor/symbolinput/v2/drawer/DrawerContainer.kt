@@ -117,7 +117,6 @@ class DrawerContainer @JvmOverloads constructor(
     private var velocityTracker: VelocityTracker? = null
     private var downY = 0f
     private var dragStartHeight = 0
-    private var dragAnchorIndex = 0
     private var dragging = false
     private var peekContentVisible = false
     private var expandedContentVisible = false
@@ -419,7 +418,15 @@ class DrawerContainer @JvmOverloads constructor(
         val contentHeight = (bodyHeight + headerHeight).coerceAtMost(maxHeight)
         anchors = DrawerAnchorResolver.resolve(
             currentConfig.anchorStrategy,
-            DrawerAnchorInput(minHeight, maxHeight, height, contentHeight, maxHeight, density)
+            DrawerAnchorInput(
+                minHeightPx = minHeight,
+                maxHeightPx = maxHeight,
+                viewportHeightPx = height,
+                contentHeightPx = contentHeight,
+                existingExpandedHeightPx = maxHeight,
+                density = density,
+                viewportWidthPx = width
+            )
         )
         val oldHeight = state?.currentHeightPx ?: minHeight
         val nearest = DrawerAnchorResolver.nearestAnchor(anchors, oldHeight)
@@ -498,9 +505,6 @@ class DrawerContainer @JvmOverloads constructor(
                 animator?.cancel()
                 downY = event.rawY
                 dragStartHeight = state?.currentHeightPx ?: anchors.firstOrNull()?.heightPx ?: dp(56f)
-                dragAnchorIndex = anchors.indices.minByOrNull {
-                    abs(anchors[it].heightPx - dragStartHeight)
-                } ?: 0
                 velocityTracker = VelocityTracker.obtain().also { it.addMovement(event) }
                 dragging = false
                 return true
@@ -520,18 +524,10 @@ class DrawerContainer @JvmOverloads constructor(
                         else -> proposed
                     }
                     val clamped = bounded.coerceIn(minHeight, maxHeight)
-                    val isThreeStage = currentConfig.anchorStrategy.id ==
-                        com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.ThreeStageAnchorStrategy.ID
-                    val dragAnchor = if (isThreeStage) {
-                        DrawerAnchorResolver.dragTarget(anchors, dragAnchorIndex, clamped).also {
-                            dragAnchorIndex = anchors.indexOfFirst { anchor -> anchor.id == it.id }
-                                .coerceAtLeast(0)
-                        }
-                    } else {
-                        DrawerAnchorResolver.nearestAnchor(anchors, clamped)
-                    }
-                    val displayedHeight = if (isThreeStage) dragAnchor.heightPx else clamped
-                    state = DrawerState(dragAnchor.id, displayedHeight, anchors, true, false)
+                    // Follow the pointer continuously. The nearest anchor is only
+                    // semantic metadata during drag and never quantizes the height.
+                    val dragAnchor = DrawerAnchorResolver.nearestAnchor(anchors, clamped)
+                    state = DrawerState(dragAnchor.id, clamped, anchors, true, false)
                     updateVisualState()
                     stateListeners.toList().forEach { it(state!!) }
                 }
@@ -548,15 +544,16 @@ class DrawerContainer @JvmOverloads constructor(
                 val maximumVelocity = dp(currentConfig.style.motion.maximumFlingVelocityDp).toFloat()
                 val boundedVelocity = velocityY.coerceIn(-maximumVelocity, maximumVelocity)
                 val wasDragging = dragging
-                val isThreeStage = currentConfig.anchorStrategy.id ==
-                    com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.ThreeStageAnchorStrategy.ID
-                val target = if (isThreeStage) {
-                    DrawerAnchorResolver.nearestAnchor(anchors, currentHeight)
-                } else if (!cancelled && wasDragging &&
-                    abs(boundedVelocity) >= dp(currentConfig.style.motion.minimumFlingVelocityDp)) {
-                    DrawerAnchorResolver.flingTarget(anchors, currentHeight, -boundedVelocity,
-                        dp(currentConfig.style.motion.minimumFlingVelocityDp).toFloat())
-                } else DrawerAnchorResolver.nearestAnchor(anchors, currentHeight)
+                val minimumFlingVelocity =
+                    dp(currentConfig.style.motion.minimumFlingVelocityDp).toFloat()
+                val target = when {
+                    cancelled -> DrawerAnchorResolver.nearestAnchor(anchors, dragStartHeight)
+                    wasDragging && abs(boundedVelocity) >= minimumFlingVelocity ->
+                        DrawerAnchorResolver.flingTarget(
+                            anchors, currentHeight, -boundedVelocity, minimumFlingVelocity
+                        )
+                    else -> DrawerAnchorResolver.nearestAnchor(anchors, currentHeight)
+                }
                 if (!wasDragging && !cancelled) view.performClick()
                 else moveTo(target, true)
                 dragging = false

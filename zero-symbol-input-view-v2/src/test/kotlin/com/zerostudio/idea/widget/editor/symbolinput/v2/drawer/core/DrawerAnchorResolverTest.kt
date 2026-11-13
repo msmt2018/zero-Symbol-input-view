@@ -55,7 +55,8 @@ class DrawerAnchorResolverTest {
         maxHeightPx = 900,
         viewportHeightPx = 1000,
         contentHeightPx = 640,
-        existingExpandedHeightPx = 720
+        existingExpandedHeightPx = 720,
+        viewportWidthPx = 400
     )
 
     @Test fun existingHeightStrategyPreservesCurrentTwoAnchorLayout() {
@@ -66,7 +67,7 @@ class DrawerAnchorResolverTest {
 
     @Test fun threeStageStrategyCreatesIndependentThreeAnchors() {
         val anchors = DrawerAnchorResolver.resolve(ThreeStageAnchorStrategy(), input)
-        assertEquals(listOf(120, 500, 900), anchors.map { it.heightPx })
+        assertEquals(listOf(499, 500, 900), anchors.map { it.heightPx })
         assertEquals(
             listOf(DrawerAnchorState.PEEK, DrawerAnchorState.HALF_EXPANDED, DrawerAnchorState.EXPANDED),
             anchors.map { it.state }
@@ -90,7 +91,7 @@ class DrawerAnchorResolverTest {
 
     @Test fun duplicateHeightsAreCollapsed() {
         val anchors = DrawerAnchorResolver.resolve(
-            ThreeStageAnchorStrategy(halfExpandedFraction = 0.1f, expandedViewportFraction = 0.2f),
+            ThreeStageAnchorStrategy(halfExpandedFraction = 0.1f, useAutomaticPeekHeight = false),
             input.copy(viewportHeightPx = 100, minHeightPx = 120)
         )
         assertEquals(1, anchors.size)
@@ -103,21 +104,32 @@ class DrawerAnchorResolverTest {
         assertEquals("expanded", target.id)
     }
 
-    @Test fun threeStageDragStaysAtAnchorUntilHysteresisThresholdIsCrossed() {
-        val anchors = DrawerAnchorResolver.resolve(ThreeStageAnchorStrategy(), input)
-        assertEquals("peek", DrawerAnchorResolver.dragTarget(anchors, 0, 310).id)
-        assertEquals("half", DrawerAnchorResolver.dragTarget(anchors, 0, 340).id)
-        assertEquals("half", DrawerAnchorResolver.dragTarget(anchors, 1, 731).id)
-        assertEquals("expanded", DrawerAnchorResolver.dragTarget(anchors, 1, 732).id)
-        assertEquals("half", DrawerAnchorResolver.dragTarget(anchors, 2, 668).id)
-        assertEquals("peek", DrawerAnchorResolver.dragTarget(anchors, 1, 280).id)
+    @Test fun dragIntermediateHeightsAreNotQuantizedToAnchors() {
+        val anchors = DrawerAnchorResolver.resolve(
+            ThreeStageAnchorStrategy(useAutomaticPeekHeight = false), input
+        )
+        val intermediateHeights = listOf(180, 240, 360, 499, 500, 620, 780, 899)
+        assertTrue(intermediateHeights.all { it in anchors.first().heightPx..anchors.last().heightPx })
+        assertEquals("half", DrawerAnchorResolver.nearestAnchor(anchors, 620).id)
+        assertEquals("expanded", DrawerAnchorResolver.nearestAnchor(anchors, 780).id)
     }
 
-    @Test fun dragHysteresisPreventsAnchorJitterAroundMidpoint() {
+    @Test fun automaticPeekUsesMeasuredWidthAndMaterialKeylineBoundedByHalfState() {
         val anchors = DrawerAnchorResolver.resolve(ThreeStageAnchorStrategy(), input)
-        assertEquals("peek", DrawerAnchorResolver.dragTarget(anchors, 0, 300).id)
-        assertEquals("half", DrawerAnchorResolver.dragTarget(anchors, 0, 340).id)
-        assertEquals("half", DrawerAnchorResolver.dragTarget(anchors, 1, 281).id)
+        assertEquals(499, anchors.first().heightPx)
+        val landscape = DrawerAnchorResolver.resolve(
+            ThreeStageAnchorStrategy(),
+            input.copy(viewportHeightPx = 600, viewportWidthPx = 1000, maxHeightPx = 600)
+        )
+        assertEquals(120, landscape.first().heightPx)
+    }
+
+    @Test fun halfAndExpandedAreDerivedFromMeasuredViewportAndMaximum() {
+        val measured = input.copy(viewportHeightPx = 1200, viewportWidthPx = 500, maxHeightPx = 1000)
+        val anchors = DrawerAnchorResolver.resolve(
+            ThreeStageAnchorStrategy(useAutomaticPeekHeight = false), measured
+        )
+        assertEquals(listOf(120, 600, 1000), anchors.map { it.heightPx })
     }
 
     @Test fun nearestAnchorChoosesClosestHeight() {

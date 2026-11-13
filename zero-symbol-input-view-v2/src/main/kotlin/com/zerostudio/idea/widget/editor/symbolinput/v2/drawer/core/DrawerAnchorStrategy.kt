@@ -77,27 +77,35 @@ class ExistingHeightAnchorStrategy : DrawerAnchorStrategy {
     }
 }
 
-/** Independent three-stage policy: Peek, Half-Expanded and Expanded. */
+/**
+ * Material-style three-state policy. Heights are visible sheet heights measured
+ * from the parent's bottom edge. Expanded reaches the actual available maximum;
+ * half-expanded is derived from the measured parent height.
+ *
+ * Automatic Peek follows the Material 16:9 keyline when width is measured and
+ * is bounded below the half state so the three stable states remain ordered.
+ */
 data class ThreeStageAnchorStrategy(
     val halfExpandedFraction: Float = 0.5f,
-    val expandedViewportFraction: Float = 0.92f
+    val useAutomaticPeekHeight: Boolean = true
 ) : DrawerAnchorStrategy {
     init {
         require(halfExpandedFraction in 0.1f..0.9f)
-        require(expandedViewportFraction in 0.2f..1f)
-        require(halfExpandedFraction < expandedViewportFraction)
     }
 
     override val id: String = ID
 
     override fun resolve(input: DrawerAnchorInput): List<DrawerAnchor> {
-        val peek = input.minHeightPx
-        val expanded = minOf(
-            input.maxHeightPx,
-            (input.viewportHeightPx * expandedViewportFraction).toInt()
-        ).coerceAtLeast(peek)
-        val half = (input.viewportHeightPx * halfExpandedFraction).toInt()
-            .coerceIn(peek, expanded)
+        val expanded = input.maxHeightPx.coerceAtLeast(input.minHeightPx)
+        val half = (input.viewportHeightPx * halfExpandedFraction)
+            .toInt().coerceIn(input.minHeightPx, expanded)
+        val keylinePeek = if (useAutomaticPeekHeight && input.viewportWidthPx > 0) {
+            input.viewportHeightPx - (input.viewportWidthPx * 9f / 16f).toInt()
+        } else {
+            input.minHeightPx
+        }
+        val peekMaximum = maxOf(input.minHeightPx, minOf(half - 1, expanded))
+        val peek = keylinePeek.coerceIn(input.minHeightPx, peekMaximum)
         return listOf(
             DrawerAnchor("peek", peek, DrawerAnchorState.PEEK),
             DrawerAnchor("half", half, DrawerAnchorState.HALF_EXPANDED),
@@ -155,8 +163,8 @@ object DrawerAnchorStrategies {
     @JvmStatic fun existingHeight(): DrawerAnchorStrategy = ExistingHeightAnchorStrategy()
     @JvmStatic fun threeStage(
         halfExpandedFraction: Float = 0.5f,
-        expandedViewportFraction: Float = 0.92f
-    ): DrawerAnchorStrategy = ThreeStageAnchorStrategy(halfExpandedFraction, expandedViewportFraction)
+        useAutomaticPeekHeight: Boolean = true
+    ): DrawerAnchorStrategy = ThreeStageAnchorStrategy(halfExpandedFraction, useAutomaticPeekHeight)
     @JvmStatic fun contentBased(): DrawerAnchorStrategy = ContentBasedAnchorStrategy()
     @JvmStatic fun custom(anchors: List<DrawerAnchor>): DrawerAnchorStrategy = CustomAnchorStrategy(anchors)
 }
