@@ -509,7 +509,7 @@ class SymbolDrawerManagerScreen(
         }
         val formScroll = ScrollView(context).apply {
             isFillViewport = false
-            addView(form, ScrollView.LayoutParams(
+            addView(form, ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
             ))
