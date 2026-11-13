@@ -396,6 +396,9 @@ class DrawerContainer @JvmOverloads constructor(
 
     private fun recalculateAnchors() {
         if (height <= 0 || width <= 0) return
+        // A measurement change invalidates the previous animation's pixel target.
+        animator?.cancel()
+        animator = null
         val density = resources.displayMetrics.density
         val maxHeight = if (currentConfig.presentationMode == DrawerPresentationMode.FULL_SCREEN) {
             height
@@ -699,6 +702,12 @@ class DrawerContainer @JvmOverloads constructor(
         containerAttached = false
         animator?.cancel()
         animator = null
+        state?.let { current ->
+            val nearest = anchors.takeIf { it.isNotEmpty() }?.let {
+                DrawerAnchorResolver.nearestAnchor(it, current.currentHeightPx)
+            }
+            if (nearest != null) state = DrawerState(nearest.id, current.currentHeightPx.coerceIn(anchors.first().heightPx, anchors.last().heightPx), anchors, false, false)
+        }
         velocityTracker?.recycle()
         velocityTracker = null
         super.onDetachedFromWindow()
