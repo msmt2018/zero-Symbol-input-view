@@ -14,9 +14,17 @@ import androidx.core.view.WindowInsetsCompat
  * not install an insets listener, so it cannot replace or steal the host's
  * existing inset handling. Hosts may push folding-feature updates separately.
  */
+enum class WindowInsetsMode {
+    /** Subtract system bars/cutouts from the observed view bounds. */
+    SUBTRACT_SYSTEM_INSETS,
+    /** Use view bounds as already-safe content bounds; do not subtract insets again. */
+    VIEW_BOUNDS_ALREADY_EXCLUDE_INSETS
+}
+
 class AdaptiveWindowObserver(
     private val view: View,
-    private val onChanged: (WindowAdaptiveInfo) -> Unit
+    private val onChanged: (WindowAdaptiveInfo) -> Unit,
+    private val insetsMode: WindowInsetsMode = WindowInsetsMode.SUBTRACT_SYSTEM_INSETS
 ) : View.OnLayoutChangeListener, View.OnAttachStateChangeListener, AutoCloseable {
 
     private var foldingFeature = FoldingFeatureInfo()
@@ -67,7 +75,9 @@ class AdaptiveWindowObserver(
         if (width <= 0 || height <= 0) return
 
         val density = view.resources.displayMetrics.density
-        val rootInsets = ViewCompat.getRootWindowInsets(view)
+        val rootInsets = if (insetsMode == WindowInsetsMode.SUBTRACT_SYSTEM_INSETS) {
+            ViewCompat.getRootWindowInsets(view)
+        } else null
         val systemInsets = rootInsets?.getInsets(
             WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
         )
