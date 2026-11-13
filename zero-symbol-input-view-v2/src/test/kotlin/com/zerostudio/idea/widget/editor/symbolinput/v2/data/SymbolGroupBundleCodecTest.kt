@@ -284,6 +284,10 @@ class SymbolGroupBundleCodecTest {
         assertEquals(SymbolAction.Extension("legacy.action.26"), bracket.shortAction)
         assertEquals(25, bracket.legacyLongActionId)
         assertEquals(SymbolAction.EditorCommand("selection.selectAll"), bracket.longAction)
+        val cut = groups[1].symbols.first { it.label == "剪切" }
+        val copy = groups[1].symbols.first { it.label == "复制" }
+        assertEquals(SymbolAction.Extension("legacy.action.2"), cut.longAction)
+        assertEquals(SymbolAction.Extension("legacy.action.1"), copy.longAction)
         assertEquals("const-string v0, \"\"", groups[1].symbols[3].legacyShortText)
     }
 

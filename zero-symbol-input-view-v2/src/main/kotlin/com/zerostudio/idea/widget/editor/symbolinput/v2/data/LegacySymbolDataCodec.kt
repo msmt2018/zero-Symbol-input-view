@@ -130,7 +130,7 @@ object LegacySymbolDataCodec {
         require(root.asJsonArray.size() <= SymbolGroupBundleCodec.MAX_GROUPS) {
             "Too many groups in symbol group JSON"
         }
-        val actionIds = LegacySymbolActionCatalog.values.toSet()
+        val actionIds = LegacySymbolActionCatalog.importableValues
         var total = 0
         root.asJsonArray.forEachIndexed { groupIndex, groupElement ->
             require(groupElement.isJsonObject) { "Group #${groupIndex + 1} must be an object" }
