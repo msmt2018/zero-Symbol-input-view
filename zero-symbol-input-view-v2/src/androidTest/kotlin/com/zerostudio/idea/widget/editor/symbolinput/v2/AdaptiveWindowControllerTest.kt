@@ -77,4 +77,45 @@ class AdaptiveWindowControllerTest {
             }
         }
     }
+    @Test
+    fun closeIsIdempotentAndRejectsFurtherOperations() {
+        ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val host = FrameLayout(activity)
+                activity.content.addView(
+                    host,
+                    FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                )
+                host.measure(
+                    android.view.View.MeasureSpec.makeMeasureSpec(600, android.view.View.MeasureSpec.EXACTLY),
+                    android.view.View.MeasureSpec.makeMeasureSpec(800, android.view.View.MeasureSpec.EXACTLY)
+                )
+                host.layout(0, 0, 600, 800)
+
+                val controller = AdaptiveWindowController(
+                    host,
+                    WindowInsetsMode.VIEW_BOUNDS_ALREADY_EXCLUDE_INSETS
+                )
+                controller.close()
+                controller.close()
+                assertNull(controller.current)
+                assertTrue(runCatching { controller.addListener({}) }.isFailure)
+                assertTrue(runCatching { controller.refresh() }.isFailure)
+                assertTrue(
+                    runCatching {
+                        controller.updateFoldingFeature(
+                            FoldingFeatureInfo(
+                                posture = WindowPosture.FLAT,
+                                isSeparating = false
+                            )
+                        )
+                    }.isFailure
+                )
+            }
+        }
+    }
+
 }
