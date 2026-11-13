@@ -84,6 +84,54 @@ class AdaptiveWindowControllerTest {
         }
     }
 
+
+    @Test
+    fun rotationStyleDimensionSwapPublishesNewWindowBounds() {
+        ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val host = FrameLayout(activity)
+                activity.content.addView(
+                    host,
+                    FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                )
+                val density = activity.resources.displayMetrics.density
+                host.measure(
+                    android.view.View.MeasureSpec.makeMeasureSpec(400, android.view.View.MeasureSpec.EXACTLY),
+                    android.view.View.MeasureSpec.makeMeasureSpec(800, android.view.View.MeasureSpec.EXACTLY)
+                )
+                host.layout(0, 0, 400, 800)
+
+                val controller = AdaptiveWindowController(
+                    host,
+                    WindowInsetsMode.VIEW_BOUNDS_ALREADY_EXCLUDE_INSETS
+                )
+                val snapshots = mutableListOf<Pair<Float, Float>>()
+                val subscription = controller.addListener({ snapshots += it.widthDp to it.heightDp })
+
+                // A portrait -> landscape bounds swap is the geometry change
+                // delivered to the observer during a real configuration rotation.
+                host.measure(
+                    android.view.View.MeasureSpec.makeMeasureSpec(800, android.view.View.MeasureSpec.EXACTLY),
+                    android.view.View.MeasureSpec.makeMeasureSpec(400, android.view.View.MeasureSpec.EXACTLY)
+                )
+                host.layout(0, 0, 800, 400)
+
+                val current = requireNotNull(controller.current)
+                assertEquals(800f / density, current.widthDp, 0.5f)
+                assertEquals(400f / density, current.heightDp, 0.5f)
+                assertTrue("Rotation must publish a new bounds snapshot", snapshots.size >= 2)
+                assertEquals(800f / density, snapshots.last().first, 0.5f)
+                assertEquals(400f / density, snapshots.last().second, 0.5f)
+
+                subscription.close()
+                controller.close()
+            }
+        }
+    }
+
     @Test
     fun oneFailingListenerIsReportedWithoutCrashingOrStarvingOtherSubscribers() {
         ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
