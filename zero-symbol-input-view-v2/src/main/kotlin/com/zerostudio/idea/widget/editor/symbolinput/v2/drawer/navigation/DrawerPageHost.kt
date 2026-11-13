@@ -63,7 +63,7 @@ class DrawerPageHost @JvmOverloads constructor(
     private var visiblePageId: String? = null
     // Keep the exact content instance: a page may be replaced while retaining
     // its stable ID, and ID-only comparisons would leave the old view mounted.
-    private var visiblePageContent: DrawerPageContent? = null
+    private var visiblePageContent: DrawerPanelContent? = null
     private var hostAttached = false
     private var panelVisible = false
     private val navigationListener = DrawerNavigationController.Listener { snapshot, _ ->
