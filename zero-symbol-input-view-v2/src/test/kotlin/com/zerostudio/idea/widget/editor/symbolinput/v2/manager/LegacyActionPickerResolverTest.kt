@@ -1,6 +1,5 @@
 package com.zerostudio.idea.widget.editor.symbolinput.v2.manager
 
-import com.zerostudio.idea.widget.editor.symbolinput.v2.model.LegacySymbolAction
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
