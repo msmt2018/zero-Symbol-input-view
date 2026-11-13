@@ -62,14 +62,9 @@ object SymbolGroupBundleCodec {
 
     fun encode(groups: List<SymbolGroup>): String {
         validateGroups(groups)
-        // Keep the compact V1 export whenever every typed action has an exact
-        // legacy representation. New V2 actions must use the typed envelope;
-        // silently coercing them to legacy IDs would lose user data.
-        val compact = runCatching { LegacySymbolDataCodec.encode(groups) }.getOrNull()
-        if (compact != null) {
-            require(compact.length <= MAX_BUNDLE_CHARS) { "Backup is too large" }
-            return compact
-        }
+        // Backups are a lossless interchange format, unlike the compact V1
+        // runtime storage format. Always use the typed envelope so group IDs,
+        // symbol IDs, icons, V2 actions and legacy action metadata survive.
         val envelope = JsonObject().apply {
             addProperty("format", "zero-symbol-drawer")
             addProperty("version", CURRENT_VERSION)
