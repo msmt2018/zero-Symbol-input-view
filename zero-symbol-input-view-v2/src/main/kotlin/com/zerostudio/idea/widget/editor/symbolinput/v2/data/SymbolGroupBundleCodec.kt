@@ -51,7 +51,7 @@ import com.google.gson.JsonParser
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionJsonCodec
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.*
 
-/** Backup codec. New exports use the V1 compact schema; the previous envelope remains importable. */
+/** Versioned typed-action import/export codec shared by backups and V2 local persistence. */
 object SymbolGroupBundleCodec {
     const val CURRENT_VERSION = 1
     const val MAX_GROUPS = 500
