@@ -32,6 +32,30 @@ data class SymbolDrawerDockingLayoutSpec(
 
 /** Resolves dimensions for bottom and edge-docked symbol toolbars. */
 object SymbolDrawerDockingLayoutResolver {
+    /**
+     * Convenience entry point that applies the saved AUTO/BOTTOM/SIDE preference
+     * and left/right edge before resolving dimensions.
+     */
+    fun resolve(
+        settings: com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings,
+        window: WindowAdaptiveInfo,
+        bottomCollapsedHeightDp: Float,
+        bottomExpandedHeightDp: Float,
+        collapsedSideWidthDp: Float = DEFAULT_COLLAPSED_SIDE_WIDTH_DP,
+        maxExpandedSideWidthDp: Float = DEFAULT_MAX_EXPANDED_SIDE_WIDTH_DP,
+        minRemainingEditorWidthDp: Float = MIN_REMAINING_EDITOR_WIDTH_DP,
+        sideRailWidthDp: Float = DEFAULT_SIDE_RAIL_WIDTH_DP
+    ): SymbolDrawerDockingLayoutSpec = resolve(
+        docking = SymbolDrawerDockingPolicy.resolve(settings, window),
+        window = window,
+        bottomCollapsedHeightDp = bottomCollapsedHeightDp,
+        bottomExpandedHeightDp = bottomExpandedHeightDp,
+        collapsedSideWidthDp = collapsedSideWidthDp,
+        maxExpandedSideWidthDp = maxExpandedSideWidthDp,
+        minRemainingEditorWidthDp = minRemainingEditorWidthDp,
+        sideRailWidthDp = sideRailWidthDp
+    )
+
     const val DEFAULT_COLLAPSED_SIDE_WIDTH_DP = 72f
     const val MIN_COLLAPSED_SIDE_WIDTH_DP = 56f
     const val MAX_COLLAPSED_SIDE_WIDTH_DP = 96f

@@ -5,6 +5,29 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SymbolDrawerDockingLayoutResolverTest {
+    @Test fun settingsDrivenResolverHonorsManualBottomAndSideEdge() {
+        val window = window(1000, 700)
+        val bottom = SymbolDrawerDockingLayoutResolver.resolve(
+            settings = com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings(
+                largeScreenLayoutMode = com.zerostudio.idea.widget.editor.symbolinput.v2.settings.LargeScreenLayoutMode.BOTTOM
+            ),
+            window = window,
+            bottomCollapsedHeightDp = 54f,
+            bottomExpandedHeightDp = 286f
+        )
+        val left = SymbolDrawerDockingLayoutResolver.resolve(
+            settings = com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings(
+                largeScreenLayoutMode = com.zerostudio.idea.widget.editor.symbolinput.v2.settings.LargeScreenLayoutMode.SIDE,
+                sideDockEdge = com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SideDockEdge.LEFT
+            ),
+            window = window,
+            bottomCollapsedHeightDp = 54f,
+            bottomExpandedHeightDp = 286f
+        )
+        assertEquals(SymbolDrawerDocking.BOTTOM, bottom.docking)
+        assertEquals(SymbolDrawerDocking.LEFT, left.docking)
+    }
+
     @Test fun bottomModePreservesLegacyHeightAnchorsExactly() {
         val spec = SymbolDrawerDockingLayoutResolver.resolve(
             docking = SymbolDrawerDocking.BOTTOM,
