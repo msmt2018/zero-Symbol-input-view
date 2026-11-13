@@ -175,6 +175,25 @@ class SymbolDrawerSettingsScreen(
                 addSeek("最大展开高度 (dp)", current.maxExpandedHeightDp, 110, 1200) { update { copy(maxExpandedHeightDp = it) } }
                 addSeek("最小触摸目标 (dp)", current.minimumTouchTargetDp, 32, 80) { update { copy(minimumTouchTargetDp = it) } }
             },
+            "平板模式" to {
+                section("大屏设备布局")
+                addChoice(
+                    "大屏布局模式",
+                    LargeScreenLayoutMode.values().toList(),
+                    current.largeScreenLayoutMode
+                ) { update { copy(largeScreenLayoutMode = it) } }
+                addChoice(
+                    "侧边停靠位置",
+                    SideDockEdge.values().toList(),
+                    current.sideDockEdge
+                ) { update { copy(sideDockEdge = it) } }
+                addSwitch("自动适配大屏窗口", current.largeScreenLayoutMode == LargeScreenLayoutMode.AUTO) {
+                    update {
+                        copy(largeScreenLayoutMode = if (it) LargeScreenLayoutMode.AUTO else LargeScreenLayoutMode.BOTTOM)
+                    }
+                }
+                addHint("自动模式会根据当前应用窗口宽度决定底部或侧边布局；手动模式可固定使用底部或侧边布局。侧边模式下可选择左侧或右侧。")
+            },
             "交互" to {
                 section("手势与动作")
                 addSeek("长按触发时间 (ms)", current.longPressTimeoutMs, 250, 1000) { update { copy(longPressTimeoutMs = it) } }
@@ -334,6 +353,16 @@ class SymbolDrawerSettingsScreen(
         }, matchWrap())
     }
 
+    private fun addHint(message: String) {
+        activePage?.addView(TextView(context).apply {
+            text = message
+            textSize = 12f
+            setTextColor(onSurfaceColor())
+            alpha = 0.72f
+            setPadding(dp(6), dp(2), dp(6), dp(12))
+        }, matchWrap())
+    }
+
     private fun addSwitch(title: String, checked: Boolean, changed: (Boolean) -> Unit) {
         activePage?.addView(LinearLayout(context).apply {
             gravity = Gravity.CENTER_VERTICAL
@@ -368,6 +397,11 @@ class SymbolDrawerSettingsScreen(
             values.map { value ->
                 when (value) {
                     ThemeMode.SYSTEM -> "跟随宿主 Activity"
+                    LargeScreenLayoutMode.AUTO -> "自动适配大屏"
+                    LargeScreenLayoutMode.BOTTOM -> "固定底部"
+                    LargeScreenLayoutMode.SIDE -> "固定侧边"
+                    SideDockEdge.LEFT -> "左侧"
+                    SideDockEdge.RIGHT -> "右侧"
                     else -> value.name.lowercase().replace('_', ' ')
                 }
             }

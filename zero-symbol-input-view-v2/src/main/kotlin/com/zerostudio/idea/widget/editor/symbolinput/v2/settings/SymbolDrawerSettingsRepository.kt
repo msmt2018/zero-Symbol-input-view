@@ -86,14 +86,26 @@ object SymbolDrawerSettingsCodec {
             "maxExpandedHeightDp", "animationDurationMs", "reduceMotion",
             "flingVelocityDpPerSecond", "longPressTimeoutMs", "hapticMode",
             "autoCollapseAfterAction", "pageCacheLimit", "prefetchAdjacentGroups",
-            "minimumTouchTargetDp", "searchIncludesActionPayload"
+            "minimumTouchTargetDp", "searchIncludesActionPayload",
+            "largeScreenLayoutMode", "sideDockEdge"
         )
         require(root.keySet().all { it in expected }) { "Settings backup contains unknown fields" }
-        if (strict) require(root.keySet() == expected) {
-            "Settings backup fields do not match the supported schema"
-        }
 
         val defaults = SymbolDrawerSettings()
+        val inputVersion = runCatching {
+            val rawVersion = root.get("schemaVersion") ?: return@runCatching defaults.schemaVersion
+            require(rawVersion.isJsonPrimitive && rawVersion.asJsonPrimitive.isNumber)
+            rawVersion.asInt.also { require(rawVersion.asDouble == it.toDouble()) }
+        }.getOrElse { throw IllegalArgumentException("Invalid settings schema version", it) }
+        require(inputVersion in 1..SymbolDrawerSettings.CURRENT_SCHEMA_VERSION) {
+            "Unsupported settings schema version: $inputVersion"
+        }
+        if (strict) {
+            val requiredFields = if (inputVersion == 1) expected - setOf("largeScreenLayoutMode", "sideDockEdge") else expected
+            require(root.keySet() == requiredFields) {
+                "Settings backup fields do not match schema version $inputVersion"
+            }
+        }
         fun int(name: String, default: Int): Int {
             val value = root.get(name) ?: return default
             require(value.isJsonPrimitive && value.asJsonPrimitive.isNumber) { "Invalid integer setting: $name" }
@@ -113,11 +125,12 @@ object SymbolDrawerSettingsCodec {
         }
 
         val version = int("schemaVersion", defaults.schemaVersion)
-        require(version == SymbolDrawerSettings.CURRENT_SCHEMA_VERSION) {
+        require(version in 1..SymbolDrawerSettings.CURRENT_SCHEMA_VERSION) {
             "Unsupported settings schema version: $version"
         }
         return SymbolDrawerSettings(
-            schemaVersion = version,
+            // Version 1 snapshots are migrated in memory and re-saved as version 2.
+            schemaVersion = SymbolDrawerSettings.CURRENT_SCHEMA_VERSION,
             themeMode = ThemeMode.valueOf(enumValue("themeMode", defaults.themeMode.name)),
             columns = int("columns", defaults.columns),
             collapsedRows = int("collapsedRows", defaults.collapsedRows),
@@ -139,7 +152,11 @@ object SymbolDrawerSettingsCodec {
             pageCacheLimit = int("pageCacheLimit", defaults.pageCacheLimit),
             prefetchAdjacentGroups = bool("prefetchAdjacentGroups", defaults.prefetchAdjacentGroups),
             minimumTouchTargetDp = int("minimumTouchTargetDp", defaults.minimumTouchTargetDp),
-            searchIncludesActionPayload = bool("searchIncludesActionPayload", defaults.searchIncludesActionPayload)
+            searchIncludesActionPayload = bool("searchIncludesActionPayload", defaults.searchIncludesActionPayload),
+            largeScreenLayoutMode = LargeScreenLayoutMode.valueOf(
+                enumValue("largeScreenLayoutMode", defaults.largeScreenLayoutMode.name)
+            ),
+            sideDockEdge = SideDockEdge.valueOf(enumValue("sideDockEdge", defaults.sideDockEdge.name))
         )
     }
 }

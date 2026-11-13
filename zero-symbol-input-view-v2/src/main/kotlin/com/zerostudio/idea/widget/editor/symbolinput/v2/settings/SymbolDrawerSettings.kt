@@ -51,6 +51,12 @@ enum class ThemeMode { SYSTEM, LIGHT, DARK }
 enum class GroupIndicatorStyle { TEXT, PILL, UNDERLINE }
 enum class HapticMode { OFF, SELECTION, ALL }
 
+/** Large-window placement preference for the symbol toolbar. */
+enum class LargeScreenLayoutMode { AUTO, BOTTOM, SIDE }
+
+/** Preferred edge when the toolbar is docked vertically on a large window. */
+enum class SideDockEdge { LEFT, RIGHT }
+
 /** Immutable, validated settings snapshot persisted by the V2 settings repository. */
 data class SymbolDrawerSettings(
     val schemaVersion: Int = CURRENT_SCHEMA_VERSION,
@@ -75,7 +81,9 @@ data class SymbolDrawerSettings(
     val pageCacheLimit: Int = 3,
     val prefetchAdjacentGroups: Boolean = true,
     val minimumTouchTargetDp: Int = 40,
-    val searchIncludesActionPayload: Boolean = false
+    val searchIncludesActionPayload: Boolean = false,
+    val largeScreenLayoutMode: LargeScreenLayoutMode = LargeScreenLayoutMode.AUTO,
+    val sideDockEdge: SideDockEdge = SideDockEdge.RIGHT
 ) {
     init {
         require(schemaVersion in 1..CURRENT_SCHEMA_VERSION)
@@ -107,6 +115,6 @@ data class SymbolDrawerSettings(
     )
 
     companion object {
-        const val CURRENT_SCHEMA_VERSION = 1
+        const val CURRENT_SCHEMA_VERSION = 2
     }
 }
