@@ -840,6 +840,10 @@ class DrawerContainer @JvmOverloads constructor(
         containerAttached = false
         animator?.cancel()
         animator = null
+        // Nested child sessions are owned by the current window attachment.
+        // Drop stale type markers when the hierarchy is detached so a later
+        // attachment cannot remain permanently "actively nested".
+        activeNestedScrollTypes.clear()
         state?.let { current ->
             val nearest = anchors.takeIf { it.isNotEmpty() }?.let {
                 DrawerAnchorResolver.nearestAnchor(it, current.currentHeightPx)
