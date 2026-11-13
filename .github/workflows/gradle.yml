@@ -62,8 +62,8 @@ jobs:
           test -s "$KEYSTORE"
           keytool -list -v -keystore "$KEYSTORE" -storepass android -alias androiddebugkey > "$RUNNER_TEMP/debug-keystore.txt"
           EXPECTED="$(sed -n 's/^[[:space:]]*SHA256:[[:space:]]*//p' "$RUNNER_TEMP/debug-keystore.txt" | head -n 1 | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
-          "$APKSIGNER" verify --print-certs "$APK" > "$RUNNER_TEMP/apk-signature.txt"
-          ACTUAL="$(sed -n 's/.*Signer #1 certificate SHA-256 digest: //p' "$RUNNER_TEMP/apk-signature.txt" | head -n 1 | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
+          keytool -printcert -jarfile "$APK" > "$RUNNER_TEMP/apk-signature.txt"
+          ACTUAL="$(sed -n 's/^[[:space:]]*SHA256:[[:space:]]*//p' "$RUNNER_TEMP/apk-signature.txt" | head -n 1 | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
           test -n "$EXPECTED"
           test -n "$ACTUAL"
           if [[ "$ACTUAL" != "$EXPECTED" ]]; then
