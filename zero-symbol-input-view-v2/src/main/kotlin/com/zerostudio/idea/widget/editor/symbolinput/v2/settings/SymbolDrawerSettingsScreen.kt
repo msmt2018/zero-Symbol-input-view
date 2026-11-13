@@ -94,6 +94,7 @@ class SymbolDrawerSettingsScreen(
     private var current = repository.load().settings.copy(themeMode = ThemeMode.SYSTEM)
     private var activePage: LinearLayout? = null
     private var pendingImport: ImportKind = ImportKind.SETTINGS
+    private var adaptiveSpacingScale: Float = 1f
     private val content = LinearLayout(context).apply { orientation = VERTICAL }
     private val documentPicker = JsonDocumentPicker(
         context,
@@ -115,6 +116,11 @@ class SymbolDrawerSettingsScreen(
         val density = resources.displayMetrics.density
         val window = WindowAdaptiveInfo(w / density, h / density, density)
         val spec = AdaptiveContentLayoutResolver.resolve(window)
+        adaptiveSpacingScale = when (window.sizeClass) {
+            com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowSizeClass.COMPACT -> 0.96f
+            com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowSizeClass.MEDIUM -> 1f
+            com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowSizeClass.EXPANDED -> 1.08f
+        }
         val horizontal = dp(spec.horizontalPaddingDp.toInt())
         setPadding(horizontal, dp(12), horizontal, dp(8))
         gravity = Gravity.CENTER_HORIZONTAL
@@ -141,7 +147,7 @@ class SymbolDrawerSettingsScreen(
 
         content.addView(LinearLayout(context).apply {
             orientation = VERTICAL
-            setPadding(dp(18), dp(16), dp(18), dp(16))
+            setPadding(spaceDp(18), spaceDp(16), spaceDp(18), spaceDp(16))
             background = surfaceBackground(surfaceColor(), 0.10f, 22)
             addView(TextView(context).apply {
                 text = "符号抽屉设置"
@@ -270,7 +276,7 @@ class SymbolDrawerSettingsScreen(
             tabs.addTab(tabs.newTab().setText(entry.first), index == 0)
             val page = LinearLayout(context).apply {
                 orientation = VERTICAL
-                setPadding(dp(16), dp(8), dp(16), dp(28))
+                setPadding(spaceDp(16), spaceDp(8), spaceDp(16), spaceDp(28))
             }
             val scroll = ScrollView(context).apply {
                 isFillViewport = true
@@ -302,7 +308,7 @@ class SymbolDrawerSettingsScreen(
     ) {
         val card = LinearLayout(context).apply {
             orientation = VERTICAL
-            setPadding(dp(14), dp(14), dp(14), dp(12))
+            setPadding(spaceDp(14), spaceDp(14), spaceDp(14), spaceDp(12))
             background = surfaceBackground(surfaceColor(), 0.10f, 18)
         }
         card.addView(TextView(context).apply {
@@ -316,7 +322,7 @@ class SymbolDrawerSettingsScreen(
             textSize = 12f
             setTextColor(onSurfaceColor())
             alpha = 0.72f
-            setPadding(0, dp(5), 0, dp(12))
+            setPadding(0, spaceDp(5), 0, spaceDp(12))
         }, matchWrap())
         actions.chunked(2).forEach { pair ->
             val row = LinearLayout(context).apply {
@@ -325,15 +331,15 @@ class SymbolDrawerSettingsScreen(
             }
             pair.forEachIndexed { index, action ->
                 row.addView(actionButton(action.first, action.second), LinearLayout.LayoutParams(0, dp(48), 1f).apply {
-                    if (index == 0) marginEnd = dp(5) else marginStart = dp(5)
+                    if (index == 0) marginEnd = spaceDp(5) else marginStart = spaceDp(5)
                 })
             }
             card.addView(row, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
-                bottomMargin = dp(8)
+                bottomMargin = spaceDp(8)
             })
         }
         activePage?.addView(card, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
-            bottomMargin = dp(12)
+            bottomMargin = spaceDp(12)
         })
     }
 
@@ -359,7 +365,7 @@ class SymbolDrawerSettingsScreen(
             textSize = 17f
             setTextColor(onSurfaceColor())
             setTypeface(typeface, Typeface.BOLD)
-            setPadding(dp(2), dp(22), dp(2), dp(10))
+            setPadding(spaceDp(2), spaceDp(22), spaceDp(2), spaceDp(10))
         }, matchWrap())
     }
 
@@ -369,14 +375,14 @@ class SymbolDrawerSettingsScreen(
             textSize = 12f
             setTextColor(onSurfaceColor())
             alpha = 0.72f
-            setPadding(dp(6), dp(2), dp(6), dp(12))
+            setPadding(spaceDp(6), spaceDp(2), spaceDp(6), spaceDp(12))
         }, matchWrap())
     }
 
     private fun addSwitch(title: String, checked: Boolean, changed: (Boolean) -> Unit) {
         activePage?.addView(LinearLayout(context).apply {
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(14), dp(5), dp(10), dp(5))
+            setPadding(spaceDp(14), spaceDp(5), spaceDp(10), spaceDp(5))
             background = surfaceBackground(surfaceColor(), 0.08f, 14)
             addView(TextView(context).apply {
                 text = title
@@ -599,6 +605,7 @@ class SymbolDrawerSettingsScreen(
 
     private fun matchWrap() = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
     private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
+    private fun spaceDp(value: Int) = (value * resources.displayMetrics.density * adaptiveSpacingScale).toInt()
 
     private enum class ImportKind { SETTINGS, GROUPS }
 }

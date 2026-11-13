@@ -5,6 +5,8 @@
  */
 package com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive
 
+import kotlin.math.roundToInt
+
 /**
  * Small bounded scaling for decorative/layout dimensions. Text remains in sp
  * and interactive targets keep their minimum size; this is not a replacement
@@ -49,5 +51,5 @@ class AdaptiveDimensions(
     }
 
     fun px(baseDp: Float, scale: Boolean = true): Int =
-        (dp(baseDp, scale) * info.density).toInt().coerceAtLeast(0)
+        (dp(baseDp, scale) * info.density).roundToInt().coerceAtLeast(0)
 }
