@@ -88,14 +88,23 @@ jobs:
         run: |
           set -euo pipefail
           git fetch --tags origin
-          if git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG" >/dev/null 2>&1; then
-            echo "::error::Tag $RELEASE_TAG already exists. Use a new version."
-            exit 1
+          CURRENT_COMMIT="$(git rev-parse HEAD)"
+          EXISTING_COMMIT="$(git ls-remote origin "refs/tags/$RELEASE_TAG^{}" | awk '{print $1}')"
+          if [[ -z "$EXISTING_COMMIT" ]]; then
+            EXISTING_COMMIT="$(git ls-remote origin "refs/tags/$RELEASE_TAG" | awk '{print $1}')"
           fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -a "$RELEASE_TAG" -m "Release $RELEASE_TAG"
-          git push origin "refs/tags/$RELEASE_TAG"
+          if [[ -n "$EXISTING_COMMIT" ]]; then
+            if [[ "$EXISTING_COMMIT" != "$CURRENT_COMMIT" ]]; then
+              echo "::error::Tag $RELEASE_TAG already points to $EXISTING_COMMIT, not $CURRENT_COMMIT."
+              exit 1
+            fi
+            echo "Tag $RELEASE_TAG already points to this commit; continuing idempotently."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag -a "$RELEASE_TAG" -m "Release $RELEASE_TAG"
+            git push origin "refs/tags/$RELEASE_TAG"
+          fi
 
       - name: Trigger and verify JitPack build
         shell: bash

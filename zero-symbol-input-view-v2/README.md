@@ -145,3 +145,34 @@ The settings screen also supports exporting its versioned JSON settings snapshot
 and importing a validated snapshot. Export is copied to the clipboard and
 reported through `onExportJson`; import validates and persists before notifying
 the host through `onSettingsChanged`.
+
+## JitPack distribution
+
+The V2 Android library is published as a separate Maven artifact through JitPack.
+The repository is public, so consumers can resolve the artifact from the public
+JitPack Maven endpoint without a personal access token.
+
+Add the repository and dependency to the consuming project's Gradle configuration:
+
+```kotlin
+repositories {
+    maven("https://jitpack.io")
+}
+
+dependencies {
+    implementation("com.github.msmt2018.zero-Symbol-input-view:zero-symbol-input-view-v2:v0.25.0")
+}
+```
+
+Replace `v0.25.0` with a published release tag. To publish a release, sign in to
+[JitPack](https://jitpack.io/) with the GitHub account that can access this
+repository, then run **Actions → Publish V2 library to JitPack → Run workflow**
+in GitHub and enter a new release tag. The workflow runs tests, builds the
+release AAR and sources JAR, validates the local Maven publication, creates the
+tag (or safely resumes if that same tag already points to the same commit), and
+waits for JitPack to expose the POM and AAR.
+
+The publication coordinate is:
+
+`com.github.msmt2018.zero-Symbol-input-view:zero-symbol-input-view-v2:<tag>`
+

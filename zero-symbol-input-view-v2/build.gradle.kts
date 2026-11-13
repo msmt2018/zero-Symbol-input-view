@@ -1,5 +1,3 @@
-import org.gradle.api.publish.maven.MavenPublication
-
 /*
  * This file is part of ZeroStudio.
  *
@@ -44,6 +42,8 @@ import org.gradle.api.publish.maven.MavenPublication
  * GitHub: https://github.com/msmt2018
  * WeChat: android_zero
  */
+
+import org.gradle.api.publish.maven.MavenPublication
 
 plugins {
     id("com.android.library")

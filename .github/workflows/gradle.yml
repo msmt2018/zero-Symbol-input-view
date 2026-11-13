@@ -56,7 +56,18 @@ jobs:
         run: ./gradlew :zero-symbol-input-view-v2:assembleDebugAndroidTest
 
       - name: Validate V2 Maven publication
-        run: ./gradlew :zero-symbol-input-view-v2:publishReleasePublicationToMavenLocal
+        run: |
+          set -euo pipefail
+          ./gradlew :zero-symbol-input-view-v2:publishReleasePublicationToMavenLocal
+          REPOSITORY="$HOME/.m2/repository/com/github/msmt2018/zero-Symbol-input-view/zero-symbol-input-view-v2/$VERSION"
+          test -s "$REPOSITORY/zero-symbol-input-view-v2-$VERSION.pom"
+          test -s "$REPOSITORY/zero-symbol-input-view-v2-$VERSION.aar"
+          test -s "$REPOSITORY/zero-symbol-input-view-v2-$VERSION-sources.jar"
+          grep -q '<groupId>com.github.msmt2018.zero-Symbol-input-view</groupId>' "$REPOSITORY/zero-symbol-input-view-v2-$VERSION.pom"
+          grep -q '<artifactId>zero-symbol-input-view-v2</artifactId>' "$REPOSITORY/zero-symbol-input-view-v2-$VERSION.pom"
+          echo "Verified POM, release AAR and sources JAR for $VERSION."
+        env:
+          VERSION: ci-${{ github.sha }}
 
       - name: Publish snapshot
         if: ${{ always() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.build.outcome == 'success' }}

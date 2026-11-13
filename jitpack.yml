@@ -2,4 +2,6 @@ jdk:
   - openjdk17
 
 install:
-  - ./gradlew :zero-symbol-input-view-v2:build :zero-symbol-input-view-v2:publishReleasePublicationToMavenLocal --no-daemon
+  # JitPack checks out the requested Git tag. Pass that exact tag as the
+  # Maven version so the locally published coordinates match the request.
+  - VERSION="$(git describe --tags --exact-match HEAD)" ./gradlew :zero-symbol-input-view-v2:build :zero-symbol-input-view-v2:publishReleasePublicationToMavenLocal --no-daemon
