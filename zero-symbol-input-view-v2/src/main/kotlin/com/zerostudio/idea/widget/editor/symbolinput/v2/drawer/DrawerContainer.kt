@@ -52,6 +52,8 @@ import android.content.Context
 import android.graphics.Color
 import android.graphics.Rect
 import android.graphics.drawable.GradientDrawable
+import android.os.Parcel
+import android.os.Parcelable
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.VelocityTracker
@@ -120,6 +122,8 @@ class DrawerContainer @JvmOverloads constructor(
     private var downY = 0f
     private var dragStartHeight = 0
     private var dragStartAnchorId: String? = null
+    private var restoredAnchorId: String? = null
+    private var restoredHeightPx: Int? = null
     private var dragging = false
     private var peekContentVisible = false
     private var expandedContentVisible = false
@@ -438,11 +442,17 @@ class DrawerContainer @JvmOverloads constructor(
                 viewportWidthPx = width
             )
         )
-        val oldHeight = state?.currentHeightPx ?: minHeight
-        val boundedHeight = oldHeight.coerceIn(anchors.first().heightPx, anchors.last().heightPx)
-        val nearest = DrawerAnchorResolver.nearestAnchor(anchors, boundedHeight)
-        // Preserve the continuous position across resize/inset changes where possible.
-        state = DrawerState(nearest.id, boundedHeight, anchors, false, false)
+        val previousHeight = state?.currentHeightPx ?: restoredHeightPx ?: minHeight
+        val boundedHeight = previousHeight.coerceIn(anchors.first().heightPx, anchors.last().heightPx)
+        val restoredAnchor = restoredAnchorId?.let { id -> anchors.firstOrNull { it.id == id } }
+        val nearest = restoredAnchor
+            ?: DrawerAnchorResolver.nearestAnchor(anchors, boundedHeight)
+        // Restored state is always normalized to a stable anchor. During ordinary
+        // relayout, preserve the current continuous height to avoid visual jumps.
+        val resolvedHeight = if (restoredAnchor != null) restoredAnchor.heightPx else boundedHeight
+        restoredAnchorId = null
+        restoredHeightPx = null
+        state = DrawerState(nearest.id, resolvedHeight, anchors, false, false)
         updateVisualState()
         state?.let { snapshot -> stateListeners.toList().forEach { it(snapshot) } }
     }
@@ -732,6 +742,59 @@ class DrawerContainer @JvmOverloads constructor(
 
     private fun dp(value: Float): Int = (value * resources.displayMetrics.density + 0.5f).toInt()
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density + 0.5f).toInt()
+
+    override fun onSaveInstanceState(): Parcelable {
+        val superState = super.onSaveInstanceState()
+        val stableAnchor = state?.let { current ->
+            if (current.isDragging || current.isAnimating) {
+                DrawerAnchorResolver.nearestAnchor(anchors, current.currentHeightPx)
+            } else {
+                anchors.firstOrNull { it.id == current.currentAnchorId }
+                    ?: DrawerAnchorResolver.nearestAnchor(anchors, current.currentHeightPx)
+            }
+        }
+        return SavedState(superState).also { saved ->
+            saved.anchorId = stableAnchor?.id
+            saved.heightPx = stableAnchor?.heightPx ?: anchors.firstOrNull()?.heightPx ?: 0
+        }
+    }
+
+    override fun onRestoreInstanceState(state: Parcelable?) {
+        if (state !is SavedState) {
+            super.onRestoreInstanceState(state)
+            return
+        }
+        super.onRestoreInstanceState(state.superState)
+        restoredAnchorId = state.anchorId
+        restoredHeightPx = state.heightPx.coerceAtLeast(0)
+        if (width > 0 && height > 0) recalculateAnchors()
+    }
+
+    private class SavedState : BaseSavedState {
+        var anchorId: String? = null
+        var heightPx: Int = 0
+
+        constructor(superState: Parcelable?) : super(superState)
+
+        private constructor(source: Parcel) : super(source) {
+            anchorId = source.readString()
+            heightPx = source.readInt()
+        }
+
+        override fun writeToParcel(out: Parcel, flags: Int) {
+            super.writeToParcel(out, flags)
+            out.writeString(anchorId)
+            out.writeInt(heightPx)
+        }
+
+        companion object {
+            @JvmField
+            val CREATOR: Parcelable.Creator<SavedState> = object : Parcelable.Creator<SavedState> {
+                override fun createFromParcel(source: Parcel) = SavedState(source)
+                override fun newArray(size: Int): Array<SavedState?> = arrayOfNulls(size)
+            }
+        }
+    }
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
