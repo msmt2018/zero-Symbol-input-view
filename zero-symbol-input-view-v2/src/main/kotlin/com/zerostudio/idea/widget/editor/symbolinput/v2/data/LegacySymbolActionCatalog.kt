@@ -55,6 +55,9 @@ object LegacySymbolActionCatalog {
     // Historical IDs 1 and 2 occur in stored long-press payloads but are not new UI choices.\n    val importableValues: Set<Int> = values.toSet() + setOf(1, 2)\n\n    // Historical IDs 1 and 2 occur in stored long-press payloads but are not new UI choices.
     val importableValues: Set<Int> = values.toSet() + setOf(1, 2)
 
+    /** V1 text payloads are used by insertion and replace-current-line actions. */
+    fun hasTextPayload(actionId: Int): Boolean = actionId == 0 || actionId == 36
+
     val labels = listOf(
         "插入文本", "删除行", "清空行", "转为大写", "转为小写", "增加缩进 (Tab)",
         "注释/取消注释", "到行首", "到行尾", "光标左移", "光标右移", "光标上移",
