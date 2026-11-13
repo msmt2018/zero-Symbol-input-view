@@ -664,10 +664,14 @@ class SymbolDrawerManagerScreen(
                 val compatible = when (expected) {
                     is com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.InsertText ->
                         action is com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.InsertText
-                    is com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.EditorCommand
-                        if (expected.commandId == "line.replace") ->
-                        action is com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.EditorCommand &&
-                            action.commandId == expected.commandId
+                    is com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.EditorCommand -> {
+                        if (expected.commandId == "line.replace") {
+                            action is com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.EditorCommand &&
+                                action.commandId == expected.commandId
+                        } else {
+                            expected == action
+                        }
+                    }
                     else -> expected == action
                 }
                 if (compatible) return index
