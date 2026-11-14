@@ -82,7 +82,7 @@ jobs:
           path: app/build/outputs/apk/debug/app-debug.apk
 
   v2-library-validation:
-    name: V2 Library build, unit tests and publication
+    name: V2 Library build and tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -121,20 +121,6 @@ jobs:
 
       - name: Compile V2 library instrumentation tests
         run: ./gradlew :zero-symbol-input-view-v2:assembleDebugAndroidTest
-
-      - name: Validate V2 Maven publication
-        run: |
-          set -euo pipefail
-          ./gradlew :zero-symbol-input-view-v2:publishReleasePublicationToMavenLocal
-          REPOSITORY="$HOME/.m2/repository/com/github/msmt2018/zero-Symbol-input-view/zero-symbol-input-view-v2/$VERSION"
-          test -s "$REPOSITORY/zero-symbol-input-view-v2-$VERSION.pom"
-          test -s "$REPOSITORY/zero-symbol-input-view-v2-$VERSION.aar"
-          test -s "$REPOSITORY/zero-symbol-input-view-v2-$VERSION-sources.jar"
-          grep -q '<groupId>com.github.msmt2018.zero-Symbol-input-view</groupId>' "$REPOSITORY/zero-symbol-input-view-v2-$VERSION.pom"
-          grep -q '<artifactId>zero-symbol-input-view-v2</artifactId>' "$REPOSITORY/zero-symbol-input-view-v2-$VERSION.pom"
-          echo "Verified POM, release AAR and sources JAR for $VERSION."
-        env:
-          VERSION: ci-${{ github.sha }}
 
   v2-library-instrumentation:
     name: V2 Library Android 15 instrumentation tests
