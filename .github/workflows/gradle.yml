@@ -108,6 +108,17 @@ jobs:
       - name: Run V2 library unit tests
         run: ./gradlew :zero-symbol-input-view-v2:testDebugUnitTest
 
+      - name: Upload V2 unit test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: v2-unit-test-diagnostics
+          if-no-files-found: warn
+          path: |
+            zero-symbol-input-view-v2/build/reports/tests/testDebugUnitTest/**
+            zero-symbol-input-view-v2/build/test-results/testDebugUnitTest/**
+            zero-symbol-input-view-v2/build/reports/problems/**
+
       - name: Compile V2 library instrumentation tests
         run: ./gradlew :zero-symbol-input-view-v2:assembleDebugAndroidTest
 
@@ -161,3 +172,14 @@ jobs:
           emulator-boot-timeout: 600
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -wipe-data
           script: bash scripts/run-v2-instrumentation.sh
+
+      - name: Upload V2 instrumentation diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: v2-instrumentation-diagnostics
+          if-no-files-found: warn
+          path: |
+            zero-symbol-input-view-v2/build/reports/androidTests/**
+            zero-symbol-input-view-v2/build/outputs/androidTest-results/**
+            zero-symbol-input-view-v2/build/outputs/logs/**
