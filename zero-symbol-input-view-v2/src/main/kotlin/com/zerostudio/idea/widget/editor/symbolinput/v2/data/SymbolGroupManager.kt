@@ -223,10 +223,13 @@ class SymbolGroupManager(
         // IDs owned by the moving source selection become free after removal.
         // Every other group still reserves its IDs, including groups unrelated
         // to the destination.
+        // Only the selected source entries are released. Unselected entries
+        // in the same source group still own their IDs and must remain reserved.
         val usedIds = groups.asSequence()
-            .filterNot { it.id == sourceGroupId }
             .flatMap { it.symbols.asSequence() }
-            .mapTo(mutableSetOf()) { it.id }
+            .map { it.id }
+            .filterNot { it in symbolIds }
+            .toMutableSet()
         val normalized = moved.map { symbol ->
             if (symbol.id in usedIds) symbol.copy(id = nextUniqueSymbolId(usedIds))
             else symbol.also { usedIds += it.id }

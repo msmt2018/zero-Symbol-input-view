@@ -201,6 +201,40 @@ class SymbolGroupManagerMethodExecutionTest {
     }
 
     @Test
+    fun movingSubsetRetriesIdsOwnedByUnselectedSymbolsInTheSameSourceGroup() {
+        val candidates = ArrayDeque(listOf(2L, 3L))
+        val repository = Repository(listOf(
+            SymbolGroup("source", "Source", listOf(entry(1), entry(2))),
+            SymbolGroup("target", "Target", emptyList())
+        ))
+        val manager = SymbolGroupManager(repository, newSymbolId = { candidates.removeFirst() })
+
+        manager.moveSymbolsToGroup("source", setOf(1L), "target")
+
+        assertEquals(listOf(2L), manager.groups.single { it.id == "source" }.symbols.map { it.id })
+        assertEquals(listOf(3L), manager.groups.single { it.id == "target" }.symbols.map { it.id })
+        assertEquals(manager.groups, repository.stored)
+        assertEquals(1, repository.saveCount)
+    }
+
+    @Test
+    fun movingSubsetPreservesUnselectedSourceIdsAndDoesNotWriteOnInvalidSelection() {
+        val repository = Repository(listOf(
+            SymbolGroup("source", "Source", listOf(entry(1), entry(2))),
+            SymbolGroup("target", "Target", emptyList())
+        ))
+        val manager = SymbolGroupManager(repository)
+        val before = manager.groups
+
+        assertTrue(runCatching {
+            manager.moveSymbolsToGroup("source", setOf(1L, 99L), "target")
+        }.isFailure)
+        assertEquals(before, manager.groups)
+        assertEquals(before, repository.stored)
+        assertEquals(0, repository.saveCount)
+    }
+
+    @Test
     fun duplicateGroupGeneratesSymbolIdsUniqueAcrossAllGroups() {
         val repository = Repository(listOf(
             SymbolGroup("source", "Source", listOf(entry(1))),
