@@ -188,11 +188,13 @@ class DrawerInteractionController(
     }
 
     fun resetGesture() {
+        val wasDragging = dragging
         dragging = false
         gestureAxis = AXIS_UNDECIDED
         onDisallowInterceptChanged(false)
         velocityTracker?.recycle()
         velocityTracker = null
+        if (wasDragging) onHeightChanged(height, false, isAnimating)
     }
 
     private fun settleTo(targetHeight: Int, animated: Boolean) {
