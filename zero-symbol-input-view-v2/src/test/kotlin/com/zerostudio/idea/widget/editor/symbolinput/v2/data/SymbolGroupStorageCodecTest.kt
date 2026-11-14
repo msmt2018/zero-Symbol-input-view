@@ -21,7 +21,9 @@ class SymbolGroupStorageCodecTest {
             ))
         )
 
-        val decoded = SymbolGroupStorageCodec.decode(SymbolGroupStorageCodec.encode(groups))
+        // Simulate an early V2 snapshot written before repository-wide ID uniqueness.
+        val earlyV2 = SymbolGroupBundleCodec.encode(groups)
+        val decoded = SymbolGroupStorageCodec.decode(earlyV2)
 
         assertEquals(listOf(10L, 11L), decoded[0].symbols.map { it.id })
         assertEquals(listOf(2L, 1L, 12L), decoded[1].symbols.map { it.id })
@@ -30,6 +32,16 @@ class SymbolGroupStorageCodecTest {
             decoded.flatMap { it.symbols }.map { (it.shortAction as SymbolAction.InsertText).template }
         )
         assertEquals(5, decoded.flatMap { it.symbols }.map { it.id }.distinct().size)
+    }
+
+    @Test
+    fun encodeRejectsDuplicateIdsAcrossDifferentGroups() {
+        val groups = listOf(
+            SymbolGroup("one", "One", listOf(SymbolEntry(7L, "A", SymbolAction.InsertText("a")))),
+            SymbolGroup("two", "Two", listOf(SymbolEntry(7L, "B", SymbolAction.InsertText("b"))))
+        )
+
+        assertEquals(true, runCatching { SymbolGroupStorageCodec.encode(groups) }.isFailure)
     }
 
     @Test

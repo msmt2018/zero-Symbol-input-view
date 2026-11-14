@@ -51,6 +51,10 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.*
 /** Versioned V2 storage writes; legacy V1 and early V2 snapshots remain readable. */
 object SymbolGroupStorageCodec {
     fun encode(groups: List<SymbolGroup>): String {
+        val symbolIds = groups.asSequence().flatMap { it.symbols.asSequence() }.map { it.id }.toList()
+        require(symbolIds.distinct().size == symbolIds.size) {
+            "Symbol IDs must be unique across the entire repository"
+        }
         // The V2 store must preserve typed actions that have no V1 numeric-ID
         // equivalent (composites, surround-selection and app extensions).
         // decode() remains backward compatible with compact V1 arrays.
