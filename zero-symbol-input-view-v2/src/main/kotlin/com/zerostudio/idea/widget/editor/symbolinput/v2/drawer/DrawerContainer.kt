@@ -1011,9 +1011,14 @@ class DrawerContainer @JvmOverloads constructor(
         override fun setDismissOnScrimTap(enabled: Boolean) { currentConfig = currentConfig.copy(dismissOnScrimTap = enabled); updateVisualState() }
         override fun setDismissOnBack(enabled: Boolean) { currentConfig = currentConfig.copy(dismissOnBack = enabled) }
         override fun setDragHandleEnabled(enabled: Boolean) {
+            if (currentConfig.dragHandleEnabled == enabled) return
             currentConfig = currentConfig.copy(dragHandleEnabled = enabled)
             updateVisualState()
             if (!enabled) handleTouchTarget.visibility = GONE
+            // The handle is part of the collapsed chrome. Re-resolve the peek
+            // anchor whenever it is shown or hidden so the visible sheet edge
+            // and the measured touch target cannot drift apart.
+            recalculateAnchors()
         }
         override fun setAccessibilityEnabled(enabled: Boolean) {
             currentConfig = currentConfig.copy(accessibilityEnabled = enabled)

@@ -106,14 +106,33 @@ class DrawerHandleInteractionTest {
                 val sheet = drawer.getChildAt(drawer.childCount - 1) as LinearLayout
                 val handleTarget = sheet.getChildAt(0)
                 assertEquals(View.VISIBLE, handleTarget.visibility)
+                drawer.refreshAnchors()
+                val visiblePeekHeight = requireNotNull(drawer.controller.currentState())
+                    .anchors.first { it.id == "peek" }.heightPx
 
                 drawer.controller.setDragHandleEnabled(false)
                 assertEquals(View.GONE, handleTarget.visibility)
                 assertFalse(handleTarget.isShown)
+                val hiddenPeekHeight = requireNotNull(drawer.controller.currentState())
+                    .anchors.first { it.id == "peek" }.heightPx
+                assertTrue(
+                    "Hiding the handle must remove its height from the collapsed anchor",
+                    hiddenPeekHeight < visiblePeekHeight
+                )
+                drawer.controller.moveToAnchor("peek", false)
+                assertEquals(hiddenPeekHeight, drawer.controller.currentState()?.currentHeightPx)
 
                 drawer.controller.setDragHandleEnabled(true)
                 assertEquals(View.VISIBLE, handleTarget.visibility)
                 assertTrue(handleTarget.isShown)
+                val restoredPeekHeight = requireNotNull(drawer.controller.currentState())
+                    .anchors.first { it.id == "peek" }.heightPx
+                assertTrue(
+                    "Showing the handle must restore its measured collapsed chrome height",
+                    restoredPeekHeight > hiddenPeekHeight
+                )
+                drawer.controller.moveToAnchor("peek", false)
+                assertEquals(restoredPeekHeight, drawer.controller.currentState()?.currentHeightPx)
             }
         }
     }
