@@ -54,6 +54,40 @@ class SymbolActionRegistryTest {
         assertEquals("com.example/editor:paste", id.value)
     }
 
+
+    @Test fun clearRemovesEveryRegisteredHandlerAndAllowsReRegistration() {
+        val registry = SymbolActionRegistry<String>()
+        val first = SymbolActionId("builtin", "first")
+        val second = SymbolActionId("plugin", "second")
+        registry.register(first) { _, _ -> true }
+        registry.register(second) { _, _ -> false }
+        assertEquals(2, registry.size)
+        assertEquals(true, registry.execute(first, "ctx"))
+        assertEquals(false, registry.execute(second, "ctx"))
+
+        registry.clear()
+        assertEquals(0, registry.size)
+        assertNull(registry.get(first))
+        assertNull(registry.get(second))
+        assertNull(registry.execute(first, "ctx"))
+
+        registry.register(first) { context, payload -> context == "ctx" && payload == "again" }
+        assertEquals(true, registry.execute(first, "ctx", "again"))
+        assertEquals(1, registry.size)
+    }
+
+    @Test fun handlerExceptionsPropagateToTheCallingContext() {
+        val registry = SymbolActionRegistry<Unit>()
+        val failure = IllegalStateException("handler failure")
+        registry.register(SymbolActionId("builtin", "throws")) { _, _ -> throw failure }
+
+        val actual = runCatching {
+            registry.execute(SymbolActionId("builtin", "throws"), Unit)
+        }.exceptionOrNull()
+
+        assertSame(failure, actual)
+    }
+
     @Test fun invalidIdsAreRejected() {
         assertTrue(runCatching { SymbolActionId("", "x") }.isFailure)
         assertTrue(runCatching { SymbolActionId("plugin", "has space") }.isFailure)
