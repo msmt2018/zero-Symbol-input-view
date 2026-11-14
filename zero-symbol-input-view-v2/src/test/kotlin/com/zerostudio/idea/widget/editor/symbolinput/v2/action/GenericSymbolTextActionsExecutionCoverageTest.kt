@@ -77,7 +77,7 @@ class GenericSymbolTextActionsExecutionCoverageTest {
     @Test
     fun readOnlyDocumentsRejectMutatingActionsWithoutChangingText() {
         val registry = GenericSymbolTextActions.createRegistry()
-        val document = TestDocument("alpha\nbeta", 2, 0, 5, editable = false)
+        val document = TestDocument("alpha\nbeta", 2, 0, 5, isEditable = false)
         val before = document.text
         val result = registry.execute(SymbolActionId("builtin", "selection.wrapBraces"), document)
         assertEquals(false, result)
