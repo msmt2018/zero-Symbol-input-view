@@ -16,6 +16,7 @@ class SymbolGroupStorageCodecTest {
             )),
             SymbolGroup("two", "Two", listOf(
                 SymbolEntry(10L, "C", SymbolAction.InsertText("c")),
+                SymbolEntry(1L, "Existing low ID", SymbolAction.InsertText("reserved")),
                 SymbolEntry(12L, "D", SymbolAction.InsertText("d"))
             ))
         )
@@ -23,12 +24,12 @@ class SymbolGroupStorageCodecTest {
         val decoded = SymbolGroupStorageCodec.decode(SymbolGroupStorageCodec.encode(groups))
 
         assertEquals(listOf(10L, 11L), decoded[0].symbols.map { it.id })
-        assertEquals(listOf(1L, 12L), decoded[1].symbols.map { it.id })
+        assertEquals(listOf(2L, 1L, 12L), decoded[1].symbols.map { it.id })
         assertEquals(
-            listOf("a", "b", "c", "d"),
+            listOf("a", "b", "c", "reserved", "d"),
             decoded.flatMap { it.symbols }.map { (it.shortAction as SymbolAction.InsertText).template }
         )
-        assertEquals(4, decoded.flatMap { it.symbols }.map { it.id }.distinct().size)
+        assertEquals(5, decoded.flatMap { it.symbols }.map { it.id }.distinct().size)
     }
 
     @Test
