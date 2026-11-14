@@ -91,6 +91,50 @@ afterEvaluate {
                 version = providers.environmentVariable("VERSION")
                     .orElse(project.version.toString())
                     .get()
+
+                pom {
+                    name.set("Zero Symbol Input View V2")
+                    description.set(
+                        "An independently packaged Android symbol drawer and input toolbar library."
+                    )
+                    url.set("https://github.com/msmt2018/zero-Symbol-input-view")
+
+                    licenses {
+                        license {
+                            name.set("GNU Affero General Public License v3.0 only")
+                            url.set("https://www.gnu.org/licenses/agpl-3.0.html")
+                            distribution.set("repo")
+                        }
+                        license {
+                            name.set("GNU General Public License v3.0 only")
+                            url.set("https://www.gnu.org/licenses/gpl-3.0.html")
+                            distribution.set("repo")
+                        }
+                        license {
+                            name.set("Apache License 2.0")
+                            url.set("https://www.apache.org/licenses/LICENSE-2.0")
+                            distribution.set("repo")
+                        }
+                    }
+
+                    developers {
+                        developer {
+                            id.set("msmt2018")
+                            name.set("android_zero")
+                            url.set("https://github.com/msmt2018")
+                        }
+                    }
+
+                    scm {
+                        url.set("https://github.com/msmt2018/zero-Symbol-input-view")
+                        connection.set(
+                            "scm:git:git://github.com/msmt2018/zero-Symbol-input-view.git"
+                        )
+                        developerConnection.set(
+                            "scm:git:ssh://git@github.com/msmt2018/zero-Symbol-input-view.git"
+                        )
+                    }
+                }
             }
         }
     }
