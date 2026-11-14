@@ -103,7 +103,10 @@ class SymbolGroupManager(
     }
 
     fun removeGroup(groupId: String) {
-        require(groups.any { it.id == groupId }) { "Group not found: $groupId" }
+        // UI commands may outlive a stale selection (for example after an
+        // external reload). Treat removal of an already-missing group as an
+        // idempotent no-op and, importantly, do not issue a redundant write.
+        if (groups.none { it.id == groupId }) return
         commit(groups.filterNot { it.id == groupId })
     }
 

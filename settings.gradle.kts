@@ -39,7 +39,15 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven("https://repo.eclipse.org/content/groups/releases/")
+        // Keep Eclipse artifacts on their dedicated repository, but do not
+        // query it for unrelated modules such as Gson. This prevents a
+        // transient Eclipse repository outage from breaking resolution of
+        // Maven Central dependencies requested with version ranges.
+        maven("https://repo.eclipse.org/content/groups/releases/") {
+            content {
+                includeGroupByRegex("org\\.eclipse(\\..*)?")
+            }
+        }
         maven("https://maven.aliyun.com/nexus/content/groups/public/")
         maven { url = uri("https://jitpack.io") }
         maven { url = uri("https://repo1.maven.org/maven2/") }
