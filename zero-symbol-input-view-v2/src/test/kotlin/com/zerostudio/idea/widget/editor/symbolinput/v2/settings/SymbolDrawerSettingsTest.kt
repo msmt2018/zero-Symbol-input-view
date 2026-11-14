@@ -47,6 +47,7 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.settings
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import com.google.gson.JsonParser
 import org.junit.Test
 
 class SymbolDrawerSettingsTest {
@@ -117,5 +118,99 @@ class SymbolDrawerSettingsTest {
     @Test(expected = IllegalArgumentException::class)
     fun rejectsOutOfRangeColumns() {
         SymbolDrawerSettings(columns = 0)
+    }
+
+    @Test fun strictV1BackupMigratesNewFieldsToCurrentDefaults() {
+        val root = JsonParser.parseString(SymbolDrawerSettingsCodec.encode(SymbolDrawerSettings())).asJsonObject
+        root.addProperty("schemaVersion", 1)
+        root.remove("largeScreenLayoutMode")
+        root.remove("sideDockEdge")
+
+        val restored = SymbolDrawerSettingsCodec.decodeStrict(root.toString())
+
+        assertEquals(SymbolDrawerSettings.CURRENT_SCHEMA_VERSION, restored.schemaVersion)
+        assertEquals(LargeScreenLayoutMode.AUTO, restored.largeScreenLayoutMode)
+        assertEquals(SideDockEdge.RIGHT, restored.sideDockEdge)
+    }
+
+    @Test fun strictV2BackupRequiresTheExactCurrentFieldSet() {
+        val root = JsonParser.parseString(SymbolDrawerSettingsCodec.encode(SymbolDrawerSettings())).asJsonObject
+        root.remove("columns")
+        assertFails { SymbolDrawerSettingsCodec.decodeStrict(root.toString()) }
+
+        root.addProperty("columns", SymbolDrawerSettings().columns)
+        root.addProperty("futureSetting", true)
+        assertFails { SymbolDrawerSettingsCodec.decodeStrict(root.toString()) }
+    }
+
+    @Test fun settingsDecoderRejectsWrongRootAndMalformedJson() {
+        assertFails { SymbolDrawerSettingsCodec.decode("[]") }
+        assertFails { SymbolDrawerSettingsCodec.decode("not-json") }
+        assertFails { SymbolDrawerSettingsCodec.decode("null") }
+    }
+
+    @Test fun settingsDecoderRejectsFractionalAndWronglyTypedValues() {
+        assertFails { SymbolDrawerSettingsCodec.decode("""{"schemaVersion":2.5}""") }
+        assertFails { SymbolDrawerSettingsCodec.decode("""{"schemaVersion":2,"columns":3.5}""") }
+        assertFails { SymbolDrawerSettingsCodec.decode("""{"schemaVersion":2,"reduceMotion":"true"}""") }
+        assertFails { SymbolDrawerSettingsCodec.decode("""{"schemaVersion":2,"themeMode":1}""") }
+    }
+
+    @Test fun settingsDecoderRejectsUnsupportedVersionsAndUnknownEnums() {
+        assertFails { SymbolDrawerSettingsCodec.decode("""{"schemaVersion":0}""") }
+        assertFails { SymbolDrawerSettingsCodec.decode("""{"schemaVersion":3}""") }
+        assertFails { SymbolDrawerSettingsCodec.decode("""{"schemaVersion":2,"themeMode":"AUTO"}""") }
+        assertFails { SymbolDrawerSettingsCodec.decode("""{"schemaVersion":2,"sideDockEdge":"TOP"}""") }
+    }
+
+    @Test fun schemaVersionIsAlwaysUpgradedAfterPermissiveV1Decode() {
+        val restored = SymbolDrawerSettingsCodec.decode("""{"schemaVersion":1,"columns":8}""")
+        assertEquals(2, restored.schemaVersion)
+        assertEquals(8, restored.columns)
+    }
+
+    @Test fun reducedMotionOnlyOverridesRuntimeAnimationDuration() {
+        val normal = SymbolDrawerSettings(animationDurationMs = 425, reduceMotion = false).toDrawerConfig()
+        val reduced = SymbolDrawerSettings(animationDurationMs = 425, reduceMotion = true).toDrawerConfig()
+        assertEquals(425L, normal.animationDurationMs)
+        assertEquals(0L, reduced.animationDurationMs)
+        assertEquals(425, SymbolDrawerSettings(animationDurationMs = 425, reduceMotion = true).animationDurationMs)
+    }
+
+    @Test fun everyEnumSettingRoundTripsIndependently() {
+        ThemeMode.values().forEach { mode ->
+            assertEquals(mode, SymbolDrawerSettingsCodec.decode(
+                SymbolDrawerSettingsCodec.encode(SymbolDrawerSettings(themeMode = mode))
+            ).themeMode)
+        }
+        GroupIndicatorStyle.values().forEach { style ->
+            assertEquals(style, SymbolDrawerSettingsCodec.decode(
+                SymbolDrawerSettingsCodec.encode(SymbolDrawerSettings(indicatorStyle = style))
+            ).indicatorStyle)
+        }
+        HapticMode.values().forEach { mode ->
+            assertEquals(mode, SymbolDrawerSettingsCodec.decode(
+                SymbolDrawerSettingsCodec.encode(SymbolDrawerSettings(hapticMode = mode))
+            ).hapticMode)
+        }
+        LargeScreenLayoutMode.values().forEach { mode ->
+            assertEquals(mode, SymbolDrawerSettingsCodec.decode(
+                SymbolDrawerSettingsCodec.encode(SymbolDrawerSettings(largeScreenLayoutMode = mode))
+            ).largeScreenLayoutMode)
+        }
+        SideDockEdge.values().forEach { edge ->
+            assertEquals(edge, SymbolDrawerSettingsCodec.decode(
+                SymbolDrawerSettingsCodec.encode(SymbolDrawerSettings(sideDockEdge = edge))
+            ).sideDockEdge)
+        }
+    }
+
+    private fun assertFails(block: () -> Unit) {
+        try {
+            block()
+            throw AssertionError("Expected invalid settings to be rejected")
+        } catch (_: IllegalArgumentException) {
+            // Expected validation boundary.
+        }
     }
 }
