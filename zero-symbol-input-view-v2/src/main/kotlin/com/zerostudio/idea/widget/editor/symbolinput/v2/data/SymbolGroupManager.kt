@@ -288,12 +288,15 @@ class SymbolGroupManager(
             "Group IDs and titles must not be blank"
         }
         require(next.map { it.id }.distinct().size == next.size) { "Group IDs must be unique" }
+        val allSymbolIds = mutableSetOf<Long>()
         next.forEach { group ->
             require(group.symbols.all { it.id != 0L && it.label.isNotEmpty() }) {
                 "Symbol IDs and labels must not be blank in group ${group.id}"
             }
-            require(group.symbols.map { it.id }.distinct().size == group.symbols.size) {
-                "Symbol IDs must be unique within group ${group.id}"
+            group.symbols.forEach { symbol ->
+                require(allSymbolIds.add(symbol.id)) {
+                    "Symbol ID ${symbol.id} is duplicated across groups"
+                }
             }
         }
         // Persist first: a failed write must not publish an in-memory snapshot

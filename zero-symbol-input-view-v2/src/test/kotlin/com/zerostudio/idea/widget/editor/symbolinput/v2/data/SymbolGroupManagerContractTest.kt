@@ -76,6 +76,44 @@ class SymbolGroupManagerContractTest {
         assertEquals(listOf(1L), manager.groups.single().symbols.map { it.id })
     }
 
+    @Test fun replaceAllRejectsSymbolIdCollisionsAcrossGroupsBeforeWriting() {
+        val initial = listOf(
+            SymbolGroup("a", "A", listOf(symbol(1))),
+            SymbolGroup("b", "B", listOf(symbol(2)))
+        )
+        val repo = MemoryRepository(initial)
+        val manager = SymbolGroupManager(repo)
+        val writes = repo.writes
+
+        assertThrows(IllegalArgumentException::class.java) {
+            manager.replaceAll(listOf(
+                SymbolGroup("a", "A", listOf(symbol(7))),
+                SymbolGroup("b", "B", listOf(symbol(7)))
+            ))
+        }
+
+        assertEquals(writes, repo.writes)
+        assertEquals(initial, manager.groups)
+        assertEquals(initial, repo.data)
+    }
+
+    @Test fun duplicateGroupAndBulkCopyKeepRepositoryWideIdsUnique() {
+        val repo = MemoryRepository(listOf(
+            SymbolGroup("a", "A", listOf(symbol(1), symbol(2))),
+            SymbolGroup("b", "B", listOf(symbol(3)))
+        ))
+        var next = 2L
+        val manager = SymbolGroupManager(repo, newId = { "duplicate" }, newSymbolId = { ++next })
+
+        val duplicated = manager.duplicateGroup("a")
+        manager.copySymbols("a", setOf(1L, 2L), "b")
+
+        val allIds = manager.groups.flatMap { group -> group.symbols.map { it.id } }
+        assertEquals(allIds.size, allIds.toSet().size)
+        assertEquals(2, duplicated.symbols.size)
+        assertEquals(manager.groups, repo.data)
+    }
+
     @Test fun failedPersistenceDoesNotPublishUncommittedSnapshot() {
         val initial = listOf(SymbolGroup("a", "A", emptyList()))
         val repo = MemoryRepository(initial)
