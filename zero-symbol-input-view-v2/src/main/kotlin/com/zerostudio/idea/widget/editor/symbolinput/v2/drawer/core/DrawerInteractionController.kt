@@ -183,8 +183,10 @@ class DrawerInteractionController(
         settleTo(heightPx.coerceIn(minimumHeight, maximumHeight), animated)
 
     fun cancelAnimation() {
+        val wasRunning = animator?.isRunning == true
         animator?.cancel()
         animator = null
+        if (wasRunning) onHeightChanged(height, dragging, false)
     }
 
     fun resetGesture() {
