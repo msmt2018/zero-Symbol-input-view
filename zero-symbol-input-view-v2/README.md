@@ -90,6 +90,23 @@ The default repository uses the isolated SharedPreferences namespace `symbol_dra
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for responsibilities, gesture arbitration, performance strategy, and compatibility constraints.
 
+## Universal Drawer API integration
+
+The symbol toolbar uses the feature-neutral `drawer.core.DrawerInteractionController`
+for gesture-axis arbitration, velocity tracking, continuous drag state, fling
+threshold evaluation, settle animation and attachment cleanup. The
+`SymbolDrawerAnchorAdapter` remains the compatibility boundary for the
+symbol-specific legacy pixel formulas. The feature retains its existing
+`ViewGroup` hierarchy, `ViewPager2`, group indicator, symbol page adapter,
+measurement/layout, settings UI and action callbacks; the generic
+`DrawerContainer` presentation is not inserted around it.
+
+This adapter approach lets existing controls adopt the shared interaction
+engine without inheriting a new sheet surface, drag handle, panel layout or
+navigation appearance. See [UNIVERSAL_DRAWER_UI_API.md](../../docs/UNIVERSAL_DRAWER_UI_API.md)
+for the public core contract and migration invariants.
+
+
 ## Settings and typed actions
 
 V2 settings are represented by immutable `SymbolDrawerSettings` snapshots and
