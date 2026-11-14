@@ -67,7 +67,7 @@ class SymbolGroupManager(
 
     fun addGroup(title: String, index: Int = groups.size): SymbolGroup {
         require(title.isNotBlank()) { "Group title cannot be blank" }
-        val group = SymbolGroup(newId(), title.trim(), emptyList())
+        val group = SymbolGroup(nextUniqueGroupId(), title.trim(), emptyList())
         val next = groups.toMutableList().apply { add(index.coerceIn(0, size), group) }
         commit(next)
         return group
@@ -79,10 +79,13 @@ class SymbolGroupManager(
 
     fun duplicateGroup(groupId: String, index: Int = groups.size): SymbolGroup {
         val source = groups.firstOrNull { it.id == groupId } ?: error("Group not found: $groupId")
+        val usedSymbolIds = mutableSetOf<Long>()
         val duplicate = source.copy(
-            id = newId(),
+            id = nextUniqueGroupId(),
             title = "${source.title} copy",
-            symbols = source.symbols.map { it.copy(id = newSymbolId()) }
+            symbols = source.symbols.map { symbol ->
+                symbol.copy(id = nextUniqueSymbolId(usedSymbolIds)).also { usedSymbolIds += it.id }
+            }
         )
         val next = groups.toMutableList().apply { add(index.coerceIn(0, size), duplicate) }
         commit(next)
@@ -96,6 +99,7 @@ class SymbolGroupManager(
     }
 
     fun removeGroup(groupId: String) {
+        require(groups.any { it.id == groupId }) { "Group not found: $groupId" }
         commit(groups.filterNot { it.id == groupId })
     }
 
@@ -221,8 +225,17 @@ class SymbolGroupManager(
         })
     }
 
+    private fun nextUniqueGroupId(): String {
+        val usedIds = groups.mapTo(mutableSetOf()) { it.id }
+        repeat(MAX_ID_GENERATION_ATTEMPTS) {
+            val candidate = newId()
+            if (candidate.isNotBlank() && candidate !in usedIds) return candidate
+        }
+        error("Unable to generate a unique group ID")
+    }
+
     private fun nextUniqueSymbolId(usedIds: Set<Long>): Long {
-        repeat(32) {
+        repeat(MAX_ID_GENERATION_ATTEMPTS) {
             val candidate = newSymbolId()
             if (candidate != 0L && candidate !in usedIds) return candidate
         }
@@ -232,6 +245,10 @@ class SymbolGroupManager(
     private fun updateGroup(groupId: String, transform: (SymbolGroup) -> SymbolGroup) {
         require(groups.any { it.id == groupId }) { "Group not found: $groupId" }
         commit(groups.map { if (it.id == groupId) transform(it) else it })
+    }
+
+    private companion object {
+        const val MAX_ID_GENERATION_ATTEMPTS = 32
     }
 
     private fun commit(next: List<SymbolGroup>) {
