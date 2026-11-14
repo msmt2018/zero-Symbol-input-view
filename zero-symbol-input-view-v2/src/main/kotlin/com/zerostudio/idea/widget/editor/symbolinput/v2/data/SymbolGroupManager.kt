@@ -112,10 +112,11 @@ class SymbolGroupManager(
     }
 
     fun addSymbol(groupId: String, symbol: SymbolEntry, index: Int? = null) {
-        val safeSymbol = if (symbol.id == 0L) {
-            symbol.copy(id = newSymbolId().takeIf { it != 0L } ?: 1L)
-        } else symbol
         updateGroup(groupId) { group ->
+            val safeSymbol = if (symbol.id == 0L) {
+                val usedIds = group.symbols.mapTo(mutableSetOf()) { it.id }
+                symbol.copy(id = nextUniqueSymbolId(usedIds))
+            } else symbol
             val items = group.symbols.toMutableList()
             items.add((index ?: items.size).coerceIn(0, items.size), safeSymbol)
             group.copy(symbols = items)
