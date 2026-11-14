@@ -69,5 +69,7 @@ include(
     ":editor-lsp",
     ":language-treesitter",
     ":zero-Symbol-input-view",
+    ":zero-symbol-input-view-v2",
     ":oniguruma-native"
 )
+

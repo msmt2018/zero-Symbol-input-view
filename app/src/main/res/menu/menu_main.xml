@@ -139,6 +139,10 @@
     </item>
 
     <item
+        android:id="@+id/open_drawer_api_lab"
+        android:title="Universal Drawer API Lab" />
+
+    <item
         android:id="@+id/switch_language"
         android:title="@string/switch_language" />
     <item

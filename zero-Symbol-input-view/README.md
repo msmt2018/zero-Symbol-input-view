@@ -92,7 +92,7 @@ dependencies {
 ### 4.2 布局中放置控件
 
 ```xml
-<android.zero.studio.widget.editor.symbolinput.AdvancedSymbolInputView
+<com.zerostudio.idea.widget.editor.symbolinput.AdvancedSymbolInputView
     android:id="@+id/symbol_input_view"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"/>
@@ -102,13 +102,13 @@ dependencies {
 
 ```kotlin
 val editor = findViewById<io.github.rosemoe.sora.widget.CodeEditor>(R.id.editor)
-val symbolInputView = findViewById<android.zero.studio.widget.editor.symbolinput.AdvancedSymbolInputView>(R.id.symbol_input_view)
+val symbolInputView = findViewById<com.zerostudio.idea.widget.editor.symbolinput.AdvancedSymbolInputView>(R.id.symbol_input_view)
 
 symbolInputView.bindEditor(editor)
 
 // 可选：点击“管理”入口时跳转模块管理页
 symbolInputView.onOpenManagerListener = {
-    startActivity(Intent(this, android.zero.studio.widget.editor.symbolinput.SymbolManagerActivity::class.java))
+    startActivity(Intent(this, com.zerostudio.idea.widget.editor.symbolinput.SymbolManagerActivity::class.java))
 }
 ```
 
@@ -223,7 +223,7 @@ symbolInputView.refreshData()
 zero-Symbol-input-view/
 ├── build.gradle.kts
 └── src/main/
-    ├── kotlin/android/zero/studio/widget/editor/symbolinput/
+    ├── kotlin/com/zerostudio/idea/widget/editor/symbolinput/
     │   ├── AdvancedSymbolInputView.kt
     │   ├── SymbolManagerActivity.kt
     │   ├── SymbolDataManager.kt
@@ -240,3 +240,26 @@ zero-Symbol-input-view/
 - “最小可运行 Demo Activity” 完整代码
 - “符号配置 JSON 模板规范”
 - “多语言默认分组生成脚本”
+
+---
+
+## 13. 第二套优化架构：zero-symbol-input-view-v2
+
+仓库同时提供独立的 V2 实验库，目录为：
+
+`zero-symbol-input-view-v2/`
+
+V2 不替换旧版 `AdvancedSymbolInputView`，两套实现并行维护。新架构采用：
+
+- 自定义抽屉容器管理纵向拖动、展开/收起与吸附动画；
+- `ViewPager2` 负责横向分组切换；
+- `RecyclerView` 分组指示器随抽屉展开进度连续显隐；
+- 每个分组页使用 `RecyclerView + GridLayoutManager`；
+- `DiffUtil`、页面回收和共享 `RecycledViewPool` 减少数据刷新与切页开销；
+- 不可变数据模型、独立仓库接口和纯几何计算；
+- 符号动作通过回调交给宿主，避免强制绑定某个编辑器实现；
+- 独立的 `symbol_drawer_v2` 存储空间，不覆盖旧版配置。
+
+接入方式、API 示例和架构约束见 [V2 README](../zero-symbol-input-view-v2/README.md) 与 [V2 架构说明](../zero-symbol-input-view-v2/ARCHITECTURE.md)。
+
+V2 当前处于并行开发阶段。完成符号管理界面、旧数据迁移、完整动作兼容及真机手势回归前，不应将旧版控件替换为 V2。

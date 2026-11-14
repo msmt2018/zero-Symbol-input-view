@@ -13,8 +13,15 @@ on:
   pull_request:
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
-  build:
+  app-build:
     name: Build debug APK
     runs-on: ubuntu-latest
     env:
@@ -23,11 +30,6 @@ jobs:
       SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
       SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
     steps:
-      - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.13.0
-        with:
-          access_token: ${{ github.token }}
-
       - name: Checkout Repository
         uses: actions/checkout@v6
         with:
@@ -46,22 +48,126 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build debug APK
-        id: build
         run: ./gradlew assembleDebug
 
-      - name: Publish snapshot
-        if: ${{ always() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.build.outcome == 'success' }}
-        run: ./gradlew publishAllPublicationsToMavenCentral
-        env:
-          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MVN_USERNAME }}
-          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MVN_PASSWORD }}
-          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.MVN_SIGNING_KEY }}
-          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.MVN_SIGNING_KEY_ID }}
-          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.MVN_SIGNING_KEY_PASSWORD }}
+      - name: Verify stable debug APK signing certificate
+        run: |
+          set -euo pipefail
+          APK="app/build/outputs/apk/debug/app-debug.apk"
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Android/Sdk}}"
+          APKSIGNER="$(find "$SDK_ROOT/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          test -x "$APKSIGNER"
+          "$APKSIGNER" verify --verbose "$APK"
+          KEYSTORE="app/keys/zerostudio-debug.keystore"
+          test -s "$KEYSTORE"
+          keytool -list -v -keystore "$KEYSTORE" -storepass android -alias androiddebugkey > "$RUNNER_TEMP/debug-keystore.txt"
+          EXPECTED="$(sed -n 's/^[[:space:]]*SHA256:[[:space:]]*//p' "$RUNNER_TEMP/debug-keystore.txt" | head -n 1 | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
+          keytool -printcert -jarfile "$APK" > "$RUNNER_TEMP/apk-signature.txt"
+          ACTUAL="$(sed -n 's/^[[:space:]]*SHA256:[[:space:]]*//p' "$RUNNER_TEMP/apk-signature.txt" | head -n 1 | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
+          test -n "$EXPECTED"
+          test -n "$ACTUAL"
+          if [[ "$ACTUAL" != "$EXPECTED" ]]; then
+            echo "::error::Debug APK certificate does not match the checked-in stable debug keystore."
+            echo "Expected: $EXPECTED"
+            echo "Actual:   $ACTUAL"
+            exit 1
+          fi
+          echo "Verified APK signature matches app/keys/zerostudio-debug.keystore (SHA-256: $ACTUAL)"
 
-      - name: Upload artifact
+      - name: Upload debug APK artifact
         uses: actions/upload-artifact@v7
-        if: ${{ !github.head_ref }}
         with:
           name: apk-debug
           path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+
+  v2-library-validation:
+    name: V2 Library build and tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+        with:
+          submodules: true
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          java-version: 17
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Grant Permissions for Gradle
+        run: chmod +x gradlew
+
+      - name: Build V2 library debug and release variants
+        run: ./gradlew :zero-symbol-input-view-v2:assembleDebug :zero-symbol-input-view-v2:assembleRelease
+
+      - name: Run V2 library unit tests
+        run: ./gradlew :zero-symbol-input-view-v2:testDebugUnitTest
+
+      - name: Upload V2 unit test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: v2-unit-test-diagnostics
+          if-no-files-found: warn
+          path: |
+            zero-symbol-input-view-v2/build/reports/tests/testDebugUnitTest/**
+            zero-symbol-input-view-v2/build/test-results/testDebugUnitTest/**
+            zero-symbol-input-view-v2/build/reports/problems/**
+
+      - name: Compile V2 library instrumentation tests
+        run: ./gradlew :zero-symbol-input-view-v2:assembleDebugAndroidTest
+
+  v2-library-instrumentation:
+    name: V2 Library Android 15 instrumentation tests
+    runs-on: ubuntu-latest
+    needs: v2-library-validation
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+        with:
+          submodules: true
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          java-version: 17
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Configure KVM permissions
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run V2 instrumentation tests on Android 15
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          emulator-boot-timeout: 600
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -wipe-data
+          script: bash scripts/run-v2-instrumentation.sh
+
+      - name: Upload V2 instrumentation diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: v2-instrumentation-diagnostics
+          if-no-files-found: warn
+          path: |
+            zero-symbol-input-view-v2/build/reports/androidTests/**
+            zero-symbol-input-view-v2/build/outputs/androidTest-results/**
+            zero-symbol-input-view-v2/build/outputs/logs/**
+            zero-symbol-input-view-v2/build/diagnostics/**

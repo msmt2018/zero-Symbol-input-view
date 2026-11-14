@@ -52,6 +52,7 @@ import io.github.rosemoe.sora.app.lsp.LspTestActivity
 import io.github.rosemoe.sora.app.lsp.LspTestJavaActivity
 import io.github.rosemoe.sora.app.tests.TestActivity
 import io.github.rosemoe.sora.app.tests.paged.PagedEditActivity
+import io.github.rosemoe.sora.app.tests.drawer.DrawerApiLabActivity
 import io.github.rosemoe.sora.event.ContentChangeEvent
 import io.github.rosemoe.sora.event.EditorKeyEvent
 import io.github.rosemoe.sora.event.InlayHintClickEvent
@@ -120,7 +121,12 @@ import java.io.FileOutputStream
 import java.lang.ref.WeakReference
 import java.util.zip.ZipFile
 import java.util.regex.PatternSyntaxException
-import android.zero.studio.widget.editor.symbolinput.*
+import com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawerView
+import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionExecutor
+import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionResult
+import com.zerostudio.idea.widget.editor.symbolinput.v2.manager.SymbolDrawerManagerScreen
+import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SharedPreferencesSymbolDrawerSettingsRepository
+import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettingsScreen
 
 
 /**
@@ -195,12 +201,27 @@ class MainActivity : AppCompatActivity() {
         // inputView.bindEditor(binding.editor)
         // inputView.addSymbols(SYMBOLS, SYMBOL_INSERT_TEXT)
         // inputView.forEachButton { it.typeface = typeface }
-        val symbolInputView = findViewById<AdvancedSymbolInputView>(R.id.advanced_symbol_input)
-        symbolInputView.bindEditor(binding.editor)
-
-        // 设置点击 “...” (动作22) 的监听器，跳转到管理界面
+        val symbolInputView = findViewById<SymbolDrawerView>(R.id.advanced_symbol_input)
+        symbolInputView.applySettings(SharedPreferencesSymbolDrawerSettingsRepository(this).load().settings)
+        val actionExecutor = SymbolActionExecutor()
+        val actionHost = SoraCodeEditorSymbolActionHost(binding.editor) {
+            showSymbolDrawerManager(symbolInputView)
+        }
+        symbolInputView.onSymbolActionListener =
+            SymbolDrawerView.OnSymbolActionListener { symbol, longPress ->
+                val action = if (longPress) symbol.longAction else symbol.shortAction
+                if (action != null) {
+                    val result = actionExecutor.execute(action, actionHost)
+                    if (result !is SymbolActionResult.Executed) {
+                        Toast.makeText(this, "符号动作执行失败：$result", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
         symbolInputView.onOpenManagerListener = {
-            startActivity(Intent(this, SymbolManagerActivity::class.java))
+            showSymbolDrawerManager(symbolInputView)
+        }
+        symbolInputView.onOpenSettingsListener = {
+            showSymbolDrawerSettings(symbolInputView)
         }
         
 
@@ -698,6 +719,7 @@ class MainActivity : AppCompatActivity() {
         val id = item.itemId
         val editor = binding.editor
         when (id) {
+            R.id.open_drawer_api_lab -> startActivity(Intent(this, DrawerApiLabActivity::class.java))
             R.id.open_test_activity -> startActivity<TestActivity>()
             R.id.open_paged_edit -> startActivity<PagedEditActivity>()
             R.id.open_lsp_activity -> {
@@ -1182,12 +1204,39 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun showSymbolDrawerSettings(drawer: SymbolDrawerView) {
+        val settings = SymbolDrawerSettingsScreen(this).apply {
+            onSettingsChanged = drawer::applySettings
+            onError = { error ->
+                Toast.makeText(this@MainActivity, "设置保存失败：${error.message}", Toast.LENGTH_LONG).show()
+            }
+        }
+        MaterialAlertDialogBuilder(this)
+            .setTitle("符号抽屉设置")
+            .setView(settings)
+            .setPositiveButton("完成", null)
+            .show()
+    }
+
+    private fun showSymbolDrawerManager(drawer: SymbolDrawerView) {
+        val manager = SymbolDrawerManagerScreen(this).apply {
+            onGroupsChanged = { groups -> drawer.submitGroups(groups) }
+            onError = { error ->
+                Toast.makeText(this@MainActivity, "符号管理失败：${error.message}", Toast.LENGTH_LONG).show()
+            }
+        }
+        MaterialAlertDialogBuilder(this)
+            .setTitle("符号管理")
+            .setView(manager)
+            .setPositiveButton("关闭", null)
+            .setNeutralButton("设置") { _, _ -> showSymbolDrawerSettings(drawer) }
+            .setOnDismissListener { drawer.reloadGroups() }
+            .show()
+    }
+
     override fun onResume() {
         super.onResume()
-        findViewById<AdvancedSymbolInputView>(R.id.advanced_symbol_input)?.apply {
-            refreshData()
-            onHostResume()
-        }
+        findViewById<SymbolDrawerView>(R.id.advanced_symbol_input)?.onHostResume()
     }
 
 }

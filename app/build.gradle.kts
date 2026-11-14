@@ -26,6 +26,8 @@ plugins {
     id("com.android.application")
 }
 
+val appSigningConfig = AppSigning.getAppSigningConfigOptional(project)
+
 android {
     namespace = "io.github.rosemoe.sora.app"
 
@@ -35,24 +37,41 @@ android {
     }
 
     signingConfigs {
-        AppSigning.getAppSigningConfigOptional(project)
-            .onSuccess {
-                create("general") {
-                    storeFile = it.storeFile
-                    storePassword = it.storePassword
-                    keyAlias = it.keyAlias
-                    keyPassword = it.keyPassword
+        // This key is intentionally public and DEBUG-ONLY. It gives local and
+        // CI debug APKs the same certificate; never use it for release builds.
+        create("stableDebug") {
+            storeFile = rootProject.file("app/keys/zerostudio-debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+            enableV1Signing = true
+            enableV2Signing = true
+        }
 
-                    enableV1Signing = true
-                    enableV2Signing = true
-                }
-
-                buildTypes.forEach { buildType ->
-                    buildType.signingConfig = signingConfigs.getByName("general")
-                }
-            }.onFailure {
-                logger.error("Failed to get signing config. Signing configuration is left as is.")
+        appSigningConfig.onSuccess {
+            create("general") {
+                storeFile = it.storeFile
+                storePassword = it.storePassword
+                keyAlias = it.keyAlias
+                keyPassword = it.keyPassword
+                enableV1Signing = true
+                enableV2Signing = true
             }
+        }
+    }
+
+    buildTypes {
+        getByName("debug") {
+            signingConfig = signingConfigs.getByName("stableDebug")
+        }
+        // A real private keystore is required to sign release APKs. When it is
+        // not configured, the release variant remains unsigned rather than
+        // silently receiving a machine-specific debug certificate.
+        appSigningConfig.onSuccess {
+            getByName("release") {
+                signingConfig = signingConfigs.getByName("general")
+            }
+        }
     }
 
     for (buildType in buildTypes) {
@@ -106,7 +125,7 @@ dependencies {
     implementation(projects.editorLsp)
     implementation(projects.languageTreesitter)
     implementation(projects.onigurumaNative)
-    implementation(projects.zeroSymbolInputView)
+    implementation(projects.zeroSymbolInputViewV2)
 
     // Tree-sitter languages
     implementation(libs.tree.sitter.java)
