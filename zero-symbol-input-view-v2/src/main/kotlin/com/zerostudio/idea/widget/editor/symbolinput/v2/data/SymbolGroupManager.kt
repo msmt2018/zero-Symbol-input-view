@@ -287,6 +287,10 @@ class SymbolGroupManager(
     }
 
     private fun commit(next: List<SymbolGroup>) {
+        // Treat commands that produce an identical immutable snapshot as no-ops.
+        // This avoids redundant disk writes from repeated taps, stale UI events,
+        // or reorder requests that leave the existing order unchanged.
+        if (next == groups) return
         require(next.all { it.id.isNotBlank() && it.title.isNotBlank() }) {
             "Group IDs and titles must not be blank"
         }

@@ -284,6 +284,24 @@ class SymbolGroupManagerMethodExecutionTest {
     }
 
     @Test
+    fun commandsThatDoNotChangeTheSnapshotDoNotPersist() {
+        val repository = Repository(initial())
+        val manager = SymbolGroupManager(repository)
+        val before = manager.groups
+
+        manager.moveGroup(0, 0)
+        manager.moveSymbol("a", 0, 0)
+        manager.reorderSymbols("a", listOf(1L, 2L))
+        manager.updateSymbol("a", entry(1))
+        manager.renameGroup("a", "Alpha")
+        manager.replaceAll(before)
+
+        assertEquals(before, manager.groups)
+        assertEquals(before, repository.stored)
+        assertEquals(0, repository.saveCount)
+    }
+
+    @Test
     fun failedRepositoryWriteDoesNotPublishInMemoryChanges() {
         val repository = Repository(initial())
         val manager = SymbolGroupManager(repository, newId = { "never-published" })
