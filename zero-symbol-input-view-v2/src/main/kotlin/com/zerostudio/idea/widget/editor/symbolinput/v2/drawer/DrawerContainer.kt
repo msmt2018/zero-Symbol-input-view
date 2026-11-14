@@ -539,8 +539,11 @@ class DrawerContainer @JvmOverloads constructor(
         }
         val isFullScreen = currentConfig.presentationMode == DrawerPresentationMode.FULL_SCREEN
         val isAtFullScreenAnchor = current.currentHeightPx >= maxHeight - 1
-        handleTouchTarget.visibility = if (!currentConfig.dragHandleEnabled ||
-            (isFullScreen && isAtFullScreenAnchor)) GONE else VISIBLE
+        handleTouchTarget.visibility = if (!currentConfig.dragHandleEnabled || isFullScreen) {
+            GONE
+        } else {
+            VISIBLE
+        }
         val showPeek = !expanded && peekHost.content() != null
         val showExpanded = expanded && (expandedHost.content() != null || pageHost.navigationController.pages().isNotEmpty())
         peekHost.visibility = if (showPeek) VISIBLE else GONE
