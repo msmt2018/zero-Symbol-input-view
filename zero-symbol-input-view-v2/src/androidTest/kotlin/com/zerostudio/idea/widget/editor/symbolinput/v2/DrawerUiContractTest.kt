@@ -304,6 +304,10 @@ class DrawerUiContractTest {
                 }
                 activity.content.addView(screen, FrameLayout.LayoutParams(-1, -1))
                 layoutAt(1000)
+                // onSizeChanged rebuilds the page tree during layout; run a
+                // second measure/layout pass so the replacement ScrollViews
+                // have their final viewport before asserting their scroll range.
+                layoutAt(1000)
                 val tabs = find(screen) { it is TabLayout } as TabLayout
                 // The layout page contains enough controls to guarantee a real
                 // scroll range at this compact height. The data-management page
@@ -316,6 +320,7 @@ class DrawerUiContractTest {
                 previousScroll = layoutScroll.scrollY
                 assertTrue("The selected layout page must have a real scroll range", previousScroll > 0)
 
+                layoutAt(500)
                 layoutAt(500)
             }
             scenario.onActivity {
