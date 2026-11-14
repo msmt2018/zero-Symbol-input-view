@@ -73,7 +73,6 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.adapter.SymbolDra
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerInteractionController
 import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.SymbolGroupIndicator
 import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.SymbolPageAdapter
-import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /**
