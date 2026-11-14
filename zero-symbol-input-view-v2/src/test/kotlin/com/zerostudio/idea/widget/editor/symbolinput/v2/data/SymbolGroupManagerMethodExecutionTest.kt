@@ -201,8 +201,8 @@ class SymbolGroupManagerMethodExecutionTest {
     }
 
     @Test
-    fun movingSubsetRetriesIdsOwnedByUnselectedSymbolsInTheSameSourceGroup() {
-        val candidates = ArrayDeque(listOf(2L, 3L))
+    fun movingSubsetPreservesUnselectedSourceSymbolsAndStableIds() {
+        val candidates = ArrayDeque(listOf(3L))
         val repository = Repository(listOf(
             SymbolGroup("source", "Source", listOf(entry(1), entry(2))),
             SymbolGroup("target", "Target", emptyList())
@@ -212,7 +212,8 @@ class SymbolGroupManagerMethodExecutionTest {
         manager.moveSymbolsToGroup("source", setOf(1L), "target")
 
         assertEquals(listOf(2L), manager.groups.single { it.id == "source" }.symbols.map { it.id })
-        assertEquals(listOf(3L), manager.groups.single { it.id == "target" }.symbols.map { it.id })
+        assertEquals(listOf(1L), manager.groups.single { it.id == "target" }.symbols.map { it.id })
+        assertEquals(3L, candidates.first())
         assertEquals(manager.groups, repository.stored)
         assertEquals(1, repository.saveCount)
     }
