@@ -6,12 +6,18 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.ImageButton
+import androidx.core.view.ViewCompat
+import androidx.core.widget.NestedScrollView
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorStrategies
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.panel.DrawerPanelContent
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.DrawerContainer
 import com.zerostudio.idea.widget.editor.symbolinput.v2.testing.DrawerTestHostActivity
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -78,6 +84,153 @@ class DrawerHandleInteractionTest {
                 val draggedHeight = requireNotNull(drawer.controller.currentState()).currentHeightPx
                 assertTrue("Dragging the visible handle upward must increase drawer height", draggedHeight > startHeight)
                 send(MotionEvent.ACTION_CANCEL, -96f, 100)
+            }
+        }
+    }
+
+
+    @Test
+    fun handleVisibilityFollowsConfigurationAndRemovesTheHitTargetWhenHidden() {
+        ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val drawer = DrawerContainer(activity)
+                activity.content.addView(drawer, FrameLayout.LayoutParams(-1, -1))
+                val width = activity.resources.displayMetrics.widthPixels
+                val height = activity.resources.displayMetrics.heightPixels
+                drawer.measure(
+                    View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
+                )
+                drawer.layout(0, 0, width, height)
+
+                val sheet = drawer.getChildAt(drawer.childCount - 1) as LinearLayout
+                val handleTarget = sheet.getChildAt(0)
+                assertEquals(View.VISIBLE, handleTarget.visibility)
+
+                drawer.controller.setDragHandleEnabled(false)
+                assertEquals(View.GONE, handleTarget.visibility)
+                assertFalse(handleTarget.isShown)
+
+                drawer.controller.setDragHandleEnabled(true)
+                assertEquals(View.VISIBLE, handleTarget.visibility)
+                assertTrue(handleTarget.isShown)
+            }
+        }
+    }
+
+    @Test
+    fun expandedNestedContentScrollsToItsStartBeforeTheDrawerCollapses() {
+        ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val drawer = DrawerContainer(activity)
+                val scroll = NestedScrollView(activity).apply {
+                    isNestedScrollingEnabled = true
+                    addView(LinearLayout(activity).apply {
+                        orientation = LinearLayout.VERTICAL
+                        repeat(36) { index ->
+                            addView(TextView(activity).apply {
+                                text = "Scrollable panel row $index"
+                                minHeight = (48f * resources.displayMetrics.density).toInt()
+                            }, LinearLayout.LayoutParams(-1, -2))
+                        }
+                    }, NestedScrollView.LayoutParams(-1, -2))
+                }
+                drawer.controller.setPages(emptyList())
+                drawer.controller.setNestedScrollEnabled(true)
+                drawer.controller.setExpandedContent(object : DrawerPanelContent {
+                    override fun createView(): View = scroll
+                })
+                drawer.controller.setAnchorStrategy(DrawerAnchorStrategies.threeStage(0.5f, false))
+                activity.content.addView(drawer, FrameLayout.LayoutParams(-1, -1))
+
+                val width = activity.resources.displayMetrics.widthPixels
+                val height = activity.resources.displayMetrics.heightPixels
+                fun layoutDrawer() {
+                    drawer.measure(
+                        View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                        View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
+                    )
+                    drawer.layout(0, 0, width, height)
+                }
+                layoutDrawer()
+                drawer.refreshAnchors()
+                drawer.controller.moveToAnchor("expanded", false)
+                layoutDrawer()
+
+                assertTrue("Expanded panel must have a measured scroll viewport", scroll.height > 0)
+                scroll.scrollTo(0, Int.MAX_VALUE)
+                assertTrue("The nested panel must be scrolled away from its start", scroll.canScrollVertically(-1))
+
+                val expandedHeight = requireNotNull(drawer.controller.currentState()).currentHeightPx
+                assertTrue(
+                    "The sheet must accept nested scrolling from its expanded panel",
+                    ViewCompat.startNestedScroll(
+                        scroll,
+                        ViewCompat.SCROLL_AXIS_VERTICAL,
+                        ViewCompat.TYPE_TOUCH
+                    )
+                )
+
+                val consumed = IntArray(2)
+                ViewCompat.dispatchNestedPreScroll(
+                    scroll, 0, -(48f * activity.resources.displayMetrics.density).toInt(),
+                    consumed, null, ViewCompat.TYPE_TOUCH
+                )
+                assertEquals("Scrollable content owns downward movement before reaching its start", 0, consumed[1])
+                assertEquals(expandedHeight, drawer.controller.currentState()?.currentHeightPx)
+
+                scroll.scrollTo(0, 0)
+                assertFalse(scroll.canScrollVertically(-1))
+                consumed.fill(0)
+                ViewCompat.dispatchNestedPreScroll(
+                    scroll, 0, -(48f * activity.resources.displayMetrics.density).toInt(),
+                    consumed, null, ViewCompat.TYPE_TOUCH
+                )
+                assertTrue("The drawer may consume downward movement once content is at its start", consumed[1] < 0)
+                assertTrue(
+                    drawer.controller.currentState()!!.currentHeightPx < expandedHeight
+                )
+                ViewCompat.stopNestedScroll(scroll, ViewCompat.TYPE_TOUCH)
+            }
+        }
+    }
+
+    @Test
+    fun nestedScrollingFromMainContentIsNotCapturedByTheDrawerSheet() {
+        ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val drawer = DrawerContainer(activity)
+                val mainScroll = NestedScrollView(activity).apply {
+                    addView(TextView(activity).apply {
+                        text = (1..30).joinToString("\\n") { "Main content row $it" }
+                    }, NestedScrollView.LayoutParams(-1, -2))
+                }
+                drawer.controller.setNestedScrollEnabled(true)
+                activity.content.addView(drawer, FrameLayout.LayoutParams(-1, -1))
+                drawer.setMainContent(mainScroll)
+
+                val width = activity.resources.displayMetrics.widthPixels
+                val height = activity.resources.displayMetrics.heightPixels
+                drawer.measure(
+                    View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
+                )
+                drawer.layout(0, 0, width, height)
+                val initialHeight = drawer.controller.currentState()?.currentHeightPx
+                assertFalse(
+                    "Main content is not a child of the sheet and must not start sheet nested scrolling",
+                    ViewCompat.startNestedScroll(
+                        mainScroll,
+                        ViewCompat.SCROLL_AXIS_VERTICAL,
+                        ViewCompat.TYPE_TOUCH
+                    )
+                )
+                val consumed = IntArray(2)
+                ViewCompat.dispatchNestedPreScroll(
+                    mainScroll, 0, 120, consumed, null, ViewCompat.TYPE_TOUCH
+                )
+                assertEquals(0, consumed[1])
+                assertEquals(initialHeight, drawer.controller.currentState()?.currentHeightPx)
             }
         }
     }

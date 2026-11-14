@@ -339,7 +339,12 @@ class DrawerUiContractTest {
                 val content = tabs.parent as ViewGroup
                 val pageHost = content.getChildAt(2) as FrameLayout
                 val restoredScroll = pageHost.getChildAt(1) as ScrollView
-                assertEquals(previousScroll, restoredScroll.scrollY)
+                val restoredPage = restoredScroll.getChildAt(0)
+                val restoredRange = (restoredPage.measuredHeight - restoredScroll.height).coerceAtLeast(0)
+                // Width-class reflow may reduce the page's total height. Keep the
+                // absolute offset when possible, otherwise clamp to the new range.
+                assertEquals(minOf(previousScroll, restoredRange), restoredScroll.scrollY)
+                assertTrue("Reflow must not reset a still-scrollable page to its top", restoredScroll.scrollY > 0)
             }
         }
     }
