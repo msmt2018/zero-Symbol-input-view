@@ -45,19 +45,15 @@
 
 package com.zerostudio.idea.widget.editor.symbolinput.v2
 
-import android.animation.ValueAnimator
 import android.app.AlertDialog
 import android.content.Context
 import android.os.Parcel
 import android.os.Parcelable
 import android.util.AttributeSet
 import android.view.MotionEvent
-import android.view.VelocityTracker
 import android.view.View
-import android.view.ViewConfiguration
 import android.view.ViewGroup
 import android.view.HapticFeedbackConstants
-import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
 import androidx.viewpager2.widget.ViewPager2
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.LegacySymbolDataMigration
@@ -74,6 +70,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSet
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.ThemeMode
 import com.zerostudio.idea.widget.editor.symbolinput.v2.state.DrawerGeometry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.adapter.SymbolDrawerAnchorAdapter
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerInteractionController
 import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.SymbolGroupIndicator
 import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.SymbolPageAdapter
 import kotlin.math.abs
@@ -131,15 +128,15 @@ class SymbolDrawerView @JvmOverloads constructor(
     private var drawerHeight = collapsedHeight
     private var pagerHeight = collapsedHeight
     private var expansion = 0f
-    private var heightAnimator: ValueAnimator? = null
-    private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
-    private val minimumFlingVelocity = ViewConfiguration.get(context).scaledMinimumFlingVelocity
-    private var downX = 0f
-    private var downY = 0f
-    private var lastY = 0f
-    private var draggingDrawer = false
-    private var gestureAxis = AXIS_UNDECIDED
-    private var velocityTracker: VelocityTracker? = null
+    /**
+     * The universal drawer core owns gesture arbitration, velocity tracking,
+     * continuous drag state and settling; the feature retains its exact layout.
+     */
+    private val interactionController = DrawerInteractionController(
+        context = context,
+        onHeightChanged = { height, _, _ -> setExpansionFromHeight(height) },
+        onDisallowInterceptChanged = ::setParentIntercept
+    )
 
     init {
         clipChildren = false
@@ -380,53 +377,10 @@ class SymbolDrawerView @JvmOverloads constructor(
         pager.layout(0, indicatorHeight, width, indicatorHeight + pager.measuredHeight)
     }
 
-    override fun onInterceptTouchEvent(event: MotionEvent): Boolean {
-        when (event.actionMasked) {
-            MotionEvent.ACTION_DOWN -> {
-                downX = event.x
-                downY = event.rawY
-                lastY = event.rawY
-                draggingDrawer = false
-                gestureAxis = AXIS_UNDECIDED
-                parent?.requestDisallowInterceptTouchEvent(true)
-                velocityTracker?.recycle()
-                velocityTracker = VelocityTracker.obtain().also { it.addMovement(event) }
-            }
-            MotionEvent.ACTION_MOVE -> {
-                velocityTracker?.addMovement(event)
-                val dx = event.x - downX
-                val dy = event.rawY - downY
-                if (gestureAxis == AXIS_UNDECIDED && maxOf(abs(dx), abs(dy)) > touchSlop) {
-                    if (abs(dx) > abs(dy) * 1.15f) {
-                        // Lock this gesture to ViewPager2. The drawer must not
-                        // steal a horizontal group swipe later in the gesture.
-                        gestureAxis = AXIS_HORIZONTAL
-                        velocityTracker?.recycle()
-                        velocityTracker = null
-                        super.requestDisallowInterceptTouchEvent(true)
-                    } else if (abs(dy) > abs(dx) * 1.15f) {
-                        gestureAxis = AXIS_VERTICAL
-                        val childCanScrollUp = dy > 0f &&
-                            canScrollableDescendantScrollVertically(-1, event.x, event.y)
-                        if (SymbolDrawerDragPolicy.shouldInterceptVerticalDrag(
-                                fingerDeltaY = dy,
-                                currentHeightPx = drawerHeight,
-                                collapsedHeightPx = collapsedHeight,
-                                expandedHeightPx = expandedHeight,
-                                childCanScrollUp = childCanScrollUp
-                            )) {
-                            draggingDrawer = true
-                            heightAnimator?.cancel()
-                            super.requestDisallowInterceptTouchEvent(true)
-                            return true
-                        }
-                    }
-                }
-            }
-            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> resetGesture()
+    override fun onInterceptTouchEvent(event: MotionEvent): Boolean =
+        interactionController.onInterceptTouchEvent(event) { x, y ->
+            canScrollableDescendantScrollVertically(-1, x, y)
         }
-        return false
-    }
 
     /**
      * Finds a vertically scrollable descendant under the active pointer.
@@ -461,74 +415,30 @@ class SymbolDrawerView @JvmOverloads constructor(
      * otherwise a child can accidentally disable the drawer's vertical drag.
      */
     override fun requestDisallowInterceptTouchEvent(disallowIntercept: Boolean) {
-        if (gestureAxis != AXIS_UNDECIDED) {
+        if (interactionController.isGestureAxisLocked) {
             super.requestDisallowInterceptTouchEvent(disallowIntercept)
         }
     }
 
-    override fun onTouchEvent(event: MotionEvent): Boolean {
-        velocityTracker?.addMovement(event)
-        when (event.actionMasked) {
-            MotionEvent.ACTION_DOWN -> {
-                lastY = event.rawY
-                return true
-            }
-            MotionEvent.ACTION_MOVE -> {
-                if (!draggingDrawer) return false
-                val delta = lastY - event.rawY
-                lastY = event.rawY
-                setExpansionFromHeight((drawerHeight + delta.roundToInt()).coerceIn(collapsedHeight, expandedHeight))
-                return true
-            }
-            MotionEvent.ACTION_UP -> {
-                if (draggingDrawer) {
-                    velocityTracker?.computeCurrentVelocity(1000)
-                    val velocityY = -(velocityTracker?.yVelocity ?: 0f)
-                    val target = when {
-                        abs(velocityY) >= minimumFlingVelocity &&
-                            abs(velocityY) >= config.flingVelocityDpPerSecond * resources.displayMetrics.density ->
-                            velocityY > 0f
-                        else -> expansion >= 0.5f
-                    }
-                    animateTo(if (target) 1f else 0f, true)
-                }
-                resetGesture()
-                return true
-            }
-            MotionEvent.ACTION_CANCEL -> {
-                if (draggingDrawer) animateTo(if (expansion >= 0.5f) 1f else 0f, true)
-                resetGesture()
-                return true
-            }
-        }
-        return true
-    }
+    override fun onTouchEvent(event: MotionEvent): Boolean =
+        interactionController.onTouchEvent(event)
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
-        // A detached drawer may be reattached to a different host container or
-        // after a density/configuration change. Recompute pixel geometry while
-        // preserving the current expansion fraction instead of reusing stale
-        // dimensions from the previous attachment.
+        interactionController.onAttached()
         recalculateGeometry()
     }
 
     override fun onDetachedFromWindow() {
         settingsDialog?.dismiss()
         settingsDialog = null
-        heightAnimator?.cancel()
-        heightAnimator = null
-        resetGesture()
+        interactionController.onDetached()
         super.onDetachedFromWindow()
     }
 
-    private fun resetGesture() {
-        draggingDrawer = false
-        gestureAxis = AXIS_UNDECIDED
-        super.requestDisallowInterceptTouchEvent(false)
-        parent?.requestDisallowInterceptTouchEvent(false)
-        velocityTracker?.recycle()
-        velocityTracker = null
+    private fun setParentIntercept(disallowIntercept: Boolean) {
+        super.requestDisallowInterceptTouchEvent(disallowIntercept)
+        parent?.requestDisallowInterceptTouchEvent(disallowIntercept)
     }
 
     private fun recalculateGeometry() {
@@ -544,9 +454,15 @@ class SymbolDrawerView @JvmOverloads constructor(
         collapsedHeight = resolved.collapsedHeightPx
         expandedGridHeight = resolved.expandedGridHeightPx
         expandedHeight = resolved.expandedHeightPx
-        setExpansionFromHeight(
-            (collapsedHeight + (expandedHeight - collapsedHeight) * oldFraction).roundToInt()
+        val targetHeight = (collapsedHeight + (expandedHeight - collapsedHeight) * oldFraction).roundToInt()
+        interactionController.setBounds(
+            minimumHeightPx = collapsedHeight,
+            maximumHeightPx = expandedHeight,
+            currentHeightPx = targetHeight,
+            animationDurationMs = config.animationDurationMs.toLong(),
+            flingVelocityDpPerSecond = config.flingVelocityDpPerSecond
         )
+        setExpansionFromHeight(targetHeight)
     }
 
     private fun setExpansionFromHeight(height: Int) {
@@ -600,33 +516,10 @@ class SymbolDrawerView @JvmOverloads constructor(
         }
     }
 
-    private companion object {
-        const val AXIS_UNDECIDED = 0
-        const val AXIS_HORIZONTAL = 1
-        const val AXIS_VERTICAL = 2
-    }
-
     private fun animateTo(target: Float, animated: Boolean) {
         val destination = target.coerceIn(0f, 1f)
-        heightAnimator?.cancel()
-        if (!animated || !isAttachedToWindow) {
-            setExpansionFromHeight(
-                (collapsedHeight + (expandedHeight - collapsedHeight) * destination).roundToInt()
-            )
-            return
-        }
-        val start = expansion
-        heightAnimator = ValueAnimator.ofFloat(start, destination).apply {
-            duration = config.animationDurationMs
-            interpolator = DecelerateInterpolator()
-            addUpdateListener { animator ->
-                val fraction = animator.animatedValue as Float
-                setExpansionFromHeight(
-                    (collapsedHeight + (expandedHeight - collapsedHeight) * fraction).roundToInt()
-                )
-            }
-            start()
-        }
+        val targetHeight = (collapsedHeight + (expandedHeight - collapsedHeight) * destination).roundToInt()
+        interactionController.settleToHeight(targetHeight, animated)
     }
 }
 
