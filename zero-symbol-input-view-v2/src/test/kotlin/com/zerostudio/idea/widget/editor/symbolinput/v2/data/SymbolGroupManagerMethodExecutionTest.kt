@@ -144,6 +144,27 @@ class SymbolGroupManagerMethodExecutionTest {
     }
 
     @Test
+    fun duplicateGroupGeneratesSymbolIdsUniqueAcrossAllGroups() {
+        val repository = Repository(listOf(
+            SymbolGroup("source", "Source", listOf(entry(1))),
+            SymbolGroup("other", "Other", listOf(entry(2)))
+        ))
+        val candidates = ArrayDeque(listOf(2L, 3L))
+        val manager = SymbolGroupManager(
+            repository,
+            newId = { "duplicate" },
+            newSymbolId = { candidates.removeFirst() }
+        )
+
+        val duplicate = manager.duplicateGroup("source")
+
+        assertEquals(listOf(3L), duplicate.symbols.map { it.id })
+        assertEquals(1L, manager.groups.first { it.id == "source" }.symbols.single().id)
+        assertEquals(2L, manager.groups.first { it.id == "other" }.symbols.single().id)
+        assertEquals(manager.groups, repository.stored)
+    }
+
+    @Test
     fun addUpdateRemoveAndCopySymbolExecuteWithStableIds() {
         var nextId = 40L
         val repository = Repository(initial())

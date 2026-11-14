@@ -304,6 +304,15 @@ class SymbolDrawerManagerScreen(
             menu.add("右移").apply { isEnabled = index >= 0 && index < manager.groups.lastIndex }
                 .setOnMenuItemClickListener { moveGroup(group.id, 1); true }
             menu.add("添加").setOnMenuItemClickListener { showAddGroupDialog(); true }
+            menu.add("复制整个分组").setOnMenuItemClickListener {
+                runCatching {
+                    val duplicate = manager.duplicateGroup(group.id, index + 1)
+                    selectedGroupId = duplicate.id
+                    refresh()
+                    toast("已复制分组“${duplicate.title}”")
+                }.onFailure(::reportError)
+                true
+            }
             menu.add("复制到…").apply { isEnabled = manager.groups.size > 1 }
                 .setOnMenuItemClickListener { promptCopyGroupTo(group.id); true }
             menu.add("重命名").setOnMenuItemClickListener {
