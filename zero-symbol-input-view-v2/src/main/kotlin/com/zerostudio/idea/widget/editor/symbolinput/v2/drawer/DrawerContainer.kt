@@ -446,7 +446,8 @@ class DrawerContainer @JvmOverloads constructor(
         val topInset = if (currentConfig.enableEdgeToEdge) systemBarTopInset else 0
         val bottomInset = if (currentConfig.enableEdgeToEdge) systemBarBottomInset else 0
         val collapsedChromeHeight = topInset + bottomInset + verticalPadding * 2 +
-            (if (currentConfig.dragHandleEnabled) dp(48) else 0) +
+            (if (currentConfig.dragHandleEnabled &&
+                currentConfig.presentationMode != DrawerPresentationMode.FULL_SCREEN) dp(48) else 0) +
             (if (title.text.isNullOrEmpty()) 0 else dp(44)) +
             (if (hasNavigationTabs && navigation.showInPeekPanel) dp(48) else 0)
         val peekBodyMinimum = if (peekHost.content() != null) dp(48) else 0

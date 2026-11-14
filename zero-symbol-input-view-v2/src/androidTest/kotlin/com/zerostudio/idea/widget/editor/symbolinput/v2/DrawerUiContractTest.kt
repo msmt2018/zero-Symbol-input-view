@@ -81,6 +81,63 @@ class DrawerUiContractTest {
     }
 
 
+    @Test fun settingsColumnCountUpdatesTheVisibleSymbolGrid() {
+        ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
+            lateinit var drawer: SymbolDrawerView
+            var sevenColumns = -1
+            var fourColumns = -1
+            val checked = CountDownLatch(1)
+            scenario.onActivity { activity ->
+                drawer = SymbolDrawerView(activity)
+                activity.content.addView(drawer, FrameLayout.LayoutParams(-1, 480))
+                drawer.setExpanded(true, false)
+                drawer.submitGroups(sample()) {
+                    drawer.applySettings(SymbolDrawerSettings(columns = 7))
+                    drawer.measure(
+                        View.MeasureSpec.makeMeasureSpec(
+                            (480f * activity.resources.displayMetrics.density).toInt(),
+                            View.MeasureSpec.EXACTLY
+                        ),
+                        View.MeasureSpec.makeMeasureSpec(
+                            (480f * activity.resources.displayMetrics.density).toInt(),
+                            View.MeasureSpec.EXACTLY
+                        )
+                    )
+                    drawer.layout(0, 0, drawer.measuredWidth, drawer.measuredHeight)
+                    drawer.post {
+                        val firstGrid = find(drawer) {
+                            it is RecyclerView && it.layoutManager is GridLayoutManager
+                        } as RecyclerView
+                        sevenColumns = (firstGrid.layoutManager as GridLayoutManager).spanCount
+
+                        drawer.applySettings(SymbolDrawerSettings(columns = 4))
+                        drawer.measure(
+                            View.MeasureSpec.makeMeasureSpec(
+                                (480f * activity.resources.displayMetrics.density).toInt(),
+                                View.MeasureSpec.EXACTLY
+                            ),
+                            View.MeasureSpec.makeMeasureSpec(
+                                (480f * activity.resources.displayMetrics.density).toInt(),
+                                View.MeasureSpec.EXACTLY
+                            )
+                        )
+                        drawer.layout(0, 0, drawer.measuredWidth, drawer.measuredHeight)
+                        drawer.post {
+                            val updatedGrid = find(drawer) {
+                                it is RecyclerView && it.layoutManager is GridLayoutManager
+                            } as RecyclerView
+                            fourColumns = (updatedGrid.layoutManager as GridLayoutManager).spanCount
+                            checked.countDown()
+                        }
+                    }
+                }
+            }
+            assertTrue("The symbol grid did not finish applying column settings", checked.await(5, TimeUnit.SECONDS))
+            assertEquals(7, sevenColumns)
+            assertEquals(4, fourColumns)
+        }
+    }
+
     @Test fun settingsEntryStaysPinnedBesideScrollableGroupTabs() {
         ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->

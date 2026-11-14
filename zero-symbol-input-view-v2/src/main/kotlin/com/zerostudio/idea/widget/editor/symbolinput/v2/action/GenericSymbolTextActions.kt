@@ -108,7 +108,10 @@ object GenericSymbolTextActions {
             line > 0 -> document.textLength
             else -> document.lineEndOffset(line)
         }
-        val deleteStart = if (line == document.lineCount - 1 && line > 0) (start - 1).coerceAtLeast(0) else start
+        val previousSeparatorLength = lineSeparatorBefore(document, line)?.length ?: 1
+        val deleteStart = if (line == document.lineCount - 1 && line > 0) {
+            (start - previousSeparatorLength).coerceAtLeast(0)
+        } else start
         if (!document.replace(deleteStart, end, "")) return false
         document.setSelection(deleteStart, deleteStart)
         return true
@@ -137,25 +140,30 @@ object GenericSymbolTextActions {
         val line = currentLine(document)
         val end = document.lineEndOffset(line)
         val content = document.lineText(line)
-        if (!document.replace(end, end, "\n" + content)) return false
-        val caret = end + 1 + content.length
+        val separator = lineSeparatorAfter(document, line) ?: lineSeparatorBefore(document, line) ?: "\n"
+        if (!document.replace(end, end, separator + content)) return false
+        val caret = end + separator.length + content.length
         document.setSelection(caret, caret)
         return true
     }
 
     private fun insertBlankLineAbove(document: SymbolTextDocument): Boolean {
         if (!document.isEditable) return false
-        val start = document.lineStartOffset(currentLine(document))
-        if (!document.replace(start, start, "\n")) return false
+        val line = currentLine(document)
+        val start = document.lineStartOffset(line)
+        val separator = lineSeparatorBefore(document, line) ?: lineSeparatorAfter(document, line) ?: "\n"
+        if (!document.replace(start, start, separator)) return false
         document.setSelection(start, start)
         return true
     }
 
     private fun insertBlankLineBelow(document: SymbolTextDocument): Boolean {
         if (!document.isEditable) return false
-        val end = document.lineEndOffset(currentLine(document))
-        if (!document.replace(end, end, "\n")) return false
-        document.setSelection(end + 1, end + 1)
+        val line = currentLine(document)
+        val end = document.lineEndOffset(line)
+        val separator = lineSeparatorAfter(document, line) ?: lineSeparatorBefore(document, line) ?: "\n"
+        if (!document.replace(end, end, separator)) return false
+        document.setSelection(end + separator.length, end + separator.length)
         return true
     }
 
@@ -164,7 +172,8 @@ object GenericSymbolTextActions {
         val line = currentLine(document)
         if (line >= document.lineCount - 1) return false
         val end = document.lineEndOffset(line)
-        if (!document.replace(end, end + 1, "")) return false
+        val separator = lineSeparatorAfter(document, line) ?: return false
+        if (!document.replace(end, end + separator.length, "")) return false
         document.setSelection(end, end)
         return true
     }
@@ -182,8 +191,9 @@ object GenericSymbolTextActions {
             val previousText = document.lineText(target)
             val currentText = document.lineText(line)
             val relative = (cursorOffset - currentStart).coerceIn(0, currentText.length)
-            if (!document.replace(previousStart, currentEnd, currentText + "\n" + previousText)) return false
-            val caret = previousStart + currentText.length + 1 + relative
+            val separator = lineSeparatorBefore(document, line) ?: "\n"
+            if (!document.replace(previousStart, currentEnd, currentText + separator + previousText)) return false
+            val caret = previousStart + currentText.length + separator.length + relative
             document.setSelection(caret, caret)
         } else {
             val currentStart = document.lineStartOffset(line)
@@ -192,8 +202,9 @@ object GenericSymbolTextActions {
             val currentText = document.lineText(line)
             val nextText = document.lineText(target)
             val relative = (cursorOffset - currentStart).coerceIn(0, currentText.length)
-            if (!document.replace(currentStart, nextEnd, nextText + "\n" + currentText)) return false
-            val caret = currentStart + nextText.length + 1 + relative
+            val separator = lineSeparatorAfter(document, line) ?: "\n"
+            if (!document.replace(currentStart, nextEnd, nextText + separator + currentText)) return false
+            val caret = currentStart + nextText.length + separator.length + relative
             document.setSelection(caret, caret)
         }
         return true
@@ -344,22 +355,26 @@ object GenericSymbolTextActions {
         return true
     }
 
-    private fun lineSeparator(document: SymbolTextDocument, line: Int): String {
+    private fun lineSeparatorBefore(document: SymbolTextDocument, line: Int): String? {
         val start = document.lineStartOffset(line)
-        if (start > 0) {
-            if (start >= 2 && document.charAt(start - 2) == '\r' && document.charAt(start - 1) == '\n') return "\r\n"
-            if (document.charAt(start - 1) == '\r') return "\r"
-            if (document.charAt(start - 1) == '\n') return "\n"
-        }
-        val end = document.lineEndOffset(line)
-        if (end < document.textLength) {
-            if (document.charAt(end) == '\r') {
-                return if (end + 1 < document.textLength && document.charAt(end + 1) == '\n') "\r\n" else "\r"
-            }
-            if (document.charAt(end) == '\n') return "\n"
-        }
-        return "\n"
+        if (start >= 2 && document.charAt(start - 2) == '\r' && document.charAt(start - 1) == '\n') return "\r\n"
+        if (start > 0 && document.charAt(start - 1) == '\r') return "\r"
+        if (start > 0 && document.charAt(start - 1) == '\n') return "\n"
+        return null
     }
+
+    private fun lineSeparatorAfter(document: SymbolTextDocument, line: Int): String? {
+        val end = document.lineEndOffset(line)
+        if (end >= document.textLength) return null
+        return when (document.charAt(end)) {
+            '\r' -> if (end + 1 < document.textLength && document.charAt(end + 1) == '\n') "\r\n" else "\r"
+            '\n' -> "\n"
+            else -> null
+        }
+    }
+
+    private fun lineSeparator(document: SymbolTextDocument, line: Int): String =
+        lineSeparatorBefore(document, line) ?: lineSeparatorAfter(document, line) ?: "\n"
 
     private fun wrapSelectionWithTag(document: SymbolTextDocument, payload: String?): Boolean {
         val tag = payload?.trim()?.takeIf { it.matches(Regex("[A-Za-z][A-Za-z0-9:-]{0,63}")) }

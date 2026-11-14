@@ -58,6 +58,27 @@ class DrawerAnchorLayoutContractTest {
         }
     }
 
+    @Test fun fullScreenPeekDoesNotReserveHeightForItsHiddenHandle() {
+        ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val drawer = attachedDrawer(activity)
+                drawer.setTitle("")
+                drawer.setPeekContent(null)
+                drawer.controller.setExpandedContent(null)
+                drawer.controller.setPages(emptyList())
+                drawer.controller.setPresentationMode(DrawerPresentationMode.FULL_SCREEN)
+                drawer.controller.setAnchorStrategy(DrawerAnchorStrategies.threeStage(0.5f, false))
+                drawer.refreshAnchors()
+
+                val peek = requireNotNull(drawer.controller.currentState())
+                    .anchors.first { it.id == "peek" }
+                val expectedPeekHeight = Math.round(56f * activity.resources.displayMetrics.density)
+                assertEquals(expectedPeekHeight, peek.heightPx)
+                assertEquals(View.GONE, findView(drawer) { it.tag == "drawer_drag_handle" }.visibility)
+            }
+        }
+    }
+
     @Test fun customFourAnchorsRemainDistinctInsideBottomSheetBounds() {
         ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->

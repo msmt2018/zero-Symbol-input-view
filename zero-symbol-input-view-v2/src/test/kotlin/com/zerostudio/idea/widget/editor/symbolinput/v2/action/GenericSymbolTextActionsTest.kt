@@ -52,6 +52,36 @@ class GenericSymbolTextActionsTest {
         assertEquals("one\nthree", delete.text)
     }
 
+    @Test fun lineActionsPreserveCrLfSeparators() {
+        val duplicate = FakeDocument("one\\r\\ntwo", cursor = 6)
+        assertTrue(run("line.duplicate", duplicate))
+        assertEquals("one\\r\\ntwo\\r\\ntwo", duplicate.text)
+
+        val above = FakeDocument("one\\r\\ntwo", cursor = 6)
+        assertTrue(run("line.insertAbove", above))
+        assertEquals("one\\r\\n\\r\\ntwo", above.text)
+
+        val below = FakeDocument("one\\r\\ntwo", cursor = 1)
+        assertTrue(run("line.insertBelow", below))
+        assertEquals("one\\r\\n\\r\\ntwo", below.text)
+
+        val joined = FakeDocument("one\\r\\ntwo", cursor = 1)
+        assertTrue(run("line.joinNext", joined))
+        assertEquals("onetwo", joined.text)
+
+        val deleted = FakeDocument("one\\r\\ntwo", cursor = 6)
+        assertTrue(run("line.delete", deleted))
+        assertEquals("one", deleted.text)
+
+        val movedUp = FakeDocument("one\\r\\ntwo\\r\\nthree", cursor = 6)
+        assertTrue(run("line.moveUp", movedUp))
+        assertEquals("two\\r\\none\\r\\nthree", movedUp.text)
+
+        val movedDown = FakeDocument("one\\r\\ntwo\\r\\nthree", cursor = 1)
+        assertTrue(run("line.moveDown", movedDown))
+        assertEquals("two\\r\\none\\r\\nthree", movedDown.text)
+    }
+
     @Test fun selectionAndWordActionsUseDocumentOffsets() {
         val doc = FakeDocument("hello world", cursor = 7)
         assertTrue(run("cursor.selectWord", doc))
@@ -184,7 +214,9 @@ class GenericSymbolTextActionsTest {
         override fun lineEndOffset(line: Int): Int {
             val start = lineStartOffset(line)
             val newline = text.indexOf('\n', start)
-            return if (newline < 0) text.length else newline
+            return if (newline < 0) text.length
+            else if (newline > start && text[newline - 1] == '\r') newline - 1
+            else newline
         }
 
         override fun lineText(line: Int): String =
