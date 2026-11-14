@@ -150,7 +150,7 @@ class DrawerInteractionController(
                     velocityTracker?.computeCurrentVelocity(1000)
                     val velocityY = -(velocityTracker?.yVelocity ?: 0f)
                     val threshold = maxOf(
-                        minimumFlingVelocity,
+                        minimumFlingVelocity.toFloat(),
                         flingVelocityDpPerSecond * density
                     )
                     val targetExpanded = if (abs(velocityY) >= threshold) {
