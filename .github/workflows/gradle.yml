@@ -74,12 +74,13 @@ jobs:
           fi
           echo "Verified APK signature matches app/keys/zerostudio-debug.keystore (SHA-256: $ACTUAL)"
 
-      - name: Upload artifact
+      - name: Upload debug APK artifact
         uses: actions/upload-artifact@v7
-        if: ${{ !github.head_ref }}
         with:
           name: apk-debug
           path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
 
   v2-library-validation:
     name: V2 Library build and tests
