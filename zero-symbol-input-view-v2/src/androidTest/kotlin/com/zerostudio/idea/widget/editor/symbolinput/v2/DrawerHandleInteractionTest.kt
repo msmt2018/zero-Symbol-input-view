@@ -133,7 +133,7 @@ class DrawerHandleInteractionTest {
                                 minHeight = (48f * resources.displayMetrics.density).toInt()
                             }, LinearLayout.LayoutParams(-1, -2))
                         }
-                    }, NestedScrollView.LayoutParams(-1, -2))
+                    }, FrameLayout.LayoutParams(-1, -2))
                 }
                 drawer.controller.setPages(emptyList())
                 drawer.controller.setNestedScrollEnabled(true)
@@ -202,8 +202,8 @@ class DrawerHandleInteractionTest {
                 val drawer = DrawerContainer(activity)
                 val mainScroll = NestedScrollView(activity).apply {
                     addView(TextView(activity).apply {
-                        text = (1..30).joinToString("\\n") { "Main content row $it" }
-                    }, NestedScrollView.LayoutParams(-1, -2))
+                        text = (1..30).joinToString("\n") { "Main content row $it" }
+                    }, FrameLayout.LayoutParams(-1, -2))
                 }
                 drawer.controller.setNestedScrollEnabled(true)
                 activity.content.addView(drawer, FrameLayout.LayoutParams(-1, -1))
