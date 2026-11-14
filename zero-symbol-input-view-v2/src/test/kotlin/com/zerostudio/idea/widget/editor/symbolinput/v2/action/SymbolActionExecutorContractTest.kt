@@ -14,12 +14,17 @@ class SymbolActionExecutorContractTest {
         val calls = mutableListOf<String>()
         var supported = true
         var thrown: Throwable? = null
+        var afterInsert: (() -> Unit)? = null
         private fun result(call: String): Boolean {
             calls += call
             thrown?.let { throw it }
             return supported
         }
-        override fun insertText(template: String) = result("insert:$template")
+        override fun insertText(template: String): Boolean {
+            val success = result("insert:$template")
+            afterInsert?.invoke()
+            return success
+        }
         override fun replaceSelection(text: String) = result("replace:$text")
         override fun surroundSelection(prefix: String, suffix: String) = result("surround:$prefix:$suffix")
         override fun moveCursor(target: CursorTarget) = result("cursor:$target")
@@ -152,6 +157,27 @@ class SymbolActionExecutorContractTest {
         val result = SymbolActionExecutor(maxTotalActions = 3).execute(action, host)
         assertTrue(result is SymbolActionResult.Invalid)
         assertTrue(host.calls.isEmpty())
+    }
+
+    @Test fun executionRechecksAggregateBudgetIfTheActionTreeChangesAfterValidation() {
+        var expanded = false
+        val nestedActions = object : AbstractList<SymbolAction>() {
+            override val size: Int get() = if (expanded) 64 else 1
+            override fun get(index: Int): SymbolAction {
+                if (index !in 0 until size) throw IndexOutOfBoundsException()
+                return SymbolAction.InsertText("nested")
+            }
+        }
+        val action = SymbolAction.Composite(listOf(
+            SymbolAction.InsertText("trigger"),
+            SymbolAction.Composite(nestedActions)
+        ))
+        val host = Host().apply { afterInsert = { expanded = true } }
+
+        val result = SymbolActionExecutor(maxTotalActions = 4).execute(action, host)
+
+        assertTrue(result is SymbolActionResult.PartialFailure)
+        assertEquals(listOf("insert:trigger", "insert:nested"), host.calls)
     }
 
     @Test fun doesNotConvertFatalErrorsIntoOrdinaryActionFailures() {

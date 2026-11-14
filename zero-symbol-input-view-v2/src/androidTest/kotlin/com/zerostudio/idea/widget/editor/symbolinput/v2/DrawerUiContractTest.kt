@@ -4,6 +4,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import java.lang.reflect.Modifier
 import androidx.test.core.app.ActivityScenario
@@ -239,6 +240,46 @@ class DrawerUiContractTest {
     }
 
 
+
+    @Test fun settingsResizePreservesSelectedTabAndItsScrollPosition() {
+        ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
+            lateinit var screen: SymbolDrawerSettingsScreen
+            var previousScroll = 0
+            scenario.onActivity { activity ->
+                screen = SymbolDrawerSettingsScreen(activity, Settings(), Groups(sample()))
+                val density = activity.resources.displayMetrics.density
+                fun layoutAt(widthDp: Int) {
+                    val width = (widthDp * density).toInt()
+                    val height = (320f * density).toInt()
+                    screen.measure(
+                        View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                        View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
+                    )
+                    screen.layout(0, 0, width, height)
+                }
+                activity.content.addView(screen, FrameLayout.LayoutParams(-1, -1))
+                layoutAt(1000)
+                val tabs = find(screen) { it is TabLayout } as TabLayout
+                tabs.getTabAt(5)?.select()
+                val content = tabs.parent as ViewGroup
+                val pageHost = content.getChildAt(2) as FrameLayout
+                val dataScroll = pageHost.getChildAt(5) as ScrollView
+                dataScroll.scrollTo(0, (180f * density).toInt())
+                previousScroll = dataScroll.scrollY
+                assertTrue("The selected settings page must have a real scroll range", previousScroll > 0)
+
+                layoutAt(500)
+            }
+            scenario.onActivity {
+                val tabs = find(screen) { it is TabLayout } as TabLayout
+                assertEquals(5, tabs.selectedTabPosition)
+                val content = tabs.parent as ViewGroup
+                val pageHost = content.getChildAt(2) as FrameLayout
+                val restoredScroll = pageHost.getChildAt(5) as ScrollView
+                assertEquals(previousScroll, restoredScroll.scrollY)
+            }
+        }
+    }
 
     @Test fun settingsTypographyReflowsWithWindowSizeClass() {
         ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->

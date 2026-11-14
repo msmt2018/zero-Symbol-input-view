@@ -107,7 +107,7 @@ class SymbolActionExecutor(
     ): SymbolActionResult {
         val validationError = validate(action, 0, ActionBudget(maxTotalActions))
         if (validationError != null) return SymbolActionResult.Invalid(validationError)
-        return executeInternal(action, host, 0, cancellation, ExecutionProgress())
+        return executeInternal(action, host, 0, cancellation, ExecutionProgress(), ActionBudget(maxTotalActions))
     }
 
     /** Validate the entire tree before invoking the host, preventing malformed
@@ -146,10 +146,12 @@ class SymbolActionExecutor(
         host: SymbolActionHost,
         depth: Int,
         cancellation: SymbolActionCancellation,
-        progress: ExecutionProgress
+        progress: ExecutionProgress,
+        budget: ActionBudget
     ): SymbolActionResult {
         if (depth > maxNestingDepth) return SymbolActionResult.Invalid("Composite action nesting limit exceeded")
         if (cancellation.isCancelled()) return SymbolActionResult.Cancelled(progress.completedActions)
+        if (!budget.consume()) return SymbolActionResult.Invalid("Composite action total action limit exceeded")
         return try {
             val result = when (action) {
                 is SymbolAction.InsertText -> {
@@ -183,7 +185,7 @@ class SymbolActionExecutor(
                         else -> supported(host.executeExtension(action.extensionId, action.payload), action)
                     }
                 }
-                is SymbolAction.Composite -> executeComposite(action, host, depth, cancellation, progress)
+                is SymbolAction.Composite -> executeComposite(action, host, depth, cancellation, progress, budget)
             }
             if (action !is SymbolAction.Composite && result == SymbolActionResult.Executed) {
                 progress.completedActions++
@@ -199,7 +201,8 @@ class SymbolActionExecutor(
         host: SymbolActionHost,
         depth: Int,
         cancellation: SymbolActionCancellation,
-        progress: ExecutionProgress
+        progress: ExecutionProgress,
+        budget: ActionBudget
     ): SymbolActionResult {
         if (composite.actions.isEmpty()) return SymbolActionResult.Invalid("Composite action cannot be empty")
         if (composite.actions.size > maxCompositeActions) {
@@ -207,7 +210,7 @@ class SymbolActionExecutor(
         }
         var completed = 0
         composite.actions.forEach { child ->
-            val result = executeInternal(child, host, depth + 1, cancellation, progress)
+            val result = executeInternal(child, host, depth + 1, cancellation, progress, budget)
             if (result is SymbolActionResult.Cancelled) return result
             if (result != SymbolActionResult.Executed) {
                 return if (completed == 0) result else SymbolActionResult.PartialFailure(completed, result)
