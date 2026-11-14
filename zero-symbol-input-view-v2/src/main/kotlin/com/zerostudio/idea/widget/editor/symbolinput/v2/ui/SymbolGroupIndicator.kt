@@ -52,7 +52,9 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import android.widget.ImageButton
 import android.widget.LinearLayout
+import android.util.TypedValue
 import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -69,6 +71,8 @@ internal class SymbolGroupIndicator(
     context: Context,
     onGroupSelected: (Int) -> Unit
 ) : FrameLayout(context) {
+    var onSettingsClick: (() -> Unit)? = null
+
     private val groupAdapter = GroupAdapter(onGroupSelected)
     private val groupList = RecyclerView(context).apply {
         layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
@@ -78,15 +82,55 @@ internal class SymbolGroupIndicator(
         overScrollMode = OVER_SCROLL_NEVER
         isHorizontalScrollBarEnabled = false
     }
+    private val settingsButton = ImageButton(context).apply {
+        val touchTarget = dp(context, 48)
+        minimumWidth = touchTarget
+        minimumHeight = touchTarget
+        contentDescription = "符号设置"
+        isClickable = true
+        isFocusable = true
+        scaleType = ImageButton.ScaleType.CENTER_INSIDE
+        setPadding(dp(context, 12), dp(context, 12), dp(context, 12), dp(context, 12))
+        val selectable = TypedValue()
+        if (context.theme.resolveAttribute(
+                android.R.attr.selectableItemBackgroundBorderless,
+                selectable,
+                true
+            ) && selectable.resourceId != 0
+        ) {
+            setBackgroundResource(selectable.resourceId)
+        }
+        setImageDrawable(MaterialSettingsDrawable(HostThemeColors.onSurface(context)))
+        setOnClickListener { onSettingsClick?.invoke() }
+    }
+
+    private val contentRow = LinearLayout(context).apply {
+        orientation = LinearLayout.HORIZONTAL
+        layoutDirection = View.LAYOUT_DIRECTION_LTR
+        gravity = Gravity.CENTER_VERTICAL
+        addView(groupList, LinearLayout.LayoutParams(0, LayoutParams.MATCH_PARENT, 1f))
+        addView(settingsButton, LinearLayout.LayoutParams(
+            dp(context, 48), LayoutParams.MATCH_PARENT
+        ))
+    }
+
     init {
         setBackgroundColor(HostThemeColors.surface(context))
-        addView(groupList, LayoutParams(
+        clipChildren = false
+        clipToPadding = false
+        addView(contentRow, LayoutParams(
             LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT
         ))
     }
 
     fun submitGroups(groups: List<SymbolGroup>) = groupAdapter.submitGroups(groups)
-    fun applySettings(settings: SymbolDrawerSettings) = groupAdapter.applySettings(settings)
+
+    fun applySettings(settings: SymbolDrawerSettings) {
+        groupAdapter.applySettings(settings)
+        settingsButton.setImageDrawable(
+            MaterialSettingsDrawable(HostThemeColors.onSurface(context))
+        )
+    }
 
     override fun setBackgroundColor(color: Int) {
         super.setBackgroundColor(color)

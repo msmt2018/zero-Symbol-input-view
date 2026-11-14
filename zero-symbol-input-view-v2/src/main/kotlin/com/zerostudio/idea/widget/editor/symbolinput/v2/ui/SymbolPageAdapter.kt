@@ -81,7 +81,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.AdaptiveGridRes
  * Keeping the path in source avoids platform-dependent menu preference glyphs
  * and guarantees the drawer uses the same gear silhouette on every API level.
  */
-private class MaterialSettingsDrawable(
+internal class MaterialSettingsDrawable(
     color: Int
 ) : Drawable() {
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
