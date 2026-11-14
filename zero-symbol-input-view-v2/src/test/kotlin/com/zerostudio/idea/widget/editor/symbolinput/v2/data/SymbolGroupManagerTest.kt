@@ -118,4 +118,61 @@ class SymbolGroupManagerTest {
 
         assertEquals(listOf("b", "a"), repository.stored.map { it.id })
     }
+    @Test
+    fun duplicateGroupRetriesCollidingGroupAndSymbolIds() {
+        val source = SymbolGroup(
+            "source",
+            "Source",
+            listOf(
+                SymbolEntry(1L, "one", SymbolAction.InsertText("1")),
+                SymbolEntry(2L, "two", SymbolAction.InsertText("2"))
+            )
+        )
+        val groupIds = listOf("source", "copy").iterator()
+        val symbolIds = listOf(1L, 2L, 3L, 4L).iterator()
+        val repository = MemoryRepository(listOf(source))
+        val manager = SymbolGroupManager(
+            repository,
+            newId = { groupIds.next() },
+            newSymbolId = { symbolIds.next() }
+        )
+
+        val duplicate = manager.duplicateGroup("source")
+
+        assertEquals("copy", duplicate.id)
+        assertEquals(listOf(3L, 4L), duplicate.symbols.map { it.id })
+        assertEquals(2, repository.stored.size)
+    }
+
+    @Test
+    fun failedPersistenceDoesNotPublishNewInMemorySnapshot() {
+        val original = SymbolGroup("source", "Source", emptyList())
+        val repository = MemoryRepository(listOf(original))
+        val manager = SymbolGroupManager(repository)
+        repository.failWrites = true
+
+        val failure = runCatching { manager.addGroup("New") }
+
+        assertTrue(failure.isFailure)
+        assertEquals(listOf(original), manager.groups)
+        assertEquals(listOf(original), repository.stored)
+    }
+
+    @Test
+    fun removingUnknownGroupFailsWithoutWriting() {
+        val original = SymbolGroup("source", "Source", emptyList())
+        val repository = MemoryRepository(listOf(original))
+        val manager = SymbolGroupManager(repository)
+        var writes = 0
+        val countingRepository = object : SymbolGroupRepository {
+            override fun loadGroups() = listOf(original)
+            override fun saveGroups(groups: List<SymbolGroup>) { writes++ }
+        }
+        val countingManager = SymbolGroupManager(countingRepository)
+
+        assertTrue(runCatching { countingManager.removeGroup("missing") }.isFailure)
+        assertEquals(0, writes)
+        assertEquals(listOf(original), manager.groups)
+    }
+
 }
