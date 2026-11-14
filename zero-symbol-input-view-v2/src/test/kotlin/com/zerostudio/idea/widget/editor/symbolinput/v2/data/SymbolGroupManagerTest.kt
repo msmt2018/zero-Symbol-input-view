@@ -175,4 +175,16 @@ class SymbolGroupManagerTest {
         assertEquals(listOf(original), manager.groups)
     }
 
+    @Test
+    fun addingAutoIdSymbolRetriesCollisionsWithinItsGroup() {
+        val original = SymbolEntry(9L, "existing", SymbolAction.InsertText("old"))
+        val repository = MemoryRepository(listOf(SymbolGroup("group", "Group", listOf(original))))
+        val generatedIds = listOf(9L, 10L).iterator()
+        val manager = SymbolGroupManager(repository, newSymbolId = { generatedIds.next() })
+
+        manager.addSymbol("group", SymbolEntry(0L, "new", SymbolAction.InsertText("new")))
+
+        assertEquals(listOf(9L, 10L), manager.groups.single().symbols.map { it.id })
+    }
+
 }
