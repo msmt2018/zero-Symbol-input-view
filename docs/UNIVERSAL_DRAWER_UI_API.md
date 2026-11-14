@@ -2,7 +2,7 @@
 
 ## Goal
 
-Universal Drawer UI API is a reusable Android bottom-drawer framework. The drawer core must not depend on symbol models, symbol repositories, editor actions, Logcat, or any concrete feature. The current V2 symbol drawer is the compatibility reference and will be migrated onto these public contracts incrementally.
+Universal Drawer UI API is a reusable Android bottom-drawer framework. The drawer core must not depend on symbol models, symbol repositories, editor actions, Logcat, or any concrete feature. The current V2 symbol drawer is the compatibility reference. Its existing feature layout is retained while the feature-neutral interaction engine owns gesture arbitration, velocity tracking, drag state and settling through a thin feature adapter.
 
 ## Architectural boundaries
 
@@ -37,7 +37,7 @@ The three-stage strategy follows a BottomSheetBehavior-style stable-state model:
 - drawer.style: host theme resolver, immutable style tokens, Material 3 theme overlays, and typography/shape/motion settings.
 - drawer.DrawerContainer: reusable bottom drawer implementation with anchor measurement, animation, drag handle, scrim, nested vertical scrolling, optional navigation, and runtime setters.
 
-The runtime container is independent of SymbolDrawerView. The symbol view remains unchanged until the public API is sufficiently verified and a separate parity migration is planned.
+The runtime container remains independent of SymbolDrawerView and is intended for applications that want the framework's standard composition. Existing feature layouts can instead adopt DrawerInteractionController directly: the API owns gesture arbitration, velocity tracking, continuous drag state, animation and settling while the feature retains its measured geometry, child hierarchy and rendering. This adapter path avoids imposing DrawerContainer's default sheet, handle, panel or navigation UI on an existing control.
 
 ## Panel composition
 
@@ -65,10 +65,10 @@ DrawerNavigationController is the source of truth for page identity and selectio
 2. **Complete** Generic DrawerContainer and state/controller binding.
 3. **Complete** Independent Peek/Expanded panel composition.
 4. **Complete** Generic navigation bar, indicators and page host.
-5. **Core complete** Drag physics and nested vertical-scroll coordination; additional horizontal gesture arbitration and device testing remain.
+5. **Core complete:** Drag physics, nested vertical-scroll coordination, horizontal gesture-axis arbitration, velocity tracking, continuous height updates and settle animation are owned by DrawerInteractionController. Device-level gesture verification remains.
 6. **Core complete** Host theme/style system and Standard, Compact, FullScreen, SplitPanel presets; edge-to-edge/insets refinements remain.
-7. Pending: migrate the Symbol drawer through a feature adapter without changing visible behavior.
-8. Ongoing: documentation, lifecycle tests, Android instrumentation tests, accessibility and performance validation.
+7. **Integrated:** SymbolDrawerView delegates gesture-axis arbitration, VelocityTracker ownership, continuous drag updates, fling threshold evaluation, settle animation and gesture lifecycle to DrawerInteractionController. SymbolDrawerAnchorAdapter continues to resolve the exact legacy pixel geometry; the feature keeps its ViewPager2, indicator, RecyclerView pages, measurement/layout, settings and action callbacks.
+8. Ongoing: expanded lifecycle/gesture instrumentation, accessibility and performance validation, plus migration parity checks on physical devices.
 
 
 ## Style, theme and configuration API
