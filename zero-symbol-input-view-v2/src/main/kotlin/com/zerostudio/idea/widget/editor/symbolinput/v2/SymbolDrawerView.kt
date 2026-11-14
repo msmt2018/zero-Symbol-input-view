@@ -459,7 +459,7 @@ class SymbolDrawerView @JvmOverloads constructor(
             maximumHeightPx = expandedHeight,
             currentHeightPx = targetHeight,
             animationDurationMs = config.animationDurationMs.toLong(),
-            flingVelocityDpPerSecond = config.flingVelocityDpPerSecond
+            flingVelocityDpPerSecond = config.flingVelocityDpPerSecond.toFloat()
         )
         setExpansionFromHeight(targetHeight)
     }
