@@ -79,7 +79,11 @@ class SymbolGroupManager(
 
     fun duplicateGroup(groupId: String, index: Int = groups.size): SymbolGroup {
         val source = groups.firstOrNull { it.id == groupId } ?: error("Group not found: $groupId")
-        val usedSymbolIds = mutableSetOf<Long>()
+        // Symbol IDs are globally stable within the repository, not merely within one group.
+        // Seed from every group so a duplicated group cannot reuse an ID owned by its source.
+        val usedSymbolIds = groups.asSequence()
+            .flatMap { it.symbols.asSequence() }
+            .mapTo(mutableSetOf()) { it.id }
         val duplicate = source.copy(
             id = nextUniqueGroupId(),
             title = "${source.title} copy",

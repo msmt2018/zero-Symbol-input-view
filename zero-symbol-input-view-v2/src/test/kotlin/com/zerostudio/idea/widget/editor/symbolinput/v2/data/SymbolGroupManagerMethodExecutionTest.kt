@@ -207,12 +207,12 @@ class SymbolGroupManagerMethodExecutionTest {
     }
 
     @Test
-    fun removeUnknownGroupIsAnIdempotentPersistedCommand() {
+    fun removeUnknownGroupIsAnIdempotentNoOp() {
         val repository = Repository(initial())
         val manager = SymbolGroupManager(repository)
         manager.removeGroup("not-present")
         assertEquals(initial(), manager.groups)
-        assertEquals(1, repository.saveCount)
+        assertEquals(0, repository.saveCount)
         assertFalse(manager.groups.isEmpty())
     }
 }
