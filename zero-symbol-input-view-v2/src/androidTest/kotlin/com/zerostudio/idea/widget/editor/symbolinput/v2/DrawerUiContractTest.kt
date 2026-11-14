@@ -313,12 +313,22 @@ class DrawerUiContractTest {
                 // scroll range at this compact height. The data-management page
                 // is intentionally short and should not be forced to scroll.
                 tabs.getTabAt(1)?.select()
+                // Selecting a previously GONE page schedules a fresh measure/layout.
+                // Run that pass before asking ScrollView to clamp its scroll offset;
+                // otherwise its old zero-height measurement makes scrollTo a no-op.
+                layoutAt(1000)
                 val content = tabs.parent as ViewGroup
                 val pageHost = content.getChildAt(2) as FrameLayout
                 val layoutScroll = pageHost.getChildAt(1) as ScrollView
-                layoutScroll.scrollTo(0, (180f * density).toInt())
+                val page = layoutScroll.getChildAt(0)
+                val scrollRange = (page.measuredHeight - layoutScroll.height).coerceAtLeast(0)
+                assertTrue(
+                    "The selected layout page must have a real scroll range: page=${page.measuredHeight}, viewport=${layoutScroll.height}",
+                    scrollRange > 0
+                )
+                layoutScroll.scrollTo(0, minOf((180f * density).toInt(), scrollRange))
                 previousScroll = layoutScroll.scrollY
-                assertTrue("The selected layout page must have a real scroll range", previousScroll > 0)
+                assertTrue("The selected layout page must accept a non-zero scroll offset", previousScroll > 0)
 
                 layoutAt(500)
                 layoutAt(500)
