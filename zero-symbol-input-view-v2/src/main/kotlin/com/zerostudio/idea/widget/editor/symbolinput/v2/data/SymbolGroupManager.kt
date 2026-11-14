@@ -120,10 +120,20 @@ class SymbolGroupManager(
 
     fun addSymbol(groupId: String, symbol: SymbolEntry, index: Int? = null) {
         updateGroup(groupId) { group ->
+            val usedIds = groups.asSequence()
+                .flatMap { it.symbols.asSequence() }
+                .mapTo(mutableSetOf()) { it.id }
             val safeSymbol = if (symbol.id == 0L) {
-                val usedIds = group.symbols.mapTo(mutableSetOf()) { it.id }
                 symbol.copy(id = nextUniqueSymbolId(usedIds))
-            } else symbol
+            } else {
+                require(groups.asSequence()
+                    .filterNot { it.id == groupId }
+                    .flatMap { it.symbols.asSequence() }
+                    .none { it.id == symbol.id }) {
+                    "Symbol ID ${symbol.id} is already used by another group"
+                }
+                symbol
+            }
             val items = group.symbols.toMutableList()
             items.add((index ?: items.size).coerceIn(0, items.size), safeSymbol)
             group.copy(symbols = items)
@@ -170,7 +180,9 @@ class SymbolGroupManager(
             ?: error("Target group not found: $targetGroupId")
         val selected = source.symbols.filter { it.id in symbolIds }
         require(selected.size == symbolIds.size) { "One or more selected symbols no longer exist" }
-        val usedIds = target.symbols.mapTo(mutableSetOf()) { it.id }
+        val usedIds = groups.asSequence()
+            .flatMap { it.symbols.asSequence() }
+            .mapTo(mutableSetOf()) { it.id }
         val copies = selected.map { symbol ->
             symbol.copy(id = nextUniqueSymbolId(usedIds)).also { usedIds += it.id }
         }
@@ -202,7 +214,13 @@ class SymbolGroupManager(
             ?: error("Target group not found: $targetGroupId")
         val moved = source.symbols.filter { it.id in symbolIds }
         require(moved.size == symbolIds.size) { "One or more selected symbols no longer exist" }
-        val usedIds = target.symbols.mapTo(mutableSetOf()) { it.id }
+        // IDs owned by the moving source selection become free after removal.
+        // Every other group still reserves its IDs, including groups unrelated
+        // to the destination.
+        val usedIds = groups.asSequence()
+            .filterNot { it.id == sourceGroupId }
+            .flatMap { it.symbols.asSequence() }
+            .mapTo(mutableSetOf()) { it.id }
         val normalized = moved.map { symbol ->
             if (symbol.id in usedIds) symbol.copy(id = nextUniqueSymbolId(usedIds))
             else symbol.also { usedIds += it.id }

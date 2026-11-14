@@ -144,6 +144,45 @@ class SymbolGroupManagerMethodExecutionTest {
     }
 
     @Test
+    fun addSymbolAllocatesIdsAgainstTheWholeRepositoryAndRejectsForeignExplicitIds() {
+        var nextId = 2L
+        val repository = Repository(listOf(
+            SymbolGroup("a", "Alpha", listOf(entry(1))),
+            SymbolGroup("b", "Beta", listOf(entry(2)))
+        ))
+        val manager = SymbolGroupManager(repository, newSymbolId = { ++nextId })
+
+        manager.addSymbol("a", entry(0, "generated"))
+        assertEquals(3L, manager.groups.first { it.id == "a" }.symbols.last().id)
+
+        val before = manager.groups
+        assertTrue(runCatching { manager.addSymbol("a", entry(2, "collision")) }.isFailure)
+        assertEquals(before, manager.groups)
+        assertEquals(before, repository.stored)
+        assertEquals(1, repository.saveCount)
+    }
+
+    @Test
+    fun copyingAndMovingSymbolsAvoidIdsOwnedByUnrelatedGroups() {
+        var nextId = 2L
+        val repository = Repository(listOf(
+            SymbolGroup("a", "Alpha", listOf(entry(1))),
+            SymbolGroup("b", "Beta", emptyList()),
+            SymbolGroup("c", "Gamma", listOf(entry(2)))
+        ))
+        val manager = SymbolGroupManager(repository, newSymbolId = { ++nextId })
+
+        val copied = manager.copySymbol("a", 1L, "b")
+        assertEquals(3L, copied.id)
+
+        // The source ID 1 is free once moved, but ID 2 remains reserved by C.
+        manager.moveSymbolToGroup("a", 1L, "b")
+        assertEquals(listOf(3L, 4L), manager.groups.first { it.id == "b" }.symbols.map { it.id })
+        assertEquals(listOf(2L), manager.groups.first { it.id == "c" }.symbols.map { it.id })
+        assertEquals(manager.groups, repository.stored)
+    }
+
+    @Test
     fun duplicateGroupGeneratesSymbolIdsUniqueAcrossAllGroups() {
         val repository = Repository(listOf(
             SymbolGroup("source", "Source", listOf(entry(1))),
