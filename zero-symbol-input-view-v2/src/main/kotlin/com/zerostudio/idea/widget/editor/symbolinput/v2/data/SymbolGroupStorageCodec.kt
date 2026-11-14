@@ -79,6 +79,9 @@ object SymbolGroupStorageCodec {
      * Action IDs/payloads and all non-colliding symbol IDs remain untouched.
      */
     private fun normalizeRepositorySymbolIds(groups: List<SymbolGroup>): List<SymbolGroup> {
+        val reservedIds = groups.asSequence()
+            .flatMap { it.symbols.asSequence() }
+            .mapTo(mutableSetOf()) { it.id }
         val usedIds = mutableSetOf<Long>()
         var candidate = 1L
         return groups.map { group ->
@@ -86,8 +89,13 @@ object SymbolGroupStorageCodec {
                 if (usedIds.add(symbol.id)) {
                     symbol
                 } else {
-                    while (candidate == 0L || candidate in usedIds) candidate++
-                    symbol.copy(id = candidate).also { usedIds += candidate++ }
+                    // Do not steal an ID belonging to a later, otherwise-valid
+                    // entry while walking the groups in stable display order.
+                    while (candidate == 0L || candidate in reservedIds || candidate in usedIds) candidate++
+                    symbol.copy(id = candidate).also {
+                        usedIds += candidate
+                        candidate++
+                    }
                 }
             })
         }
