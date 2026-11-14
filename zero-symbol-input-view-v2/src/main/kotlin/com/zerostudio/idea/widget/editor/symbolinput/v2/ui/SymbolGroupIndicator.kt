@@ -89,7 +89,7 @@ internal class SymbolGroupIndicator(
         contentDescription = "符号设置"
         isClickable = true
         isFocusable = true
-        scaleType = ImageButton.ScaleType.CENTER_INSIDE
+        scaleType = android.widget.ImageView.ScaleType.CENTER_INSIDE
         setPadding(dp(context, 12), dp(context, 12), dp(context, 12), dp(context, 12))
         val selectable = TypedValue()
         if (context.theme.resolveAttribute(
