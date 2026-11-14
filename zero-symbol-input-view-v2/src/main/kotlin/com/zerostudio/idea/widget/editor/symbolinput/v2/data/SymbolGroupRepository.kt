@@ -69,8 +69,16 @@ class SharedPreferencesSymbolGroupRepository(
 
     override fun loadGroups(): List<SymbolGroup> {
         val json = preferences.getString(KEY_GROUPS, null) ?: return emptyList()
-        return runCatching { SymbolGroupStorageCodec.decode(json) }
-            .getOrElse { error ->
+        return runCatching {
+            val groups = SymbolGroupStorageCodec.decode(json)
+            // Canonicalize older V1/early-V2 storage on read. This persists the
+            // repaired global IDs and current versioned envelope atomically.
+            val canonical = SymbolGroupStorageCodec.encode(groups)
+            if (canonical != json) {
+                preferences.edit().putString(KEY_GROUPS, canonical).commit()
+            }
+            groups
+        }.getOrElse { error ->
                 // Preserve the only original copy before defaults or a later save
                 // can replace malformed data.
                 if (!preferences.contains(KEY_CORRUPT_GROUPS_BACKUP)) {

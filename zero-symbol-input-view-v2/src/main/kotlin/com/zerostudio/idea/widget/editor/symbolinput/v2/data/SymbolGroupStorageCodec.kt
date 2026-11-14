@@ -64,13 +64,33 @@ object SymbolGroupStorageCodec {
     fun decode(json: String): List<SymbolGroup> {
         require(json.length <= SymbolGroupBundleCodec.MAX_BUNDLE_CHARS) { "Stored symbol groups exceed the size limit" }
         val root = JsonParser.parseString(json)
-        if (root.isJsonObject) return SymbolGroupBundleCodec.decode(json)
+        if (root.isJsonObject) return normalizeRepositorySymbolIds(SymbolGroupBundleCodec.decode(json))
         val array = root.asJsonArray
         if (array.size() == 0) return emptyList()
         if (array[0].asJsonObject.has("n") || array[0].asJsonObject.has("d")) {
             return LegacySymbolDataCodec.decode(json)
         }
-        return decodePreviousV2Array(array)
+        return normalizeRepositorySymbolIds(decodePreviousV2Array(array))
+    }
+
+    /**
+     * Early V2 builds assigned IDs independently inside each group. Keep the
+     * first occurrence stable and deterministically reassign only collisions.
+     * Action IDs/payloads and all non-colliding symbol IDs remain untouched.
+     */
+    private fun normalizeRepositorySymbolIds(groups: List<SymbolGroup>): List<SymbolGroup> {
+        val usedIds = mutableSetOf<Long>()
+        var candidate = 1L
+        return groups.map { group ->
+            group.copy(symbols = group.symbols.map { symbol ->
+                if (usedIds.add(symbol.id)) {
+                    symbol
+                } else {
+                    while (candidate == 0L || candidate in usedIds) candidate++
+                    symbol.copy(id = candidate).also { usedIds += candidate++ }
+                }
+            })
+        }
     }
 
     private fun decodePreviousV2Array(array: com.google.gson.JsonArray): List<SymbolGroup> {
