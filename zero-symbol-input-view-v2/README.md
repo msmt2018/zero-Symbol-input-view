@@ -164,13 +164,19 @@ dependencies {
 }
 ```
 
-Replace `v0.25.0` with a published release tag. To publish a release, sign in to
-[JitPack](https://jitpack.io/) with the GitHub account that can access this
-repository, then run **Actions → Publish V2 library to JitPack → Run workflow**
-in GitHub and enter a new release tag. The workflow runs tests, builds the
-release AAR and sources JAR, validates the local Maven publication, creates the
-tag (or safely resumes if that same tag already points to the same commit), and
-waits for JitPack to expose the POM and AAR.
+Replace `v0.25.0` with a published release tag. To publish a release, open **Actions → Publish V2 library to JitPack → Run workflow**
+in GitHub, select the branch to release, and enter a version such as `0.25.0`
+(without the `v` prefix). The workflow normalizes it to tag `v0.25.0`, runs
+the V2 unit tests, builds the release AAR and sources JAR, validates the local
+Maven publication, creates and pushes the Git tag, and waits for JitPack to
+expose the POM and AAR. Re-running the same version against the same commit is
+safe; an existing tag pointing to another commit is rejected.
+
+No Maven credentials, signing keys, or GitHub Packages secrets are required.
+The workflow uses the repository's `GITHUB_TOKEN` permission to create the tag;
+JitPack builds the public Git tag and serves the Maven artifact. Normal Android
+CI only builds and tests the library and APK; it does not run Maven publication
+tasks or upload releases.
 
 The publication coordinate is:
 
