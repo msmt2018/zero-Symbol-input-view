@@ -159,18 +159,17 @@ class SymbolGroupManagerTest {
     }
 
     @Test
-    fun removingUnknownGroupFailsWithoutWriting() {
+    fun removingUnknownGroupIsAnIdempotentNoOpWithoutWriting() {
         val original = SymbolGroup("source", "Source", emptyList())
-        val repository = MemoryRepository(listOf(original))
-        val manager = SymbolGroupManager(repository)
         var writes = 0
         val countingRepository = object : SymbolGroupRepository {
             override fun loadGroups() = listOf(original)
             override fun saveGroups(groups: List<SymbolGroup>) { writes++ }
         }
-        val countingManager = SymbolGroupManager(countingRepository)
+        val manager = SymbolGroupManager(countingRepository)
 
-        assertTrue(runCatching { countingManager.removeGroup("missing") }.isFailure)
+        manager.removeGroup("missing")
+
         assertEquals(0, writes)
         assertEquals(listOf(original), manager.groups)
     }
