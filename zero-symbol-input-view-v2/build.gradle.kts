@@ -101,18 +101,12 @@ afterEvaluate {
 
                     licenses {
                         license {
-                            name.set("GNU Affero General Public License v3.0 only")
-                            url.set("https://www.gnu.org/licenses/agpl-3.0.html")
-                            distribution.set("repo")
-                        }
-                        license {
-                            name.set("GNU General Public License v3.0 only")
-                            url.set("https://www.gnu.org/licenses/gpl-3.0.html")
-                            distribution.set("repo")
-                        }
-                        license {
-                            name.set("Apache License 2.0")
-                            url.set("https://www.apache.org/licenses/LICENSE-2.0")
+                            name.set(
+                                "AGPL-3.0-only AND GPL-3.0-only AND Apache-2.0"
+                            )
+                            url.set(
+                                "https://github.com/msmt2018/zero-Symbol-input-view"
+                            )
                             distribution.set("repo")
                         }
                     }
