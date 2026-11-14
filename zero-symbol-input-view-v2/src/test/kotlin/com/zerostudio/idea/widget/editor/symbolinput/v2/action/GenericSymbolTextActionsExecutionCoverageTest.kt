@@ -114,7 +114,7 @@ class GenericSymbolTextActionsExecutionCoverageTest {
             true,
             registry.execute(SymbolActionId("builtin", commandId), document, payload)
         )
-        assertEquals("Unexpected text after '${commandId}'", expectedText, document.text)
+        assertEquals("Unexpected text after '${commandId}': expected=<${expectedText}> actual=<${document.text}>", expectedText, document.text)
         expectedCursor?.let { assertEquals("Unexpected cursor after '${commandId}'", it, document.cursorOffset) }
         expectedSelection?.let {
             assertEquals(it.first, document.selectionStart)
