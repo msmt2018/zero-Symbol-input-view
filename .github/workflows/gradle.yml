@@ -183,3 +183,4 @@ jobs:
             zero-symbol-input-view-v2/build/reports/androidTests/**
             zero-symbol-input-view-v2/build/outputs/androidTest-results/**
             zero-symbol-input-view-v2/build/outputs/logs/**
+            zero-symbol-input-view-v2/build/diagnostics/**
