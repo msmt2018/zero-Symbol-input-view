@@ -1,11 +1,30 @@
 package com.zerostudio.idea.widget.editor.symbolinput.v2.manager
 
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.ClipboardOperation
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
 class LegacyActionPickerResolverTest {
+
+    @Test fun historicalClipboardIdsStayInThePreserveCurrentPath() {
+        assertNull(
+            LegacyActionPickerResolver.legacyActionIndex(
+                SymbolAction.Clipboard(ClipboardOperation.COPY),
+                1,
+                null
+            )
+        )
+        assertNull(
+            LegacyActionPickerResolver.legacyActionIndex(
+                SymbolAction.Clipboard(ClipboardOperation.CUT),
+                2,
+                null
+            )
+        )
+    }
+
     @Test fun matchingLegacyInsertPayloadResolvesToItsPickerEntry() {
         assertEquals(
             0,

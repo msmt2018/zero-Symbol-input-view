@@ -305,22 +305,25 @@ class DrawerUiContractTest {
                 activity.content.addView(screen, FrameLayout.LayoutParams(-1, -1))
                 layoutAt(1000)
                 val tabs = find(screen) { it is TabLayout } as TabLayout
-                tabs.getTabAt(5)?.select()
+                // The layout page contains enough controls to guarantee a real
+                // scroll range at this compact height. The data-management page
+                // is intentionally short and should not be forced to scroll.
+                tabs.getTabAt(1)?.select()
                 val content = tabs.parent as ViewGroup
                 val pageHost = content.getChildAt(2) as FrameLayout
-                val dataScroll = pageHost.getChildAt(5) as ScrollView
-                dataScroll.scrollTo(0, (180f * density).toInt())
-                previousScroll = dataScroll.scrollY
-                assertTrue("The selected settings page must have a real scroll range", previousScroll > 0)
+                val layoutScroll = pageHost.getChildAt(1) as ScrollView
+                layoutScroll.scrollTo(0, (180f * density).toInt())
+                previousScroll = layoutScroll.scrollY
+                assertTrue("The selected layout page must have a real scroll range", previousScroll > 0)
 
                 layoutAt(500)
             }
             scenario.onActivity {
                 val tabs = find(screen) { it is TabLayout } as TabLayout
-                assertEquals(5, tabs.selectedTabPosition)
+                assertEquals(1, tabs.selectedTabPosition)
                 val content = tabs.parent as ViewGroup
                 val pageHost = content.getChildAt(2) as FrameLayout
-                val restoredScroll = pageHost.getChildAt(5) as ScrollView
+                val restoredScroll = pageHost.getChildAt(1) as ScrollView
                 assertEquals(previousScroll, restoredScroll.scrollY)
             }
         }

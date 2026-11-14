@@ -71,6 +71,29 @@ class SymbolActionExecutorTest {
         }
     }
 
+
+    @Test fun clipboardActionsDelegateCopyCutAndPasteToTheHostInOrder() {
+        val host = object : RecordingHost() {
+            override fun performClipboard(operation: ClipboardOperation): Boolean {
+                calls += "clipboard:$operation"
+                return true
+            }
+        }
+        val result = SymbolActionExecutor().execute(
+            SymbolAction.Composite(listOf(
+                SymbolAction.Clipboard(ClipboardOperation.COPY),
+                SymbolAction.Clipboard(ClipboardOperation.CUT),
+                SymbolAction.Clipboard(ClipboardOperation.PASTE)
+            )),
+            host
+        )
+        assertEquals(SymbolActionResult.Executed, result)
+        assertEquals(
+            listOf("clipboard:COPY", "clipboard:CUT", "clipboard:PASTE"),
+            host.calls
+        )
+    }
+
     @Test fun executesCompositeInOrder() {
         val host = RecordingHost()
         val result = SymbolActionExecutor().execute(
