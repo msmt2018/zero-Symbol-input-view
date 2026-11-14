@@ -204,12 +204,18 @@ class DrawerInteractionController(
             setHeight(target)
             return
         }
-        val start = height
-        animator = ValueAnimator.ofInt(start, target).apply {
+        val startFraction = expansionFraction()
+        val targetFraction = if (maximumHeight <= minimumHeight) 0f else
+            ((target - minimumHeight).toFloat() / (maximumHeight - minimumHeight)).coerceIn(0f, 1f)
+        animator = ValueAnimator.ofFloat(startFraction, targetFraction).apply {
             duration = animationDurationMs
             interpolator = DecelerateInterpolator()
             addUpdateListener { value ->
-                setHeight(value.animatedValue as Int)
+                val fraction = value.animatedValue as Float
+                val animatedHeight = (
+                    minimumHeight + (maximumHeight - minimumHeight) * fraction
+                ).roundToInt()
+                setHeight(animatedHeight)
             }
             start()
         }
