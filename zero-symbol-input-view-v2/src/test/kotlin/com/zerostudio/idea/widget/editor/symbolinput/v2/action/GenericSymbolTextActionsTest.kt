@@ -53,33 +53,33 @@ class GenericSymbolTextActionsTest {
     }
 
     @Test fun lineActionsPreserveCrLfSeparators() {
-        val duplicate = FakeDocument("one\\r\\ntwo", cursor = 6)
+        val duplicate = FakeDocument("one\r\ntwo", cursor = 6)
         assertTrue(run("line.duplicate", duplicate))
-        assertEquals("one\\r\\ntwo\\r\\ntwo", duplicate.text)
+        assertEquals("one\r\ntwo\r\ntwo", duplicate.text)
 
-        val above = FakeDocument("one\\r\\ntwo", cursor = 6)
+        val above = FakeDocument("one\r\ntwo", cursor = 6)
         assertTrue(run("line.insertAbove", above))
-        assertEquals("one\\r\\n\\r\\ntwo", above.text)
+        assertEquals("one\r\n\r\ntwo", above.text)
 
-        val below = FakeDocument("one\\r\\ntwo", cursor = 1)
+        val below = FakeDocument("one\r\ntwo", cursor = 1)
         assertTrue(run("line.insertBelow", below))
-        assertEquals("one\\r\\n\\r\\ntwo", below.text)
+        assertEquals("one\r\n\r\ntwo", below.text)
 
-        val joined = FakeDocument("one\\r\\ntwo", cursor = 1)
+        val joined = FakeDocument("one\r\ntwo", cursor = 1)
         assertTrue(run("line.joinNext", joined))
         assertEquals("onetwo", joined.text)
 
-        val deleted = FakeDocument("one\\r\\ntwo", cursor = 6)
+        val deleted = FakeDocument("one\r\ntwo", cursor = 6)
         assertTrue(run("line.delete", deleted))
         assertEquals("one", deleted.text)
 
-        val movedUp = FakeDocument("one\\r\\ntwo\\r\\nthree", cursor = 6)
+        val movedUp = FakeDocument("one\r\ntwo\r\nthree", cursor = 6)
         assertTrue(run("line.moveUp", movedUp))
-        assertEquals("two\\r\\none\\r\\nthree", movedUp.text)
+        assertEquals("two\r\none\r\nthree", movedUp.text)
 
-        val movedDown = FakeDocument("one\\r\\ntwo\\r\\nthree", cursor = 1)
+        val movedDown = FakeDocument("one\r\ntwo\r\nthree", cursor = 1)
         assertTrue(run("line.moveDown", movedDown))
-        assertEquals("two\\r\\none\\r\\nthree", movedDown.text)
+        assertEquals("two\r\none\r\nthree", movedDown.text)
     }
 
     @Test fun selectionAndWordActionsUseDocumentOffsets() {
