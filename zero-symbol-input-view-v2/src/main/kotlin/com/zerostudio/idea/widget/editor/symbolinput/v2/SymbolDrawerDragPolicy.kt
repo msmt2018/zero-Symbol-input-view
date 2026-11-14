@@ -1,10 +1,12 @@
 package com.zerostudio.idea.widget.editor.symbolinput.v2
 
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerInteractionController
+
 /**
- * Gesture arbitration for the symbol drawer. The existing height/anchor
- * geometry is intentionally untouched: this only decides whether the parent
- * may take a vertical gesture from its scrollable page content.
+ * @deprecated Gesture arbitration is now owned by the feature-neutral drawer
+ * core. Kept as a source-compatible bridge for existing tests and integrations.
  */
+@Deprecated("Use DrawerInteractionController.shouldInterceptVerticalDrag")
 internal object SymbolDrawerDragPolicy {
     fun shouldInterceptVerticalDrag(
         fingerDeltaY: Float,
@@ -12,12 +14,11 @@ internal object SymbolDrawerDragPolicy {
         collapsedHeightPx: Int,
         expandedHeightPx: Int,
         childCanScrollUp: Boolean
-    ): Boolean {
-        if (expandedHeightPx <= collapsedHeightPx || fingerDeltaY == 0f) return false
-        return if (fingerDeltaY < 0f) {
-            currentHeightPx < expandedHeightPx
-        } else {
-            currentHeightPx > collapsedHeightPx && !childCanScrollUp
-        }
-    }
+    ): Boolean = DrawerInteractionController.shouldInterceptVerticalDrag(
+        fingerDeltaY = fingerDeltaY,
+        currentHeightPx = currentHeightPx,
+        collapsedHeightPx = collapsedHeightPx,
+        expandedHeightPx = expandedHeightPx,
+        childCanScrollUp = childCanScrollUp
+    )
 }
