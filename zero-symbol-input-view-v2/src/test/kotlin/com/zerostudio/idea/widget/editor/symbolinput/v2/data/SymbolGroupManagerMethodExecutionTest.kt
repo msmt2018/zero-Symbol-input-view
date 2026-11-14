@@ -144,6 +144,23 @@ class SymbolGroupManagerMethodExecutionTest {
     }
 
     @Test
+    fun updateSymbolCannotIntroduceAnIdOwnedByAnotherGroup() {
+        val repository = Repository(listOf(
+            SymbolGroup("a", "Alpha", listOf(entry(1))),
+            SymbolGroup("b", "Beta", listOf(entry(2)))
+        ))
+        val manager = SymbolGroupManager(repository)
+        val before = manager.groups
+
+        assertTrue(runCatching {
+            manager.updateSymbol("a", entry(2, "collision"))
+        }.isFailure)
+        assertEquals(before, manager.groups)
+        assertEquals(before, repository.stored)
+        assertEquals(0, repository.saveCount)
+    }
+
+    @Test
     fun addSymbolAllocatesIdsAgainstTheWholeRepositoryAndRejectsForeignExplicitIds() {
         var nextId = 2L
         val repository = Repository(listOf(

@@ -145,6 +145,12 @@ class SymbolGroupManager(
             require(group.symbols.any { it.id == symbol.id }) {
                 "Symbol not found: ${symbol.id}"
             }
+            require(groups.asSequence()
+                .filterNot { it.id == groupId }
+                .flatMap { it.symbols.asSequence() }
+                .none { it.id == symbol.id }) {
+                "Symbol ID ${symbol.id} is already used by another group"
+            }
             group.copy(symbols = group.symbols.map { if (it.id == symbol.id) symbol else it })
         }
     }
