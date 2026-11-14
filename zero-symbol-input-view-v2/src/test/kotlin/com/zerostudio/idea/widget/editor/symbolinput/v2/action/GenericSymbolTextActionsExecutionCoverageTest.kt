@@ -57,7 +57,7 @@ class GenericSymbolTextActionsExecutionCoverageTest {
 
     @Test
     fun representativeActionsMustProduceTheirDocumentSideEffects() {
-        assertAction("line.replace", "replacement", "  replacement  \r\nsecond line\nthird line")
+        // line.replace replaces the complete current line, including its original indentation and trailing spaces.\n        // It must preserve the line separator and place the caret immediately after the replacement.\n        assertAction("line.replace", "replacement", "replacement\r\nsecond line\nthird line", expectedCursor = "replacement".length)
         assertAction("selection.wrapParentheses", null, "  (alpha) beta  \r\nsecond line\nthird line")
         assertAction("selection.uppercase", null, "  ALPHA beta  \r\nsecond line\nthird line")
         assertAction(
