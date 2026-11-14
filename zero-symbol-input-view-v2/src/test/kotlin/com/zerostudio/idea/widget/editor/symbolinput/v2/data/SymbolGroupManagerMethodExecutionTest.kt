@@ -162,7 +162,7 @@ class SymbolGroupManagerMethodExecutionTest {
 
     @Test
     fun addSymbolAllocatesIdsAgainstTheWholeRepositoryAndRejectsForeignExplicitIds() {
-        var nextId = 2L
+        var nextId = 1L
         val repository = Repository(listOf(
             SymbolGroup("a", "Alpha", listOf(entry(1))),
             SymbolGroup("b", "Beta", listOf(entry(2)))
@@ -183,18 +183,19 @@ class SymbolGroupManagerMethodExecutionTest {
     fun copyingAndMovingSymbolsAvoidIdsOwnedByUnrelatedGroups() {
         var nextId = 2L
         val repository = Repository(listOf(
-            SymbolGroup("a", "Alpha", listOf(entry(2))),
+            SymbolGroup("a", "Alpha", listOf(entry(1))),
             SymbolGroup("b", "Beta", emptyList()),
             SymbolGroup("c", "Gamma", listOf(entry(2)))
         ))
         val manager = SymbolGroupManager(repository, newSymbolId = { ++nextId })
 
-        val copied = manager.copySymbol("a", 2L, "b")
+        val copied = manager.copySymbol("a", 1L, "b")
         assertEquals(3L, copied.id)
 
-        // The source ID 1 is free once moved, but ID 2 remains reserved by C.
-        manager.moveSymbolToGroup("a", 2L, "b")
-        assertEquals(listOf(3L, 4L), manager.groups.first { it.id == "b" }.symbols.map { it.id })
+        // The generator first proposes ID 2 (owned by C), then retries with 3.
+        // Moving source ID 1 is safe because the source entry is removed atomically.
+        manager.moveSymbolToGroup("a", 1L, "b")
+        assertEquals(listOf(3L, 1L), manager.groups.first { it.id == "b" }.symbols.map { it.id })
         assertEquals(listOf(2L), manager.groups.first { it.id == "c" }.symbols.map { it.id })
         assertEquals(manager.groups, repository.stored)
     }
