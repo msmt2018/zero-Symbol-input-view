@@ -94,6 +94,11 @@ object LegacySymbolDataCodec {
             ?: error("Symbol group JSON is empty")
         require(legacy.size <= SymbolGroupBundleCodec.MAX_GROUPS) { "Too many groups" }
         var total = 0
+        // V1 did not persist symbol IDs. Allocate migration IDs across the
+        // entire imported repository, not from 1 independently per group.
+        // This satisfies V2's repository-wide identity invariant without
+        // changing any V1 action IDs or action payloads.
+        var nextSymbolId = 1L
         return legacy.mapIndexed { groupIndex, group ->
             require(group.name.isNotBlank()) { "Group name is empty" }
             require(group.items.size <= SymbolGroupBundleCodec.MAX_SYMBOLS_PER_GROUP) { "Too many symbols in group ${group.name}" }
@@ -101,7 +106,7 @@ object LegacySymbolDataCodec {
             val symbols = group.items.mapIndexed { itemIndex, item ->
                 require(item.display.isNotEmpty()) { "Symbol display is empty" }
                 SymbolEntry(
-                    id = itemIndex.toLong() + 1L,
+                    id = nextSymbolId++,
                     label = item.display,
                     shortAction = LegacySymbolActionAdapter.convert(LegacySymbolAction(item.shortAction, item.shortText)),
                     longAction = item.longAction?.let { LegacySymbolActionAdapter.convert(LegacySymbolAction(it, item.longText)) },
