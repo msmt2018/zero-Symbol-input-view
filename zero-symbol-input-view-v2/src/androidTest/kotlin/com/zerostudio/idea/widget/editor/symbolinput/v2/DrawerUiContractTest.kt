@@ -1,5 +1,7 @@
 package com.zerostudio.idea.widget.editor.symbolinput.v2
 
+import android.os.Parcelable
+import android.util.SparseArray
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
@@ -147,6 +149,49 @@ class DrawerUiContractTest {
                 assertEquals(1, drawer.getCurrentGroupIndex())
                 assertTrue(drawer.isExpanded())
             }
+        }
+    }
+
+    @Test fun symbolDrawerHierarchyStateRestoresSelectedGroupAndExpansion() {
+        ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
+            lateinit var original: SymbolDrawerView
+            val firstCommitted = CountDownLatch(1)
+            scenario.onActivity { activity ->
+                original = SymbolDrawerView(activity).apply { id = View.generateViewId() }
+                activity.content.addView(original, FrameLayout.LayoutParams(-1, 480))
+                original.submitGroups(sample()) { firstCommitted.countDown() }
+            }
+            assertTrue("Initial symbol groups did not commit", firstCommitted.await(5, TimeUnit.SECONDS))
+
+            val savedState = SparseArray<Parcelable>()
+            val restored = CountDownLatch(1)
+            var restoredGroupIndex = -1
+            var restoredExpanded = false
+            scenario.onActivity { activity ->
+                original.selectGroup(1, smoothScroll = false)
+                original.setExpanded(true, animate = false)
+                original.saveHierarchyState(savedState)
+                activity.content.removeView(original)
+
+                val replacement = SymbolDrawerView(activity).apply { id = original.id }
+                replacement.submitGroups(sample()) {
+                    replacement.restoreHierarchyState(savedState)
+                    activity.content.addView(replacement, FrameLayout.LayoutParams(-1, 480))
+                    val width = activity.resources.displayMetrics.widthPixels
+                    val height = (480f * activity.resources.displayMetrics.density).toInt()
+                    replacement.measure(
+                        View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                        View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
+                    )
+                    replacement.layout(0, 0, width, height)
+                    restoredGroupIndex = replacement.getCurrentGroupIndex()
+                    restoredExpanded = replacement.isExpanded()
+                    restored.countDown()
+                }
+            }
+            assertTrue("Restored symbol drawer state did not commit", restored.await(5, TimeUnit.SECONDS))
+            assertEquals(1, restoredGroupIndex)
+            assertTrue(restoredExpanded)
         }
     }
 

@@ -1,6 +1,7 @@
 package com.zerostudio.idea.widget.editor.symbolinput.v2
 
-import android.os.Parcel
+import android.os.Parcelable
+import android.util.SparseArray
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
@@ -275,26 +276,22 @@ class DrawerControllerContractTest {
                 }
 
                 val original = DrawerContainer(activity)
+                original.id = View.generateViewId()
                 original.controller.setAnchorStrategy(DrawerAnchorStrategies.threeStage(0.5f, false))
                 original.controller.setNavigationConfig(DrawerNavigationConfig(enabled = false))
                 attachAndLayout(original)
                 original.controller.setPages(pages, preserveSelection = false)
                 assertTrue(original.controller.selectPage("second"))
                 original.controller.moveToAnchor("half", animated = false)
-                val parcel = Parcel.obtain()
-                val saved = try {
-                    original.onSaveInstanceState().writeToParcel(parcel, 0)
-                    parcel.setDataPosition(0)
-                    DrawerContainer.SavedState.CREATOR.createFromParcel(parcel)
-                } finally {
-                    parcel.recycle()
-                }
+                val savedState = SparseArray<Parcelable>()
+                original.saveHierarchyState(savedState)
 
                 activity.content.removeView(original)
                 val restored = DrawerContainer(activity)
+                restored.id = original.id
                 restored.controller.setAnchorStrategy(DrawerAnchorStrategies.threeStage(0.5f, false))
                 restored.controller.setNavigationConfig(DrawerNavigationConfig(enabled = false))
-                restored.onRestoreInstanceState(saved)
+                restored.restoreHierarchyState(savedState)
                 attachAndLayout(restored)
                 restored.controller.setPages(pages, preserveSelection = false)
 
