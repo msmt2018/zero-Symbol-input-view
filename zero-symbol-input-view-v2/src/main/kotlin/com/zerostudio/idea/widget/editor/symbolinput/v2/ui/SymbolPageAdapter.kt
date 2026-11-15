@@ -376,13 +376,23 @@ internal class SymbolPageAdapter(
                         extension!!.createView(holder.root.context, legacyItem, state)
                     }.getOrNull()
                     if (custom != null) {
-                        holder.root.removeAllViews()
-                        holder.root.addView(custom, android.widget.FrameLayout.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.MATCH_PARENT
-                        ))
+                        // Mark ownership before attaching so a failed attach still
+                        // runs the extension's recycle hook before falling back.
                         holder.activeExtension = extension
                         holder.customView = custom
+                        holder.boundLegacyItem = legacyItem.copy()
+                        val attached = runCatching {
+                            holder.root.removeAllViews()
+                            holder.root.addView(custom, android.widget.FrameLayout.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                ViewGroup.LayoutParams.MATCH_PARENT
+                            ))
+                        }.isSuccess
+                        if (!attached) {
+                            holder.recycle()
+                            extension = null
+                            custom = null
+                        }
                     } else {
                         extension = null
                     }
