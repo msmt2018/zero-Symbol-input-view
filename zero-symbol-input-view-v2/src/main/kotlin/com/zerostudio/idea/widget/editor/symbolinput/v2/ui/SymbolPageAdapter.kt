@@ -393,7 +393,7 @@ internal class SymbolPageAdapter(
                                 ViewGroup.LayoutParams.MATCH_PARENT,
                                 ViewGroup.LayoutParams.MATCH_PARENT
                             ))
-                        }.isSuccess
+                        }.onFailure { extensions.reportError(extension!!.id, it) }.isSuccess
                         if (!attached) {
                             holder.recycle()
                             extension = null
