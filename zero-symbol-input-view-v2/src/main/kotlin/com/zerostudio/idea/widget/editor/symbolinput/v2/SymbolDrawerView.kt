@@ -534,6 +534,7 @@ class SymbolDrawerView @JvmOverloads constructor(
         extensions = extensions,
         legacyItemResolver = ::resolveLegacyItem,
         canScrollGridVertically = { expansion >= 0.999f },
+        themeProvider = { activeTheme },
         onSymbolAction = { symbol, longPress ->
         val action = if (longPress) symbol.longAction else symbol.shortAction
         if (action != null) {
