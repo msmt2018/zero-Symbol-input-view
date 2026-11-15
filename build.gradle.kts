@@ -44,6 +44,15 @@ buildscript {
 
 val highApiProjects = arrayOf("editor-lsp")
 
+// JitPack builds do not have the signing secrets used by Maven Central.
+// Keep signing disabled for those builds: otherwise Gradle registers detached
+// signature artifacts for every publication, and the aggregate local publish
+// can fail on unrelated modules (for example editor-bom) before JitPack can
+// collect the requested Android library publication.
+val isJitPackBuild = providers.gradleProperty("jitpackBuild")
+    .map(String::toBoolean)
+    .getOrElse(false)
+
 fun Project.configureAndroidAndKotlin() {
     extensions.findByType<CommonExtension>()?.apply {
         compileSdk { version = release(Versions.compileSdkVersion) }
@@ -94,7 +103,9 @@ subprojects {
         configure<MavenPublishBaseExtension> {
             pomFromGradleProperties()
             publishToMavenCentral()
-            signAllPublications()
+            if (!isJitPackBuild) {
+                signAllPublications()
+            }
             if ("editor-bom" != this@subprojects.name) {
                 configure(
                     AndroidSingleVariantLibrary(
