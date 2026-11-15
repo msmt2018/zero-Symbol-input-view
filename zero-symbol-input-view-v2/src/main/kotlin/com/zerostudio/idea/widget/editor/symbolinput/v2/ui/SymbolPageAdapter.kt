@@ -503,6 +503,17 @@ internal class SymbolPageAdapter(
                 longPressTimeoutMs = settings.longPressTimeoutMs,
                 hasLongAction = hasLongPress,
                 onLongPress = dispatchLongAction,
+                onCancelled = {
+                    boundExtension?.let { extension ->
+                        runCatching {
+                            extension.onStateChanged(
+                                target,
+                                legacyItem,
+                                state.copy(pressed = false, enabled = target.isEnabled)
+                            )
+                        }.onFailure { extensions.reportError(extension.id, it) }
+                    }
+                },
                 onTouch = { event ->
                     if (boundExtension != null) {
                         val itemState = state.copy(
@@ -540,6 +551,7 @@ internal class SymbolPageAdapter(
         private val longPressTimeoutMs: Int,
         private val hasLongAction: Boolean,
         private val onLongPress: () -> Unit,
+        private val onCancelled: () -> Unit,
         private val onTouch: (MotionEvent) -> Unit
     ) : View.OnTouchListener {
         private val touchSlop = android.view.ViewConfiguration.get(view.context).scaledTouchSlop
@@ -557,10 +569,15 @@ internal class SymbolPageAdapter(
             }
         }
 
-        fun cancel() {
+        private fun cancelGesture() {
+            if (!cancelled) onCancelled()
+            cancelled = true
             view.removeCallbacks(longPressTask)
             view.isPressed = false
-            cancelled = true
+        }
+
+        fun cancel() {
+            cancelGesture()
         }
 
         override fun onTouch(v: View, event: MotionEvent): Boolean {
@@ -578,8 +595,7 @@ internal class SymbolPageAdapter(
                         kotlin.math.abs(event.x - downX) > touchSlop ||
                             kotlin.math.abs(event.y - downY) > touchSlop
                     )) {
-                        cancelled = true
-                        view.removeCallbacks(longPressTask)
+                        cancelGesture()
                         // Keep the normal View/RecyclerView touch pipeline alive:
                         // scrolling and ViewPager2 swipes must be able to take over.
                         view.isPressed = false
@@ -593,9 +609,7 @@ internal class SymbolPageAdapter(
                     // TextView perform its normal click exactly once for taps.
                 }
                 MotionEvent.ACTION_CANCEL, MotionEvent.ACTION_POINTER_DOWN -> {
-                    view.removeCallbacks(longPressTask)
-                    cancelled = true
-                    view.isPressed = false
+                    cancelGesture()
                 }
             }
             // Never steal the stream from RecyclerView/ViewPager2. The host view
