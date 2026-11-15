@@ -33,6 +33,30 @@ class LegacySymbolDataCodecTest {
         assertEquals(2, roundTrip[0].symbols[1].legacyLongActionId)
     }
 
+    @Test fun v1CompactExportPreservesGroupAndSymbolActions() {
+        val json = """[{"n":"常用","d":[{"a":0,"b":"括号","c":"()","d":0,"e":"[]"}]}]"""
+        val decoded = LegacySymbolDataCodec.decode(json)
+        assertEquals(json, LegacySymbolDataCodec.encode(decoded))
+    }
+
+    @Test(expected = IllegalStateException::class)
+    fun v1CompactExportRejectsV2OnlyCompositeAction() {
+        val group = com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup(
+            id = "custom",
+            title = "Custom",
+            symbols = listOf(
+                com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry(
+                    id = 1L,
+                    label = "Composite",
+                    shortAction = com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.Composite(
+                        listOf(com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction.InsertText("a"))
+                    )
+                )
+            )
+        )
+        LegacySymbolDataCodec.encode(listOf(group))
+    }
+
     @Test fun historicalLineDeleteIdKeepsItsV1DeleteSemantics() {
         val legacy = """[{"n":"行","d":[{"a":34,"b":"删除行"}]}]"""
         val decoded = LegacySymbolDataCodec.decode(legacy)
