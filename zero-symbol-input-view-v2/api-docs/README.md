@@ -26,6 +26,7 @@
 | [13 — 公共包路径与编辑器中立文档契约](13-public-package-and-editor-neutral-actions.md) | 新公共命名空间、UTF-16 文档契约、事务编辑 | 新包迁移与编辑器适配 |
 | [14 — 通用 Drawer 公共 API 参考](14-drawer-public-api-reference.md) | 新公共包、配置、锚点、控制器、导航、面板、样式 | 开发/复用抽屉框架 |
 | [15 — 符号控件扩展 API 实战参考](15-symbol-control-extension-api.md) | 真实控件扩展点、调用链、代码模板、生命周期与边界 | 开发符号控件插件 |
+| [16 — 测试、发布与故障排查](16-testing-release-troubleshooting.md) | 测试矩阵、发布检查、Java/Kotlin 兼容、常见问题 | 维护和发布 |
 
 ## 模块与包名
 
@@ -90,6 +91,14 @@ dependencies {
 | 自定义锚点和交互 | `DrawerAnchorStrategy`、`DrawerController` |
 | 自定义页面/面板 | `DrawerPageHost`、`DrawerPanelContent` |
 | 大屏适配 | `WindowAdaptiveInfo`、`AdaptiveLayoutResolver` |
+
+## 推荐阅读路径
+
+- **只想集成控件：** 01 → 02 → 04 → 06。
+- **开发编辑器适配器：** 03 → 04 → 11 → 13 → 16。
+- **开发符号控件扩展：** 12 → 15 → 02 → 16。
+- **复用通用抽屉：** 07 → 08 → 14 → 09 → 16。
+- **维护/发布库：** 10 → 12 → 13 → 16。
 
 ## 全局 API 约定
 

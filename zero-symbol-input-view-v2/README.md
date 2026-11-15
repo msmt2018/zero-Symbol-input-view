@@ -654,7 +654,41 @@ V2 新数据使用版本化 typed-action JSON envelope，保存稳定 Group/Symb
 
 ## 12. API 文档
 
-完整开发文档位于 [api-docs/](api-docs/README.md)，覆盖 SymbolDrawerView、模型与动作、ActionHost/Executor/Registry、Repository、Manager、Settings、通用 Drawer、手势、导航、自适应窗口、扩展注册表、兼容性和故障排查。
+完整开发文档位于 [api-docs/](api-docs/README.md)。建议按以下顺序阅读：
+
+1. [快速开始与集成](api-docs/01-quick-start.md)：依赖、View 创建、数据提交和宿主接入。
+2. [SymbolDrawerView API](api-docs/02-symbol-drawer-view.md)：原符号控件的布局、状态、回调、分页和抽屉行为。
+3. [模型与动作](api-docs/03-models-and-actions.md)：分组、符号、typed action 和序列化模型。
+4. [动作运行时](api-docs/04-action-runtime.md)：SymbolActionHost、Executor、Registry、结果、取消和复合动作。
+5. [数据与管理](api-docs/05-data-and-management.md)、[设置 API](api-docs/06-settings.md)：仓储、管理界面、导入导出和设置更新。
+6. [通用 Drawer](api-docs/07-universal-drawer.md)、[导航/面板/样式](api-docs/08-navigation-panels-style.md)：功能中立抽屉框架。
+7. [自适应窗口](api-docs/09-adaptive-window.md)、[兼容性索引](api-docs/10-api-index-compatibility.md)：大屏布局、公共 API 和迁移边界。
+8. [交互与内置动作](api-docs/11-interaction-and-builtins.md)：手势和内置文本命令。
+9. [扩展注册框架](api-docs/12-extension-framework.md)：注册表、扩展贡献和真实 UI 消费者。
+10. [公共包路径与编辑器中立文档契约](api-docs/13-public-package-and-editor-neutral-actions.md)。
+11. [通用 Drawer 公共 API 参考](api-docs/14-drawer-public-api-reference.md)。
+12. [符号控件扩展 API 实战参考](api-docs/15-symbol-control-extension-api.md)。
+13. [测试、发布、兼容性与故障排查](api-docs/16-testing-release-troubleshooting.md)。
+
+### 扩展开发的正确路径
+
+扩展必须依附当前 `SymbolDrawerView` 实例的 `extensions` 注册表，并由原控件消费者处理。不要另建第二套符号列表、Pager、手势识别器或数据仓库。
+
+| 开发目标 | 注册入口 | 真实消费方 |
+|---|---|---|
+| 新增短按/长按动作 | `registerAction` / `registerLegacyAction` | `SymbolDrawerManagerScreen` + 原 `SymbolActionExecutor` |
+| 自定义符号单元格 | `registerItemView` | 原 `SymbolPageAdapter` |
+| 替换分组导航指示器 | `registerIndicator` + `setCustomGroupIndicator` | `SymbolDrawerView` 原指示器插槽 |
+| 增加设置 Tab/行 | `registerSettingsTab` / `registerSetting` | `SymbolDrawerSettingsScreen` |
+| 自定义颜色主题 | `registerTheme` + `setThemeExtension` | 已接入的 Drawer 外壳、网格和指示器表面 |
+| 提供旧版分组 | `registerGroupProvider` | 原 Legacy codec + Repository 管线 |
+| 观察控件事件 | `registerLifecycle` | 当前 Drawer session |
+
+注册句柄必须由 Fragment View 或 Editor Session 持有并关闭。注册的 handler/provider 不会写入 JSON；进程重建后由宿主重新注册。扩展 View 不能接管原控件的分页、滚动、触摸和动作执行所有权。
+
+### API 稳定性提示
+
+`com.zerostudio.idea.widget.drawer` 是新公共 Kotlin 入口；部分类型目前仍通过 Kotlin `typealias` 暴露。Kotlin 源码可以导入这些 facade，但 Java 不能把 typealias 当作独立类。符号输入产品 API 仍位于 `com.zerostudio.idea.widget.editor.symbolinput.v2`。不要仅凭新包路径推断所有实现文件已物理迁移。
 
 ## Public drawer API package and editor-neutral actions
 
@@ -689,4 +723,4 @@ The document contract also provides line/column conversion, selection access, op
 
 `SymbolDrawerExtensionRegistry.observe { snapshot -> ... }` provides lifecycle-managed change notifications. `snapshot()` returns immutable sorted contribution lists for actions, indicators, settings tabs/items, themes and built-in visibility overrides. Close the returned observer handle when the owning screen/view is disposed.
 
-The observer API enables host UI surfaces to render contributions dynamically. Registration alone does not automatically inject every extension into the built-in action picker, indicator renderer or settings tabs yet; those UI consumers are still being integrated.
+The observer API enables host UI surfaces to render contributions dynamically. In the current V2 implementation, custom actions are consumed by the manager action picker when it receives the same registry; custom indicators are consumed by the SymbolDrawerView indicator slot; settings tabs/items are consumed by SymbolDrawerSettingsScreen when it receives the same registry; item renderers are consumed by the existing SymbolPageAdapter. Theme application is connected to the drawer shell, page adapter and indicator surfaces described in the extension API reference. These are concrete consumer paths, not a promise that every screen color or every future built-in feature is already theme-aware.
