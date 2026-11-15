@@ -353,6 +353,16 @@ internal class SymbolPageAdapter(
             return SymbolHolder(container, label) { id, error -> extensions.reportError(id, error) }
         }
 
+        override fun onViewAttachedToWindow(holder: SymbolHolder) {
+            super.onViewAttachedToWindow(holder)
+            holder.attach()
+        }
+
+        override fun onViewDetachedFromWindow(holder: SymbolHolder) {
+            holder.detach()
+            super.onViewDetachedFromWindow(holder)
+        }
+
         override fun onViewRecycled(holder: SymbolHolder) {
             holder.recycle()
             super.onViewRecycled(holder)
@@ -514,6 +524,9 @@ internal class SymbolPageAdapter(
                 }
             )
             target.setOnTouchListener(holder.touchListener)
+            // A payload rebind can replace the renderer while the holder is
+            // already attached; attach the newly-created contribution exactly once.
+            if (holder.root.isAttachedToWindow) holder.attach()
         }
     }
 
@@ -603,8 +616,29 @@ internal class SymbolPageAdapter(
         var accessibilityLongActionId: Int? = null
         var accessibilityTarget: View? = null
         var interactionTarget: View? = null
+        private var attachedToWindow = false
+
+        fun attach() {
+            if (attachedToWindow) return
+            val extension = activeExtension ?: return
+            val view = customView ?: return
+            val item = boundLegacyItem ?: return
+            attachedToWindow = true
+            runCatching { extension.onViewAttachedToWindow(view, item) }
+                .onFailure { reportExtensionError(extension.id, it) }
+        }
+
+        fun detach() {
+            if (!attachedToWindow) return
+            attachedToWindow = false
+            val extension = activeExtension ?: return
+            val view = customView ?: return
+            runCatching { extension.onViewDetachedFromWindow(view, boundLegacyItem) }
+                .onFailure { reportExtensionError(extension.id, it) }
+        }
 
         fun recycle() {
+            detach()
             touchListener?.cancel()
             touchListener = null
             val extension = activeExtension
