@@ -183,9 +183,7 @@ class SymbolDrawerManagerScreen(
     private val groupPageHost = DrawerPageHost(context)
     private val groupPageContents = LinkedHashMap<String, GroupPageContent>()
     private val searchField = EditText(context)
-    private val searchToggle = MaterialButton(context)
     private val searchContainer = LinearLayout(context)
-    private val filterBar = LinearLayout(context)
     private val preferenceStore = context.getSharedPreferences("zero_symbol_manager_usage_v2", Context.MODE_PRIVATE)
     private val favoriteIds = linkedSetOf<Long>().apply {
         addAll(preferenceStore.getStringSet("favorites", emptySet()).orEmpty().mapNotNull(String::toLongOrNull))
@@ -324,8 +322,6 @@ class SymbolDrawerManagerScreen(
         }
     }
 
-    private var groupActionsButton: Button? = null
-
     private fun buildHeader() {
         val row = horizontalRow().apply { gravity = android.view.Gravity.END or android.view.Gravity.CENTER_VERTICAL }
         val menuButton = MaterialButton(context).apply {
@@ -385,7 +381,6 @@ class SymbolDrawerManagerScreen(
     private fun setActiveFilter(filter: ManagerSymbolFilter) {
         activeFilter = filter
         refreshSymbols()
-        updateFilterButtons()
     }
 
     private fun buildGroupControls() {
@@ -413,23 +408,6 @@ class SymbolDrawerManagerScreen(
         }
         addView(groupTabs, LayoutParams(LayoutParams.MATCH_PARENT, dp(48)))
     }
-    private fun showAddMenu(anchor: View) {
-        val menu = PopupMenu(context, anchor)
-        menu.menu.add("新建分组").setOnMenuItemClickListener {
-            promptGroupName("新建分组") {
-                val created = manager.addGroup(it)
-                selectedGroupId = created.id
-                refresh()
-            }
-            true
-        }
-        val group = currentGroup()
-        menu.menu.add(if (group == null) "新建符号（请先创建分组）" else "在“${group.title}”中新建符号")
-            .apply { isEnabled = group != null }
-            .setOnMenuItemClickListener { editSymbol(null); true }
-        menu.show()
-    }
-
     private fun showGroupTabMenu(anchor: View, groupId: String) {
         val group = manager.groups.firstOrNull { it.id == groupId } ?: return
         selectedGroupId = group.id
@@ -517,32 +495,6 @@ class SymbolDrawerManagerScreen(
         })
         searchContainer.addView(searchField, matchWrap())
         addView(searchContainer, matchWrap())
-    }
-
-    private fun buildFilterBar() {
-        filterBar.orientation = HORIZONTAL
-        filterBar.gravity = android.view.Gravity.CENTER_VERTICAL
-        filterBar.setPadding(0, dp(4), 0, dp(4))
-        val filters = listOf(
-            ManagerSymbolFilter.ALL to "全部",
-            ManagerSymbolFilter.FAVORITES to "收藏",
-            ManagerSymbolFilter.RECENT to "最近"
-        )
-        filters.forEach { (filter, label) ->
-            filterBar.addView(actionButton(label) { setActiveFilter(filter) },
-                LayoutParams(LayoutParams.WRAP_CONTENT, dp(36)).apply { marginEnd = dp(6) })
-        }
-        filterBar.visibility = View.GONE
-        updateFilterButtons()
-    }
-
-    private fun updateFilterButtons() {
-        for (index in 0 until filterBar.childCount) {
-            val button = filterBar.getChildAt(index)
-            val filter = ManagerSymbolFilter.values().getOrNull(index) ?: continue
-            button.alpha = if (activeFilter == filter) 1f else 0.58f
-            button.isSelected = activeFilter == filter
-        }
     }
 
     private data class UsageState(
@@ -641,7 +593,6 @@ class SymbolDrawerManagerScreen(
         batchMode = enabled
         selectedSymbolIds.clear()
         batchBar.visibility = if (enabled) View.VISIBLE else View.GONE
-        searchToggle.isEnabled = !enabled
         updateBatchSummary()
         symbolAdapter.notifyDataSetChanged()
     }
@@ -879,7 +830,6 @@ class SymbolDrawerManagerScreen(
         if (selectedGroupId != null) groupPageHost.selectPage(groupPageId(selectedGroupId!!))
         updateGroupNavigationButtons()
         searchField.isEnabled = groups.isNotEmpty()
-        searchToggle.isEnabled = groups.isNotEmpty()
         refreshSymbols()
         onGroupsChanged?.invoke(groups)
     }
