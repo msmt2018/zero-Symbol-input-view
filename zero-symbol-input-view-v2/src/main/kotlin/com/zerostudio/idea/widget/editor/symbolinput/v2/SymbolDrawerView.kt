@@ -485,8 +485,11 @@ class SymbolDrawerView @JvmOverloads constructor(
      * otherwise a child can accidentally disable the drawer's vertical drag.
      */
     override fun requestDisallowInterceptTouchEvent(disallowIntercept: Boolean) {
+        // Forward the child's request to ancestors without setting this
+        // ViewGroup's own FLAG_DISALLOW_INTERCEPT. Setting that flag here
+        // prevents SymbolDrawerView from intercepting the next vertical drag.
         if (interactionController.isGestureAxisLocked) {
-            super.requestDisallowInterceptTouchEvent(disallowIntercept)
+            parent?.requestDisallowInterceptTouchEvent(disallowIntercept)
         }
     }
 
@@ -495,7 +498,9 @@ class SymbolDrawerView @JvmOverloads constructor(
 
 
     private fun setParentIntercept(disallowIntercept: Boolean) {
-        super.requestDisallowInterceptTouchEvent(disallowIntercept)
+        // Only ask ancestors to leave this gesture alone. Never call
+        // super.requestDisallowInterceptTouchEvent() on this ViewGroup: that
+        // toggles its own child-interception lock and breaks drawer dragging.
         parent?.requestDisallowInterceptTouchEvent(disallowIntercept)
     }
 
