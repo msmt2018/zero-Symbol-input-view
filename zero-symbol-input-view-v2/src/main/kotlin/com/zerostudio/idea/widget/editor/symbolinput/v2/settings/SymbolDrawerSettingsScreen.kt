@@ -314,13 +314,7 @@ class SymbolDrawerSettingsScreen(
                         "从文件导入符号组" to { pendingImport = ImportKind.GROUPS; documentPicker.openJson() }
                     )
                 )
-                addView(TextView(context).apply {
-                    text = "数据安全提示：两类备份相互独立。导入前会校验 JSON 结构、字段类型、动作编号和数据范围；建议在覆盖数据前先导出备份。"
-                    textSize = textSp(12f)
-                    setTextColor(onSurfaceColor())
-                    alpha = 0.72f
-                    setPadding(spaceDp(4), spaceDp(12), spaceDp(4), spaceDp(8))
-                }, matchWrap())
+                addDataSafetyNotice()
                 activePage?.addView(actionButton("恢复默认设置") {
                     runCatching {
                         val defaults = SymbolDrawerSettings()
@@ -425,6 +419,42 @@ class SymbolDrawerSettingsScreen(
             override fun onTabUnselected(tab: TabLayout.Tab) = Unit
             override fun onTabReselected(tab: TabLayout.Tab) = Unit
         })
+    }
+
+    /**
+     * Adds the backup safety notice at most once to the active settings page.
+     * This also protects against repeated extension-driven page composition
+     * accidentally invoking the data-page builder more than once.
+     */
+    private fun addDataSafetyNotice() {
+        val page = activePage ?: return
+        val notice = "数据安全提示：两类备份相互独立。导入前会校验 JSON 结构、字段类型、动作编号和数据范围；建议在覆盖数据前先导出备份。"
+        val tag = "zero.symbol.drawer.data-safety-notice"
+        val existing = mutableListOf<View>()
+        fun collect(parent: ViewGroup) {
+            for (index in 0 until parent.childCount) {
+                val child = parent.getChildAt(index)
+                if (child.tag == tag || (child is TextView && child.text?.toString() == notice)) {
+                    existing += child
+                }
+                if (child is ViewGroup) collect(child)
+            }
+        }
+        collect(page)
+        if (existing.isNotEmpty()) {
+            existing.drop(1).forEach { duplicate ->
+                (duplicate.parent as? ViewGroup)?.removeView(duplicate)
+            }
+            return
+        }
+        page.addView(TextView(context).apply {
+            this.tag = tag
+            text = notice
+            textSize = textSp(12f)
+            setTextColor(onSurfaceColor())
+            alpha = 0.72f
+            setPadding(spaceDp(4), spaceDp(12), spaceDp(4), spaceDp(8))
+        }, matchWrap())
     }
 
     private fun addDataManagementCard(
