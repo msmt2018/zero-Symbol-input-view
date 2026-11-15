@@ -803,7 +803,6 @@ class SymbolDrawerManagerScreen(
             manager.replaceAll(snapshot.map { it.copy(symbols = it.symbols.toList()) })
             selectedGroupId = previewEditSelectedGroupId
             refresh()
-            updateDragPreview()
             toast("已恢复进入预览编辑前的布局")
         }.onFailure(::reportError)
     }
@@ -921,6 +920,9 @@ class SymbolDrawerManagerScreen(
         updateGroupNavigationButtons()
         searchField.isEnabled = groups.isNotEmpty()
         refreshSymbols()
+        // Keep the inline toolbar preview in lockstep with every committed
+        // manager mutation, not only drag-reorder operations.
+        updateDragPreview()
         onGroupsChanged?.invoke(groups)
     }
 
