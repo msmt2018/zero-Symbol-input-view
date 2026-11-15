@@ -168,16 +168,36 @@ Some new public package entry points are currently Kotlin typealiases to existin
 | [Symbol control extension guide](zero-symbol-input-view-v2/api-docs/15-symbol-control-extension-api.md) | End-to-end extension development |
 | [Adaptive window API](zero-symbol-input-view-v2/api-docs/09-adaptive-window.md) | Window and large-screen adaptation |
 
-## Build and test
+## JSON data and interoperability
 
-```bash
-./gradlew :zero-symbol-input-view-v2:assembleRelease
-./gradlew :zero-symbol-input-view-v2:test
-./gradlew :zero-symbol-input-view-v2:connectedDebugAndroidTest
-./gradlew :app:assembleDebug
+The symbol data model is designed for exchange between the host editor, external symbol managers and backup files—not just for use inside this View.
+
+- **V1 compact JSON:** supports the legacy symbol-toolbar structure. The top-level value is a group array; groups use `n` (name) and `d` (entries), while entries use `a/b/c/d/e` for short-action ID, display text, short-action payload, long-action ID and long-action payload.
+- **V2 full bundle:** a versioned JSON envelope that preserves stable group/symbol IDs, icons and typed actions for complete backups and V2-to-V2 exchange.
+- **Compatibility boundary:** V1 can represent only actions in the legacy numeric action catalog. Composite, some Selection and arbitrary Extension actions cannot be losslessly represented. Export must reject unsupported data rather than silently dropping it.
+- **Host-defined actions:** persist a stable action ID and payload; runtime handlers/lambdas are registered by the host and are not serialized.
+
+Legacy compact JSON example:
+
+```json
+[
+  {
+    "n": "Common",
+    "d": [
+      { "a": 0, "b": "Brackets", "c": "()", "d": 0, "e": "[]" }
+    ]
+  }
+]
 ```
 
-Instrumentation tests require a connected device or emulator. Verify current CI workflow results before treating a commit as release-ready.
+See [models and actions](zero-symbol-input-view-v2/api-docs/03-models-and-actions.md) and [repository, management and migration](zero-symbol-input-view-v2/api-docs/05-data-and-management.md) for field definitions, validation, export failure semantics and the full V2 bundle API. MT Manager interoperability is limited to the documented compact structure; other variants require a real sample before compatibility can be claimed.
+
+## Integration and API documentation
+
+- [V2 module integration guide](zero-symbol-input-view-v2/README.md): local module, JitPack, Activity/Fragment, editor adapters, management/settings and JSON exchange.
+- [API documentation index](zero-symbol-input-view-v2/api-docs/README.md): public APIs, models, action runtime, drawer interaction and extension framework.
+- [Extension framework](zero-symbol-input-view-v2/api-docs/12-extension-framework.md) and [symbol-control extension guide](zero-symbol-input-view-v2/api-docs/15-symbol-control-extension-api.md): extend the existing control instead of creating a parallel implementation.
+- [Testing, release and troubleshooting](zero-symbol-input-view-v2/api-docs/16-testing-release-troubleshooting.md): repository-maintainer engineering reference.
 
 ## Compatibility and integration boundaries
 

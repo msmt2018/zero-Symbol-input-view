@@ -150,8 +150,8 @@ class SymbolActionExecutorTest {
                 SymbolAction.InsertText("never")
             )), host
         )
-        assertTrue(result is com.zerostudio.idea.widget.drawer.action.com.zerostudio.idea.widget.drawer.action.SymbolActionResult.PartialFailure)
-        assertEquals(1, (result as com.zerostudio.idea.widget.drawer.action.com.zerostudio.idea.widget.drawer.action.SymbolActionResult.PartialFailure).completedActions)
+        assertTrue(result is com.zerostudio.idea.widget.drawer.action.SymbolActionResult.PartialFailure)
+        assertEquals(1, (result as com.zerostudio.idea.widget.drawer.action.SymbolActionResult.PartialFailure).completedActions)
         assertEquals(listOf("ok", "bad"), host.calls)
     }
 }

@@ -169,16 +169,36 @@ com.zerostudio.idea.widget.editor.symbolinput.v2
 | [符号控件扩展 API 实战](zero-symbol-input-view-v2/api-docs/15-symbol-control-extension-api.md) | 扩展开发完整流程 |
 | [自适应窗口 API](zero-symbol-input-view-v2/api-docs/09-adaptive-window.md) | 窗口与大屏适配 |
 
-## 构建与测试
+## JSON 数据格式与互通性
 
-```bash
-./gradlew :zero-symbol-input-view-v2:assembleRelease
-./gradlew :zero-symbol-input-view-v2:test
-./gradlew :zero-symbol-input-view-v2:connectedDebugAndroidTest
-./gradlew :app:assembleDebug
+控件数据可以在宿主编辑器、外部符号管理工具和备份文件之间交换，而不局限于控件内部存储。
+
+- **V1 紧凑 JSON：** 兼容旧版符号快捷栏数据。顶层为分组数组，分组字段为 `n`（名称）、`d`（符号项目）；项目字段 `a/b/c/d/e` 分别表示短按动作 ID、显示文本、短按参数、长按动作 ID、长按参数。
+- **V2 完整 JSON bundle：** 使用版本化 envelope，保留稳定 Group/Symbol ID、图标和 typed actions，适合完整备份及 V2 应用之间交换。
+- **兼容边界：** V1 只能表达旧数字动作目录支持的动作。Composite、部分 Selection 和任意 Extension 动作无法保证无损写回 V1；遇到无法表达的动作时会拒绝导出，不会静默丢失。
+- **宿主扩展动作：** 通过稳定 action ID + payload 保存动作描述；handler/lambda 只在运行时注册，不会被序列化，进程重建后由宿主重新注册。
+
+V1 紧凑 JSON 示例：
+
+```json
+[
+  {
+    "n": "常用",
+    "d": [
+      { "a": 0, "b": "括号", "c": "()", "d": 0, "e": "[]" }
+    ]
+  }
+]
 ```
 
-Instrumentation 测试需要连接设备或模拟器。是否达到发布条件，应以对应 commit 的 GitHub Actions 实际结果为准。
+字段定义、严格导入校验、导出失败语义和 V2 bundle 使用方法见[数据模型与动作](zero-symbol-input-view-v2/api-docs/03-models-and-actions.md)及[仓储、管理与迁移](zero-symbol-input-view-v2/api-docs/05-data-and-management.md)。MT 管理器兼容性以此紧凑结构为准；其它 JSON 变体必须提供样例验证，不能仅凭扩展名认定兼容。
+
+## 文档与接入指南
+
+- [V2 模块接入指南](zero-symbol-input-view-v2/README.md)：本地 Module、JitPack、Activity/Fragment、任意编辑器适配器、管理/设置及 JSON 互通。
+- [API 文档总目录](zero-symbol-input-view-v2/api-docs/README.md)：完整公共 API、模型、动作运行时、抽屉交互和扩展框架。
+- [扩展注册框架](zero-symbol-input-view-v2/api-docs/12-extension-framework.md) 与[符号控件扩展 API 实战](zero-symbol-input-view-v2/api-docs/15-symbol-control-extension-api.md)：扩展现有控件，不创建平行控件。
+- [测试、发布与故障排查](zero-symbol-input-view-v2/api-docs/16-testing-release-troubleshooting.md)：仓库维护者使用的工程文档。
 
 ## 兼容性与集成边界
 

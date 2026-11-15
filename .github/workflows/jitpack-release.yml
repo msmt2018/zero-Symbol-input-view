@@ -28,8 +28,12 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="${INPUT_VERSION#v}"
-          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
-            echo "::error::Invalid version '$INPUT_VERSION'. Use semantic version format such as 0.25.0 or 1.0.0-rc.1."
+          # Accept MAJOR.MINOR and normalize it to MAJOR.MINOR.0.
+          if [[ "$VERSION" =~ ^([0-9]+)\.([0-9]+)$ ]]; then
+            VERSION="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.0"
+          fi
+          if [[ ! "$VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Invalid version '$INPUT_VERSION'. Use MAJOR.MINOR, MAJOR.MINOR.PATCH, or SemVer prerelease (for example 4.2, 0.25.0, or 1.0.0-rc.1)."
             exit 1
           fi
           TAG="v$VERSION"
