@@ -57,15 +57,33 @@ interface SymbolGroupRepository {
 }
 
 /**
+ * Optional live-change observation for repositories shared by a manager and a
+ * visible drawer. Implementations must notify after a successful durable write.
+ */
+interface ObservableSymbolGroupRepository : SymbolGroupRepository {
+    fun observeGroups(listener: () -> Unit): AutoCloseable
+}
+
+/**
  * V2-only SharedPreferences store. The explicit JSON codec gives actions a
  * stable discriminator-based schema and still reads the previous V2 draft schema.
  */
 class SharedPreferencesSymbolGroupRepository(
     context: Context,
     preferencesName: String = "symbol_drawer_v2"
-) : SymbolGroupRepository {
+) : ObservableSymbolGroupRepository {
     private val preferences = context.applicationContext
         .getSharedPreferences(preferencesName, Context.MODE_PRIVATE)
+
+    override fun observeGroups(listener: () -> Unit): AutoCloseable {
+        val observer = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_GROUPS) runCatching(listener)
+        }
+        preferences.registerOnSharedPreferenceChangeListener(observer)
+        return AutoCloseable {
+            preferences.unregisterOnSharedPreferenceChangeListener(observer)
+        }
+    }
 
     override fun loadGroups(): List<SymbolGroup> {
         val json = preferences.getString(KEY_GROUPS, null) ?: return emptyList()
