@@ -188,3 +188,9 @@ Custom tabs are appended to the settings TabLayout. Custom setting rows are inse
 - `builtin.manager`: blocks dispatch of the built-in open-manager action.
 
 `SymbolDrawerView.isBuiltInFeatureVisible(id, defaultVisible)` lets host UI apply the same visibility state to host-owned manager/navigation entry points. Other built-in feature IDs remain registry metadata until their corresponding UI entry points are wired.
+
+### Theme provider application
+
+`SymbolDrawerView.setThemeExtension(extensionId)` resolves a registered theme provider against the current `SymbolDrawerSettings` and applies its ARGB tokens to the drawer shell and built-in group indicator. Passing `null` restores host-derived colors. Custom indicator components receive the same snapshot through the optional `SymbolGroupIndicatorComponent.applyTheme(theme)` callback.
+
+Current scope: the shell and indicator are wired. The symbol-cell renderer, manager screen and settings screen still use their existing host color resolver; a provider registration does not yet replace every color in those separate UI surfaces.
