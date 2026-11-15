@@ -14,6 +14,8 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionHost
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionId
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionRegistry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolItem
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
 
 /**
@@ -29,6 +31,7 @@ class SymbolDrawerExtensionRegistry {
     private val lock = Any()
     private val actions = LinkedHashMap<String, Registered<SymbolDrawerActionExtension>>()
     private val indicators = LinkedHashMap<String, Registered<SymbolGroupIndicatorExtension>>()
+    private val itemViews = LinkedHashMap<String, Registered<SymbolDrawerItemViewExtension>>()
     private val settingsTabs = LinkedHashMap<String, Registered<SymbolDrawerSettingsTabExtension>>()
     private val settingsItems = LinkedHashMap<String, Registered<SymbolDrawerSettingExtension>>()
     private val themes = LinkedHashMap<String, Registered<SymbolDrawerThemeExtension>>()
@@ -55,6 +58,7 @@ class SymbolDrawerExtensionRegistry {
             revision = revision,
             actions = actions.values.map { it.value }.sortedWith(compareBy({ it.priority }, { it.id })),
             indicators = indicators.values.map { it.value }.sortedWith(compareBy({ it.priority }, { it.id })),
+            itemViews = itemViews.values.map { it.value }.sortedWith(compareBy({ it.priority }, { it.id })),
             settingsTabs = settingsTabs.values.map { it.value }.sortedWith(compareBy({ it.priority }, { it.id })),
             settingsItems = settingsItems.values.map { it.value }.sortedWith(compareBy({ it.priority }, { it.id })),
             themes = themes.values.map { it.value }.sortedWith(compareBy({ it.priority }, { it.id })),
@@ -103,6 +107,10 @@ class SymbolDrawerExtensionRegistry {
     fun registerIndicator(extension: SymbolGroupIndicatorExtension): AutoCloseable =
         register(indicators, extension.id, extension)
 
+    /** Registers a renderer consumed by the existing SymbolPageAdapter cell lifecycle. */
+    fun registerItemView(extension: SymbolDrawerItemViewExtension): AutoCloseable =
+        register(itemViews, extension.id, extension)
+
     fun registerSettingsTab(extension: SymbolDrawerSettingsTabExtension): AutoCloseable =
         register(settingsTabs, extension.id, extension)
 
@@ -148,6 +156,9 @@ class SymbolDrawerExtensionRegistry {
     fun indicators(): List<SymbolGroupIndicatorExtension> =
         synchronized(lock) { indicators.values.map { it.value }.sortedWith(compareBy({ it.priority }, { it.id })) }
 
+    fun itemViews(): List<SymbolDrawerItemViewExtension> =
+        synchronized(lock) { itemViews.values.map { it.value }.sortedWith(compareBy({ it.priority }, { it.id })) }
+
     fun settingsTabs(): List<SymbolDrawerSettingsTabExtension> =
         synchronized(lock) { settingsTabs.values.map { it.value }.sortedWith(compareBy({ it.priority }, { it.id })) }
 
@@ -182,6 +193,7 @@ class SymbolDrawerExtensionRegistry {
         synchronized(lock) {
             actions.clear()
             indicators.clear()
+            itemViews.clear()
             settingsTabs.clear()
             settingsItems.clear()
             themes.clear()
@@ -205,6 +217,31 @@ data class SymbolDrawerActionExtension(
     val handler: SymbolActionHandler<SymbolActionHost>
 ) {
     init { require(title.isNotBlank()) }
+}
+
+/** Runtime state passed to custom symbol-cell renderers. */
+data class SymbolDrawerItemViewState(
+    val groupIndex: Int,
+    val position: Int,
+    val selected: Boolean = false,
+    val pressed: Boolean = false,
+    val enabled: Boolean = true
+)
+
+/**
+ * Replaces the content of a cell inside the existing SymbolPageAdapter.
+ * The adapter still owns click/long-press dispatch, sizing, recycling and
+ * accessibility; extensions own only their content View and binding.
+ */
+interface SymbolDrawerItemViewExtension {
+    val id: String
+    val title: String
+    val description: String get() = ""
+    val priority: Int get() = 0
+    fun accepts(item: SymbolItem): Boolean = true
+    fun createView(context: Context, item: SymbolItem, state: SymbolDrawerItemViewState): View
+    fun bindView(view: View, item: SymbolItem, state: SymbolDrawerItemViewState)
+    fun onViewRecycled(view: View, item: SymbolItem?) = Unit
 }
 
 /** Stable navigation contract supplied to custom indicator components. */
@@ -283,6 +320,7 @@ data class SymbolDrawerExtensionSnapshot(
     val revision: Long,
     val actions: List<SymbolDrawerActionExtension>,
     val indicators: List<SymbolGroupIndicatorExtension>,
+    val itemViews: List<SymbolDrawerItemViewExtension>,
     val settingsTabs: List<SymbolDrawerSettingsTabExtension>,
     val settingsItems: List<SymbolDrawerSettingExtension>,
     val themes: List<SymbolDrawerThemeExtension>,
