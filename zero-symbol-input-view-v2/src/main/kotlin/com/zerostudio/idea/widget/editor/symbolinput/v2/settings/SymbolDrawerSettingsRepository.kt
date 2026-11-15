@@ -82,7 +82,8 @@ object SymbolDrawerSettingsCodec {
         val expected = setOf(
             "schemaVersion", "themeMode", "columns", "collapsedRows", "cellHeightDp",
             "cellHorizontalSpacingDp", "cellVerticalSpacingDp", "indicatorHeightDp",
-            "indicatorStyle", "showGroupTitles", "showSymbolLabels", "showActionHints",
+            "indicatorStyle", "showGroupTitles", "showSymbolLabels", "rememberExpandedState",
+            "showFullSymbolLabels", "symbolLabelTextSizeSp", "showActionHints",
             "maxExpandedHeightDp", "animationDurationMs", "reduceMotion",
             "flingVelocityDpPerSecond", "longPressTimeoutMs", "hapticMode",
             "autoCollapseAfterAction", "pageCacheLimit", "prefetchAdjacentGroups",
@@ -101,7 +102,11 @@ object SymbolDrawerSettingsCodec {
             "Unsupported settings schema version: $inputVersion"
         }
         if (strict) {
-            val requiredFields = if (inputVersion == 1) expected - setOf("largeScreenLayoutMode", "sideDockEdge") else expected
+            val requiredFields = when (inputVersion) {
+                1 -> expected - setOf("largeScreenLayoutMode", "sideDockEdge", "rememberExpandedState", "showFullSymbolLabels", "symbolLabelTextSizeSp")
+                2 -> expected - setOf("rememberExpandedState", "showFullSymbolLabels", "symbolLabelTextSizeSp")
+                else -> expected
+            }
             require(root.keySet() == requiredFields) {
                 "Settings backup fields do not match schema version $inputVersion"
             }
@@ -141,6 +146,9 @@ object SymbolDrawerSettingsCodec {
             indicatorStyle = GroupIndicatorStyle.valueOf(enumValue("indicatorStyle", defaults.indicatorStyle.name)),
             showGroupTitles = bool("showGroupTitles", defaults.showGroupTitles),
             showSymbolLabels = bool("showSymbolLabels", defaults.showSymbolLabels),
+            rememberExpandedState = bool("rememberExpandedState", defaults.rememberExpandedState),
+            showFullSymbolLabels = bool("showFullSymbolLabels", defaults.showFullSymbolLabels),
+            symbolLabelTextSizeSp = int("symbolLabelTextSizeSp", defaults.symbolLabelTextSizeSp),
             showActionHints = bool("showActionHints", defaults.showActionHints),
             maxExpandedHeightDp = int("maxExpandedHeightDp", defaults.maxExpandedHeightDp),
             animationDurationMs = int("animationDurationMs", defaults.animationDurationMs),
