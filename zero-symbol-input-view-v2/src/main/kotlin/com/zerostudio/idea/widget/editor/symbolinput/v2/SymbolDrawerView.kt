@@ -191,6 +191,12 @@ class SymbolDrawerView @JvmOverloads constructor(
         settings = value.copy(themeMode = com.zerostudio.idea.widget.editor.symbolinput.v2.settings.ThemeMode.SYSTEM)
         config = settings.toDrawerConfig()
         setBackgroundColor(com.zerostudio.idea.widget.editor.symbolinput.v2.ui.HostThemeColors.surface(context))
+
+        // Anchor geometry (especially the user-configured collapsed row count)
+        // belongs to the drawer shell, not to symbol-cell presentation. Apply it
+        // synchronously so a settings slider updates the visible drawer without
+        // waiting for an asynchronous ListAdapter diff to finish.
+        recalculateGeometry()
         indicator.applySettings(settings)
         pager.offscreenPageLimit = if (settings.prefetchAdjacentGroups) settings.pageCacheLimit else 1
 
@@ -204,7 +210,6 @@ class SymbolDrawerView @JvmOverloads constructor(
             previousSettings.longPressTimeoutMs != settings.longPressTimeoutMs
         val gridGeometryChanged =
             previousConfig.columns != config.columns ||
-            previousConfig.collapsedRows != config.collapsedRows ||
             previousConfig.cellHeightDp != config.cellHeightDp ||
             previousConfig.cellHorizontalSpacingDp != config.cellHorizontalSpacingDp ||
             previousConfig.cellVerticalSpacingDp != config.cellVerticalSpacingDp ||
