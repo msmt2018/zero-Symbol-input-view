@@ -6,6 +6,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerTheme
 import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerThemeExtension
 import com.zerostudio.idea.widget.editor.symbolinput.v2.testing.DrawerTestHostActivity
+import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -74,6 +75,7 @@ class SymbolDrawerThemeObserverTest {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
             lateinit var drawer: SymbolDrawerView
+            lateinit var newHandle: AutoCloseable
             val firstTheme = theme(200)
             val replacementTheme = theme(300)
 
@@ -85,14 +87,16 @@ class SymbolDrawerThemeObserverTest {
                 )
                 assertTrue(drawer.setThemeExtension("replace.theme"))
 
-                val newHandle = drawer.extensions.registerTheme(
+                newHandle = drawer.extensions.registerTheme(
                     provider("replace.theme", replacementTheme)
                 )
                 // A stale registration handle must not remove a same-ID replacement.
                 oldHandle.close()
-                instrumentationWaitForIdle(instrumentation)
-                assertEquals(replacementTheme, drawer.themeSnapshot)
+            }
 
+            instrumentation.waitForIdleSync()
+            scenario.onActivity {
+                assertEquals(replacementTheme, drawer.themeSnapshot)
                 newHandle.close()
             }
 
@@ -102,8 +106,4 @@ class SymbolDrawerThemeObserverTest {
             }
         }
     }
-
-    private fun instrumentationWaitForIdle(
-        instrumentation: androidx.test.platform.app.InstrumentationRegistry.Instrumentation
-    ) = instrumentation.waitForIdleSync()
 }
