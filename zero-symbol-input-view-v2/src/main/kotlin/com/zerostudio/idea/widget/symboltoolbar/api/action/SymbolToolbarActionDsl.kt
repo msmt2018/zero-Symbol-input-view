@@ -53,9 +53,8 @@ fun SymbolToolbarExtensionRegistry.action(
                 groupId = invocation.groupId,
                 itemId = invocation.itemId,
                 action = invocation.action,
-                gesture = if (invocation.isLongPress) SymbolToolbarInvocation.Gesture.LONG_PRESS
-                    else SymbolToolbarInvocation.Gesture.TAP,
-                eventTimeMillis = System.currentTimeMillis()
+                gesture = invocation.gesture,
+                eventTimeMillis = invocation.eventTimeMillis
             ),
             host = host
         ))
