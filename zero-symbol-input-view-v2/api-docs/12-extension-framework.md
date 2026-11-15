@@ -183,26 +183,26 @@ Theme provider 应尽量保持纯解析行为，不要在 resolve 中修改 Wind
 
 ## 6. 内置功能隐藏策略
 
-`setBuiltInVisible` 采用稳定 feature ID。建议宿主集中定义 ID 常量，例如：
+公共包 `com.zerostudio.idea.widget.drawer.extension` 提供 `SymbolDrawerBuiltInFeatures`，避免宿主重复手写 feature ID：
 
 ```kotlin
-object DrawerFeatureIds {
-    const val SEARCH = "builtin.search"
-    const val FAVORITES = "builtin.favorites"
-    const val RECENT = "builtin.recent"
-    const val BATCH_MANAGEMENT = "builtin.batchManagement"
-    const val SETTINGS = "builtin.settings"
-}
+import com.zerostudio.idea.widget.drawer.extension.SymbolDrawerBuiltInFeatures
+
+drawer.setBuiltInFeatureVisible(SymbolDrawerBuiltInFeatures.SEARCH, false)
+val visible = drawer.isBuiltInFeatureVisible(SymbolDrawerBuiltInFeatures.SEARCH)
 ```
 
-使用：
+当前已接入原控件 UI 的稳定 ID：
 
-```kotlin
-drawer.extensions.setBuiltInVisible(DrawerFeatureIds.SEARCH, false)
-val visible = drawer.extensions.isBuiltInVisible(DrawerFeatureIds.SEARCH)
-```
+| 常量 | ID | 原控件消费者 |
+|---|---|---|
+| `SEARCH` | `builtin.search` | Manager 搜索按钮与搜索状态 |
+| `FAVORITES` | `builtin.favorites` | Manager 收藏筛选菜单 |
+| `RECENT` | `builtin.recent` | Manager 最近筛选菜单 |
+| `SETTINGS` | `builtin.settings` | 原分组指示器设置按钮 |
+| `MANAGER` | `builtin.manager` | 原内置打开管理器动作 |
 
-隐藏是逻辑可见性，不等于删除实现。被隐藏功能的数据和兼容性代码仍然保留；再次设为 true 即可恢复。feature ID 是宿主定义的配置键，必须跨版本保持稳定。
+隐藏是逻辑可见性，不等于删除实现。被隐藏功能的数据和兼容性代码仍然保留；再次设为 true 即可恢复。以上 ID 是公共配置契约，发布后必须跨版本保持稳定。尚未接入原控件真实消费者的功能，不应仅为了预留而伪装成已支持的内置 ID。
 
 ## 7. 生命周期与线程安全
 
