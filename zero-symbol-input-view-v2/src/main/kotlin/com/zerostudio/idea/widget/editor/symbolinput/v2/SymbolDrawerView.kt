@@ -74,6 +74,8 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.adapter.SymbolDra
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerInteractionController
 import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.SymbolGroupIndicator
 import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.SymbolPageAdapter
+import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerExtensionRegistry
+import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionHost
 import kotlin.math.roundToInt
 
 /**
@@ -98,6 +100,12 @@ class SymbolDrawerView @JvmOverloads constructor(
     fun interface OnSymbolActionListener {
         fun onAction(symbol: SymbolEntry, isLongPress: Boolean)
     }
+
+    /** Session-scoped public extension registry for custom actions, indicators, settings and themes. */
+    val extensions: SymbolDrawerExtensionRegistry = SymbolDrawerExtensionRegistry()
+
+    /** Wraps an editor-neutral host so registered SymbolAction.Extension handlers are dispatched. */
+    fun bindActionHost(host: SymbolActionHost): SymbolActionHost = extensions.wrapActionHost(host)
 
     var onSymbolActionListener: OnSymbolActionListener? = null
     /** Called after a normal symbol action is dispatched; does not replace the host action callback. */
