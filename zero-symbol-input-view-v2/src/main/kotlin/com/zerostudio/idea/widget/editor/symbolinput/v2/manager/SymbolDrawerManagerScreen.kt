@@ -206,6 +206,9 @@ class SymbolDrawerManagerScreen(
     private var previewEditSnapshot: List<SymbolGroup>? = null
     private var previewEditSelectedGroupId: String? = null
     private var reorderTouchHelper: ItemTouchHelper? = null
+    /** One immutable snapshot for the whole drag gesture; intermediate swaps are not separate undo steps. */
+    private var reorderGestureSnapshot: List<SymbolGroup>? = null
+    private var reorderGestureGroupId: String? = null
     private val symbolAdapter = SymbolAdapter(
         onClick = { symbol -> editSymbol(symbol) },
         onLongClick = { symbol, anchor -> showSymbolMenu(symbol, anchor) },
@@ -722,13 +725,33 @@ class SymbolDrawerManagerScreen(
             override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
                 super.onSelectedChanged(viewHolder, actionState)
                 if (actionState == ItemTouchHelper.ACTION_STATE_DRAG) {
+                    // Capture once per gesture, not once per onMove callback. ItemTouchHelper
+                    // may cross many rows and invoke onMove repeatedly during one drag.
+                    if (reorderGestureSnapshot == null) {
+                        reorderGestureSnapshot = manager.groups.map { group ->
+                            group.copy(symbols = group.symbols.toList())
+                        }
+                        reorderGestureGroupId = selectedGroupId
+                    }
                     showDragPreview()
                 }
             }
 
             override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
                 super.clearView(recyclerView, viewHolder)
+                val before = reorderGestureSnapshot
+                val previousGroupId = reorderGestureGroupId
+                reorderGestureSnapshot = null
+                reorderGestureGroupId = null
                 refresh()
+                // Intermediate onMove calls persist their latest order, but the user
+                // sees and undoes the entire physical drag as one logical operation.
+                if (before != null && before != manager.groups) {
+                    showUndo("已调整符号顺序") {
+                        manager.replaceAll(before.map { it.copy(symbols = it.symbols.toList()) })
+                        selectedGroupId = previousGroupId
+                    }
+                }
                 destroyDragPreview()
             }
 
