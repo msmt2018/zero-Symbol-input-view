@@ -108,7 +108,7 @@ class SymbolTextDocumentActionHostTest {
     }
 
     @Test fun deletingFinalCrLfLineRemovesWholeSeparator() {
-        val document = Document("first\\r\\nlast")
+        val document = Document("first\r\nlast")
         document.setSelection(document.value.length, document.value.length)
         val host = SymbolTextDocumentActionHost(document)
         assertTrue(host.delete(com.zerostudio.idea.widget.editor.symbolinput.v2.model.DeleteKind.CURRENT_LINE))
