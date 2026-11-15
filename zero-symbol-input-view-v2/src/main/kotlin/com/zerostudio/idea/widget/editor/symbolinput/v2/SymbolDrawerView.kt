@@ -665,7 +665,7 @@ class SymbolDrawerView @JvmOverloads constructor(
             post {
                 if (isAttachedToWindow && repository === observable) {
                     runCatching { reloadGroups() }
-                        .onFailure { onExtensionErrorListener?.invoke("repository.groups", it) }
+                        .onFailure { extensions.reportError("repository.groups", it) }
                 }
             }
         }
