@@ -234,6 +234,11 @@ internal class SymbolPageAdapter(
         holder.clear()
     }
 
+    /** Rebind visible cells after runtime renderer registrations change. */
+    fun refreshItemExtensions() {
+        if (itemCount > 0) notifyItemRangeChanged(0, itemCount, ITEM_EXTENSION_PAYLOAD)
+    }
+
     class PageHolder(
         private val grid: RecyclerView,
         private val config: DrawerConfig,
@@ -551,6 +556,7 @@ internal class SymbolPageAdapter(
     }
 
     private companion object {
+        val ITEM_EXTENSION_PAYLOAD = Any()
         val GROUP_DIFF = object : DiffUtil.ItemCallback<SymbolGroup>() {
             override fun areItemsTheSame(old: SymbolGroup, new: SymbolGroup) = old.id == new.id
             override fun areContentsTheSame(old: SymbolGroup, new: SymbolGroup) = old == new
