@@ -12,15 +12,16 @@ import org.junit.Test
 class DrawerInteractionControllerTest {
     @Test fun symbolDrawerUsesPersistedCollapsedRowSettingAndRetainsGroupPaging() {
         ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
+            lateinit var drawer: SymbolDrawerView
+            val groupsCommitted = java.util.concurrent.CountDownLatch(1)
             scenario.onActivity { activity ->
-                val drawer = SymbolDrawerView(activity)
+                drawer = SymbolDrawerView(activity)
                 val configuredRows = 4
                 val settings = com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings(
                     columns = 5,
                     collapsedRows = configuredRows
                 )
                 drawer.applySettings(settings)
-                androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().waitForIdleSync()
                 val width = (360f * activity.resources.displayMetrics.density).toInt()
                 drawer.measure(
                     android.view.View.MeasureSpec.makeMeasureSpec(width, android.view.View.MeasureSpec.EXACTLY),
@@ -35,8 +36,10 @@ class DrawerInteractionControllerTest {
                     com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup("second", "Second", emptyList()),
                     com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup("third", "Third", emptyList())
                 )
-                drawer.submitGroups(groups)
-                androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+                drawer.submitGroups(groups) { groupsCommitted.countDown() }
+            }
+            assertTrue("Symbol groups did not finish committing", groupsCommitted.await(5, java.util.concurrent.TimeUnit.SECONDS))
+            scenario.onActivity {
                 drawer.selectGroup(1, false)
                 assertEquals(1, drawer.getCurrentGroupIndex())
                 drawer.selectGroup(2, false)
