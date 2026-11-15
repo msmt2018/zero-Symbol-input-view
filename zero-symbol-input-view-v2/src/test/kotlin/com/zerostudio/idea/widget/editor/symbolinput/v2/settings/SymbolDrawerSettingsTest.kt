@@ -56,6 +56,9 @@ class SymbolDrawerSettingsTest {
             columns = 6,
             themeMode = ThemeMode.DARK,
             showActionHints = true,
+            rememberExpandedState = false,
+            showFullSymbolLabels = true,
+            symbolLabelTextSizeSp = 24,
             reduceMotion = true,
             pageCacheLimit = 5
         )
@@ -125,6 +128,9 @@ class SymbolDrawerSettingsTest {
         root.addProperty("schemaVersion", 1)
         root.remove("largeScreenLayoutMode")
         root.remove("sideDockEdge")
+        root.remove("rememberExpandedState")
+        root.remove("showFullSymbolLabels")
+        root.remove("symbolLabelTextSizeSp")
 
         val restored = SymbolDrawerSettingsCodec.decodeStrict(root.toString())
 
@@ -165,8 +171,20 @@ class SymbolDrawerSettingsTest {
 
     @Test fun schemaVersionIsAlwaysUpgradedAfterPermissiveV1Decode() {
         val restored = SymbolDrawerSettingsCodec.decode("""{"schemaVersion":1,"columns":8}""")
-        assertEquals(2, restored.schemaVersion)
+        assertEquals(3, restored.schemaVersion)
         assertEquals(8, restored.columns)
+    }
+
+    @Test fun strictV2BackupMigratesNewLabelAndExpansionOptionsToDefaults() {
+        val root = JsonParser.parseString(SymbolDrawerSettingsCodec.encode(SymbolDrawerSettings())).asJsonObject
+        root.addProperty("schemaVersion", 2)
+        root.remove("rememberExpandedState")
+        root.remove("showFullSymbolLabels")
+        root.remove("symbolLabelTextSizeSp")
+        val restored = SymbolDrawerSettingsCodec.decodeStrict(root.toString())
+        assertTrue(restored.rememberExpandedState)
+        assertEquals(false, restored.showFullSymbolLabels)
+        assertEquals(18, restored.symbolLabelTextSizeSp)
     }
 
     @Test fun reducedMotionOnlyOverridesRuntimeAnimationDuration() {
