@@ -60,7 +60,7 @@ class SymbolTextDocumentActionHostTest {
         val document = Document("selected")
         document.setSelection(0, 8)
         val host = SymbolTextDocumentActionHost(document)
-        assertTrue(host.insertText("before(\\$S\\$T\\$E)"))
+        assertTrue(host.insertText("before(\$S\$T\$E)"))
         assertEquals("before(selected)", document.value)
         assertEquals(7, document.selectionStart)
         assertEquals(15, document.selectionEnd)
