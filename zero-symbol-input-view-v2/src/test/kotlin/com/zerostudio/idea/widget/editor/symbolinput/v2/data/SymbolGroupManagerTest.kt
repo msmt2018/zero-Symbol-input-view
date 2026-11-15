@@ -119,6 +119,34 @@ class SymbolGroupManagerTest {
         assertEquals(listOf("b", "a"), repository.stored.map { it.id })
     }
     @Test
+    fun reorderSymbolsPersistsOneValidatedOrderAndSkipsIdenticalWrites() {
+        val initial = SymbolGroup(
+            "group",
+            "Group",
+            listOf(
+                SymbolEntry(1L, "one", SymbolAction.InsertText("1")),
+                SymbolEntry(2L, "two", SymbolAction.InsertText("2")),
+                SymbolEntry(3L, "three", SymbolAction.InsertText("3"))
+            )
+        )
+        var writes = 0
+        val repository = object : SymbolGroupRepository {
+            var stored = listOf(initial)
+            override fun loadGroups() = stored
+            override fun saveGroups(groups: List<SymbolGroup>) {
+                writes++
+                stored = groups
+            }
+        }
+        val manager = SymbolGroupManager(repository)
+
+        manager.reorderSymbols("group", listOf(3L, 1L, 2L))
+        manager.reorderSymbols("group", listOf(3L, 1L, 2L))
+
+        assertEquals(1, writes)
+        assertEquals(listOf(3L, 1L, 2L), manager.groups.single().symbols.map { it.id })
+    }
+    @Test
     fun duplicateGroupRetriesCollidingGroupAndSymbolIds() {
         val source = SymbolGroup(
             "source",
