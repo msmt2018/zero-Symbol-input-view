@@ -45,11 +45,14 @@ class SymbolTextDocumentActionHost(
         val lineStart = document.lineStartOffset(line).coerceIn(0, document.textLength)
         val lineEnd = document.lineEndOffset(line).coerceIn(lineStart, document.textLength)
         val separator = when {
-            lineEnd >= document.textLength -> "\n"
-            document.charAt(lineEnd) == '\r' && lineEnd + 1 < document.textLength &&
-                document.charAt(lineEnd + 1) == '\n' -> "\r\n"
-            document.charAt(lineEnd) == '\r' -> "\r"
-            document.charAt(lineEnd) == '\n' -> "\n"
+            lineEnd < document.textLength && document.charAt(lineEnd) == '\r' &&
+                lineEnd + 1 < document.textLength && document.charAt(lineEnd + 1) == '\n' -> "\r\n"
+            lineEnd < document.textLength && document.charAt(lineEnd) == '\r' -> "\r"
+            lineEnd < document.textLength && document.charAt(lineEnd) == '\n' -> "\n"
+            lineStart >= 2 && document.charAt(lineStart - 2) == '\r' &&
+                document.charAt(lineStart - 1) == '\n' -> "\r\n"
+            lineStart > 0 && document.charAt(lineStart - 1) == '\r' -> "\r"
+            lineStart > 0 && document.charAt(lineStart - 1) == '\n' -> "\n"
             else -> "\n"
         }
         val word = currentWordAtCursor(cursor)
