@@ -45,6 +45,8 @@
 
 package com.zerostudio.idea.widget.editor.symbolinput.v2.ui
 
+import com.zerostudio.idea.widget.editor.symbolinput.v2.R
+
 import android.content.Context
 import android.view.Gravity
 import android.view.MotionEvent
@@ -465,7 +467,7 @@ internal class SymbolPageAdapter(
                     val size = dp(holder.label.context, 22)
                     icon.setBounds(0, 0, size, size)
                     holder.label.setCompoundDrawables(null, icon, null, null)
-                    holder.label.contentDescription = "设置"
+                    holder.label.contentDescription = holder.label.context.getString(R.string.symbol_drawer_accessibility_settings)
                 } else {
                     holder.label.setCompoundDrawables(null, null, null, null)
                     holder.label.text = if (settings.showSymbolLabels) item.label else item.icon?.takeIf { it.isNotBlank() } ?: item.label
@@ -512,7 +514,7 @@ internal class SymbolPageAdapter(
             }
             if (hasLongPress) {
                 holder.accessibilityLongActionId = ViewCompat.addAccessibilityAction(
-                    target, "执行长按动作"
+                    target, target.context.getString(R.string.symbol_drawer_accessibility_long_press_action)
                 ) { _, _ -> dispatchLongAction(); true }
             }
             holder.touchListener?.cancel()

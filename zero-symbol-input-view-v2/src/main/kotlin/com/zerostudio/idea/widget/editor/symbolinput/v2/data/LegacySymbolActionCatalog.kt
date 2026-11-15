@@ -45,6 +45,9 @@
 
 package com.zerostudio.idea.widget.editor.symbolinput.v2.data
 
+import android.content.Context
+import com.zerostudio.idea.widget.editor.symbolinput.v2.R
+
 /** Action IDs and ordering copied from V1 res/values/arrays.xml. */
 object LegacySymbolActionCatalog {
     val values = intArrayOf(
@@ -60,12 +63,75 @@ object LegacySymbolActionCatalog {
     fun hasTextPayload(actionId: Int): Boolean = actionId == 0 || actionId == 36
 
     val labels = listOf(
-        "插入文本", "删除行", "清空行", "转为大写", "转为小写", "增加缩进 (Tab)",
-        "注释/取消注释", "到行首", "到行尾", "光标左移", "光标右移", "光标上移",
-        "光标下移", "打开快捷功能栏管理", "到文件开头", "到文件结尾", "全选",
-        "复制", "剪切", "粘贴", "格式化代码", "复制行", "剪切行", "重复行",
-        "替换行", "回车键", "Tab 键", "Shift + Tab",
-        "复制", "剪切", "粘贴", "撤销", "重做"
+        "Insert text",
+        "Delete line",
+        "Clear line",
+        "Convert to uppercase",
+        "Convert to lowercase",
+        "Indent (Tab)",
+        "Toggle comment",
+        "Go to line start",
+        "Go to line end",
+        "Move cursor left",
+        "Move cursor right",
+        "Move cursor up",
+        "Move cursor down",
+        "Open symbol toolbar manager",
+        "Go to document start",
+        "Go to document end",
+        "Select all",
+        "Copy",
+        "Cut",
+        "Paste",
+        "Format code",
+        "Copy line",
+        "Cut line",
+        "Duplicate line",
+        "Replace line",
+        "Enter key",
+        "Tab key",
+        "Shift + Tab",
+        "Copy",
+        "Cut",
+        "Paste",
+        "Undo",
+        "Redo"
+    )
+
+    fun labels(context: Context): List<String> = listOf(
+        context.getString(R.string.legacy_action_label_01),
+        context.getString(R.string.legacy_action_label_02),
+        context.getString(R.string.legacy_action_label_03),
+        context.getString(R.string.legacy_action_label_04),
+        context.getString(R.string.legacy_action_label_05),
+        context.getString(R.string.legacy_action_label_06),
+        context.getString(R.string.legacy_action_label_07),
+        context.getString(R.string.legacy_action_label_08),
+        context.getString(R.string.legacy_action_label_09),
+        context.getString(R.string.legacy_action_label_10),
+        context.getString(R.string.legacy_action_label_11),
+        context.getString(R.string.legacy_action_label_12),
+        context.getString(R.string.legacy_action_label_13),
+        context.getString(R.string.legacy_action_label_14),
+        context.getString(R.string.legacy_action_label_15),
+        context.getString(R.string.legacy_action_label_16),
+        context.getString(R.string.legacy_action_label_17),
+        context.getString(R.string.legacy_action_label_18),
+        context.getString(R.string.legacy_action_label_19),
+        context.getString(R.string.legacy_action_label_20),
+        context.getString(R.string.legacy_action_label_21),
+        context.getString(R.string.legacy_action_label_22),
+        context.getString(R.string.legacy_action_label_23),
+        context.getString(R.string.legacy_action_label_24),
+        context.getString(R.string.legacy_action_label_25),
+        context.getString(R.string.legacy_action_label_26),
+        context.getString(R.string.legacy_action_label_27),
+        context.getString(R.string.legacy_action_label_28),
+        context.getString(R.string.legacy_action_label_29),
+        context.getString(R.string.legacy_action_label_30),
+        context.getString(R.string.legacy_action_label_31),
+        context.getString(R.string.legacy_action_label_32),
+        context.getString(R.string.legacy_action_label_33)
     )
     init { check(values.size == labels.size) }
 }

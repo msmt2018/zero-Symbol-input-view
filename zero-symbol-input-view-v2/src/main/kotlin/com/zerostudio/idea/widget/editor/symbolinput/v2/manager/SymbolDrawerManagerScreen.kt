@@ -1843,7 +1843,7 @@ class SymbolDrawerManagerScreen(
             private fun dp(context: Context, value: Int) = (value * context.resources.displayMetrics.density).toInt()
             private fun actionName(context: Context, id: Int): String {
                 val index = LegacySymbolActionCatalog.values.indexOf(id)
-                return LegacySymbolActionCatalog.labels.getOrNull(index) ?: context.getString(R.string.symbol_drawer_049, id)
+                return LegacySymbolActionCatalog.labels(context).getOrNull(index) ?: context.getString(R.string.symbol_drawer_049, id)
             }
         }
 
