@@ -1,5 +1,5 @@
 /*
- * Concise public action registration DSL.
+ * Concise public DSL for legacy numeric symbol actions.
  * SPDX-License-Identifier: AGPL-3.0-only AND GPL-3.0-only AND Apache-2.0
  */
 package com.zerostudio.idea.widget.symboltoolbar.api.action
@@ -7,63 +7,35 @@ package com.zerostudio.idea.widget.symboltoolbar.api.action
 import com.zerostudio.idea.widget.symboltoolbar.api.extension.SymbolToolbarExtensionRegistry
 import com.zerostudio.idea.widget.symboltoolbar.api.model.SymbolToolbarInvocation
 
-/** Convenient aliases for common action implementations. */
 typealias SymbolToolbarActionBlock = suspend SymbolToolbarActionContext.() -> SymbolToolbarActionResult
 
-/**
- * Rich action context. The original invocation and the explicitly granted host
- * are both available; no editor implementation is leaked through this API.
- */
 class SymbolToolbarActionContext(
     val invocation: SymbolToolbarInvocation,
     val host: SymbolToolbarActionHost
 ) {
-    val action: SymbolToolbarAction get() = invocation.action
-    val groupId: String get() = invocation.groupId
-    val itemId: String get() = invocation.itemId
-    val isLongPress: Boolean
-        get() = invocation.gesture == SymbolToolbarInvocation.Gesture.LONG_PRESS
+    val group get() = invocation.group
+    val item get() = invocation.item
+    val actionId: Int get() = invocation.actionId
+    val payload: String? get() = invocation.payload
+    val isLongPress: Boolean get() = invocation.isLongPress
 
-    suspend fun insert(text: String): SymbolToolbarActionResult =
-        result(host.insertText(text))
-
-    suspend fun deleteBackward(): SymbolToolbarActionResult =
-        result(host.deleteBackward())
-
-    suspend fun moveCursor(offset: Int): SymbolToolbarActionResult =
-        result(host.moveCursor(offset))
-
-    suspend fun command(id: String, payload: String? = null): SymbolToolbarActionResult =
-        result(host.executeCommand(id, payload))
+    suspend fun insert(text: String) = result(host.insertText(text))
+    suspend fun deleteBackward() = result(host.deleteBackward())
+    suspend fun moveCursor(offset: Int) = result(host.moveCursor(offset))
+    suspend fun command(id: String, payload: String? = null) = result(host.executeCommand(id, payload))
 
     private fun result(success: Boolean): SymbolToolbarActionResult =
         if (success) SymbolToolbarActionResult.Success
         else SymbolToolbarActionResult.Rejected("Host declined the operation")
 }
 
-/** Register an action in one concise block. */
+/** Register directly against SymbolItem.shortAction/longAction numeric IDs. */
 fun SymbolToolbarExtensionRegistry.action(
-    type: String,
+    actionId: Int,
     handler: SymbolToolbarActionBlock
 ): AutoCloseable {
-    require(type.isNotBlank()) { "Action type must not be blank" }
-    return registerAction(type) { invocation, host ->
-        handler(SymbolToolbarActionContext(
-            invocation = SymbolToolbarInvocation(
-                groupId = invocation.groupId,
-                itemId = invocation.itemId,
-                action = invocation.action,
-                gesture = invocation.gesture,
-                eventTimeMillis = invocation.eventTimeMillis
-            ),
-            host = host
-        ))
+    require(actionId >= 0)
+    return registerAction(actionId) { invocation, host ->
+        handler(SymbolToolbarActionContext(invocation, host))
     }
 }
-
-/** Build action descriptions with minimal ceremony. */
-fun symbolAction(
-    type: String,
-    payload: String? = null,
-    arguments: Map<String, String> = emptyMap()
-): SymbolToolbarAction = SymbolToolbarAction(type, payload, arguments)
