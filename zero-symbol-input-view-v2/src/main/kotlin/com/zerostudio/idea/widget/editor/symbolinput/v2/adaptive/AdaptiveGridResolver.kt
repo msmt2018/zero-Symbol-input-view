@@ -12,8 +12,8 @@ data class AdaptiveGridSpec(
 ) {
     init {
         require(columnCount >= 1)
-        require(horizontalSpacingDp in -10..24)
-        require(verticalSpacingDp in -10..24)
+        require(horizontalSpacingDp in -24..48)
+        require(verticalSpacingDp in -24..48)
     }
 }
 
@@ -30,8 +30,8 @@ object AdaptiveGridResolver {
     ): AdaptiveGridSpec {
         require(preferredColumns >= 1)
         require(minimumCellWidthDp > 0f)
-        require(baseHorizontalSpacingDp in -10..24)
-        require(baseVerticalSpacingDp in -10..24)
+        require(baseHorizontalSpacingDp in -24..48)
+        require(baseVerticalSpacingDp in -24..48)
         if (!adaptive) return AdaptiveGridSpec(
             preferredColumns,
             baseHorizontalSpacingDp,
@@ -43,8 +43,8 @@ object AdaptiveGridResolver {
             WindowSizeClass.MEDIUM -> 1
             WindowSizeClass.EXPANDED -> 3
         }
-        val spacing = (baseHorizontalSpacingDp + spacingAdjustment).coerceIn(-10, 24)
-        val verticalSpacing = (baseVerticalSpacingDp + spacingAdjustment).coerceIn(-10, 24)
+        val spacing = (baseHorizontalSpacingDp + spacingAdjustment).coerceIn(-24, 48)
+        val verticalSpacing = (baseVerticalSpacingDp + spacingAdjustment).coerceIn(-24, 48)
         val effectiveSpacing = spacing.coerceAtLeast(0)
         val columns = if (lockColumnCount) preferredColumns else {
             (window.availableWidthDp / (minimumCellWidthDp + effectiveSpacing))

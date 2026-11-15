@@ -71,6 +71,21 @@ class AdaptiveGridResolverTest {
         assertEquals(6, spec.columnCount)
     }
 
+    @Test fun acceptsFullPersistedSpacingRangeWithoutCrashingDuringLayout() {
+        val minimum = AdaptiveGridResolver.resolve(
+            WindowAdaptiveInfo(360f, 800f), 10, 40f, -24,
+            baseVerticalSpacingDp = -24, lockColumnCount = true
+        )
+        assertEquals(-24, minimum.horizontalSpacingDp)
+        assertEquals(-24, minimum.verticalSpacingDp)
+        val maximum = AdaptiveGridResolver.resolve(
+            WindowAdaptiveInfo(1000f, 800f), 10, 40f, 48,
+            baseVerticalSpacingDp = 48, lockColumnCount = true
+        )
+        assertEquals(48, maximum.horizontalSpacingDp)
+        assertEquals(48, maximum.verticalSpacingDp)
+    }
+
     @Test fun gridAlwaysKeepsAtLeastOneColumn() {
         val spec = AdaptiveGridResolver.resolve(
             window = WindowAdaptiveInfo(100f, 800f),
