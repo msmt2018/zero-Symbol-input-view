@@ -38,6 +38,11 @@ dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         google()
+        // Prefer the public mirror before Maven Central. GitHub-hosted runners
+        // can receive transient HTTP 429 responses from repo.maven.apache.org;
+        // resolving from the mirror first avoids making routine CI builds
+        // depend on Central's metadata endpoint availability.
+        maven("https://maven.aliyun.com/nexus/content/groups/public/")
         mavenCentral()
         // Keep Eclipse artifacts on their dedicated repository, but do not
         // query it for unrelated modules such as Gson. This prevents a
@@ -48,7 +53,6 @@ dependencyResolutionManagement {
                 includeGroupByRegex("org\\.eclipse(\\..*)?")
             }
         }
-        maven("https://maven.aliyun.com/nexus/content/groups/public/")
         maven { url = uri("https://jitpack.io") }
         maven { url = uri("https://repo1.maven.org/maven2/") }
         maven("https://repo.itextsupport.com/android")
