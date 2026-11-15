@@ -52,7 +52,11 @@ class SymbolDrawerExtensionRegistry {
         listener: (SymbolDrawerExtensionSnapshot) -> Unit
     ): AutoCloseable {
         listeners += listener
-        if (emitCurrent) listener(snapshot())
+        if (emitCurrent) {
+            // An observer is an external extension callback. A faulty observer
+            // must not make registration or drawer attachment fail.
+            runCatching { listener(snapshot()) }
+        }
         return AutoCloseable { listeners.remove(listener) }
     }
 
