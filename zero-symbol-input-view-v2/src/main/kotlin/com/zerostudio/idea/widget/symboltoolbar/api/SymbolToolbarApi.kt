@@ -5,6 +5,9 @@
  */
 package com.zerostudio.idea.widget.symboltoolbar.api
 
+import com.zerostudio.idea.widget.symboltoolbar.api.model.SymbolToolbarGroup
+import com.zerostudio.idea.widget.symboltoolbar.api.model.SymbolToolbarInvocation
+
 /**
  * Host-facing contract implemented by a symbol toolbar control.
  *
