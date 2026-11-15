@@ -42,6 +42,26 @@ class SymbolDrawerExtensionRegistryTest {
         assertEquals("sample.insert", host.last?.first)
     }
 
+    @Test fun numericLegacyActionIdDispatchesWithUnchangedPayloadAndUnregisters() {
+        val registry = SymbolDrawerExtensionRegistry()
+        val host = Host()
+        var received: String? = null
+        val handle = registry.registerLegacyAction(73) { _, payload ->
+            received = payload
+            true
+        }
+
+        val wrapped = registry.wrapActionHost(host)
+        assertTrue(wrapped.executeExtension("legacy.action.73", "custom-payload"))
+        assertEquals("custom-payload", received)
+        assertNull(host.last)
+
+        handle.close()
+        assertFalse(wrapped.executeExtension("legacy.action.73", "fallback"))
+        assertEquals("legacy.action.73", host.last?.first)
+        assertEquals("fallback", host.last?.second)
+    }
+
     @Test fun customActionReplacesByIdWithoutOldHandleRemovingReplacement() {
         val registry = SymbolDrawerExtensionRegistry()
         var first = false
