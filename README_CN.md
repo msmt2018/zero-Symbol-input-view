@@ -1,187 +1,421 @@
-# zero-Symbol-input-view
+# Zero Symbol Input View V2
 
-`zero-Symbol-input-view` 是一个面向 Android 代码/文本编辑场景的**符号输入增强模块**。
-模块围绕 **Sora CodeEditor** 构建，提供完整的符号抽屉与管理能力：
-分组分页、手势抽屉、可配置分组指示器、符号配置导入导出等。
+**面向 Android 编辑器的分组符号输入抽屉与可扩展动作系统。**
 
-![预览图](zero-Symbol-input-view/ResizedImage_2026-04-27_12-59-55_6518.png)
+Zero Symbol Input View V2 是一个独立的 Android UI 组件库，为代码编辑器、文本编辑器和 IDE 提供可配置的符号工具栏。V2 将抽屉交互、分组分页、符号数据、管理界面、设置和动作执行协议拆分为明确的模块，不再把符号输入与某一种编辑器实现绑定。
 
----
-
-## 1. 模块定位与用途
-
-该模块适用于“高频输入符号/模板/编辑动作”的编辑器应用，例如：
-
-- 代码编辑器
-- 脚本工具
-- 配置文件编辑器
-- 需要快捷编辑动作的文本 IDE
-
-相较普通键盘符号行，本模块可提供：
-
-- 多分组组织与分页切换
-- 单个符号支持点击/长按双动作
-- 抽屉折叠/展开与拖拽交互
-- 多种分组指示器表现形式
-- 配置数据的完整管理生命周期
+> 当前仓库以 V2 为主要开发和集成方向。应用侧已迁移到 V2；V1 模块仍保留在仓库中，用于旧实现兼容和数据迁移，不代表新功能应继续接入 V1。
 
 ---
 
-## 2. 核心功能
+## 目录
 
-### 2.1 运行时输入抽屉（`AdvancedSymbolInputView`）
+- [项目目标](#项目目标)
+- [V2 核心能力](#v2-核心能力)
+- [架构概览](#架构概览)
+- [模块与目录](#模块与目录)
+- [集成方式](#集成方式)
+- [数据模型与动作系统](#数据模型与动作系统)
+- [管理、设置与备份](#管理设置与备份)
+- [V1 数据迁移](#v1-数据迁移)
+- [构建与测试](#构建与测试)
+- [许可与第三方声明](#许可与第三方声明)
 
-- 分组符号页展示与切换
-- 折叠/展开高度模型（统一网格计算）
-- 手势展开/收起
-- 符号短按、长按动作分发
-- 可选记忆：上次展开状态、上次分组页
-- 分组指示器风格：
-  - 标准 Tab
-  - 简洁圆点（底部）
-  - 隐藏
-  - 顶部线条
-  - 块状（底部）
+## 项目目标
 
-### 2.2 符号管理页（`SymbolManagerActivity`）
+V2 的目标不是简单地在编辑器底部放置一排字符，而是提供完整、可复用的符号输入子系统：
 
-- 分组管理：新增/编辑/删除/排序
-- 符号管理：新增/编辑/复制/移动/删除
-- 批量操作
-- 剪贴板/文件导入导出
-- 设置项：行列、指示器风格、行为选项
+- 用分组组织符号，每个分组对应一个独立页面。
+- 抽屉纵向展开/收起与分组横向翻页分别处理，互不抢占手势。
+- 把符号数据与编辑器动作执行解耦。
+- 为宿主应用提供明确的动作适配边界，允许接入 Sora CodeEditor 或其它编辑器。
+- 提供独立的分组/符号管理、运行时设置、持久化和 JSON 备份能力。
+- 在手机、平板、分屏和可调整窗口中适配内容布局。
 
-### 2.3 动作执行能力
+## V2 核心能力
 
-每个符号项可配置：
+### 1. 符号抽屉与分组分页
 
-- 短按动作
-- 可选长按动作
-- 文本载荷（插入内容/自定义文本）
+核心视图：`SymbolDrawerView`
 
-最终通过 `SymbolActionExecutor` 路由到绑定的编辑器实例执行。
+- 分组数据驱动的符号页面。
+- 基于 ViewPager2 的原生横向分页和页面吸附。
+- 独立的纵向抽屉拖动、展开、收起和甩动结算。
+- 手势方向判定，避免纵向抽屉拦截横向翻页。
+- 可配置列数、折叠显示行数、单元格尺寸、间距、触摸目标和最大展开高度。
+- 可保留当前分组和视图展开状态。
+- 支持符号短按、长按、触觉反馈及动作后自动收起。
+- 分组指示器与分页数据模型分离：切换指示器外观不会改变分组分页本身。
 
-### 2.4 MT管理器同款能力
+### 2. 分组指示器
 
-- 支持直接导入来自MT管理器符号输入工具栏的json文件
-- 与导入相同，zero-Symbol-input-view导出的json文件也可以直接用于MT管理器符号输入工具栏
-- 设计上大部分和MT管理器相同。
+V2 将“分组指示器”定义为分组页面导航的呈现层，而不是给每个符号 Tab 设置背景高亮。
+
+指示器负责表达当前分组、分组数量和页面切换状态；实际页面仍由独立分页容器管理。可选样式覆盖文字标签、胶囊、圆点、下划线、弹性/流体效果、刻度/仪表效果、节点、卡片、缩略预览、数字计数和导航轨道等类别。
+
+### 3. 符号与动作
+
+每个符号包含稳定 ID、显示标签、短按动作和可选长按动作。动作使用 V2 类型化模型表达，不再把所有行为都压缩成单一数字 ID。
+
+内置动作模型包括：
+
+- 插入文本、替换选区、包裹选中文本。
+- 光标移动和删除操作。
+- 选区大小写转换。
+- 编辑器命令和扩展动作。
+- 剪贴板复制、剪切、粘贴。
+- 组合动作（按顺序执行多个子动作）。
+- 打开符号管理页面。
+
+动作由宿主应用实现的 `SymbolActionHost` 执行。库本身不假定宿主一定使用 Sora，也不直接持有某个编辑器实例。
+
+### 4. 管理中心
+
+核心界面：`SymbolDrawerManagerScreen`
+
+- 分组新增、重命名、复制、删除和排序。
+- 符号新增、编辑、复制、移动、删除和排序。
+- 批量选择及批量操作。
+- 搜索、收藏、最近使用和筛选。
+- 内联预览及编辑操作。
+- 数据变更通过管理模型和 Repository 提交，避免 UI 直接修改持久化数据。
+
+### 5. 设置中心
+
+核心界面：`SymbolDrawerSettingsScreen`
+
+设置按类别组织，覆盖：
+
+| 类别 | 主要配置 |
+|---|---|
+| 外观 | 系统主题适配、分组指示器、分组标题、符号标签、符号完整显示、字号、动作提示 |
+| 布局 | 每行列数、折叠行数、单元格高度、横纵间距、指示器高度、最大展开高度、最小触摸目标 |
+| 大屏 | 自动/底部/侧边布局偏好、侧边停靠方向 |
+| 交互 | 长按触发时间、甩动阈值、动作后自动收起、记忆展开状态、动画与触觉反馈 |
+| 性能与搜索 | 页面缓存、相邻分组预加载、是否搜索动作载荷 |
+| 数据 | 分组/设置 JSON 导入与导出 |
+
+“符号完整显示”会保持标题单行完整呈现；布局会根据可用宽度和标题长度调整网格列数/文字尺寸，而不是用省略号截断标题。
+
+### 6. 自适应窗口
+
+V2 将窗口信息、内容排布、网格尺寸和抽屉几何分开处理。窗口尺寸类别变化时，优先调整内部内容宽度、网格和间距，不把平板/分屏适配等同于改变抽屉交互语义。
+
+支持底部工具栏场景下的紧凑、中等和扩展窗口布局计算，并提供大屏侧边停靠策略配置。
+
+### 7. 持久化与数据安全
+
+- 分组数据通过 `SymbolGroupRepository` 抽象。
+- 默认实现使用独立的 V2 SharedPreferences 存储。
+- JSON 存储带版本信息，并在读取时校验和规范化数据。
+- 检测到损坏数据时，先保留原始 JSON 和错误原因，再允许后续恢复默认数据或重新导入。
+- 分组和符号 ID 会校验唯一性。
+- 设置采用独立的版本化设置仓库。
+- 支持分组数据包和设置数据的 JSON 备份/恢复工作流。
 
 ---
 
-## 3. 架构与设计
+## 架构概览
 
-### 3.1 总体架构
+```text
+Host App / Editor
+       |
+       +-- SymbolDrawerView
+       |      |
+       |      +-- Drawer interaction & geometry
+       |      +-- ViewPager2 group pages
+       |      +-- Group indicator renderer
+       |      +-- Symbol page/grid adapter
+       |
+       +-- SymbolActionHost  <---- SymbolActionExecutor
+       |                            |
+       |                            +-- Typed SymbolAction
+       |                            +-- Composite action validation
+       |                            +-- Result / cancellation
+       |
+       +-- SymbolDrawerManagerScreen
+       |      |
+       |      +-- SymbolGroupManager
+       |      +-- SymbolGroupRepository
+       |
+       +-- SymbolDrawerSettingsScreen
+              |
+              +-- Settings repository
+              +-- JSON import/export
 
-- **视图层**
-  - `AdvancedSymbolInputView`
-  - `GroupIndicatorBar`
-  - 底部紧凑指示器
-  - `SymbolPageGridView`
-- **数据模型层**
-  - `SymbolGroup`、`SymbolItem`、`SymbolUiSettings`
-- **持久化层**
-  - `SymbolDataManager`（SharedPreferences + JSON）
-- **行为层**
-  - `SymbolActionExecutor`（编辑器动作分发）
-
-### 3.2 设计原则
-
-1. **数据驱动渲染**：界面由分组/符号配置数据生成。
-2. **交互一致性**：抽屉高度与网格布局使用统一公式，避免“行数漂移”。
-3. **风格可扩展**：分组指示器与分页逻辑解耦，便于扩展样式。
-4. **兼容性优先**：保留旧接口兼容点，同时采用新的内置抽屉模型。
-
-### 3.3 指示器设计说明
-
-分组指示器采用“按风格路由渲染”策略：
-
-- Tab/线条类风格：顶部渲染
-- 紧凑圆点/块状：底部渲染
-- 隐藏风格：不显示指示器
-
-该设计用于兼顾“信息密度”与“手势空间”。
-
----
-
-## 4. 接入方式
-
-### 4.1 Gradle
-
-`settings.gradle.kts`
-
-```kotlin
-include(":zero-Symbol-input-view")
+Persistence
+  +-- Versioned symbol-group JSON
+  +-- Versioned settings JSON
+  +-- Legacy V1 migration adapter
 ```
 
-`build.gradle.kts`
+### 关键设计边界
+
+- **View 层**：负责展示、触摸分发和页面状态，不直接执行具体编辑器命令。
+- **Model 层**：使用不可变的 `SymbolGroup`、`SymbolEntry` 和类型化 `SymbolAction`。
+- **Repository 层**：负责数据读写、版本编码、校验和迁移。
+- **Action 层**：负责动作验证、执行顺序、取消和结果报告。
+- **Host 层**：由接入方适配编辑器 API、扩展命令和页面导航。
+
+## 模块与目录
+
+V2 独立 Android Library 模块：
+
+```text
+zero-symbol-input-view-v2/
+└── src/
+    ├── main/
+    │   ├── AndroidManifest.xml
+    │   ├── kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/
+    │   │   ├── SymbolDrawerView.kt
+    │   │   ├── action/       # 动作模型、注册表、执行器与宿主协议
+    │   │   ├── adaptive/     # 窗口与内容自适应
+    │   │   ├── data/         # Repository、JSON、默认数据、V1 迁移
+    │   │   ├── drawer/       # 抽屉状态、手势、导航、面板和样式
+    │   │   ├── manager/      # 分组与符号管理界面
+    │   │   ├── model/        # V2 数据模型
+    │   │   ├── settings/     # 设置模型、仓库、界面和文件选择
+    │   │   ├── state/        # 抽屉几何与状态
+    │   │   └── ui/           # 分组指示器、符号页面与主题颜色
+    │   └── res/
+    ├── src/test/             # JVM 单元测试
+    └── src/androidTest/      # Android 视图/交互测试
+```
+
+主要包名：
+
+```text
+com.zerostudio.idea.widget.editor.symbolinput.v2
+```
+
+主要公开入口：
+
+- `SymbolDrawerView`
+- `SymbolDrawerManagerScreen`
+- `SymbolDrawerSettingsScreen`
+- `SymbolGroupRepository` / `SharedPreferencesSymbolGroupRepository`
+- `SymbolGroupManager`
+- `SymbolActionHost` / `SymbolActionExecutor`
+- `SymbolActionRegistry`
+
+---
+
+## 集成方式
+
+### 1. 作为同一 Gradle 工程中的模块
+
+仓库根目录的 `settings.gradle.kts` 已包含：
+
+```kotlin
+include(":zero-symbol-input-view-v2")
+```
+
+宿主模块添加依赖：
 
 ```kotlin
 dependencies {
-    implementation(project(":zero-Symbol-input-view"))
+    implementation(project(":zero-symbol-input-view-v2"))
 }
 ```
 
-### 4.2 布局声明
+如果将 V2 模块复制到其它 Android 工程，请同时将其加入该工程的 `settings.gradle.kts`，并确保工程已配置 Google Maven、Maven Central 等依赖仓库。
+
+### 2. 在布局中创建抽屉
+
+XML：
 
 ```xml
-<android.zero.studio.widget.editor.symbolinput.AdvancedSymbolInputView
-    android:id="@+id/symbol_input_view"
+<com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawerView
+    android:id="@+id/symbolDrawer"
     android:layout_width="match_parent"
     android:layout_height="wrap_content" />
 ```
 
-### 4.3 代码绑定
+或 Kotlin：
 
 ```kotlin
-val symbolInputView = findViewById<android.zero.studio.widget.editor.symbolinput.AdvancedSymbolInputView>(R.id.symbol_input_view)
-val editor = findViewById<io.github.rosemoe.sora.widget.CodeEditor>(R.id.editor)
-
-symbolInputView.bindEditor(editor)
-symbolInputView.onOpenManagerListener = {
-    startActivity(Intent(this, android.zero.studio.widget.editor.symbolinput.SymbolManagerActivity::class.java))
-}
-
-override fun onResume() {
-    super.onResume()
-    symbolInputView.onHostResume()
-}
-
-symbolInputView.refreshData() // 配置或数据变更后刷新
+val drawer = SymbolDrawerView(context)
+container.addView(
+    drawer,
+    ViewGroup.LayoutParams(
+        ViewGroup.LayoutParams.MATCH_PARENT,
+        ViewGroup.LayoutParams.WRAP_CONTENT
+    )
+)
 ```
 
+### 3. 绑定动作宿主
+
+抽屉通过回调把符号动作交给宿主应用。下面示例只展示接入边界；具体编辑器操作应由你的编辑器适配层实现：
+
+```kotlin
+drawer.onSymbolActionListener =
+    SymbolDrawerView.OnSymbolActionListener { symbol, isLongPress ->
+        val action = if (isLongPress) {
+            symbol.longAction
+        } else {
+            symbol.shortAction
+        } ?: return@OnSymbolActionListener
+
+        // 将 action 交给应用自己的 SymbolActionHost / SymbolActionExecutor。
+        // 在编辑器要求的线程中执行，并处理 Unsupported / Failed 等结果。
+        editorActionAdapter.execute(action)
+    }
+
+drawer.onOpenManagerListener = {
+    // 由宿主决定如何展示管理界面
+}
+```
+
+`SymbolActionHost` 是动作执行协议。宿主需要实现文本插入、选区替换、光标移动、删除、剪贴板、编辑器命令和扩展动作等能力；不支持的能力应返回 `false`，由执行器以明确结果反馈。
+
+### 4. 数据与分组
+
+```kotlin
+val groups = listOf(
+    SymbolGroup(
+        id = "common",
+        title = "常用",
+        symbols = listOf(
+            SymbolEntry(
+                id = 1L,
+                label = "->",
+                shortAction = SymbolAction.InsertText("->")
+            )
+        )
+    )
+)
+
+drawer.submitGroups(groups)
+drawer.saveGroups()
+
+// 按 ID 切换分组；第二个参数控制是否平滑滚动
+drawer.selectGroup(index = 0, smoothScroll = true)
+
+// 展开/收起
+drawer.setExpanded(expanded = true, animate = true)
+```
+
+默认 Repository 为 `SharedPreferencesSymbolGroupRepository`。也可以实现 `SymbolGroupRepository` 并通过 `drawer.setRepository(repository)` 接入自定义数据层。
+
+### 5. 管理与设置界面
+
+两个界面均为 View，不强制宿主使用特定 Activity 或导航框架：
+
+```kotlin
+val manager = SymbolDrawerManagerScreen(context).apply {
+    onGroupsChanged = { updatedGroups ->
+        drawer.submitGroups(updatedGroups)
+    }
+}
+
+val settings = SymbolDrawerSettingsScreen(context).apply {
+    onSettingsChanged = { snapshot ->
+        drawer.applySettings(snapshot)
+    }
+}
+```
+
+宿主负责将它们放入 Activity、Fragment、Dialog 或自己的页面容器中。管理页和设置页可独立使用，也可由抽屉的管理/设置入口打开。
+
 ---
 
-## 5. 数据互通与运维建议
+## 数据模型与动作系统
 
-模块支持 JSON 导入导出，可用于团队共享符号配置。
+### 分组数据
 
-建议：
+`SymbolGroup` 使用稳定字符串 ID；`SymbolEntry` 使用稳定 Long ID。更新分组时应保持 ID 稳定，以便分页选择、列表 Diff 和管理状态能够正确恢复。
 
-- 对配置 JSON 做版本管理与备份
-- 团队共享预设放入代码仓库
-- 生产环境导入前做格式校验
+### 类型化动作
+
+常用动作示例：
+
+```kotlin
+SymbolAction.InsertText("fun ")
+SymbolAction.ReplaceSelection("replacement")
+SymbolAction.SurroundSelection("(", ")")
+SymbolAction.MoveCursor(CursorTarget.LINE_END)
+SymbolAction.Delete(DeleteKind.BACKWARD)
+SymbolAction.TransformSelection(SelectionTransform.UPPERCASE)
+SymbolAction.Clipboard(ClipboardOperation.PASTE)
+SymbolAction.EditorCommand("editor.format", payload = null)
+SymbolAction.Composite(
+    listOf(
+        SymbolAction.InsertText("if ("),
+        SymbolAction.MoveCursor(CursorTarget.LEFT)
+    )
+)
+```
+
+`SymbolActionExecutor` 会在执行前验证组合动作结构，并提供执行成功、不支持、无效、取消、失败和部分失败等结果。执行器对组合深度、动作数量和文本载荷长度设有限制，避免不受控的递归或超大载荷。
+
+### 扩展动作注册
+
+`SymbolActionRegistry<C>` 允许宿主按稳定的命名空间 ID 注册处理器。注册返回的 `AutoCloseable` 可用于在编辑器/会话生命周期结束时注销处理器。注册表只保存当前进程中的函数引用；持久化数据应保存动作 ID 和 payload，而不是 lambda。
 
 ---
 
-## 6. 关键目录
+## 管理、设置与备份
+
+- 管理操作由 `SymbolGroupManager` 执行，并以不可变快照提交。
+- 批量复制/移动等操作在校验后一次性提交，避免逐项写入造成中间状态。
+- 搜索、收藏、最近使用和筛选属于管理界面能力。
+- 设置使用独立仓库，运行时可通过 `applySettings()` 更新抽屉。
+- JSON 导入应经过版本和结构校验；不要把不可信 JSON 直接当作可执行代码。
+- 遇到损坏的本地分组数据时，V2 会保留原始数据备份和错误信息，便于后续恢复。
+
+## V1 数据迁移
+
+V2 包含旧数据迁移适配层：
+
+- 从旧版符号数据和 SharedPreferences 中读取可识别的数据。
+- 将旧版数字动作 ID 与文本载荷映射到 V2 类型化动作/兼容动作表示。
+- 保留旧数字 ID 与 payload，避免迁移时无故丢失旧动作信息。
+- 仅在 V2 存储为空且满足迁移条件时导入旧数据。
+- V2 以独立存储保存新数据，不要求新运行时继续依赖 V1 View 或 V1 管理界面。
+
+迁移完成后，宿主应以 V2 Repository 中的数据为准。不要在 V1、V2 两套存储中同时写入同一份运行时状态。
+
+---
+
+## 构建与测试
+
+使用仓库根目录的 Gradle Wrapper：
+
+```bash
+# 构建 V2 release AAR
+./gradlew :zero-symbol-input-view-v2:assembleRelease
+
+# 运行 V2 JVM 单元测试
+./gradlew :zero-symbol-input-view-v2:test
+
+# 运行 V2 Android 仪器测试（需要已连接设备或模拟器）
+./gradlew :zero-symbol-input-view-v2:connectedDebugAndroidTest
+
+# 构建集成示例应用
+./gradlew :app:assembleDebug
+```
+
+仪器测试覆盖抽屉布局、锚点/状态、手势仲裁、分组分页、管理界面、设置、数据迁移和生命周期行为。CI 的设备/API 矩阵结果以 GitHub Actions 实际运行记录为准。
+
+---
+
+## 许可与第三方声明
+
+V2 自有代码的 SPDX 许可标识为：
 
 ```text
-zero-Symbol-input-view/
-└── src/main/
-    ├── kotlin/android/zero/studio/widget/editor/symbolinput/
-    │   ├── AdvancedSymbolInputView.kt
-    │   ├── SymbolManagerActivity.kt
-    │   ├── SymbolData.kt
-    │   ├── SymbolDataManager.kt
-    │   └── SymbolActionExecutor.kt
-    └── res/
+AGPL-3.0-only AND GPL-3.0-only AND Apache-2.0
 ```
+
+这里的 `AND` 表示列出的许可条款累积适用，并非任选其中一个。使用、修改、分发或提供网络服务前，请阅读并遵守对应完整许可文本。完整文本位于 V2 模块及仓库的许可文件中。
+
+仓库还包含其它上游项目及第三方组件。第三方代码、资源和依赖仍按各自原始许可证和版权声明执行；V2 的许可说明不会覆盖或替代这些上游许可。
+
+- [GNU AGPL v3.0](https://www.gnu.org/licenses/agpl-3.0.html)
+- [GNU GPL v3.0](https://www.gnu.org/licenses/gpl-3.0.html)
+- [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)
 
 ---
 
-## 7. 兼容说明
-
-- `AdvancedSymbolInputView.followSystemIme` 仍保留，用于旧集成兼容。
-- 从旧版抽屉方案迁移时，建议迁移后主动调用 `refreshData()`。
-
+[English README](README.md)
