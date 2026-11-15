@@ -117,7 +117,9 @@ fun interface SymbolActionHandler<C> {
 - `view`：需要插入指示器区域的 View。
 - `submitGroups(groups)`：更新分组快照。
 - `setSelectedIndex(index)`：同步选中状态。
-- `applySettings(settings)`：应用通用设置快照。`applyTheme(theme)` 是可选回调，接收当前 drawer theme token；默认实现为空操作。
+- `applySettings(settings)`：应用通用设置快照。
+- `applyTheme(theme)`：可选回调，接收当前 drawer theme token；默认实现为空操作。
+- `onDispose()`：可选释放钩子；组件被替换或移除时调用，默认实现为空操作。
 
 指示器组件只负责 UI 呈现。不得自己创建另一套符号页或持久化 group selection。宿主指示器容器应把 View 放入原指示器槽位，并在 groups/settings/page selection 改变时调用对应方法。组件离开窗口时应释放 animator、listener 等资源。
 
