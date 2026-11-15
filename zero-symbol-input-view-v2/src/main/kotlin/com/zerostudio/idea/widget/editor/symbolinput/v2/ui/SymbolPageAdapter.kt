@@ -350,7 +350,7 @@ internal class SymbolPageAdapter(
                 topMargin = dp(parent.context, spacingState.verticalSpacingDp / 2)
                 bottomMargin = dp(parent.context, spacingState.verticalSpacingDp / 2)
             }
-            return SymbolHolder(container, label)
+            return SymbolHolder(container, label) { id, error -> extensions.reportError(id, error) }
         }
 
         override fun onViewRecycled(holder: SymbolHolder) {
@@ -453,7 +453,8 @@ internal class SymbolPageAdapter(
             holder.interactionTarget = target
             val hasLongPress = item.longAction != null ||
                 (boundExtension?.let { candidate ->
-                    runCatching { candidate.wantsLongPress(legacyItem) }.getOrDefault(false)
+                    runCatching { candidate.wantsLongPress(legacyItem) }
+                        .onFailure { extensions.reportError(candidate.id, it) }.getOrDefault(false)
                 } == true)
             target.setOnClickListener {
                 val current = holder.bindingAdapterPosition
@@ -503,8 +504,8 @@ internal class SymbolPageAdapter(
                                     enabled = target.isEnabled
                                 ),
                                 event
-                            ).onFailure { extensions.reportError(boundExtension.id, it) }
-                        }
+                            )
+                        }.onFailure { extensions.reportError(boundExtension.id, it) }
                     }
                 }
             )
@@ -588,7 +589,8 @@ internal class SymbolPageAdapter(
 
     private class SymbolHolder(
         val root: android.widget.FrameLayout,
-        val label: TextView
+        val label: TextView,
+        private val reportExtensionError: (String, Throwable) -> Unit
     ) : RecyclerView.ViewHolder(root) {
         var activeExtension: SymbolDrawerItemViewExtension? = null
         var customView: View? = null
@@ -605,7 +607,7 @@ internal class SymbolPageAdapter(
             val view = customView
             if (extension != null && view != null) {
                 runCatching { extension.onViewRecycled(view, boundLegacyItem) }
-                    .onFailure { /* Registry may already be disposed; recycle remains best-effort. */ }
+                    .onFailure { reportExtensionError(extension.id, it) }
             }
             activeExtension = null
             customView = null
