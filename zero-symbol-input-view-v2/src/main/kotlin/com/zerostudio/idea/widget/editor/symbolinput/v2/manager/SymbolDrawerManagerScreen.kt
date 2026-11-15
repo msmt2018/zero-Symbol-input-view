@@ -1783,8 +1783,8 @@ class SymbolDrawerManagerScreen(
         override fun onBindViewHolder(holder: SymbolHolder, position: Int) {
             val symbol = getItem(position)
             holder.title.text = if (symbol.icon.isNullOrEmpty()) symbol.label else "${symbol.icon}  ${symbol.label}"
-            val shortName = symbol.legacyShortActionId?.let(::actionName) ?: symbol.shortAction.javaClass.simpleName
-            val longName = symbol.legacyLongActionId?.let(::actionName) ?: symbol.longAction?.javaClass?.simpleName ?: context.getString(R.string.symbol_drawer_150)
+            val shortName = symbol.legacyShortActionId?.let { actionName(context, it) } ?: symbol.shortAction.javaClass.simpleName
+            val longName = symbol.legacyLongActionId?.let { actionName(context, it) } ?: symbol.longAction?.javaClass?.simpleName ?: context.getString(R.string.symbol_drawer_150)
             holder.detail.text = context.getString(R.string.symbol_drawer_176, shortName, longName)
             holder.root.contentDescription = context.getString(R.string.symbol_drawer_001, symbol.label, shortName, longName)
             val theme = themeProvider()

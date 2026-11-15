@@ -123,10 +123,10 @@
     <string name="symbol_drawer_121">Restore default settings</string>
     <string name="symbol_drawer_122">Gestures and actions</string>
     <string name="symbol_drawer_123">Collapse after action</string>
-    <string name="symbol_drawer_124">扩展视图挂载失败：</string>
-    <string name="symbol_drawer_125">扩展设置加载失败：%1$s（${error.message ?: </string>
-    <string name="symbol_drawer_126">扩展设置加载失败：%1$s（${error.message ?: </string>
-    <string name="symbol_drawer_127">扩展页面加载失败：%1$s（${error.message ?: </string>
+    <string name="symbol_drawer_124">Failed to mount extension view: </string>
+    <string name="symbol_drawer_125">Failed to load extension settings: %1$s (%2$s)</string>
+    <string name="symbol_drawer_126">Failed to load extension settings: %1$s (%2$s)</string>
+    <string name="symbol_drawer_127">Failed to load extension page: %1$s (%2$s)</string>
     <string name="symbol_drawer_128">Select</string>
     <string name="symbol_drawer_129">Rows shown when collapsed</string>
     <string name="symbol_drawer_130">Drag to reorder symbols</string>
@@ -144,7 +144,7 @@
     <string name="symbol_drawer_142">Digital counter</string>
     <string name="symbol_drawer_143">The two backups are independent. JSON structure, field types, action IDs, and data ranges are validated before import. Export a backup before overwriting data.</string>
     <string name="symbol_drawer_144">Data management</string>
-    <string name="symbol_drawer_145">文件处理失败：${it.message ?: </string>
+    <string name="symbol_drawer_145">File processing failed: %1$s</string>
     <string name="symbol_drawer_146">Text tabs</string>
     <string name="symbol_drawer_147">New group</string>
     <string name="symbol_drawer_148">New symbol</string>
@@ -234,4 +234,5 @@
     <string name="symbol_drawer_ext_page_error">Failed to load extension page: %1$s (%2$s)</string>
     <string name="symbol_drawer_setting_error">Failed to load extension setting: %1$s (%2$s)</string>
     <string name="symbol_drawer_extension_mount_failed">Failed to mount extension view: </string>
+    <string name="symbol_drawer_unknown_error">Unknown error</string>
 </resources>

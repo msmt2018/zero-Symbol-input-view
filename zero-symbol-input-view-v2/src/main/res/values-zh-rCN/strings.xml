@@ -124,9 +124,9 @@
     <string name="symbol_drawer_122">手势与动作</string>
     <string name="symbol_drawer_123">执行动作后自动收起</string>
     <string name="symbol_drawer_124">扩展视图挂载失败：</string>
-    <string name="symbol_drawer_125">扩展设置加载失败：%1$s（${error.message ?: </string>
-    <string name="symbol_drawer_126">扩展设置加载失败：%1$s（${error.message ?: </string>
-    <string name="symbol_drawer_127">扩展页面加载失败：%1$s（${error.message ?: </string>
+    <string name="symbol_drawer_125">扩展设置加载失败：%1$s（%2$s）</string>
+    <string name="symbol_drawer_126">扩展设置加载失败：%1$s（%2$s）</string>
+    <string name="symbol_drawer_127">扩展页面加载失败：%1$s（%2$s）</string>
     <string name="symbol_drawer_128">批量</string>
     <string name="symbol_drawer_129">折叠时显示行数</string>
     <string name="symbol_drawer_130">拖动调整符号位置</string>
@@ -144,7 +144,7 @@
     <string name="symbol_drawer_142">数字计数器</string>
     <string name="symbol_drawer_143">数据安全提示：两类备份相互独立。导入前会校验 JSON 结构、字段类型、动作编号和数据范围；建议在覆盖数据前先导出备份。</string>
     <string name="symbol_drawer_144">数据管理</string>
-    <string name="symbol_drawer_145">文件处理失败：${it.message ?: </string>
+    <string name="symbol_drawer_145">文件处理失败：%1$s</string>
     <string name="symbol_drawer_146">文字标签页（Tab）</string>
     <string name="symbol_drawer_147">新建分组</string>
     <string name="symbol_drawer_148">新建符号</string>
@@ -234,4 +234,5 @@
     <string name="symbol_drawer_ext_page_error">扩展页面加载失败：%1$s（%2$s）</string>
     <string name="symbol_drawer_setting_error">扩展设置加载失败：%1$s（%2$s）</string>
     <string name="symbol_drawer_extension_mount_failed">扩展视图挂载失败：</string>
+    <string name="symbol_drawer_unknown_error">未知错误</string>
 </resources>

@@ -118,7 +118,7 @@ class SymbolDrawerSettingsScreen(
     private val documentPicker = JsonDocumentPicker(
         context,
         onImported = ::handleImportedJson,
-        onError = { onError?.invoke(it); toast(context.getString(R.string.symbol_drawer_file_error, it.message ?: "Unknown error")) }
+        onError = { onError?.invoke(it); toast(context.getString(R.string.symbol_drawer_file_error, it.message ?: context.getString(R.string.symbol_drawer_unknown_error))) }
     )
 
     init {
@@ -422,7 +422,7 @@ class SymbolDrawerSettingsScreen(
                         .onFailure { error ->
                             extensionRegistry?.reportError(extension.id, error)
                             page.addView(TextView(context).apply {
-                                text = context.getString(R.string.symbol_drawer_ext_settings_error, extension.title, error.message ?: "Unknown error")
+                                text = context.getString(R.string.symbol_drawer_ext_settings_error, extension.title, error.message ?: context.getString(R.string.symbol_drawer_unknown_error))
                                 setTextColor(android.graphics.Color.RED)
                             }, matchWrap())
                         }
