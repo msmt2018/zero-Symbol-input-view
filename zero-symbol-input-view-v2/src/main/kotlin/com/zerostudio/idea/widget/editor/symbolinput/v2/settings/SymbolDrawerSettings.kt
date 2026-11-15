@@ -48,7 +48,22 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.settings
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.DrawerConfig
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
-enum class GroupIndicatorStyle { TEXT, PILL, UNDERLINE }
+/**
+ * Presentation strategies for group-page navigation. These values change only
+ * the indicator renderer; the ViewPager2 group model and page state stay intact.
+ */
+enum class GroupIndicatorStyle {
+    TEXT_TABS, PILL, DOTS, UNDERLINE,
+    GOOEY_METABALL, ELASTIC_WORM, SPRING_BLOB, LIQUID_MERGE,
+    VERNlER_TICKS, MECHANICAL_RULER, WHEEL_ROLLER, CAMERA_DIAL,
+    RADIAL_RING, RADAR_SWEEP, HUD_ARC, ORBIT_DOTS,
+    ELASTIC_WAVE, SINE_WAVE, BOUNCE_TRACK, SPRING_SLIDER,
+    MORPHING_BAR, SEGMENTED_TRACK, PROGRESS_LINE, DOUBLE_TRACK,
+    MINIMAL_DASHES, SQUARE_TICKS, DIAMOND_MARKERS, TRIANGLE_POINTER,
+    HEXAGON_NODES, GLOWING_NODES, PULSE_DOTS, STACKED_CARDS,
+    MINI_PREVIEW, THUMBNAIL_STRIP, NUMBER_BADGES, VERTICAL_RAIL,
+    ARC_NODES, FLUID_TRAIL, DIGITAL_COUNTER, STEPPER
+}
 enum class HapticMode { OFF, SELECTION, ALL }
 
 /** Large-window placement preference for the symbol toolbar. */
