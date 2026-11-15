@@ -506,6 +506,20 @@ class SymbolDrawerView @JvmOverloads constructor(
     fun isBuiltInFeatureVisible(featureId: String, defaultVisible: Boolean = true): Boolean =
         extensions.isBuiltInVisible(featureId, defaultVisible)
 
+    /**
+     * Changes visibility of an existing built-in drawer feature at runtime.
+     *
+     * This is a presentation/availability switch only: the built-in implementation,
+     * symbol data and persisted settings are left untouched. Registry observers are
+     * notified so other built-in surfaces can update from the same source of truth.
+     */
+    fun setBuiltInFeatureVisible(featureId: String, visible: Boolean) {
+        extensions.setBuiltInVisible(featureId, visible)
+        if (featureId == "builtin.settings") {
+            indicator.setSettingsButtonVisible(visible)
+        }
+    }
+
     fun getSettings(): SymbolDrawerSettings = settings
 
     /** Refresh palette after the host changes its theme without recreating its Activity. */
