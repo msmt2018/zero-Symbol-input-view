@@ -62,6 +62,7 @@ import androidx.interpolator.view.animation.FastOutSlowInInterpolator
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.GroupIndicatorStyle
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
+import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerTheme
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.min
@@ -111,7 +112,13 @@ internal class SymbolGroupIndicator(
 
     fun applySettings(settings: SymbolDrawerSettings) {
         renderer.applySettings(settings)
-        settingsButton.setImageDrawable(MaterialSettingsDrawable(HostThemeColors.onSurface(context)))
+        settingsButton.setImageDrawable(MaterialSettingsDrawable(renderer.themeOnSurface()))
+    }
+
+    fun applyTheme(theme: SymbolDrawerTheme?) {
+        renderer.applyTheme(theme)
+        setBackgroundColor(theme?.drawerBackground ?: HostThemeColors.surface(context))
+        settingsButton.setImageDrawable(MaterialSettingsDrawable(theme?.onSurface ?: HostThemeColors.onSurface(context)))
     }
     override fun setBackgroundColor(color: Int) {
         super.setBackgroundColor(color)
@@ -140,11 +147,19 @@ private class IndicatorRenderer(
     private var groups: List<SymbolGroup> = emptyList()
     private var selected = 0
     private var settings = SymbolDrawerSettings()
+    private var customTheme: SymbolDrawerTheme? = null
     private var animation = 1f
     private var animator: ValueAnimator? = null
-    private val primary get() = HostThemeColors.primary(context)
-    private val onSurface get() = HostThemeColors.onSurface(context)
-    private val surface get() = HostThemeColors.surface(context)
+    private val primary get() = customTheme?.primary ?: HostThemeColors.primary(context)
+    private val onSurface get() = customTheme?.onSurface ?: HostThemeColors.onSurface(context)
+    private val surface get() = customTheme?.surface ?: HostThemeColors.surface(context)
+
+    fun themeOnSurface(): Int = onSurface
+
+    fun applyTheme(theme: SymbolDrawerTheme?) {
+        customTheme = theme
+        invalidate()
+    }
     private fun dp(v: Float) = v * density
 
     init {
@@ -380,7 +395,7 @@ private class IndicatorRenderer(
             val cardH = if (style == GroupIndicatorStyle.NUMBER_BADGES || style == GroupIndicatorStyle.DIGITAL_COUNTER) dp(22f) else h * .52f
             c.drawRoundRect(x - slot * .38f, cy - cardH / 2, x + slot * .38f, cy + cardH / 2, dp(5f), dp(5f), paint)
             if (style == GroupIndicatorStyle.NUMBER_BADGES || style == GroupIndicatorStyle.DIGITAL_COUNTER) {
-                paint.color = if (active) HostThemeColors.onPrimary(context) else surface
+                paint.color = if (active) (customTheme?.onPrimary ?: HostThemeColors.onPrimary(context)) else surface
                 paint.textAlign = Paint.Align.CENTER; paint.textSize = dp(11f)
                 c.drawText((i + 1).toString(), x, cy - (paint.ascent() + paint.descent()) / 2, paint)
             }
