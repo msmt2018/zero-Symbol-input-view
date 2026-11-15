@@ -44,6 +44,13 @@ class SymbolDrawerExtensionRegistry {
     private val listeners = CopyOnWriteArrayList<(SymbolDrawerExtensionSnapshot) -> Unit>()
     @Volatile private var revision: Long = 0L
 
+    /** Optional host diagnostic sink. Exceptions thrown by this callback are isolated. */
+    @Volatile var onExtensionErrorListener: ((extensionId: String, error: Throwable) -> Unit)? = null
+
+    internal fun reportError(extensionId: String, error: Throwable) {
+        runCatching { onExtensionErrorListener?.invoke(extensionId, error) }
+    }
+
     /** Monotonic registry revision, useful for UI diffing and cache invalidation. */
     fun revision(): Long = revision
 
