@@ -197,6 +197,7 @@ class SymbolDrawerManagerScreen(
     private val emptyView = TextView(context)
     private var symbolList: RecyclerView? = null
     private var previewPanel: LinearLayout? = null
+    private var previewPopup: PopupWindow? = null
     private var previewDrawer: SymbolDrawerView? = null
     private var reorderTouchHelper: ItemTouchHelper? = null
     private val symbolAdapter = SymbolAdapter(
@@ -768,19 +769,19 @@ class SymbolDrawerManagerScreen(
     }
 
     private fun buildDragPreviewPanel() {
-        val panel = LinearLayout(context).apply {
+        // The preview is displayed in a non-touchable PopupWindow. It never
+        // participates in the manager's measure/layout pass, so opening it
+        // cannot resize the RecyclerView or cancel ItemTouchHelper's gesture.
+        previewPanel = LinearLayout(context).apply {
             orientation = VERTICAL
-            visibility = View.GONE
             setPadding(dp(8), dp(6), dp(8), dp(4))
             background = roundedSurface(surfaceColor(), 14)
+            addView(TextView(context).apply {
+                text = "实时工具栏预览 · 拖动结束自动关闭"
+                textSize = 11f
+                setTextColor(secondaryTextColor())
+            }, LayoutParams(LayoutParams.MATCH_PARENT, dp(22)))
         }
-        panel.addView(TextView(context).apply {
-            text = "实时工具栏预览 · 拖动结束自动释放"
-            textSize = 11f
-            setTextColor(secondaryTextColor())
-        }, LayoutParams(LayoutParams.MATCH_PARENT, dp(22)))
-        previewPanel = panel
-        addView(panel, LayoutParams(LayoutParams.MATCH_PARENT, dp(174)))
     }
 
     private fun showDragPreview() {
@@ -799,8 +800,15 @@ class SymbolDrawerManagerScreen(
             onGroupChangedListener = null
         }
         previewDrawer = preview
-        panel.visibility = View.VISIBLE
         panel.addView(preview, LayoutParams(LayoutParams.MATCH_PARENT, dp(140)))
+        val popup = PopupWindow(panel, dp(320).coerceAtMost((resources.displayMetrics.widthPixels - dp(24)).coerceAtLeast(dp(180))), dp(174), false).apply {
+            isTouchable = false
+            isFocusable = false
+            isOutsideTouchable = false
+            elevation = dp(12).toFloat()
+        }
+        previewPopup = popup
+        popup.showAtLocation(rootView, android.view.Gravity.TOP or android.view.Gravity.END, dp(12), dp(96))
         preview.post { preview.setExpanded(true, false) }
     }
 
@@ -820,7 +828,8 @@ class SymbolDrawerManagerScreen(
         preview.onGroupChangedListener = null
         (preview.parent as? ViewGroup)?.removeView(preview)
         previewDrawer = null
-        previewPanel?.visibility = View.GONE
+        previewPopup?.dismiss()
+        previewPopup = null
     }
 
     private fun buildUndoBar() {

@@ -124,7 +124,8 @@ internal class MaterialSettingsDrawable(
 internal class SymbolPageAdapter(
     private val config: DrawerConfig,
     private val settings: SymbolDrawerSettings,
-    private val onSymbolAction: (SymbolEntry, Boolean) -> Unit
+    private val onSymbolAction: (SymbolEntry, Boolean) -> Unit,
+    private val canScrollGridVertically: () -> Boolean = { true }
 ) : ListAdapter<SymbolGroup, SymbolPageAdapter.PageHolder>(GROUP_DIFF) {
 
     data class GridSpacingState(
@@ -151,7 +152,9 @@ internal class SymbolPageAdapter(
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
             setBackgroundColor(HostThemeColors.surface(context))
-            val adaptiveGridLayout = GridLayoutManager(context, config.columns)
+            val adaptiveGridLayout = object : GridLayoutManager(context, config.columns) {
+                override fun canScrollVertically(): Boolean = canScrollGridVertically()
+            }
             layoutManager = adaptiveGridLayout
             isNestedScrollingEnabled = false
             overScrollMode = RecyclerView.OVER_SCROLL_NEVER
