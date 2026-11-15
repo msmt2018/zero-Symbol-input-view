@@ -331,6 +331,8 @@ interface SymbolDrawerSettingsTabExtension {
     val title: String
     val priority: Int get() = 0
     fun createView(context: Context, scope: SymbolDrawerSettingsScope): View
+    /** Release listeners, observers and other resources owned by the contributed settings view. */
+    fun onViewDisposed(view: View) = Unit
 }
 
 /** Host-owned setting row/card that can be placed in an existing built-in tab. */
@@ -340,6 +342,8 @@ interface SymbolDrawerSettingExtension {
     val title: String
     val priority: Int get() = 0
     fun createView(context: Context, scope: SymbolDrawerSettingsScope): View
+    /** Release listeners, observers and other resources owned by the contributed setting view. */
+    fun onViewDisposed(view: View) = Unit
 }
 
 /** Read/write boundary for host-defined settings contributions. */
