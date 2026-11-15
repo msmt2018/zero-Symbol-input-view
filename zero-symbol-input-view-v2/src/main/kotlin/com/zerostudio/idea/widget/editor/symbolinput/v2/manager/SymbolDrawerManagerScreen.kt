@@ -656,7 +656,6 @@ class SymbolDrawerManagerScreen(
             showUndo("已删除 \${ids.size} 个符号") {
                 manager.replaceAll(before)
                 restoreUsageState(previousUsage)
-                refresh()
             }
         }.onFailure(::reportError)
     }
@@ -833,6 +832,8 @@ class SymbolDrawerManagerScreen(
         // Clearing them here prevents an old delete/import snapshot from replacing
         // newer edits when the user later presses Undo.
         invalidateUndo()
+        // Reconcile usage references after imports, reloads and restores too.
+        pruneUsageState()
         val groups = manager.groups
         val selectedIndex = groups.indexOfFirst { it.id == selectedGroupId }.takeIf { it >= 0 } ?: 0
         selectedGroupId = groups.getOrNull(selectedIndex)?.id
@@ -1000,7 +1001,6 @@ class SymbolDrawerManagerScreen(
                         manager.replaceAll(previous)
                         restoreUsageState(previousUsage)
                         selectedGroupId = previousSelection
-                        refresh()
                     }
                 }.onFailure(::reportError)
             }
