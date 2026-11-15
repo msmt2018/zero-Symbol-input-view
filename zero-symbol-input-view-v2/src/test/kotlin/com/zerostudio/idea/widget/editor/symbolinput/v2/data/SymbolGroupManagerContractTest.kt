@@ -27,6 +27,36 @@ class SymbolGroupManagerContractTest {
     private fun symbol(id: Long, label: String = "s$id") =
         SymbolEntry(id, label, SymbolAction.InsertText(label))
 
+    private class ObservableMemoryRepository(initial: List<SymbolGroup>) : ObservableSymbolGroupRepository {
+        var data = initial
+        private val observers = linkedSetOf<() -> Unit>()
+        override fun loadGroups() = data
+        override fun saveGroups(groups: List<SymbolGroup>) {
+            data = groups.toList()
+            observers.toList().forEach { it() }
+        }
+        override fun observeGroups(listener: () -> Unit): AutoCloseable {
+            observers += listener
+            return AutoCloseable { observers -= listener }
+        }
+    }
+
+    @Test fun observableRepositoryNotifiesAfterCommittedImportSnapshot() {
+        val repo = ObservableMemoryRepository(listOf(SymbolGroup("old", "Old", emptyList())))
+        val manager = SymbolGroupManager(repo)
+        var observed: List<SymbolGroup>? = null
+        val handle = repo.observeGroups { observed = repo.loadGroups() }
+
+        manager.replaceAll(listOf(SymbolGroup("new", "Imported", emptyList())))
+
+        assertEquals("Imported", observed?.single()?.title)
+        assertEquals("new", observed?.single()?.id)
+        handle.close()
+        observed = null
+        manager.replaceAll(listOf(SymbolGroup("later", "Later", emptyList())))
+        assertNull(observed)
+    }
+
     @Test fun groupCrudDuplicateAndReorderPersistStableIdentities() {
         val repo = MemoryRepository(listOf(SymbolGroup("a", "A", listOf(symbol(1)))))
         var groupCounter = 0
