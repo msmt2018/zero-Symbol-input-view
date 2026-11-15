@@ -132,7 +132,7 @@ class LegacySymbolActionAdapterTest {
                 LegacySymbolActionAdapter.convert(LegacySymbolAction(id))
             )
         }
-        assertEquals(listOf("复制", "剪切", "粘贴"),
+        assertEquals(listOf("Copy", "Cut", "Paste"),
             LegacySymbolActionCatalog.labels.takeLast(5).take(3))
     }
 
