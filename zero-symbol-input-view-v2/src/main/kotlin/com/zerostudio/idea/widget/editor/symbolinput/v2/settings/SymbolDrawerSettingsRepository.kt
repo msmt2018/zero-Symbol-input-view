@@ -45,95 +45,163 @@
 
 package com.zerostudio.idea.widget.editor.symbolinput.v2.settings
 
-import com.zerostudio.idea.widget.editor.symbolinput.v2.model.DrawerConfig
+import android.content.Context
+import android.content.SharedPreferences
+import com.google.gson.Gson
+import com.google.gson.JsonObject
+import com.google.gson.JsonParser
 
-enum class ThemeMode { SYSTEM, LIGHT, DARK }
-/**
- * Presentation strategies for group-page navigation. These values change only
- * the indicator renderer; the ViewPager2 group model and page state stay intact.
- */
-enum class GroupIndicatorStyle {
-    TEXT_TABS, TEXT, PILL, DOTS, UNDERLINE,
-    GOOEY_METABALL, ELASTIC_WORM, SPRING_BLOB, LIQUID_MERGE,
-    VERNIER_TICKS, MECHANICAL_RULER, WHEEL_ROLLER, CAMERA_DIAL,
-    RADIAL_RING, RADAR_SWEEP, HUD_ARC, ORBIT_DOTS,
-    ELASTIC_WAVE, SINE_WAVE, BOUNCE_TRACK, SPRING_SLIDER,
-    MORPHING_BAR, SEGMENTED_TRACK, PROGRESS_LINE, DOUBLE_TRACK,
-    MINIMAL_DASHES, SQUARE_TICKS, DIAMOND_MARKERS, TRIANGLE_POINTER,
-    HEXAGON_NODES, GLOWING_NODES, PULSE_DOTS, STACKED_CARDS,
-    MINI_PREVIEW, THUMBNAIL_STRIP, NUMBER_BADGES, VERTICAL_RAIL,
-    ARC_NODES, FLUID_TRAIL, DIGITAL_COUNTER, STEPPER
+interface SymbolDrawerSettingsRepository {
+    fun load(): SettingsLoadResult
+    fun save(settings: SymbolDrawerSettings)
+    fun reset()
+    /** True when a durable user snapshot exists rather than only defaults. */
+    fun hasStoredSettings(): Boolean = false
 }
-enum class HapticMode { OFF, SELECTION, ALL }
 
-/** Large-window placement preference for the symbol toolbar. */
-enum class LargeScreenLayoutMode { AUTO, BOTTOM, SIDE }
+data class SettingsLoadResult(
+    val settings: SymbolDrawerSettings,
+    val recoveredFromInvalidData: Boolean = false
+)
 
-/** Preferred edge when the toolbar is docked vertically on a large window. */
-enum class SideDockEdge { LEFT, RIGHT }
+/** Versioned JSON codec kept separate so defaults and malformed values are testable. */
+object SymbolDrawerSettingsCodec {
+    private val gson = Gson()
 
-/** Immutable, validated settings snapshot persisted by the V2 settings repository. */
-data class SymbolDrawerSettings(
-    val schemaVersion: Int = CURRENT_SCHEMA_VERSION,
-    val themeMode: ThemeMode = ThemeMode.SYSTEM,
-    val columns: Int = 10,
-    val collapsedRows: Int = 2,
-    val cellHeightDp: Int = 28,
-    val cellHorizontalSpacingDp: Int = 2,
-    val cellVerticalSpacingDp: Int = -2,
-    val indicatorHeightDp: Int = 26,
-    val indicatorStyle: GroupIndicatorStyle = GroupIndicatorStyle.UNDERLINE,
-    val showGroupTitles: Boolean = true,
-    val showSymbolLabels: Boolean = true,
-    val rememberExpandedState: Boolean = true,
-    val showFullSymbolLabels: Boolean = false,
-    val symbolLabelTextSizeSp: Int = 18,
-    val showActionHints: Boolean = false,
-    val maxExpandedHeightDp: Int = 480,
-    val animationDurationMs: Int = 200,
-    val reduceMotion: Boolean = false,
-    val flingVelocityDpPerSecond: Int = 900,
-    val longPressTimeoutMs: Int = 420,
-    val hapticMode: HapticMode = HapticMode.SELECTION,
-    val autoCollapseAfterAction: Boolean = false,
-    val pageCacheLimit: Int = 3,
-    val prefetchAdjacentGroups: Boolean = true,
-    val minimumTouchTargetDp: Int = 40,
-    val searchIncludesActionPayload: Boolean = false,
-    val largeScreenLayoutMode: LargeScreenLayoutMode = LargeScreenLayoutMode.AUTO,
-    val sideDockEdge: SideDockEdge = SideDockEdge.RIGHT
-) {
-    init {
-        require(schemaVersion in 1..CURRENT_SCHEMA_VERSION)
-        require(columns in 1..30)
-        require(symbolLabelTextSizeSp in 8..32)
-        require(collapsedRows in 1..16)
-        require(cellHeightDp in 6..128)
-        require(cellHorizontalSpacingDp in -24..48)
-        require(cellVerticalSpacingDp in -24..48)
-        require(indicatorHeightDp in 0..96)
-        require(maxExpandedHeightDp in 80..1800)
-        require(animationDurationMs in 0..1200)
-        require(flingVelocityDpPerSecond in 100..6000)
-        require(longPressTimeoutMs in 250..1000)
-        require(pageCacheLimit in 1..9)
-        require(minimumTouchTargetDp in 20..112)
+    fun encode(settings: SymbolDrawerSettings): String = gson.toJson(settings)
+
+    fun decode(json: String): SymbolDrawerSettings = decodeInternal(json, strict = false)
+
+    /** Import path: unlike local preference migration, external backups must be complete. */
+    fun decodeStrict(json: String): SymbolDrawerSettings = decodeInternal(json, strict = true)
+
+    private fun decodeInternal(json: String, strict: Boolean): SymbolDrawerSettings {
+        val rootElement = JsonParser.parseString(json)
+        require(rootElement.isJsonObject) { "Settings backup must be a JSON object" }
+        val root = rootElement.asJsonObject
+        val expected = setOf(
+            "schemaVersion", "themeMode", "columns", "collapsedRows", "cellHeightDp",
+            "cellHorizontalSpacingDp", "cellVerticalSpacingDp", "indicatorHeightDp",
+            "indicatorStyle", "showGroupTitles", "showSymbolLabels", "rememberExpandedState",
+            "showFullSymbolLabels", "symbolLabelTextSizeSp", "showActionHints",
+            "maxExpandedHeightDp", "animationDurationMs", "reduceMotion",
+            "flingVelocityDpPerSecond", "longPressTimeoutMs", "hapticMode",
+            "autoCollapseAfterAction", "pageCacheLimit", "prefetchAdjacentGroups",
+            "minimumTouchTargetDp", "searchIncludesActionPayload",
+            "largeScreenLayoutMode", "sideDockEdge"
+        )
+        require(root.keySet().all { it in expected }) { "Settings backup contains unknown fields" }
+
+        val defaults = SymbolDrawerSettings()
+        val inputVersion = runCatching {
+            val rawVersion = root.get("schemaVersion") ?: return@runCatching defaults.schemaVersion
+            require(rawVersion.isJsonPrimitive && rawVersion.asJsonPrimitive.isNumber)
+            rawVersion.asInt.also { require(rawVersion.asDouble == it.toDouble()) }
+        }.getOrElse { throw IllegalArgumentException("Invalid settings schema version", it) }
+        require(inputVersion in 1..SymbolDrawerSettings.CURRENT_SCHEMA_VERSION) {
+            "Unsupported settings schema version: $inputVersion"
+        }
+        if (strict) {
+            val requiredFields = when (inputVersion) {
+                1 -> expected - setOf("largeScreenLayoutMode", "sideDockEdge", "rememberExpandedState", "showFullSymbolLabels", "symbolLabelTextSizeSp")
+                2 -> expected - setOf("rememberExpandedState", "showFullSymbolLabels", "symbolLabelTextSizeSp")
+                else -> expected
+            }
+            require(root.keySet() == requiredFields) {
+                "Settings backup fields do not match schema version $inputVersion"
+            }
+        }
+        fun int(name: String, default: Int): Int {
+            val value = root.get(name) ?: return default
+            require(value.isJsonPrimitive && value.asJsonPrimitive.isNumber) { "Invalid integer setting: $name" }
+            val number = value.asInt
+            require(value.asDouble == number.toDouble()) { "Non-integral setting: $name" }
+            return number
+        }
+        fun bool(name: String, default: Boolean): Boolean {
+            val value = root.get(name) ?: return default
+            require(value.isJsonPrimitive && value.asJsonPrimitive.isBoolean) { "Invalid boolean setting: $name" }
+            return value.asBoolean
+        }
+        fun enumValue(name: String, default: String): String {
+            val value = root.get(name) ?: return default
+            require(value.isJsonPrimitive && value.asJsonPrimitive.isString) { "Invalid enum setting: $name" }
+            return value.asString
+        }
+
+        val version = int("schemaVersion", defaults.schemaVersion)
+        require(version in 1..SymbolDrawerSettings.CURRENT_SCHEMA_VERSION) {
+            "Unsupported settings schema version: $version"
+        }
+        return SymbolDrawerSettings(
+            // Legacy snapshots are migrated in memory and re-saved as the current schema version.
+            schemaVersion = SymbolDrawerSettings.CURRENT_SCHEMA_VERSION,
+            themeMode = ThemeMode.valueOf(enumValue("themeMode", defaults.themeMode.name)),
+            columns = int("columns", defaults.columns),
+            collapsedRows = int("collapsedRows", defaults.collapsedRows),
+            cellHeightDp = int("cellHeightDp", defaults.cellHeightDp),
+            cellHorizontalSpacingDp = int("cellHorizontalSpacingDp", defaults.cellHorizontalSpacingDp),
+            cellVerticalSpacingDp = int("cellVerticalSpacingDp", defaults.cellVerticalSpacingDp),
+            indicatorHeightDp = int("indicatorHeightDp", defaults.indicatorHeightDp),
+            indicatorStyle = GroupIndicatorStyle.valueOf(enumValue("indicatorStyle", defaults.indicatorStyle.name)),
+            showGroupTitles = bool("showGroupTitles", defaults.showGroupTitles),
+            showSymbolLabels = bool("showSymbolLabels", defaults.showSymbolLabels),
+            rememberExpandedState = bool("rememberExpandedState", defaults.rememberExpandedState),
+            showFullSymbolLabels = bool("showFullSymbolLabels", defaults.showFullSymbolLabels),
+            symbolLabelTextSizeSp = int("symbolLabelTextSizeSp", defaults.symbolLabelTextSizeSp),
+            showActionHints = bool("showActionHints", defaults.showActionHints),
+            maxExpandedHeightDp = int("maxExpandedHeightDp", defaults.maxExpandedHeightDp),
+            animationDurationMs = int("animationDurationMs", defaults.animationDurationMs),
+            reduceMotion = bool("reduceMotion", defaults.reduceMotion),
+            flingVelocityDpPerSecond = int("flingVelocityDpPerSecond", defaults.flingVelocityDpPerSecond),
+            longPressTimeoutMs = int("longPressTimeoutMs", defaults.longPressTimeoutMs),
+            hapticMode = HapticMode.valueOf(enumValue("hapticMode", defaults.hapticMode.name)),
+            autoCollapseAfterAction = bool("autoCollapseAfterAction", defaults.autoCollapseAfterAction),
+            pageCacheLimit = int("pageCacheLimit", defaults.pageCacheLimit),
+            prefetchAdjacentGroups = bool("prefetchAdjacentGroups", defaults.prefetchAdjacentGroups),
+            minimumTouchTargetDp = int("minimumTouchTargetDp", defaults.minimumTouchTargetDp),
+            searchIncludesActionPayload = bool("searchIncludesActionPayload", defaults.searchIncludesActionPayload),
+            largeScreenLayoutMode = LargeScreenLayoutMode.valueOf(
+                enumValue("largeScreenLayoutMode", defaults.largeScreenLayoutMode.name)
+            ),
+            sideDockEdge = SideDockEdge.valueOf(enumValue("sideDockEdge", defaults.sideDockEdge.name))
+        )
+    }
+}
+
+class SharedPreferencesSymbolDrawerSettingsRepository(
+    context: Context,
+    preferencesName: String = "symbol_drawer_v2_settings",
+    private val preferences: SharedPreferences = context.applicationContext
+        .getSharedPreferences(preferencesName, Context.MODE_PRIVATE)
+) : SymbolDrawerSettingsRepository {
+    override fun load(): SettingsLoadResult {
+        val raw = preferences.getString(KEY_SETTINGS, null)
+            ?: return SettingsLoadResult(SymbolDrawerSettings())
+        val decoded = runCatching { SymbolDrawerSettingsCodec.decode(raw) }
+        return decoded.fold(
+            onSuccess = { SettingsLoadResult(it) },
+            onFailure = { SettingsLoadResult(SymbolDrawerSettings(), recoveredFromInvalidData = true) }
+        )
     }
 
-    fun toDrawerConfig() = DrawerConfig(
-        columns = columns,
-        collapsedRows = collapsedRows,
-        cellHeightDp = cellHeightDp,
-        cellHorizontalSpacingDp = cellHorizontalSpacingDp,
-        cellVerticalSpacingDp = cellVerticalSpacingDp,
-        indicatorHeightDp = indicatorHeightDp,
-        animationDurationMs = if (reduceMotion) 0L else animationDurationMs.toLong(),
-        flingVelocityDpPerSecond = flingVelocityDpPerSecond,
-        maxExpandedHeightDp = maxExpandedHeightDp,
-        minimumTouchTargetDp = minimumTouchTargetDp
-    )
+    override fun save(settings: SymbolDrawerSettings) {
+        // Constructor validation rejects out-of-range settings before persistence.
+        val json = SymbolDrawerSettingsCodec.encode(settings)
+        check(preferences.edit().putString(KEY_SETTINGS, json).commit()) {
+            "Unable to persist symbol drawer settings"
+        }
+    }
 
-    companion object {
-        const val CURRENT_SCHEMA_VERSION = 3
+    override fun reset() {
+        check(preferences.edit().remove(KEY_SETTINGS).commit()) {
+            "Unable to reset symbol drawer settings"
+        }
+    }
+
+    override fun hasStoredSettings(): Boolean = preferences.contains(KEY_SETTINGS)
+
+    private companion object {
+        const val KEY_SETTINGS = "settings_json_v1"
     }
 }
