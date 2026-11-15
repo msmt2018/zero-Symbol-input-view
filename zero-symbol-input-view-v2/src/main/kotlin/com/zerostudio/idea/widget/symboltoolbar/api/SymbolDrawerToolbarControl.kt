@@ -71,8 +71,10 @@ class SymbolDrawerToolbarControl(
     private var runtimeGroups: List<RuntimeSymbolGroup> = emptyList()
     private var currentState = SymbolToolbarState()
     private var settings = settingsRepository.load().settings
+    private var previousActionListener: SymbolDrawerView.OnSymbolActionListener? = null
 
     init {
+        previousActionListener = drawer.onSymbolActionListener
         drawer.onGroupChangedListener = { index, _ ->
             if (!closed.get()) {
                 val selected = legacyGroups.getOrNull(index)
@@ -186,7 +188,14 @@ class SymbolDrawerToolbarControl(
             controlId, group, item, invocation, runtime.events.timestamp(), runtime.events.nextSequence()
         ))
         listeners.forEach { listener -> runCatching { listener.onItemInvoked(group, item, invocation) } }
-        coroutineScope.launch { runtime.invoke(invocation) }
+        coroutineScope.launch {
+            val result = runtime.invoke(invocation)
+            // Preserve the host's pre-existing V1 action callback for IDs that
+            // are not claimed by the extension registry.
+            if (result is com.zerostudio.idea.widget.symboltoolbar.api.action.SymbolToolbarActionResult.Unsupported) {
+                previousActionListener?.onAction(symbol, longPress)
+            }
+        }
     }
 
     private fun syncDrawerExtensions(snapshot: SymbolToolbarExtensionSnapshot) {
@@ -320,7 +329,8 @@ class SymbolDrawerToolbarControl(
         settingsTabHandles.values.forEach { runCatching { it.close() } }
         indicatorHandles.clear(); themeHandles.clear(); settingsTabHandles.clear()
         drawer.onGroupChangedListener = null
-        drawer.onSymbolActionListener = null
+        drawer.onSymbolActionListener = previousActionListener
+        previousActionListener = null
         extensions.clear()
         runtime.close()
         listeners.clear()
