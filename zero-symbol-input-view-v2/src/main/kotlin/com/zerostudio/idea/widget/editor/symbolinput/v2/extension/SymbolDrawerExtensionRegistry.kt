@@ -410,25 +410,9 @@ interface SymbolDrawerSettingsScope {
     fun update(transform: (SymbolDrawerSettings) -> SymbolDrawerSettings)
 }
 
-/** Theme token snapshot; values are Android ARGB colors. */
-data class SymbolDrawerTheme(
-    val primary: Int,
-    val onPrimary: Int,
-    val surface: Int,
-    val onSurface: Int,
-    val secondaryText: Int,
-    val outline: Int,
-    val drawerBackground: Int = surface,
-    val selectedCellBackground: Int = primary
-)
-
-/** Theme providers may implement static palettes or dynamic host/system palettes. */
-interface SymbolDrawerThemeExtension {
-    val id: String
-    val title: String
-    val priority: Int get() = 0
-    fun resolve(context: Context, settings: SymbolDrawerSettings): SymbolDrawerTheme
-}
+/** Kotlin source compatibility aliases; JVM declarations live in the public drawer API. */
+typealias SymbolDrawerTheme = com.zerostudio.idea.widget.drawer.extension.SymbolDrawerTheme
+typealias SymbolDrawerThemeExtension = com.zerostudio.idea.widget.drawer.extension.SymbolDrawerThemeExtension
 
 /** Immutable point-in-time view of every extension contribution. */
 data class SymbolDrawerExtensionSnapshot(
