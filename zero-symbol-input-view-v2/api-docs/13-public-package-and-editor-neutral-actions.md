@@ -159,3 +159,32 @@ val manager = SymbolDrawerManagerScreen(
 ```
 
 Registered actions are then listed as extension actions for both short-press and long-press slots. Selecting one stores `SymbolAction.Extension(extensionId, payload)`; execution still flows through `drawer.bindActionHost(host)`, so the registry handler is resolved at runtime. The manager screen does not own or clear the registry; the drawer/session owner controls registration lifetime.
+
+### Custom indicator rendering
+
+The live `SymbolDrawerView` now consumes registered indicator components through:
+
+- `setCustomGroupIndicator(extensionId)`: create and display a registered component in the real indicator slot; returns `false` if the ID is unavailable or creation fails.
+- `useBuiltInGroupIndicator()`: restore the built-in indicator without changing the selected group.
+
+The component receives group snapshots, current selection and an `onSelectGroup` callback. `ViewPager2` remains the sole owner of page navigation. Registration removal/replacement is observed while the drawer is attached; stale custom components are replaced or the built-in indicator is restored. The selected custom indicator ID is currently runtime state, not yet persisted in `SymbolDrawerSettings` or exposed as a built-in settings selector.
+
+### Custom settings tabs and rows
+
+Pass the same session registry into `SymbolDrawerSettingsScreen` (the built-in `SymbolDrawerView` settings entry already does this):
+
+```kotlin
+val settings = SymbolDrawerSettingsScreen(
+    context = context,
+    extensionRegistry = drawer.extensions
+)
+```
+
+Custom tabs are appended to the settings TabLayout. Custom setting rows are inserted into built-in tabs by stable `tabId`: `appearance`, `layout`, `tablet`, `interaction`, `performance-search`, and `data`. Each extension receives a `SymbolDrawerSettingsScope`; updates go through the existing repository-backed settings update path. The screen observes registry changes while attached and releases the observer when detached.
+
+### Built-in visibility IDs currently wired
+
+- `builtin.settings`: hides the built-in settings button in the default group indicator and blocks the fallback settings entry.
+- `builtin.manager`: blocks dispatch of the built-in open-manager action.
+
+`SymbolDrawerView.isBuiltInFeatureVisible(id, defaultVisible)` lets host UI apply the same visibility state to host-owned manager/navigation entry points. Other built-in feature IDs remain registry metadata until their corresponding UI entry points are wired.
