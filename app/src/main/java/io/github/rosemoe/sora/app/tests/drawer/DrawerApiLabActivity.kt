@@ -215,8 +215,12 @@ class DrawerApiLabActivity : AppCompatActivity() {
             configureBottomSheet()
             drawer.setTitle("Now Playing")
             drawer.controller.setPages(emptyList())
-            drawer.setPeekContent(DrawerDemoPlayerPanelContent(this, playerController, compact = true))
-            drawer.controller.setExpandedContent(DrawerDemoPlayerPanelContent(this, playerController, compact = false))
+            drawer.setPeekContent(DrawerDemoPlayerPanelContent(this, playerController, compact = true) {
+                drawer.controller.moveToAnchor("peek", true)
+            })
+            drawer.controller.setExpandedContent(DrawerDemoPlayerPanelContent(this, playerController, compact = false) {
+                drawer.controller.moveToAnchor("peek", true)
+            })
             drawer.controller.setAnchorStrategy(DrawerAnchorStrategies.threeStage(0.5f, false))
             drawer.controller.setDragHandleEnabled(true)
             drawer.controller.setDragEnabled(true)
@@ -230,10 +234,14 @@ class DrawerApiLabActivity : AppCompatActivity() {
             drawer.controller.setPages(emptyList())
             filterSummary = "全部内容"
             drawer.setPeekContent(DrawerDemoFilterSummaryContent(this) { filterSummary })
-            drawer.controller.setExpandedContent(DrawerDemoFilterPanelContent(this) { summary ->
-                filterSummary = summary
-                drawer.collapse()
-            })
+            drawer.controller.setExpandedContent(DrawerDemoFilterPanelContent(
+                this,
+                onApply = { summary ->
+                    filterSummary = summary
+                    drawer.controller.moveToAnchor("peek", true)
+                },
+                onClose = { drawer.controller.moveToAnchor("peek", true) }
+            ))
             drawer.controller.setAnchorStrategy(DrawerAnchorStrategies.contentBased())
             drawer.controller.setDragHandleEnabled(true)
             drawer.controller.setDragEnabled(true)

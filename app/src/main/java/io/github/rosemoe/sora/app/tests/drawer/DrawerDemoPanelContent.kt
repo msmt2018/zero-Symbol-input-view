@@ -26,7 +26,8 @@ import kotlin.math.min
 internal class DrawerDemoPlayerPanelContent(
     private val context: Context,
     private val controller: DrawerDemoPlayerController,
-    private val compact: Boolean
+    private val compact: Boolean,
+    private val onClose: () -> Unit = {}
 ) : DrawerPanelContent {
     private var subscription: AutoCloseable? = null
     private var root: View? = null
@@ -89,6 +90,7 @@ internal class DrawerDemoPlayerPanelContent(
             playButton = controlButton(context, "▶", "播放或暂停") { controller.togglePlayback() }
             row.addView(playButton)
             row.addView(controlButton(context, "⏭", "下一曲") { controller.nextTrack() })
+            row.addView(controlButton(context, "×", "关闭播放器") { onClose() })
             column.addView(row, LinearLayout.LayoutParams(-1, -2))
             status = TextView(context).apply {
                 textSize = 10f
@@ -97,6 +99,15 @@ internal class DrawerDemoPlayerPanelContent(
             }
             column.addView(status)
         } else {
+            column.addView(MaterialButton(context).apply {
+                text = "关闭"
+                isAllCaps = false
+                contentDescription = "关闭播放器面板并返回折叠态"
+                setOnClickListener { onClose() }
+            }, LinearLayout.LayoutParams(-2, -2).apply {
+                gravity = Gravity.END
+                bottomMargin = dp(context, 8)
+            })
             disc = VinylDiscView(context).apply {
                 layoutParams = LinearLayout.LayoutParams(dp(context, 184), dp(context, 184)).apply {
                     gravity = Gravity.CENTER_HORIZONTAL
@@ -292,7 +303,8 @@ internal class VinylDiscView(context: Context) : View(context) {
 
 internal class DrawerDemoFilterPanelContent(
     private val context: Context,
-    private val onApply: (String) -> Unit
+    private val onApply: (String) -> Unit,
+    private val onClose: () -> Unit = {}
 ) : DrawerPanelContent {
     override fun createView(): View = createView(context)
 
@@ -363,6 +375,12 @@ internal class DrawerDemoFilterPanelContent(
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.END
         }
+        actions.addView(MaterialButton(context).apply {
+            text = "关闭"
+            isAllCaps = false
+            contentDescription = "关闭筛选面板并返回折叠态"
+            setOnClickListener { onClose() }
+        })
         actions.addView(MaterialButton(context).apply {
             text = "重置"
             isAllCaps = false
