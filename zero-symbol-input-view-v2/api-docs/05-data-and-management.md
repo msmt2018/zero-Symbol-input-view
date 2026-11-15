@@ -202,3 +202,9 @@ Manager Screen 的 `exportBundle()` / `importBundle(json)` 是面向 UI 的入�
 - JSON 导入前先完整 decode/validate，再执行替换事务。
 - 保留失败导入的原始备份。
 - 避免在主线程进行大型数据库写入；如需异步仓储，应在 View 更新前协调结果，避免旧快照覆盖新快照。
+
+## 旧版 / MT 管理器 JSON 互通
+
+`SymbolDrawerManagerScreen.exportMtManagerJson(): String` 使用 `LegacySymbolDataCodec` 输出 V1 紧凑数组结构（分组 `n/d`，项目 `a/b/c/d/e`）。只有能由旧数字动作目录表示的动作可导出；V2-only Composite / Extension 等动作不能无损转换时会抛出异常，不会静默丢失。
+
+`importMtManagerJson(json: String)` 严格解码该旧格式，完整校验后替换分组，并提供与普通备份导入相同的撤销恢复。`importBundle(json)` 也能自动识别符合 V1 compact schema 的数组格式。此兼容性针对采用上述字段结构的 MT Manager/V1 导出文件；不符合该 schema 的其它 JSON 变体需要单独适配。
