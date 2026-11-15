@@ -33,6 +33,8 @@ class SymbolDrawerExtensionRegistry {
     private val actions = LinkedHashMap<String, Registered<SymbolDrawerActionExtension>>()
     private val indicators = LinkedHashMap<String, Registered<SymbolGroupIndicatorExtension>>()
     private val itemViews = LinkedHashMap<String, Registered<SymbolDrawerItemViewExtension>>()
+    private val groupProviders = LinkedHashMap<String, Registered<SymbolDrawerLegacyGroupProvider>>()
+    private val lifecycle = LinkedHashMap<String, Registered<SymbolDrawerLifecycleExtension>>()
     private val settingsTabs = LinkedHashMap<String, Registered<SymbolDrawerSettingsTabExtension>>()
     private val settingsItems = LinkedHashMap<String, Registered<SymbolDrawerSettingExtension>>()
     private val themes = LinkedHashMap<String, Registered<SymbolDrawerThemeExtension>>()
@@ -60,6 +62,8 @@ class SymbolDrawerExtensionRegistry {
             actions = actions.values.map { it.value }.sortedWith(compareBy({ it.priority }, { it.id })),
             indicators = indicators.values.map { it.value }.sortedWith(compareBy({ it.priority }, { it.id })),
             itemViews = itemViews.values.map { it.value }.sortedWith(compareBy({ it.priority }, { it.id })),
+            groupProviders = groupProviders.values.map { it.value }.sortedWith(compareBy({ it.priority }, { it.id })),
+            lifecycle = lifecycle.values.map { it.value }.sortedWith(compareBy({ it.priority }, { it.id })),
             settingsTabs = settingsTabs.values.map { it.value }.sortedWith(compareBy({ it.priority }, { it.id })),
             settingsItems = settingsItems.values.map { it.value }.sortedWith(compareBy({ it.priority }, { it.id })),
             themes = themes.values.map { it.value }.sortedWith(compareBy({ it.priority }, { it.id })),
@@ -112,6 +116,12 @@ class SymbolDrawerExtensionRegistry {
     fun registerItemView(extension: SymbolDrawerItemViewExtension): AutoCloseable =
         register(itemViews, extension.id, extension)
 
+    fun registerGroupProvider(extension: SymbolDrawerLegacyGroupProvider): AutoCloseable =
+        register(groupProviders, extension.id, extension)
+
+    fun registerLifecycle(extension: SymbolDrawerLifecycleExtension): AutoCloseable =
+        register(lifecycle, extension.id, extension)
+
     fun registerSettingsTab(extension: SymbolDrawerSettingsTabExtension): AutoCloseable =
         register(settingsTabs, extension.id, extension)
 
@@ -160,6 +170,12 @@ class SymbolDrawerExtensionRegistry {
     fun itemViews(): List<SymbolDrawerItemViewExtension> =
         synchronized(lock) { itemViews.values.map { it.value }.sortedWith(compareBy({ it.priority }, { it.id })) }
 
+    fun groupProviders(): List<SymbolDrawerLegacyGroupProvider> =
+        synchronized(lock) { groupProviders.values.map { it.value }.sortedWith(compareBy({ it.priority }, { it.id })) }
+
+    fun lifecycleExtensions(): List<SymbolDrawerLifecycleExtension> =
+        synchronized(lock) { lifecycle.values.map { it.value }.sortedWith(compareBy({ it.priority }, { it.id })) }
+
     fun settingsTabs(): List<SymbolDrawerSettingsTabExtension> =
         synchronized(lock) { settingsTabs.values.map { it.value }.sortedWith(compareBy({ it.priority }, { it.id })) }
 
@@ -195,6 +211,8 @@ class SymbolDrawerExtensionRegistry {
             actions.clear()
             indicators.clear()
             itemViews.clear()
+            groupProviders.clear()
+            lifecycle.clear()
             settingsTabs.clear()
             settingsItems.clear()
             themes.clear()
@@ -218,6 +236,26 @@ data class SymbolDrawerActionExtension(
     val handler: SymbolActionHandler<SymbolActionHost>
 ) {
     init { require(title.isNotBlank()) }
+}
+
+/** Supplies original V1 groups to the existing drawer through its V2 codec boundary. */
+interface SymbolDrawerLegacyGroupProvider {
+    val id: String
+    val title: String
+    val priority: Int get() = 0
+    suspend fun loadGroups(): List<com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolGroup>
+}
+
+/** Lifecycle and interaction callbacks for extensions attached to a real drawer instance. */
+interface SymbolDrawerLifecycleExtension {
+    val id: String
+    val priority: Int get() = 0
+    fun onAttached(drawer: com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawerView) = Unit
+    fun onSettingsChanged(settings: SymbolDrawerSettings) = Unit
+    fun onGroupsChanged(groups: List<com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolGroup>) = Unit
+    fun onGroupSelected(index: Int, group: com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolGroup?) = Unit
+    fun onSymbolInvoked(item: SymbolItem, longPress: Boolean) = Unit
+    fun onDetached(drawer: com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawerView) = Unit
 }
 
 /** Runtime state passed to custom symbol-cell renderers. */
@@ -326,6 +364,8 @@ data class SymbolDrawerExtensionSnapshot(
     val actions: List<SymbolDrawerActionExtension>,
     val indicators: List<SymbolGroupIndicatorExtension>,
     val itemViews: List<SymbolDrawerItemViewExtension>,
+    val groupProviders: List<SymbolDrawerLegacyGroupProvider>,
+    val lifecycle: List<SymbolDrawerLifecycleExtension>,
     val settingsTabs: List<SymbolDrawerSettingsTabExtension>,
     val settingsItems: List<SymbolDrawerSettingExtension>,
     val themes: List<SymbolDrawerThemeExtension>,
