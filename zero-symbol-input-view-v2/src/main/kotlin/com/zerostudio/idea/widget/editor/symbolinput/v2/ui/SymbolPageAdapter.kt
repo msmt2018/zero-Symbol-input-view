@@ -130,7 +130,8 @@ internal class SymbolPageAdapter(
 
     data class GridSpacingState(
         var horizontalSpacingDp: Int,
-        var verticalSpacingDp: Int
+        var verticalSpacingDp: Int,
+        var fullLabelMinimumCellWidthDp: Float = 0f
     )
 
     private val recycledPool = RecyclerView.RecycledViewPool().apply {
@@ -181,7 +182,11 @@ internal class SymbolPageAdapter(
                 val gridSpec = AdaptiveGridResolver.resolve(
                     window = info,
                     preferredColumns = config.columns,
-                    minimumCellWidthDp = maxOf(36f, settings.minimumTouchTargetDp.toFloat()),
+                    minimumCellWidthDp = maxOf(
+                        36f,
+                        settings.minimumTouchTargetDp.toFloat(),
+                        if (settings.showFullSymbolLabels) spacingState.fullLabelMinimumCellWidthDp else 0f
+                    ),
                     baseHorizontalSpacingDp = config.cellHorizontalSpacingDp,
                     adaptive = true,
                     baseVerticalSpacingDp = config.cellVerticalSpacingDp,
@@ -239,25 +244,28 @@ internal class SymbolPageAdapter(
         fun bind(symbols: List<SymbolEntry>) {
             symbolsAdapter.submitList(symbols.toList())
             if (settings.showFullSymbolLabels) {
+                val density = grid.resources.displayMetrics.density.coerceAtLeast(0.1f)
+                val paint = android.text.TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                    textSize = settings.symbolLabelTextSizeSp * 0.75f * grid.resources.displayMetrics.scaledDensity
+                }
+                val longest = symbols.asSequence()
+                    .filter { it.shortAction != SymbolAction.OpenManager && settings.showSymbolLabels }
+                    .map { paint.measureText(it.label) }
+                    .maxOrNull() ?: 0f
+                spacingState.fullLabelMinimumCellWidthDp = maxOf(
+                    settings.minimumTouchTargetDp.toFloat(),
+                    longest / density + 8f
+                )
                 grid.post {
                     val width = (grid.width - grid.paddingLeft - grid.paddingRight).coerceAtLeast(1)
-                    if (width <= 1 || symbols.isEmpty()) return@post
-                    val density = grid.resources.displayMetrics.density.coerceAtLeast(0.1f)
-                    val paint = android.text.TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
-                        textSize = settings.symbolLabelTextSizeSp * 0.75f * grid.resources.displayMetrics.scaledDensity
-                    }
-                    val longest = symbols.asSequence()
-                        .filter { it.shortAction != SymbolAction.OpenManager && settings.showSymbolLabels }
-                        .map { paint.measureText(it.label) }
-                        .maxOrNull() ?: 0f
-                    val minimumCellWidth = maxOf(
-                        settings.minimumTouchTargetDp * density,
-                        longest + 8f * density
-                    )
+                    if (width <= 1) return@post
+                    val minimumCellWidth = spacingState.fullLabelMinimumCellWidthDp * density
                     val adaptiveColumns = (width / minimumCellWidth).toInt().coerceIn(1, config.columns)
                     val manager = grid.layoutManager as? GridLayoutManager ?: return@post
                     if (manager.spanCount != adaptiveColumns) manager.spanCount = adaptiveColumns
                 }
+            } else {
+                spacingState.fullLabelMinimumCellWidthDp = 0f
             }
         }
         fun clear() = symbolsAdapter.submitList(emptyList())
