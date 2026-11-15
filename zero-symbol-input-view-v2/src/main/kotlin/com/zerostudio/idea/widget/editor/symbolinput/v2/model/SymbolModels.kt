@@ -106,15 +106,15 @@ data class DrawerConfig(
     val minimumTouchTargetDp: Int = 28
 ) {
     init {
-        require(columns in 1..20) { "columns must be in 1..20" }
-        require(collapsedRows in 1..10) { "collapsedRows must be in 1..10" }
-        require(cellHeightDp in 10..96) { "cellHeightDp must be in 10..96" }
-        require(indicatorHeightDp in 0..64) { "indicatorHeightDp must be in 0..64" }
-        require(cellHorizontalSpacingDp in -10..24)
-        require(cellVerticalSpacingDp in -10..24)
+        require(columns in 1..30) { "columns must be in 1..30" }
+        require(collapsedRows in 1..16) { "collapsedRows must be in 1..16" }
+        require(cellHeightDp in 6..128) { "cellHeightDp must be in 6..128" }
+        require(indicatorHeightDp in 0..96) { "indicatorHeightDp must be in 0..96" }
+        require(cellHorizontalSpacingDp in -24..48)
+        require(cellVerticalSpacingDp in -24..48)
         require(animationDurationMs in 0L..1200L)
         require(flingVelocityDpPerSecond in 100..6000)
-        require(maxExpandedHeightDp in 110..1200)
-        require(minimumTouchTargetDp in 20..80)
+        require(maxExpandedHeightDp in 80..1800)
+        require(minimumTouchTargetDp in 20..112)
     }
 }

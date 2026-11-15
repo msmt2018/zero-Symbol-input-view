@@ -79,35 +79,35 @@ class SymbolDrawerSettingsTest {
         SymbolDrawerSettingsCodec.decodeStrict(json)
     }
 
-    @Test fun compactLayoutDimensionsCanBeReducedBelowLegacyMinimums() {
-        val value = SymbolDrawerSettings(cellHeightDp = 10, maxExpandedHeightDp = 110)
+    @Test fun expandedLayoutDimensionsRoundTripAcrossNewBounds() {
+        val value = SymbolDrawerSettings(columns = 30, collapsedRows = 16, cellHeightDp = 6, maxExpandedHeightDp = 80)
         assertEquals(value, SymbolDrawerSettingsCodec.decode(SymbolDrawerSettingsCodec.encode(value)))
     }
 
     @Test fun negativeCellSpacingIsSupportedAndPersisted() {
-        val value = SymbolDrawerSettings(cellHorizontalSpacingDp = -10, cellVerticalSpacingDp = -6)
+        val value = SymbolDrawerSettings(cellHorizontalSpacingDp = -24, cellVerticalSpacingDp = 48)
         val restored = SymbolDrawerSettingsCodec.decode(SymbolDrawerSettingsCodec.encode(value))
-        assertEquals(-10, restored.cellHorizontalSpacingDp)
-        assertEquals(-6, restored.cellVerticalSpacingDp)
+        assertEquals(-24, restored.cellHorizontalSpacingDp)
+        assertEquals(48, restored.cellVerticalSpacingDp)
     }
 
     @Test(expected = IllegalArgumentException::class)
-    fun rejectsCellSpacingBelowFineAdjustmentLimit() {
-        SymbolDrawerSettings(cellHorizontalSpacingDp = -11)
+    fun rejectsCellSpacingOutsideExpandedFineAdjustmentLimit() {
+        SymbolDrawerSettings(cellHorizontalSpacingDp = -25)
     }
 
     @Test fun everySettingsLayoutBoundaryConvertsToDrawerConfig() {
         val compact = SymbolDrawerSettings(
-            cellHeightDp = 10,
-            cellHorizontalSpacingDp = -10,
-            cellVerticalSpacingDp = -10,
-            maxExpandedHeightDp = 110
+            cellHeightDp = 6,
+            cellHorizontalSpacingDp = -24,
+            cellVerticalSpacingDp = 48,
+            maxExpandedHeightDp = 80
         )
         val config = compact.toDrawerConfig()
-        assertEquals(10, config.cellHeightDp)
-        assertEquals(-10, config.cellHorizontalSpacingDp)
-        assertEquals(-10, config.cellVerticalSpacingDp)
-        assertEquals(110, config.maxExpandedHeightDp)
+        assertEquals(6, config.cellHeightDp)
+        assertEquals(-24, config.cellHorizontalSpacingDp)
+        assertEquals(48, config.cellVerticalSpacingDp)
+        assertEquals(80, config.maxExpandedHeightDp)
     }
 
     @Test fun drawerConfigHonorsReducedMotion() {

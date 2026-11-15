@@ -87,18 +87,18 @@ data class SymbolDrawerSettings(
 ) {
     init {
         require(schemaVersion in 1..CURRENT_SCHEMA_VERSION)
-        require(columns in 1..20)
-        require(collapsedRows in 1..10)
-        require(cellHeightDp in 10..96)
-        require(cellHorizontalSpacingDp in -10..24)
-        require(cellVerticalSpacingDp in -10..24)
-        require(indicatorHeightDp in 0..64)
-        require(maxExpandedHeightDp in 110..1200)
+        require(columns in 1..30)
+        require(collapsedRows in 1..16)
+        require(cellHeightDp in 6..128)
+        require(cellHorizontalSpacingDp in -24..48)
+        require(cellVerticalSpacingDp in -24..48)
+        require(indicatorHeightDp in 0..96)
+        require(maxExpandedHeightDp in 80..1800)
         require(animationDurationMs in 0..1200)
         require(flingVelocityDpPerSecond in 100..6000)
         require(longPressTimeoutMs in 250..1000)
         require(pageCacheLimit in 1..9)
-        require(minimumTouchTargetDp in 32..80)
+        require(minimumTouchTargetDp in 20..112)
     }
 
     fun toDrawerConfig() = DrawerConfig(
