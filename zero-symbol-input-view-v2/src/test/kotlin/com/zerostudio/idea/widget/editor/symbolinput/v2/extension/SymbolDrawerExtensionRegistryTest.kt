@@ -213,6 +213,29 @@ class SymbolDrawerExtensionRegistryTest {
         assertTrue(registry.snapshot().groupProviders.isEmpty())
         assertTrue(registry.snapshot().lifecycle.isEmpty())
     }
+    @Test fun itemViewExtensionStateCallbackIsOptionalAndSourceCompatible() {
+        val extension = object : SymbolDrawerItemViewExtension {
+            override val id = "test.state"
+            override val title = "State"
+            override fun createView(
+                context: android.content.Context,
+                item: SymbolItem,
+                state: SymbolDrawerItemViewState
+            ): android.view.View = android.view.View(context)
+            override fun bindView(
+                view: android.view.View,
+                item: SymbolItem,
+                state: SymbolDrawerItemViewState
+            ) = Unit
+        }
+        // Default state callback remains source-compatible for existing extensions.
+        extension.onStateChanged(
+            android.view.View(android.test.mock.MockContext()),
+            SymbolItem("x", "x"),
+            SymbolDrawerItemViewState(0, 0, pressed = true)
+        )
+    }
+
     @Test fun extensionErrorListenerIsolatedFromFaultyHostCallback() {
         val registry = SymbolDrawerExtensionRegistry()
         var reported = 0
