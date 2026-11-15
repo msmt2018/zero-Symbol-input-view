@@ -197,10 +197,22 @@ class SymbolDrawerSettingsScreen(
     private fun addExtensionView(
         page: LinearLayout,
         view: View,
+        extensionId: String,
         dispose: () -> Unit
     ) {
-        extensionViewDisposers += dispose
-        page.addView(view, matchWrap())
+        val safeDispose = {
+            runCatching(dispose).onFailure { extensionRegistry?.reportError(extensionId, it) }
+        }
+        runCatching { page.addView(view, matchWrap()) }
+            .onSuccess { extensionViewDisposers += safeDispose }
+            .onFailure { error ->
+                extensionRegistry?.reportError(extensionId, error)
+                safeDispose()
+                page.addView(TextView(context).apply {
+                    text = "扩展视图挂载失败：" + extensionId
+                    setTextColor(android.graphics.Color.RED)
+                }, matchWrap())
+            }
     }
 
     fun reload() {
@@ -376,7 +388,7 @@ class SymbolDrawerSettingsScreen(
                 .forEach { extension ->
                     runCatching { extension.createView(context, settingsScope) }
                         .onSuccess { view ->
-                            addExtensionView(page, view) { extension.onViewDisposed(view) }
+                            addExtensionView(page, view, extension.id) { extension.onViewDisposed(view) }
                         }
                         .onFailure { error -> page.addView(TextView(context).apply {
                             text = "扩展设置加载失败：${extension.title}（${error.message ?: "未知错误"}）"
@@ -413,7 +425,7 @@ class SymbolDrawerSettingsScreen(
                 .forEach { setting ->
                     runCatching { setting.createView(context, settingsScope) }
                         .onSuccess { view ->
-                            addExtensionView(page, view) { setting.onViewDisposed(view) }
+                            addExtensionView(page, view, setting.id) { setting.onViewDisposed(view) }
                         }
                         .onFailure { error -> page.addView(TextView(context).apply {
                             text = "扩展设置加载失败：${setting.title}（${error.message ?: "未知错误"}）"
