@@ -11,7 +11,7 @@ import com.zerostudio.idea.widget.symboltoolbar.api.action.SymbolToolbarActionRe
 import com.zerostudio.idea.widget.symboltoolbar.api.event.SymbolToolbarActionEvent
 import com.zerostudio.idea.widget.symboltoolbar.api.event.SymbolToolbarEventHub
 import com.zerostudio.idea.widget.symboltoolbar.api.model.SymbolToolbarInvocation
-import kotlinx.coroutines.CancellationException
+import kotlin.coroutines.cancellation.CancellationException
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
