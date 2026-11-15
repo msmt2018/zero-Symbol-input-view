@@ -20,7 +20,7 @@ class SymbolDrawerPublicApiTest {
 
     @Test
     fun publicActionApiTypesAreResolvable() {
-        assertNotNull(SymbolAction.Extension::class)
+        assertNotNull(SymbolAction::class)
         assertNotNull(SymbolActionId::class)
         assertNotNull(SymbolActionRegistry::class)
         assertNotNull(SymbolActionHandler::class)
