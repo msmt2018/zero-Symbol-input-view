@@ -354,6 +354,23 @@ V2 不要求依赖 Sora Editor 或任何编辑器核心对象。宿主只需实�
 
 每个 `SymbolDrawerView` 提供 `drawer.extensions`，用于注册自定义动作、分组指示器、设置 Tab、设置项和主题 Provider，也可隐藏/恢复内置功能而不删除源码。详见 [扩展 API 完整文档](zero-symbol-input-view-v2/api-docs/12-extension-framework.md)。
 
+### 7.1 符号工具栏自定义扩展 API
+
+工具栏扩展位于独立的 `com.zerostudio.idea.widget.symboltoolbar.api.extension` 包，不复用 `drawer.extensions`，也不要求宿主创建抽屉。当前扩展点包括：
+
+- **分组数据源**：`SymbolToolbarGroupProvider`，以协程方式提供不可变分组快照。
+- **符号项视图**：`SymbolToolbarItemViewExtension`，自定义 item View 的创建、绑定和回收。
+- **分组指示器**：`SymbolToolbarGroupIndicatorExtension`，替换组导航展示，但选择状态仍由工具栏宿主持有。
+- **设置扩展**：`SymbolToolbarSettingsExtension`，注入独立设置页/区域，并通过 `SymbolToolbarSettingsScope` 更新配置。
+- **主题扩展**：`SymbolToolbarThemeExtension`，提供工具栏专属 ARGB 主题 token。
+- **调用拦截器**：`SymbolToolbarInvocationInterceptor`，按优先级执行调用前继续/消费/拒绝及调用后通知。
+- **生命周期扩展**：`SymbolToolbarLifecycleExtension`，接收控件附着、配置变更和分离通知。
+- **动作处理器/贡献项**：使用稳定 action type 注册 handler，并可独立发布可发现的动作贡献元数据。
+
+注册统一由 `SymbolToolbarExtensionRegistry` 管理。每类扩展内部 ID 唯一，重复注册会显式失败；注册返回 `AutoCloseable`，关闭时只注销对应注册项；快照按 priority、id 稳定排序；观察者可订阅变更并在宿主释放时取消订阅。调用执行由 `SymbolToolbarExtensionRuntime` 负责拦截器链、动作分发、结果回调和生命周期通知。
+
+扩展对象及处理器只存在于当前运行时，不会自动写入 JSON。持久化时应保存稳定 ID 和配置值，重新创建控件/会话时重新注册扩展。动作宿主只暴露宿主显式授予的能力；扩展 API 不持有编辑器核心对象，也不访问抽屉状态。
+
 ### 8. V1 / MT 管理器紧凑 JSON 互通
 
 管理界面提供 `importMtManagerJson(json)` 和 `exportMtManagerJson()`，用于旧版紧凑分组/符号 JSON（字段 `n/d/a/b/c/d/e`）。采用该结构的文件可以直接导入。V2 完整备份应使用 `importBundle` / `exportBundle`，以保留 V2 专属动作和稳定 ID。旧格式无法表达全部 V2 动作；导出遇到不支持的动作会明确拒绝，不会静默丢失。详见 [MT JSON 互通说明](zero-symbol-input-view-v2/README.md#10-mt-管理器--v1-json-互通)。
