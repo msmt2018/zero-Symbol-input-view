@@ -61,8 +61,16 @@ class SymbolGroupManager(
     var groups: List<SymbolGroup> = repository.loadGroups()
         private set
 
+    init {
+        validateSnapshot(groups)
+    }
+
     fun reload() {
-        groups = repository.loadGroups()
+        // Read and validate before publishing: an external/corrupt repository
+        // snapshot must never replace the last known-good in-memory state.
+        val snapshot = repository.loadGroups().toList()
+        validateSnapshot(snapshot)
+        groups = snapshot
     }
 
     fun addGroup(title: String, index: Int = groups.size): SymbolGroup {
@@ -286,17 +294,15 @@ class SymbolGroupManager(
         const val MAX_ID_GENERATION_ATTEMPTS = 32
     }
 
-    private fun commit(next: List<SymbolGroup>) {
-        // Treat commands that produce an identical immutable snapshot as no-ops.
-        // This avoids redundant disk writes from repeated taps, stale UI events,
-        // or reorder requests that leave the existing order unchanged.
-        if (next == groups) return
-        require(next.all { it.id.isNotBlank() && it.title.isNotBlank() }) {
+    private fun validateSnapshot(snapshot: List<SymbolGroup>) {
+        require(snapshot.all { it.id.isNotBlank() && it.title.isNotBlank() }) {
             "Group IDs and titles must not be blank"
         }
-        require(next.map { it.id }.distinct().size == next.size) { "Group IDs must be unique" }
+        require(snapshot.map { it.id }.distinct().size == snapshot.size) {
+            "Group IDs must be unique"
+        }
         val allSymbolIds = mutableSetOf<Long>()
-        next.forEach { group ->
+        snapshot.forEach { group ->
             require(group.symbols.all { it.id != 0L && it.label.isNotEmpty() }) {
                 "Symbol IDs and labels must not be blank in group ${group.id}"
             }
@@ -306,6 +312,14 @@ class SymbolGroupManager(
                 }
             }
         }
+    }
+
+    private fun commit(next: List<SymbolGroup>) {
+        // Treat commands that produce an identical immutable snapshot as no-ops.
+        // This avoids redundant disk writes from repeated taps, stale UI events,
+        // or reorder requests that leave the existing order unchanged.
+        if (next == groups) return
+        validateSnapshot(next)
         // Persist first: a failed write must not publish an in-memory snapshot
         // that the repository cannot reproduce after reload.
         val snapshot = next.toList()

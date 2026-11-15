@@ -66,6 +66,23 @@ class SymbolGroupManagerContractTest {
         assertFalse(manager.groups.first().symbols.any { it.id == 1L })
     }
 
+
+    @Test fun reloadRejectsInvalidExternalSnapshotWithoutReplacingCurrentState() {
+        val first = symbol(1, "first")
+        val initial = listOf(SymbolGroup("a", "A", listOf(first)))
+        val repo = MemoryRepository(initial)
+        val manager = SymbolGroupManager(repo)
+        repo.data = listOf(
+            SymbolGroup("a", "A", listOf(symbol(2, "valid"))),
+            SymbolGroup("b", "B", listOf(symbol(2, "duplicate")))
+        )
+
+        assertThrows(IllegalArgumentException::class.java) { manager.reload() }
+
+        assertEquals(initial, manager.groups)
+        assertEquals(2, repo.data.size)
+    }
+
     @Test fun failedBatchRemovalDoesNotPublishPartialDeletion() {
         val first = symbol(1, "first")
         val second = symbol(2, "second")
