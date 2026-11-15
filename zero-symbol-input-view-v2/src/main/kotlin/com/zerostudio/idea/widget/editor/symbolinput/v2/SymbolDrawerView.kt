@@ -59,11 +59,13 @@ import android.widget.FrameLayout
 import androidx.viewpager2.widget.ViewPager2
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.LegacySymbolDataMigration
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SharedPreferencesSymbolGroupRepository
+import com.zerostudio.idea.widget.editor.symbolinput.v2.data.LegacySymbolDataCodec
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.DrawerConfig
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolItem
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.HapticMode
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SharedPreferencesSymbolDrawerSettingsRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
@@ -155,6 +157,7 @@ class SymbolDrawerView @JvmOverloads constructor(
         isUserInputEnabled = true
         overScrollMode = View.OVER_SCROLL_NEVER
     }
+    private var legacyItemsBySymbolId: Map<Long, SymbolItem> = emptyMap()
     private var pageAdapter = createPageAdapter()
     private var suppressPageCallbacks = false
     private var adapterSwapGeneration = 0
@@ -495,6 +498,8 @@ class SymbolDrawerView @JvmOverloads constructor(
     private fun createPageAdapter() = SymbolPageAdapter(
         config = config,
         settings = settings,
+        extensions = extensions,
+        legacyItemResolver = ::resolveLegacyItem,
         canScrollGridVertically = { expansion >= 0.999f },
         onSymbolAction = { symbol, longPress ->
         val action = if (longPress) symbol.longAction else symbol.shortAction
@@ -516,6 +521,38 @@ class SymbolDrawerView @JvmOverloads constructor(
         }
     }
     )
+
+    /**
+     * Submits original V1 records through the existing V2 repository/rendering
+     * pipeline while retaining their exact legacy action IDs and text payloads
+     * for public extension callbacks.
+     */
+    fun submitLegacyGroups(
+        value: List<com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolGroup>,
+        preserveSelectedGroup: Boolean = true,
+        onCommitted: (() -> Unit)? = null
+    ) {
+        val converted = LegacySymbolDataCodec.decode(
+            com.google.gson.Gson().toJson(value)
+        )
+        submitGroups(converted, preserveSelectedGroup, onCommitted)
+        legacyItemsBySymbolId = buildMap {
+            var index = 0L
+            value.forEach { group ->
+                group.items.forEach { item -> put(++index, item.copy()) }
+            }
+        }
+    }
+
+    /** Exact legacy record when submitted from the legacy API; safe V1 projection otherwise. */
+    private fun resolveLegacyItem(entry: SymbolEntry): SymbolItem =
+        legacyItemsBySymbolId[entry.id]?.copy() ?: SymbolItem(
+            shortAction = entry.legacyShortActionId ?: 0,
+            display = entry.label,
+            shortText = entry.legacyShortText,
+            longAction = entry.legacyLongActionId,
+            longText = entry.legacyLongText
+        )
 
     fun setRepository(value: SymbolGroupRepository, reload: Boolean = true) {
         repository = value
