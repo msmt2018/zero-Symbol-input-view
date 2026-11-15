@@ -330,6 +330,25 @@ interface SymbolTextDocument {
 
 这样通用文本动作算法只写一次，Sora、自研编辑器和其它宿主分别实现适配器即可。GenericSymbolTextActions.createRegistry() 提供通用命令 handler 集；宿主可以把这些 handler 接入自己的 executeEditorCommand 分发逻辑。复杂编辑器命令仍可直接映射到宿主已有 API。
 
+如果你希望直接使用 V2 已提供的通用动作宿主，不想自己再实现 SymbolActionHost，可以使用 SymbolTextDocumentActionHost：
+
+~~~kotlin
+val actionHost = SymbolTextDocumentActionHost(
+    document = myEditorDocumentAdapter,
+    clipboard = SymbolTextClipboard { document, operation ->
+        myClipboard.perform(document, operation)
+    },
+    openManagerAction = {
+        openMySymbolManager()
+        true
+    }
+)
+
+val result = SymbolActionExecutor().execute(symbol.shortAction, drawer.bindActionHost(actionHost))
+~~~
+
+它会自动把 executeEditorCommand 映射到 GenericSymbolTextActions 注册的 builtin 命令，并提供插入宏、选区替换/包围、光标移动、删除和大小写转换。剪贴板、管理器导航和编辑器专属命令仍由宿主注入。
+
 ### 5.5 是否需要绑定编辑器核心对象？
 
 需要的是**绑定一个宿主 Adapter**，不是绑定某个编辑器核心类型。V2 不会自动猜测任意编辑器的 API；宿主必须实现一次接口，把插入、删除、选区、光标、剪贴板和自定义命令映射到自己的编辑器。完成后，V2 的符号数据、管理界面、动作模型和 UI 都不再关心底层编辑器是什么。
