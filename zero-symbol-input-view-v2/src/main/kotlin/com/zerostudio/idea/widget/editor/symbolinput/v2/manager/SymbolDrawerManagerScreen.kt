@@ -89,6 +89,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SharedPreferencesSymbolDrawerSettingsRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowAdaptiveInfo
 import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.AdaptiveContentLayoutResolver
+import com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawerView
 
 private class SymbolHolder(val root: LinearLayout, val title: TextView, val detail: TextView) : RecyclerView.ViewHolder(root)
 
@@ -144,7 +145,7 @@ internal fun resolveEditorFormMaxHeightPx(
  */
 class SymbolDrawerManagerScreen(
     context: Context,
-    repository: SymbolGroupRepository = SharedPreferencesSymbolGroupRepository(context),
+    private val repository: SymbolGroupRepository = SharedPreferencesSymbolGroupRepository(context),
     private val embeddedInSettings: Boolean = false
 ) : LinearLayout(context) {
 
@@ -216,6 +217,29 @@ class SymbolDrawerManagerScreen(
         manager.reload()
         selectedGroupId = manager.groups.firstOrNull()?.id
         refresh()
+    }
+
+    /**
+     * Connects manager transactions to the live toolbar instance.
+     *
+     * The manager remains the source of durable group data; each committed
+     * manager refresh is submitted directly to the existing drawer adapter so
+     * imports, edits, deletes and undo do not depend on Activity recreation or
+     * a later host-resume callback.
+     *
+     * Close the returned handle when this manager surface is disposed.
+     */
+    fun bindToDrawer(drawer: SymbolDrawerView): AutoCloseable {
+        val previousListener = onGroupsChanged
+        val listener: (List<SymbolGroup>) -> Unit = { committedGroups ->
+            drawer.submitGroups(committedGroups, preserveSelectedGroup = true)
+        }
+        onGroupsChanged = listener
+        drawer.setRepository(repository, reload = false)
+        drawer.submitGroups(manager.groups, preserveSelectedGroup = true)
+        return AutoCloseable {
+            if (onGroupsChanged === listener) onGroupsChanged = previousListener
+        }
     }
 
     fun exportBundle(): String = SymbolGroupBundleCodec.encode(manager.groups)
