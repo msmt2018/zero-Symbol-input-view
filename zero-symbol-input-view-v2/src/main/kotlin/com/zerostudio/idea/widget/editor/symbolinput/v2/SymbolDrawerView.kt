@@ -332,20 +332,58 @@ class SymbolDrawerView @JvmOverloads constructor(
                 context,
                 SymbolGroupIndicatorState(legacyGroupsSnapshot(), pager.currentItem) { index -> selectGroup(index, true) }
             )
-        }.getOrElse { return false }
-        runCatching { customIndicatorComponent?.onDispose() }
-        indicatorHost.removeAllViews()
-        indicatorHost.addView(
-            component.view,
-            FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
-        )
+        }.onFailure { extensions.reportError(extension.id, it) }.getOrElse { return false }
+
+        // Fully initialize the new component before disturbing the currently
+        // visible indicator. A broken extension must not blank the original UI.
+        val initialized = runCatching {
+            component.submitGroups(legacyGroupsSnapshot())
+            component.setSelectedIndex(pager.currentItem)
+            component.applySettings(settings)
+            component.applyTheme(activeTheme)
+        }
+        if (initialized.isFailure) {
+            extensions.reportError(extension.id, initialized.exceptionOrNull()!!)
+            runCatching { component.onDispose() }
+                .onFailure { extensions.reportError(extension.id, it) }
+            return false
+        }
+
+        val previousComponent = customIndicatorComponent
+        val previousView = previousComponent?.view ?: indicator
+        val replacement = runCatching {
+            indicatorHost.removeView(previousView)
+            indicatorHost.addView(
+                component.view,
+                FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
+            )
+        }
+        if (replacement.isFailure) {
+            val error = replacement.exceptionOrNull()!!
+            extensions.reportError(extension.id, error)
+            runCatching { indicatorHost.removeView(component.view) }
+            runCatching {
+                if (previousView.parent == null) {
+                    indicatorHost.addView(
+                        previousView,
+                        FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
+                    )
+                }
+            }.onFailure { extensions.reportError(extension.id, it) }
+            runCatching { component.onDispose() }
+                .onFailure { extensions.reportError(extension.id, it) }
+            return false
+        }
+
         customIndicatorId = extensionId
         activeCustomIndicatorExtension = extension
         customIndicatorComponent = component
-        component.submitGroups(legacyGroupsSnapshot())
-        component.setSelectedIndex(pager.currentItem)
-        component.applySettings(settings)
-        component.applyTheme(activeTheme)
+        previousComponent?.let { previous ->
+            runCatching { previous.onDispose() }
+                .onFailure { error ->
+                    activeCustomIndicatorExtension?.let { extensions.reportError(it.id, error) }
+                }
+        }
         requestLayout()
         invalidate()
         return true
@@ -353,32 +391,69 @@ class SymbolDrawerView @JvmOverloads constructor(
 
     /** Restores the built-in indicator without changing the current group/page. */
     fun useBuiltInGroupIndicator() {
-        customIndicatorComponent?.onDispose()
+        val previousComponent = customIndicatorComponent
+        val previousExtension = activeCustomIndicatorExtension
+        val previousView = previousComponent?.view
+        val restored = runCatching {
+            indicatorHost.removeAllViews()
+            indicatorHost.addView(
+                indicator,
+                FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
+            )
+            indicator.applySettings(settings)
+            indicator.submitGroups(groups)
+            indicator.setSelectedIndex(pager.currentItem)
+        }
+        if (restored.isFailure) {
+            previousExtension?.let { extensions.reportError(it.id, restored.exceptionOrNull()!!) }
+            return
+        }
         customIndicatorId = null
         activeCustomIndicatorExtension = null
         customIndicatorComponent = null
-        indicatorHost.removeAllViews()
-        indicatorHost.addView(
-            indicator,
-            FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
-        )
-        indicator.applySettings(settings)
-        indicator.submitGroups(groups)
-        indicator.setSelectedIndex(pager.currentItem)
+        previousComponent?.let { component ->
+            runCatching { component.onDispose() }
+                .onFailure { error -> previousExtension?.let { extensions.reportError(it.id, error) } }
+        }
         requestLayout()
         invalidate()
     }
 
+    private inline fun updateCustomIndicator(
+        operation: String,
+        update: (SymbolGroupIndicatorComponent) -> Unit
+    ) {
+        val component = customIndicatorComponent ?: return
+        val extension = activeCustomIndicatorExtension ?: return
+        runCatching { update(component) }.onFailure { error ->
+            extensions.reportError(extension.id, IllegalStateException("Indicator callback failed: $operation", error))
+            useBuiltInGroupIndicator()
+        }
+    }
+
     private fun setIndicatorSelectedIndex(index: Int) {
-        customIndicatorComponent?.setSelectedIndex(index) ?: indicator.setSelectedIndex(index)
+        if (customIndicatorComponent != null) {
+            updateCustomIndicator("setSelectedIndex") { it.setSelectedIndex(index) }
+        } else {
+            indicator.setSelectedIndex(index)
+        }
     }
 
     private fun submitIndicatorGroups(value: List<SymbolGroup>) {
-        customIndicatorComponent?.submitGroups(legacyGroupsSnapshot()) ?: indicator.submitGroups(value)
+        if (customIndicatorComponent != null) {
+            val snapshot = legacyGroupsSnapshot()
+            updateCustomIndicator("submitGroups") { it.submitGroups(snapshot) }
+        } else {
+            indicator.submitGroups(value)
+        }
     }
 
     private fun applyIndicatorSettings(value: SymbolDrawerSettings) {
-        customIndicatorComponent?.applySettings(value) ?: indicator.applySettings(value)
+        if (customIndicatorComponent != null) {
+            updateCustomIndicator("applySettings") { it.applySettings(value) }
+        } else {
+            indicator.applySettings(value)
+        }
     }
 
     /** Selects a registered theme provider for the drawer shell and group indicator. */
@@ -418,7 +493,9 @@ class SymbolDrawerView @JvmOverloads constructor(
         setBackgroundColor(background)
         indicatorHost.setBackgroundColor(background)
         indicator.applyTheme(theme)
-        customIndicatorComponent?.applyTheme(theme)
+        if (customIndicatorComponent != null) {
+            updateCustomIndicator("applyTheme") { it.applyTheme(theme) }
+        }
         // Rebind existing custom cells so their state receives the new theme
         // without replacing the page adapter or disturbing the current page.
         pageAdapter.refreshItemExtensions()
