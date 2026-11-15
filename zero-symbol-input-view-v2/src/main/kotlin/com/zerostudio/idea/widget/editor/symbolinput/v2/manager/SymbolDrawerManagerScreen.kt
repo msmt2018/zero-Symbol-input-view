@@ -183,6 +183,7 @@ class SymbolDrawerManagerScreen(
     private val groupTabs = TabLayout(context)
     private val groupPageHost = DrawerPageHost(context)
     private val groupPageContents = LinkedHashMap<String, GroupPageContent>()
+    private var searchButton: MaterialButton? = null
     private val searchField = EditText(context)
     private val searchContainer = LinearLayout(context)
     private val preferenceStore = context.getSharedPreferences("zero_symbol_manager_usage_v2", Context.MODE_PRIVATE)
@@ -334,6 +335,31 @@ class SymbolDrawerManagerScreen(
 
     private fun buildHeader() {
         val row = horizontalRow().apply { gravity = android.view.Gravity.END or android.view.Gravity.CENTER_VERTICAL }
+        val searchButton = MaterialButton(context).apply {
+            text = "搜索"
+            contentDescription = "搜索符号"
+            tag = "symbol_manager_search_button"
+            isAllCaps = false
+            textSize = 13f
+            minWidth = dp(64)
+            minHeight = dp(40)
+            insetTop = 0
+            insetBottom = 0
+            cornerRadius = dp(12)
+            icon = context.getDrawable(android.R.drawable.ic_menu_search)
+            iconSize = dp(18)
+            iconGravity = MaterialButton.ICON_GRAVITY_TEXT_START
+            iconTint = android.content.res.ColorStateList.valueOf(HostThemeColors.onSurface(context))
+            setTextColor(HostThemeColors.onSurface(context))
+            backgroundTintList = android.content.res.ColorStateList.valueOf(surfaceColor())
+            strokeWidth = dp(1)
+            strokeColor = android.content.res.ColorStateList.valueOf(HostThemeColors.outline(context))
+            setOnClickListener {
+                setSearchVisible(searchContainer.visibility != View.VISIBLE)
+            }
+        }
+        this.searchButton = searchButton
+        row.addView(searchButton, LayoutParams(LayoutParams.WRAP_CONTENT, dp(40)))
         val menuButton = MaterialButton(context).apply {
             text = "更多"
             isAllCaps = false
@@ -375,13 +401,6 @@ class SymbolDrawerManagerScreen(
             }
             true
         }
-        menu.menu.add(if (searchContainer.visibility == View.VISIBLE) "收起搜索" else "搜索")
-            .setOnMenuItemClickListener {
-                val show = searchContainer.visibility != View.VISIBLE
-                searchContainer.visibility = if (show) View.VISIBLE else View.GONE
-                if (show) searchField.requestFocus() else searchField.text?.clear()
-                true
-            }
         val filters = menu.menu.addSubMenu("筛选")
         listOf(
             ManagerSymbolFilter.ALL to "全部",
@@ -496,7 +515,20 @@ class SymbolDrawerManagerScreen(
             .showAdaptiveDialog()
     }
 
+    private fun setSearchVisible(show: Boolean) {
+        searchContainer.visibility = if (show) View.VISIBLE else View.GONE
+        searchButton?.text = if (show) "收起" else "搜索"
+        searchButton?.contentDescription = if (show) "收起搜索" else "搜索符号"
+        if (show) {
+            searchField.requestFocus()
+        } else {
+            searchField.text?.clear()
+            searchField.clearFocus()
+        }
+    }
+
     private fun buildSearch() {
+        searchContainer.tag = "symbol_manager_search_container"
         searchContainer.orientation = VERTICAL
         searchContainer.visibility = View.GONE
         searchField.hint = "搜索符号名称或动作"

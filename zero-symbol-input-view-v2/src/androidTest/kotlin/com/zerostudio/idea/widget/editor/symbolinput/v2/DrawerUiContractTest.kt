@@ -15,6 +15,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.tabs.TabLayout
+import com.google.android.material.button.MaterialButton
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.manager.SymbolDrawerManagerScreen
 import com.zerostudio.idea.widget.editor.symbolinput.v2.manager.CappedScrollView
@@ -167,6 +168,30 @@ class DrawerUiContractTest {
         }
     }
 
+
+    @Test fun managerSearchEntryUsesMaterialButtonAndTogglesSearchField() {
+        ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val manager = SymbolDrawerManagerScreen(activity, Groups(sample()))
+                activity.content.addView(manager, FrameLayout.LayoutParams(-1, -1))
+
+                val searchButton = find(manager) {
+                    it.tag == "symbol_manager_search_button"
+                } as? MaterialButton
+                val searchContainer = find(manager) {
+                    it.tag == "symbol_manager_search_container"
+                }
+                assertNotNull(searchButton)
+                assertEquals(View.GONE, searchContainer.visibility)
+                assertTrue(requireNotNull(searchButton).performClick())
+                assertEquals(View.VISIBLE, searchContainer.visibility)
+                assertEquals("收起", searchButton.text.toString())
+                assertTrue(searchButton.performClick())
+                assertEquals(View.GONE, searchContainer.visibility)
+                assertEquals("搜索", searchButton.text.toString())
+            }
+        }
+    }
 
     @Test fun pinnedSettingsEntryOpensBuiltInSettingsWhenNoHostCallbackIsInstalled() {
         ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
