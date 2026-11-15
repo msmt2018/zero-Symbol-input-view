@@ -1,5 +1,9 @@
 package com.zerostudio.idea.widget.drawer.extension
 
+import com.zerostudio.idea.widget.drawer.action.SymbolAction
+import com.zerostudio.idea.widget.drawer.action.SymbolActionId
+import com.zerostudio.idea.widget.drawer.action.SymbolActionRegistry
+import com.zerostudio.idea.widget.drawer.action.SymbolActionHandler
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Test
@@ -12,6 +16,14 @@ class SymbolDrawerPublicApiTest {
         assertEquals("builtin.recent", SymbolDrawerBuiltInFeatures.RECENT)
         assertEquals("builtin.settings", SymbolDrawerBuiltInFeatures.SETTINGS)
         assertEquals("builtin.manager", SymbolDrawerBuiltInFeatures.MANAGER)
+    }
+
+    @Test
+    fun publicActionApiTypesAreResolvable() {
+        assertNotNull(SymbolAction.Extension::class)
+        assertNotNull(SymbolActionId::class)
+        assertNotNull(SymbolActionRegistry::class)
+        assertNotNull(SymbolActionHandler::class)
     }
 
     @Test
