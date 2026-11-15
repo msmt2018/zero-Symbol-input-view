@@ -71,7 +71,7 @@ class SymbolTextDocumentActionHostTest {
         document.setSelection(10, 10)
         val host = SymbolTextDocumentActionHost(document)
         assertTrue(host.insertText("[\$W]\$N\$TAB\$I\$L"))
-        assertEquals("[value]\n\t    val value = 1    val value = 1", document.value)
+        assertEquals("    val va[value]\n\t    val value = 1lue = 1", document.value)
     }
 
     @Test fun surroundSelectionKeepsInnerTextSelected() {
