@@ -80,7 +80,7 @@ interface SymbolTextDocument {
         var previousStart = textLength + 1
         for (edit in ordered) {
             if (edit.start < 0 || edit.end < edit.start || edit.end > textLength ||
-                edit.end > previousStart
+                edit.end > previousStart || edit.start == previousStart
             ) return false
             previousStart = edit.start
         }
