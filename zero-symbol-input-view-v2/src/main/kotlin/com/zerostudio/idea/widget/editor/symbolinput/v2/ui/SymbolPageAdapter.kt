@@ -256,7 +256,7 @@ internal class SymbolPageAdapter(
         private val spacingState: GridSpacingState,
         extensions: SymbolDrawerExtensionRegistry,
         legacyItemResolver: (SymbolEntry) -> SymbolItem,
-        themeProvider: () -> com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerTheme?
+        private val themeProvider: () -> com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerTheme?
     ) : RecyclerView.ViewHolder(grid) {
         private val symbolsAdapter = SymbolAdapter(config, settings, onSymbolAction, spacingState, extensions, legacyItemResolver, themeProvider)
         init { grid.adapter = symbolsAdapter }
