@@ -564,6 +564,7 @@ class SymbolDrawerView @JvmOverloads constructor(
         preserveSelectedGroup: Boolean = true,
         onCommitted: (() -> Unit)? = null
     ) {
+        legacyItemsBySymbolId = emptyMap()
         require(value.map { it.id }.distinct().size == value.size) {
             "Symbol group IDs must be unique"
         }
