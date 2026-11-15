@@ -83,6 +83,9 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolGroupInd
 import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerTheme
 import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerBuiltInFeatures
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionHost
+import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionExecutor
+import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionCancellation
+import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionResult
 import kotlin.math.roundToInt
 
 /**
@@ -113,6 +116,24 @@ class SymbolDrawerView @JvmOverloads constructor(
 
     /** Wraps an editor-neutral host so registered SymbolAction.Extension handlers are dispatched. */
     fun bindActionHost(host: SymbolActionHost): SymbolActionHost = extensions.wrapActionHost(host)
+
+    private val actionExecutor = SymbolActionExecutor()
+
+    /**
+     * Executes a typed action through the original V2 executor and this drawer's
+     * session registry. Existing V1 numeric actions remain addressable through
+     * the legacy.action.<id> compatibility route. The host remains application-
+     * supplied and is never retained by this View.
+     */
+    fun executeAction(
+        action: SymbolAction,
+        host: SymbolActionHost,
+        cancellation: SymbolActionCancellation = SymbolActionCancellation.NEVER
+    ): SymbolActionResult = actionExecutor.execute(
+        action,
+        bindActionHost(host),
+        cancellation
+    )
 
     var onSymbolActionListener: OnSymbolActionListener? = null
     /** Called after a normal symbol action is dispatched; does not replace the host action callback. */
