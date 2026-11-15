@@ -70,8 +70,16 @@ class SymbolTextDocumentActionHostTest {
         val document = Document("    val value = 1")
         document.setSelection(10, 10)
         val host = SymbolTextDocumentActionHost(document)
-        assertTrue(host.insertText("[\$W]\$N\$TAB\$I\$L"))
-        assertEquals("    val va[value]\n\t    val value = 1lue = 1", document.value)
+        assertTrue(host.insertText("[\$W]\$N\$TAB\$I\$W"))
+        assertEquals("    val va[value]\n\t    value = 1lue = 1", document.value)
+    }
+
+    @Test fun currentLineMacroPreservesItsLeadingIndentation() {
+        val document = Document("    val value = 1")
+        document.setSelection(10, 10)
+        val host = SymbolTextDocumentActionHost(document)
+        assertTrue(host.insertText("\$L"))
+        assertEquals("    val va    val value = 1lue = 1", document.value)
     }
 
     @Test fun middleLineInsertionUsesCrLfSeparator() {
