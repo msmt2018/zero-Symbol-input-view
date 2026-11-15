@@ -24,7 +24,6 @@
 
 plugins {
     id("com.android.library")
-    id("com.vanniktech.maven.publish.base")
 }
 
 android {

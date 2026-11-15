@@ -24,8 +24,6 @@
 
 import com.android.build.api.dsl.ApplicationExtension
 import com.android.build.api.dsl.CommonExtension
-import com.vanniktech.maven.publish.AndroidSingleVariantLibrary
-import com.vanniktech.maven.publish.MavenPublishBaseExtension
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinAndroidExtension
 
@@ -33,7 +31,6 @@ plugins {
     id("build-logic.root-project")
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.android.library) apply false
-    alias(libs.plugins.publish) apply false
 }
 
 buildscript {
@@ -90,22 +87,6 @@ subprojects {
         configureAndroidAndKotlin()
     }
 
-    plugins.withId("com.vanniktech.maven.publish.base") {
-        configure<MavenPublishBaseExtension> {
-            pomFromGradleProperties()
-            publishToMavenCentral()
-            signAllPublications()
-            if ("editor-bom" != this@subprojects.name) {
-                configure(
-                    AndroidSingleVariantLibrary(
-                        variant = "release",
-                        sourcesJar = true,
-                        publishJavadocJar = false
-                    )
-                )
-            }
-        }
-    }
 }
 
 tasks.register<Delete>("clean").configure {

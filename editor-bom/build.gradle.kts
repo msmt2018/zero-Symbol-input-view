@@ -24,7 +24,6 @@
 
 
 plugins {
-    id("com.vanniktech.maven.publish.base")
     id("java-platform")
 }
 
@@ -38,8 +37,3 @@ dependencies {
     }
 }
 
-publishing {
-    publications.create<MavenPublication>("maven") {
-        from(project.components["javaPlatform"])
-    }
-}
