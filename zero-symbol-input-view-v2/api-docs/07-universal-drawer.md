@@ -264,3 +264,33 @@ Peek 为最小高度，第二锚点以内容测量高度为基础并 clamp 到�
 - `isAtPeekAnchor` / `isAtExpandedAnchor`：完全停靠在最低/最高锚点时为 true。
 
 构造时校验 ID、非负高度、锚点非空、ID 唯一且当前锚点存在。
+
+
+## 10. DrawerInteractionController 的详细方法契约
+
+该控制器虽然由通用 Drawer 与符号抽屉共享，但它不是一个 View，也不负责布局。构造时必须提供高度变化回调，宿主收到回调后更新自己的测量/布局。
+
+只读状态：
+- `currentHeightPx`：当前像素高度。
+- `isDragging`：当前是否由手指直接拖动。
+- `isAnimating`：当前 settle animator 是否运行。
+- `isGestureAxisLocked`：触摸轴是否已锁定。
+- `isHorizontalGestureLocked`：是否锁定为横向子控件手势。
+
+公开方法：
+- `setBounds(minimumHeightPx, maximumHeightPx, currentHeightPx, animationDurationMs, flingVelocityDpPerSecond)`：更新合法高度范围和动画/速度参数，并同步当前高度。最小高度非负、最大高度不小于最小高度、时长非负、速度有限且非负。
+- `synchronizeHeight(heightPx)`：取消动画并同步宿主已经恢复的高度。
+- `onAttached()`：标记宿主已 attach，允许后续动画执行。
+- `onDetached()`：标记 detach，取消动画并清除当前手势。
+- `onInterceptTouchEvent(event, childCanScrollUp)`：在 ViewGroup 拦截阶段进行方向仲裁。横向锁定交给子 Pager；纵向拖动根据边界和 child scroll 状态决定是否接管。
+- `onTouchEvent(event)`：处理已经接管的触摸序列；MOVE 更新高度，UP/CANCEL settle 到目标高度。
+- `expand(animated)` / `collapse(animated)`：settle 到最大/最小高度。
+- `settleToHeight(heightPx, animated)`：把目标高度 clamp 到合法范围后 settle。
+- `cancelAnimation()`：取消动画；如果动画实际运行过，会发出状态回调。
+- `resetGesture()`：回收 VelocityTracker、清除方向锁定/拖动状态并恢复父容器拦截。
+
+静态方法 `shouldInterceptVerticalDrag(fingerDeltaY, currentHeightPx, collapsedHeightPx, expandedHeightPx, childCanScrollUp)` 的 delta 采用手指坐标方向：负数为向上，正数为向下。向上时抽屉未达到最大高度即可接管；向下时只有抽屉高于最小高度且子控件不能继续向上滚动才接管。
+
+### 方向仲裁和坐标约定
+
+当前实现以 touch slop 判定手势方向，横向判定使用固定轴向比例 1.15。抽屉拖动高度使用 rawY 差值，避免抽屉移动过程中局部坐标系随布局变化。宿主不要在外层父布局对所有 MOVE 事件提前调用 disallow-intercept，否则可能破坏 Drawer 的纵向接管。
