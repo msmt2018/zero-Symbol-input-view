@@ -85,4 +85,36 @@ class SymbolToolbarExtensionRegistryTest {
     fun invalidExtensionIdIsRejected() {
         SymbolToolbarExtensionRegistry().registerGroupProvider(Provider("bad id", "Bad", 0))
     }
+
+    @Test
+    fun numericLegacyActionHandlerCanBeRegisteredAndDisposed() {
+        val registry = SymbolToolbarExtensionRegistry()
+        var called = false
+        val handle = registry.registerAction(731) { invocation, _ ->
+            called = invocation.actionId == 731 && invocation.payload == "payload-v1"
+            com.zerostudio.idea.widget.symboltoolbar.api.action.SymbolToolbarActionResult.Success
+        }
+        assertEquals(setOf(731), registry.registeredActionIds())
+        val group = com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolGroup(
+            "common",
+            mutableListOf(com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolItem(
+                shortAction = 731, display = "x", shortText = "payload-v1"
+            ))
+        )
+        val item = group.items.single()
+        val invocation = com.zerostudio.idea.widget.symboltoolbar.api.model.SymbolToolbarInvocation(
+            group, item,
+            com.zerostudio.idea.widget.symboltoolbar.api.model.SymbolToolbarInvocation.Gesture.TAP
+        )
+        val host = object : com.zerostudio.idea.widget.symboltoolbar.api.action.SymbolToolbarActionHost {}
+        kotlinx.coroutines.runBlocking {
+            assertEquals(
+                com.zerostudio.idea.widget.symboltoolbar.api.action.SymbolToolbarActionResult.Success,
+                registry.findAction(731)!!.execute(invocation, host)
+            )
+        }
+        assertTrue(called)
+        handle.close()
+        assertNull(registry.findAction(731))
+    }
 }
