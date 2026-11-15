@@ -1,0 +1,60 @@
+/*
+ *    sora-editor - the awesome code editor for Android
+ *    https://github.com/Rosemoe/sora-editor
+ *    Copyright (C) 2020-2025  Rosemoe
+ *
+ *     This library is free software; you can redistribute it and/or
+ *     modify it under the terms of the GNU Lesser General Public
+ *     License as published by the Free Software Foundation; either
+ *     version 2.1 of the License, or (at your option) any later version.
+ *
+ *     This library is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *     Lesser General Public License for more details.
+ *
+ *     You should have received a copy of the GNU Lesser General Public
+ *     License along with this library; if not, write to the Free Software
+ *     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+ *     USA
+ *
+ *     Please contact Rosemoe by email 2073412493@qq.com if you need
+ *     additional information or have any questions
+ */
+package io.github.rosemoe.sora.text.breaker;
+
+import androidx.annotation.NonNull;
+
+import io.github.rosemoe.sora.text.ContentLine;
+
+public class WordBreakerProgram extends WordBreakerIcu {
+
+    protected final int length;
+
+    public WordBreakerProgram(@NonNull ContentLine text) {
+        super(text);
+        this.length = text.length();
+    }
+
+    @Override
+    public int getOptimizedBreakPoint(int start, int end) {
+        int icuResult = super.getOptimizedBreakPoint(start, end);
+        if (icuResult != end || end <= start || /* end > start */ Character.isWhitespace(text.charAt(end - 1))) {
+            return icuResult;
+        }
+        // The content can be placed on a single row
+        if (end == length) {
+            return end;
+        }
+        // Add extra opportunities for dots
+        int index = end - 1;
+        while (index > start) {
+            if (text.charAt(index) == '.' && index - 1 >= start && !Character.isDigit(text.charAt(index - 1))) {
+                // Break after this dot
+                return index + 1;
+            }
+            index--;
+        }
+        return end;
+    }
+}
