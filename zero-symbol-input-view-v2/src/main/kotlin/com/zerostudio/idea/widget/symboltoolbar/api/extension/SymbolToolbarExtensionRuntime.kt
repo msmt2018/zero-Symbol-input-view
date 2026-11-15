@@ -11,6 +11,7 @@ import com.zerostudio.idea.widget.symboltoolbar.api.action.SymbolToolbarActionRe
 import com.zerostudio.idea.widget.symboltoolbar.api.event.SymbolToolbarActionEvent
 import com.zerostudio.idea.widget.symboltoolbar.api.event.SymbolToolbarEventHub
 import com.zerostudio.idea.widget.symboltoolbar.api.model.SymbolToolbarInvocation
+import kotlinx.coroutines.CancellationException
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -93,6 +94,8 @@ class SymbolToolbarExtensionRuntime(
                 ),
                 actionHost
             )
+        } catch (cancelled: CancellationException) {
+            throw cancelled
         } catch (error: Throwable) {
             val failed = SymbolToolbarActionResult.Failed(error)
             publishFailure(invocation, error, startedAt)
