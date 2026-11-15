@@ -52,6 +52,17 @@ class SymbolTextEditingTest {
         assertEquals(expansion.text.length, expansion.selectionEndOffset)
     }
 
+    @Test fun selectedTextCanBeTransformedByShortAndLongDirectives() {
+        assertEquals("HELLO", SymbolTextEditing.expandMacro("\$U", "hello").text)
+        assertEquals("hello", SymbolTextEditing.expandMacro("\$V", "HELLO").text)
+        assertEquals("olleh", SymbolTextEditing.expandMacro("\$R", "hello").text)
+        assertEquals("hello", SymbolTextEditing.expandMacro("\$TRIM", "  hello  ").text)
+        assertEquals("Hello", SymbolTextEditing.expandMacro("\$CAP", "hello").text)
+        assertEquals("HELLO", SymbolTextEditing.expandMacro("\$UP", "hello").text)
+        assertEquals("hello", SymbolTextEditing.expandMacro("\$LOW", "HELLO").text)
+        assertEquals("olleh", SymbolTextEditing.expandMacro("\$REV", "hello").text)
+    }
+
     @Test fun cursorMarkerPlacesCaretWithoutSelectingText() {
         assertEquals(
             SymbolTextMacroExpansion("abc", 1, 1),
