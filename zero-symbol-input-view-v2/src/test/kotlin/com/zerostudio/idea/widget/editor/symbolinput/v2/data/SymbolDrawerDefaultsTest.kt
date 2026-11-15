@@ -54,7 +54,7 @@ import org.junit.Test
 class SymbolDrawerDefaultsTest {
     @Test fun preservesCompleteV1FallbackSymbolSet() {
         val group = SymbolDrawerDefaults.createGroups().single()
-        assertEquals("常用", group.title)
+        assertEquals("Common", group.title)
         assertEquals(39, group.symbols.size)
         assertEquals(SymbolAction.MoveCursor(CursorTarget.LINE_START), group.symbols[0].longAction)
         assertEquals(SymbolAction.MoveCursor(CursorTarget.DOCUMENT_START), group.symbols[1].longAction)
