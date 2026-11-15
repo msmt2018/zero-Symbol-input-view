@@ -65,7 +65,6 @@ class SymbolDrawerToolbarControl(
     private val indicatorHandles = LinkedHashMap<String, AutoCloseable>()
     private val themeHandles = LinkedHashMap<String, AutoCloseable>()
     private val settingsTabHandles = LinkedHashMap<String, AutoCloseable>()
-    private val settingHandles = LinkedHashMap<String, AutoCloseable>()
     private val extensionObserver: AutoCloseable
 
     private var legacyGroups: List<com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolGroup> = emptyList()
@@ -192,20 +191,21 @@ class SymbolDrawerToolbarControl(
 
     private fun syncDrawerExtensions(snapshot: SymbolToolbarExtensionSnapshot) {
         if (closed.get()) return
-        sync(snapshot.groupIndicators.map { it.id }.toSet(), indicatorHandles) { extension ->
-            drawer.extensions.registerIndicator(extension.asDrawerIndicator())
-        }
-        sync(snapshot.themes.map { it.id }.toSet(), themeHandles) { extension ->
-            drawer.extensions.registerTheme(extension.asDrawerTheme())
-        }
-        sync(snapshot.settings.map { it.id }.toSet(), settingsTabHandles) { extension ->
-            drawer.extensions.registerSettingsTab(extension.asDrawerSettingsTab())
-        }
-        // The public settings extension is a settings tab; row-level settings
-        // contributions are independently registered by the same extension object.
-        sync(snapshot.settings.map { it.id }.toSet(), settingHandles) { extension ->
-            drawer.extensions.registerSetting(extension.asDrawerSetting())
-        }
+        sync(
+            snapshot.groupIndicators.map { it.id }.toSet(), indicatorHandles,
+            { extension -> drawer.extensions.registerIndicator(extension.asDrawerIndicator()) },
+            snapshot.groupIndicators, { it.id }
+        )
+        sync(
+            snapshot.themes.map { it.id }.toSet(), themeHandles,
+            { extension -> drawer.extensions.registerTheme(extension.asDrawerTheme()) },
+            snapshot.themes, { it.id }
+        )
+        sync(
+            snapshot.settings.map { it.id }.toSet(), settingsTabHandles,
+            { extension -> drawer.extensions.registerSettingsTab(extension.asDrawerSettingsTab()) },
+            snapshot.settings, { it.id }
+        )
     }
 
     private fun <T> sync(
@@ -221,24 +221,6 @@ class SymbolDrawerToolbarControl(
             if (key !in handles) handles[key] = register(value)
         }
     }
-
-    private fun sync(
-        wanted: Set<String>,
-        handles: MutableMap<String, AutoCloseable>,
-        register: (SymbolToolbarGroupIndicatorExtension) -> AutoCloseable
-    ) = sync(wanted, handles, register, extensions.groupIndicators()) { it.id }
-
-    private fun sync(
-        wanted: Set<String>,
-        handles: MutableMap<String, AutoCloseable>,
-        register: (SymbolToolbarThemeExtension) -> AutoCloseable
-    ) = sync(wanted, handles, register, extensions.themeExtensions()) { it.id }
-
-    private fun sync(
-        wanted: Set<String>,
-        handles: MutableMap<String, AutoCloseable>,
-        register: (SymbolToolbarSettingsExtension) -> AutoCloseable
-    ) = sync(wanted, handles, register, extensions.settingsExtensions()) { it.id }
 
     private fun SymbolToolbarGroupIndicatorExtension.asDrawerIndicator() =
         object : SymbolGroupIndicatorExtension {
@@ -336,8 +318,7 @@ class SymbolDrawerToolbarControl(
         indicatorHandles.values.forEach { runCatching { it.close() } }
         themeHandles.values.forEach { runCatching { it.close() } }
         settingsTabHandles.values.forEach { runCatching { it.close() } }
-        settingHandles.values.forEach { runCatching { it.close() } }
-        indicatorHandles.clear(); themeHandles.clear(); settingsTabHandles.clear(); settingHandles.clear()
+        indicatorHandles.clear(); themeHandles.clear(); settingsTabHandles.clear()
         drawer.onGroupChangedListener = null
         drawer.onSymbolActionListener = null
         extensions.clear()
