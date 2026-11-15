@@ -74,6 +74,8 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.HostThemeColors
 import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowAdaptiveInfo
 import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.AdaptiveContentLayoutResolver
+import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerExtensionRegistry
+import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerSettingsScope
 
 /**
  * Settings-only surface. Symbol-group editing stays in the dedicated manager
@@ -84,7 +86,9 @@ class SymbolDrawerSettingsScreen(
     private val repository: SymbolDrawerSettingsRepository =
         SharedPreferencesSymbolDrawerSettingsRepository(context),
     private val groupRepository: SymbolGroupRepository =
-        SharedPreferencesSymbolGroupRepository(context)
+        SharedPreferencesSymbolGroupRepository(context),
+    /** Optional session registry for app-contributed settings tabs and rows. */
+    private val extensionRegistry: SymbolDrawerExtensionRegistry? = null
 ) : LinearLayout(context) {
 
     var onSettingsChanged: ((SymbolDrawerSettings) -> Unit)? = null
@@ -100,6 +104,7 @@ class SymbolDrawerSettingsScreen(
     private var activeScrollView: ScrollView? = null
     private var spacingReflowInProgress = false
     private val content = LinearLayout(context).apply { orientation = VERTICAL }
+    private var extensionObserver: AutoCloseable? = null
     private val documentPicker = JsonDocumentPicker(
         context,
         onImported = ::handleImportedJson,
@@ -152,6 +157,21 @@ class SymbolDrawerSettingsScreen(
         }
     }
 
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        if (extensionObserver == null) {
+            extensionObserver = extensionRegistry?.observe(emitCurrent = false) {
+                post { if (isAttachedToWindow) render() }
+            }
+        }
+    }
+
+    override fun onDetachedFromWindow() {
+        extensionObserver?.close()
+        extensionObserver = null
+        super.onDetachedFromWindow()
+    }
+
     fun reload() {
         current = repository.load().settings.copy(themeMode = ThemeMode.SYSTEM)
         render()
@@ -185,6 +205,9 @@ class SymbolDrawerSettingsScreen(
             }, matchWrap())
         }, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
 
+        val extensionSnapshot = extensionRegistry?.snapshot()
+        val extensionTabs = extensionSnapshot?.settingsTabs.orEmpty()
+        val extensionSettings = extensionSnapshot?.settingsItems.orEmpty()
         val tabs = TabLayout(context).apply {
             tabMode = TabLayout.MODE_SCROLLABLE
             tabGravity = TabLayout.GRAVITY_START
@@ -295,6 +318,16 @@ class SymbolDrawerSettingsScreen(
             }
         )
 
+        val totalTabCount = builders.size + extensionTabs.size
+        selectedTabIndex = selectedTabIndex.coerceIn(0, (totalTabCount - 1).coerceAtLeast(0))
+        val builtInTabIds = listOf("appearance", "layout", "tablet", "interaction", "performance-search", "data")
+        val settingsScope = object : SymbolDrawerSettingsScope {
+            override val current: SymbolDrawerSettings get() = this@SymbolDrawerSettingsScreen.current
+            override fun update(transform: (SymbolDrawerSettings) -> SymbolDrawerSettings) {
+                this@SymbolDrawerSettingsScreen.update { transform(this) }
+            }
+        }
+
         builders.forEachIndexed { index, entry ->
             tabs.addTab(tabs.newTab().setText(entry.first), index == selectedTabIndex)
             val page = LinearLayout(context).apply {
@@ -312,6 +345,39 @@ class SymbolDrawerSettingsScreen(
             if (index == selectedTabIndex) activeScrollView = scroll
             activePage = page
             entry.second.invoke()
+            extensionSettings.asSequence()
+                .filter { it.tabId == builtInTabIds.getOrNull(index) }
+                .forEach { extension ->
+                    runCatching { extension.createView(context, settingsScope) }
+                        .onSuccess { page.addView(it, matchWrap()) }
+                        .onFailure { error -> page.addView(TextView(context).apply {
+                            text = "扩展设置加载失败：${extension.title}（${error.message ?: "未知错误"}）"
+                            setTextColor(android.graphics.Color.RED)
+                        }, matchWrap()) }
+                }
+        }
+        extensionTabs.forEachIndexed { extensionIndex, extension ->
+            val index = builders.size + extensionIndex
+            tabs.addTab(tabs.newTab().setText(extension.title), index == selectedTabIndex)
+            val page = LinearLayout(context).apply {
+                orientation = VERTICAL
+                setPadding(spaceDp(16), spaceDp(8), spaceDp(16), spaceDp(28))
+            }
+            val scroll = ScrollView(context).apply {
+                isFillViewport = true
+                addView(page, FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+                ))
+                visibility = if (index == selectedTabIndex) View.VISIBLE else View.GONE
+            }
+            pageHost.addView(scroll, FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+            if (index == selectedTabIndex) activeScrollView = scroll
+            runCatching { extension.createView(context, settingsScope) }
+                .onSuccess { page.addView(it, matchWrap()) }
+                .onFailure { error -> page.addView(TextView(context).apply {
+                    text = "扩展页面加载失败：${extension.title}（${error.message ?: "未知错误"}）"
+                    setTextColor(android.graphics.Color.RED)
+                }, matchWrap()) }
         }
         activePage = null
         tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
