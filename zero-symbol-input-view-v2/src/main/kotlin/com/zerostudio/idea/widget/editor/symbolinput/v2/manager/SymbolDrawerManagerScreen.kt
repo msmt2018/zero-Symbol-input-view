@@ -961,14 +961,20 @@ class SymbolDrawerManagerScreen(
             .setNegativeButton("取消", null)
             .setPositiveButton("删除") { _, _ ->
                 val previous = manager.groups.toList()
+                val previousUsage = snapshotUsageState()
                 val previousSelection = selectedGroupId
-                manager.removeGroup(group.id)
-                selectedGroupId = manager.groups.firstOrNull()?.id
-                refresh()
-                showUndo("已删除分组“${group.title}”") {
-                    manager.replaceAll(previous)
-                    selectedGroupId = previousSelection
-                }
+                runCatching {
+                    manager.removeGroup(group.id)
+                    pruneUsageState()
+                    selectedGroupId = manager.groups.firstOrNull()?.id
+                    refresh()
+                    showUndo("已删除分组“${group.title}”") {
+                        manager.replaceAll(previous)
+                        restoreUsageState(previousUsage)
+                        selectedGroupId = previousSelection
+                        refresh()
+                    }
+                }.onFailure(::reportError)
             }
             .showAdaptiveDialog()
     }
@@ -1226,13 +1232,19 @@ class SymbolDrawerManagerScreen(
             .setNegativeButton("取消", null)
             .setPositiveButton("删除") { _, _ ->
                 val previous = manager.groups.toList()
+                val previousUsage = snapshotUsageState()
                 val previousSelection = selectedGroupId
-                manager.removeSymbol(group.id, symbol.id)
-                refresh()
-                showUndo("已删除符号“${symbol.label}”") {
-                    manager.replaceAll(previous)
-                    selectedGroupId = previousSelection
-                }
+                runCatching {
+                    manager.removeSymbol(group.id, symbol.id)
+                    pruneUsageState()
+                    refresh()
+                    showUndo("已删除符号“${symbol.label}”") {
+                        manager.replaceAll(previous)
+                        restoreUsageState(previousUsage)
+                        selectedGroupId = previousSelection
+                        refresh()
+                    }
+                }.onFailure(::reportError)
             }
             .showAdaptiveDialog()
     }
