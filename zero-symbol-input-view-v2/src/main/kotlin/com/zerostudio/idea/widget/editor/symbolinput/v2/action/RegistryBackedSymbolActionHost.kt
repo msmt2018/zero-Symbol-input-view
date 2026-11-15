@@ -31,6 +31,7 @@ class RegistryBackedSymbolActionHost(
             .takeIf { it.startsWith(LEGACY_EXTENSION_PREFIX) }
             ?.removePrefix(LEGACY_EXTENSION_PREFIX)
             ?.toIntOrNull()
+            ?.takeIf { it >= 0 }
 
         if (legacyId != null) {
             val legacyResult = registry.execute(legacyId, delegate, payload)

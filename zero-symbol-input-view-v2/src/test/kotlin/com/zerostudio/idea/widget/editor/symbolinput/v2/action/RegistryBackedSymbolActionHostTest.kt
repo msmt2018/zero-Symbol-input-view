@@ -76,6 +76,23 @@ class RegistryBackedSymbolActionHostTest {
         assertTrue(delegate.fallbackCalls.isEmpty())
     }
 
+
+    @Test fun negativeAndOverflowLegacyIdsRemainSafeExtensionFallbacks() {
+        val delegate = FakeHost()
+        val host = RegistryBackedSymbolActionHost(delegate, SymbolActionRegistry())
+
+        assertTrue(host.executeExtension("legacy.action.-1", "negative"))
+        assertTrue(host.executeExtension("legacy.action.2147483648", "overflow"))
+
+        assertEquals(
+            listOf(
+                "legacy.action.-1:negative",
+                "legacy.action.2147483648:overflow"
+            ),
+            delegate.fallbackCalls
+        )
+    }
+
     @Test fun customFallbackPreservesExistingAppExtensionDispatch() {
         val delegate = FakeHost()
         val registry = SymbolActionRegistry<SymbolActionHost>()
