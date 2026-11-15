@@ -255,15 +255,23 @@ class SymbolDrawerManagerScreen(
      */
     fun bindToDrawer(drawer: SymbolDrawerView): AutoCloseable {
         val previousListener = onGroupsChanged
+        val previousUsageListener = drawer.onSymbolUsedListener
         val listener: (List<SymbolGroup>) -> Unit = { committedGroups ->
             previousListener?.invoke(committedGroups)
             drawer.submitGroups(committedGroups, preserveSelectedGroup = true)
         }
+        val usageListener: (SymbolEntry, Boolean) -> Unit = { symbol, _ ->
+            recordRecentlyUsed(symbol.id)
+        }
         onGroupsChanged = listener
+        drawer.onSymbolUsedListener = usageListener
         drawer.setRepository(repository, reload = false)
         drawer.submitGroups(manager.groups, preserveSelectedGroup = true)
         return AutoCloseable {
             if (onGroupsChanged === listener) onGroupsChanged = previousListener
+            if (drawer.onSymbolUsedListener === usageListener) {
+                drawer.onSymbolUsedListener = previousUsageListener
+            }
         }
     }
 
@@ -493,11 +501,20 @@ class SymbolDrawerManagerScreen(
         toast(if (symbol.id in favoriteIds) "已加入收藏" else "已取消收藏")
     }
 
+    /** Records a real toolbar dispatch; unknown/stale IDs are ignored safely. */
+    fun recordRecentlyUsed(symbolId: Long) {
+        val symbol = manager.groups.asSequence()
+            .flatMap { it.symbols.asSequence() }
+            .firstOrNull { it.id == symbolId } ?: return
+        markRecentlyUsed(symbol)
+    }
+
     private fun markRecentlyUsed(symbol: SymbolEntry) {
         recentIds.remove(symbol.id)
         recentIds.addFirst(symbol.id)
         while (recentIds.size > 30) recentIds.removeLast()
         persistUsageState()
+        if (activeFilter == ManagerSymbolFilter.RECENT) refreshSymbols()
     }
 
     private fun buildSymbolList() {

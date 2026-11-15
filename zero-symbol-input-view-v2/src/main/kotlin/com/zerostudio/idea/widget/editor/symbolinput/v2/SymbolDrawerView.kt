@@ -95,6 +95,8 @@ class SymbolDrawerView @JvmOverloads constructor(
     }
 
     var onSymbolActionListener: OnSymbolActionListener? = null
+    /** Called after a normal symbol action is dispatched; does not replace the host action callback. */
+    var onSymbolUsedListener: ((SymbolEntry, Boolean) -> Unit)? = null
     var onOpenManagerListener: (() -> Unit)? = null
     /** Optional dedicated settings entry callback; falls back to the manager callback for V1 hosts. */
     var onOpenSettingsListener: (() -> Unit)? = null
@@ -255,6 +257,7 @@ class SymbolDrawerView @JvmOverloads constructor(
                     HapticMode.ALL -> performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                 }
                 onSymbolActionListener?.onAction(symbol, longPress)
+                onSymbolUsedListener?.invoke(symbol, longPress)
                 if (settings.autoCollapseAfterAction) setExpanded(false, true)
             }
         }
