@@ -270,7 +270,9 @@ data class SymbolDrawerItemViewState(
     val position: Int,
     val selected: Boolean = false,
     val pressed: Boolean = false,
-    val enabled: Boolean = true
+    val enabled: Boolean = true,
+    /** Active theme tokens from the owning drawer; null means host/system theme. */
+    val theme: SymbolDrawerTheme? = null
 )
 
 /**
