@@ -373,7 +373,38 @@ V2 不要求依赖 Sora Editor 或任何编辑器核心对象。宿主只需实�
 
 #### 7.2 对外事件接口与简洁动作 DSL
 
-事件位于 `com.zerostudio.idea.widget.symboltoolbar.api.event`。事件分为分组、符号项交互、动作执行、状态/配置、生命周期和自定义扩展事件。每个事件携带 `controlId`、时间戳和递增序号；动作事件携带原始调用上下文、结果或异常。
+事件监听与动作代码是两种不同能力：
+
+- **事件接口**：监听控件发生了什么，并允许在回调中自由编写 Kotlin 代码，例如日志、统计、状态同步、调用业务服务。
+- **动作列表**：定义用户点击/长按符号时真正执行哪些动作。它不是只读事件通知，而是可执行的有序代码列表。
+
+**单击和长按是两份完全独立的动作列表**。一个符号可以配置多个单击步骤、多个长按步骤；执行时按列表顺序运行，遇到非 Success 结果即停止。长按不会自动执行单击列表，单击也不会执行长按列表。开发者写入的 lambda 仅保存在当前进程运行时，不会被序列化进 JSON。
+
+```kotlin
+val bindings = symbolItemActions(
+    itemId = "symbol.arrow",
+    click = {
+        step("insert-arrow") { insert(" -> ") }
+        step("record-click") {
+            analytics.track("arrow_clicked")
+            SymbolToolbarActionResult.Success
+        }
+    },
+    longPress = {
+        step("insert-template") { insert(" -> { }") }
+        step("move-cursor") { moveCursor(-2) }
+        step("notify-plugin") {
+            myPlugin.onArrowLongPressed(itemId)
+            SymbolToolbarActionResult.Success
+        }
+    }
+)
+val registration = actionLists.register(bindings)
+```
+
+上面的 analytics、myPlugin 是开发者自己的 Kotlin 对象；API 不限制回调里只能调用内置编辑动作。需要编辑文本时可使用 insert、deleteBackward、moveCursor、command，也可调用自己的同步/挂起业务逻辑。每一步返回 SymbolToolbarActionResult.Success 才继续下一步；返回 Rejected、Unsupported 或 Failed 会终止当前列表。协程取消会继续向上传播。
+
+事件订阅示例：
 
 ```kotlin
 val runtime = SymbolToolbarExtensionRuntime(
@@ -381,37 +412,14 @@ val runtime = SymbolToolbarExtensionRuntime(
     registry = extensions,
     actionHost = editorActionHost
 )
-
-// 只订阅动作执行结果
-val actionEvents = runtime.events.on<SymbolToolbarActionEvent.Completed> { event ->
-    logger.info("${event.invocation.itemId}: ${event.result}")
-}
-
-// 订阅全部事件，适合调试面板或埋点
-val allEvents = runtime.events.subscribe { event -> logger.debug(event.toString()) }
-```
-
-动作实现无需创建 Handler 类。使用 `action(type) { }` 即可定义执行代码：
-
-```kotlin
-val insertSnippet = extensions.action("my.plugin.insert-snippet") {
-    val snippet = action.payload ?: return@action SymbolToolbarActionResult.Rejected(
-        "Missing snippet payload"
-    )
-    insert(snippet)
-}
-
-val deleteWord = extensions.action("my.plugin.delete-word") {
-    command("editor.deleteWordBackward")
+val subscription = runtime.events.on<SymbolToolbarActionEvent.Completed> { event ->
+    logger.info("item=${event.invocation.itemId}, result=${event.result}")
 }
 ```
 
-`SymbolToolbarActionContext` 提供 `action`、`groupId`、`itemId`、`isLongPress`、`host`，以及 `insert()`、`deleteBackward()`、`moveCursor()`、`command()` 等快捷方法。需要更细粒度能力时可直接调用 `host` 或实现底层 `SymbolToolbarActionHandler`。
+SymbolToolbarActionListRegistry 用于按 itemId 保存和替换单击/长按动作列表；register 返回的 AutoCloseable 只注销本次注册。列表执行器 SymbolToolbarActionList.execute(invocation, host) 负责按序执行并在第一个非成功结果处停止。
 
-事件监听返回 `AutoCloseable`，应在插件/页面/控件生命周期结束时关闭。事件监听器异常会被隔离；事件 Hub 按控件实例隔离，不允许跨控件误投递。事件对象用于进程内通知，不应直接序列化异常对象或 lambda；持久化仅保存 action type、payload 和 arguments。
-
-**事件接入说明：** 当前事件 Hub 和动作运行时已经提供公开订阅、分发及动作阶段事件。符号项按下/释放、分组切换、配置变化等 UI 事件仍需由具体控件实现调用对应事件发布入口；不能仅凭注册监听器就认为旧控件已经自动发出所有事件。控件接入阶段必须逐项连接这些事件，并通过交互测试验证触发时机和顺序。
-
+**接入状态说明：** 本次新增的是完整的动作列表声明、运行时注册与顺序执行 API。它尚不能单独证明旧版 SymbolDrawerView 已自动使用这些列表；真实控件必须在识别到 TAP/LONG_PRESS 后，分别查找对应列表并执行。现有旧模型的 shortAction/longAction 和 V1 数字动作兼容路径不应被删除或改写，接入时应保留旧动作作为兼容回退路径。事件 Hub 的 UI 事件也必须由控件在真实触摸/分页/设置回调中发布后才会触发。
 ### 8. V1 / MT 管理器紧凑 JSON 互通
 
 管理界面提供 `importMtManagerJson(json)` 和 `exportMtManagerJson()`，用于旧版紧凑分组/符号 JSON（字段 `n/d/a/b/c/d/e`）。采用该结构的文件可以直接导入。V2 完整备份应使用 `importBundle` / `exportBundle`，以保留 V2 专属动作和稳定 ID。旧格式无法表达全部 V2 动作；导出遇到不支持的动作会明确拒绝，不会静默丢失。详见 [MT JSON 互通说明](zero-symbol-input-view-v2/README.md#10-mt-管理器--v1-json-互通)。
