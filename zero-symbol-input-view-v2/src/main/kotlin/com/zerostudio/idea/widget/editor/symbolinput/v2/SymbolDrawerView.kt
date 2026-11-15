@@ -121,7 +121,9 @@ class SymbolDrawerView @JvmOverloads constructor(
     var onOpenSettingsListener: (() -> Unit)? = null
     var onGroupChangedListener: ((Int, SymbolGroup?) -> Unit)? = null
     /** Receives isolated extension failures with the extension ID; host callbacks must not throw. */
-    var onExtensionErrorListener: ((extensionId: String, error: Throwable) -> Unit)? = null
+    var onExtensionErrorListener: ((extensionId: String, error: Throwable) -> Unit)?
+        get() = extensions.onExtensionErrorListener
+        set(value) { extensions.onExtensionErrorListener = value }
 
     private val settingsRepository = SharedPreferencesSymbolDrawerSettingsRepository(context.applicationContext)
     private val settingsPreferences = context.applicationContext.getSharedPreferences(
@@ -640,7 +642,7 @@ class SymbolDrawerView @JvmOverloads constructor(
             providers.forEach { provider ->
                 val result = runCatching { provider.loadGroups() }
                 result.onSuccess(::addAll).onFailure { error ->
-                    runCatching { onExtensionErrorListener?.invoke(provider.id, error) }
+                    extensions.reportError(provider.id, error)
                 }
             }
         }
