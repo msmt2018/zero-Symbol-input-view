@@ -67,6 +67,38 @@ class SymbolDrawerExtensionRegistryTest {
         assertTrue(registry.isBuiltInVisible("builtin.search"))
     }
 
+
+    @Test fun observerReceivesImmutableSnapshotsAndCanUnsubscribe() {
+        val registry = SymbolDrawerExtensionRegistry()
+        val revisions = mutableListOf<Long>()
+        val actionCounts = mutableListOf<Int>()
+        val handle = registry.observe { snapshot ->
+            revisions += snapshot.revision
+            actionCounts += snapshot.actions.size
+        }
+        val registration = registry.registerAction(
+            SymbolDrawerActionExtension("observe.action", "Observed", handler = { _, _ -> true })
+        )
+        assertEquals(2, revisions.size)
+        assertEquals(0, actionCounts.first())
+        assertEquals(1, actionCounts.last())
+        assertTrue(revisions.last() > revisions.first())
+        registration.close()
+        assertEquals(0, registry.snapshot().actions.size)
+        val countAfterClose = revisions.size
+        handle.close()
+        registry.setBuiltInVisible("builtin.search", false)
+        assertEquals(countAfterClose, revisions.size)
+    }
+
+    @Test fun snapshotContainsBuiltInVisibilityAndAllContributionTypes() {
+        val registry = SymbolDrawerExtensionRegistry()
+        registry.setBuiltInVisible("builtin.manager", false)
+        val snapshot = registry.snapshot()
+        assertFalse(snapshot.builtInVisibility["builtin.manager"] ?: true)
+        assertEquals(registry.revision(), snapshot.revision)
+    }
+
     @Test(expected = IllegalArgumentException::class)
     fun invalidExtensionIdIsRejected() {
         SymbolDrawerExtensionRegistry().registerAction(
