@@ -432,6 +432,7 @@ class SymbolDrawerView @JvmOverloads constructor(
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
+        pageAdapter.refreshItemExtensions()
         if (!settingsListenerRegistered) {
             settingsPreferences.registerOnSharedPreferenceChangeListener(settingsPreferenceListener)
             settingsListenerRegistered = true
