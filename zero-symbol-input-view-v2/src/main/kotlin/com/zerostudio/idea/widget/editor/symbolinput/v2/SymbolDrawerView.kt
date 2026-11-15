@@ -263,7 +263,7 @@ class SymbolDrawerView @JvmOverloads constructor(
             if (groups.isNotEmpty()) pager.setCurrentItem(restored, false)
             suppressPageCallbacks = false
 
-            indicator.setSelectedIndex(restored)
+            setIndicatorSelectedIndex(restored)
             onGroupChangedListener?.invoke(restored, groups.getOrNull(restored))
             if (gridGeometryChanged) recalculateGeometry()
         }
@@ -277,7 +277,8 @@ class SymbolDrawerView @JvmOverloads constructor(
         val screen = SymbolDrawerSettingsScreen(
             context,
             settingsRepository,
-            repository
+            repository,
+            extensionRegistry = extensions
         ).apply {
             onSettingsChanged = { applySettings(it) }
             onGroupsChanged = {
@@ -361,7 +362,7 @@ class SymbolDrawerView @JvmOverloads constructor(
     fun refreshHostTheme() {
         setBackgroundColor(com.zerostudio.idea.widget.editor.symbolinput.v2.ui.HostThemeColors.surface(context))
         indicatorHost.setBackgroundColor(com.zerostudio.idea.widget.editor.symbolinput.v2.ui.HostThemeColors.surface(context))
-        indicator.applySettings(settings)
+        applyIndicatorSettings(settings)
         applySettings(settings)
     }
 
