@@ -260,11 +260,6 @@ class SymbolDrawerManagerScreen(
         liveDrawer?.let(::bindToDrawer)
     }
 
-    override fun onAttachedToWindow() {
-        super.onAttachedToWindow()
-        if (drawerBindingHandle == null) liveDrawer?.let(::bindToDrawer)
-    }
-
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
         if (w <= 0) return
@@ -1158,6 +1153,7 @@ class SymbolDrawerManagerScreen(
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
+        if (drawerBindingHandle == null) liveDrawer?.let(::bindToDrawer)
         if (!settingsListenerRegistered) {
             settingsPreferences.registerOnSharedPreferenceChangeListener(settingsPreferenceListener)
             settingsListenerRegistered = true
