@@ -230,10 +230,10 @@ internal class SymbolPageAdapter(
 
     class PageHolder(
         private val grid: RecyclerView,
-        config: DrawerConfig,
-        settings: SymbolDrawerSettings,
+        private val config: DrawerConfig,
+        private val settings: SymbolDrawerSettings,
         onSymbolAction: (SymbolEntry, Boolean) -> Unit,
-        spacingState: GridSpacingState
+        private val spacingState: GridSpacingState
     ) : RecyclerView.ViewHolder(grid) {
         private val symbolsAdapter = SymbolAdapter(config, settings, onSymbolAction, spacingState)
         init { grid.adapter = symbolsAdapter }
