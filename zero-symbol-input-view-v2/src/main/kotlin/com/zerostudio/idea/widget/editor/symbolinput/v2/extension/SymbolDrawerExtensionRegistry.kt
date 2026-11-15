@@ -279,9 +279,11 @@ interface SymbolDrawerItemViewExtension {
     val description: String get() = ""
     val priority: Int get() = 0
     fun accepts(item: SymbolItem): Boolean = true
+    /** Opt in to long-press callbacks even when the legacy item has no longAction. */
+    fun wantsLongPress(item: SymbolItem): Boolean = item.longAction != null
     fun createView(context: Context, item: SymbolItem, state: SymbolDrawerItemViewState): View
     fun bindView(view: View, item: SymbolItem, state: SymbolDrawerItemViewState)
-    /** Receives the original touch stream without intercepting drawer scrolling or paging. */
+    /** Receives the original touch stream without intercepting drawer scrolling or paging. Do not retain the MotionEvent. */
     fun onTouch(view: View, item: SymbolItem, state: SymbolDrawerItemViewState, event: MotionEvent) = Unit
     fun onClick(view: View, item: SymbolItem, state: SymbolDrawerItemViewState) = Unit
     fun onLongPress(view: View, item: SymbolItem, state: SymbolDrawerItemViewState) = Unit
