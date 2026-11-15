@@ -108,24 +108,38 @@ class DrawerInteractionController(
             MotionEvent.ACTION_MOVE -> {
                 velocityTracker?.addMovement(event)
                 val dx = event.x - downX
-                val dy = event.rawY - downY
-                if (gestureAxis == AXIS_UNDECIDED && maxOf(abs(dx), abs(dy)) > touchSlop) {
-                    if (abs(dx) > abs(dy) * AXIS_LOCK_RATIO) {
+                val dyFromDown = event.rawY - downY
+                if (gestureAxis == AXIS_UNDECIDED && maxOf(abs(dx), abs(dyFromDown)) > touchSlop) {
+                    if (abs(dx) > abs(dyFromDown) * AXIS_LOCK_RATIO) {
                         gestureAxis = AXIS_HORIZONTAL
                         velocityTracker?.recycle()
                         velocityTracker = null
                         onDisallowInterceptChanged(true)
-                    } else if (abs(dy) > abs(dx) * AXIS_LOCK_RATIO) {
+                    } else if (abs(dyFromDown) > abs(dx) * AXIS_LOCK_RATIO) {
                         gestureAxis = AXIS_VERTICAL
-                        val childAtTop = dy > 0f && childCanScrollUp(event.x, event.y)
-                        if (shouldInterceptVerticalDrag(dy, height, minimumHeight, maximumHeight, childAtTop)) {
-                            dragging = true
-                            cancelAnimation()
-                            onDisallowInterceptChanged(true)
-                            return true
-                        }
                     }
                 }
+
+                if (gestureAxis == AXIS_VERTICAL && !dragging) {
+                    // Re-evaluate a vertical gesture on every move. A nested
+                    // scrolling child may consume the first downward movement
+                    // and reach its top later in the same finger gesture.
+                    // Track the last child-owned position so interception does
+                    // not replay the child's already-consumed distance.
+                    val deltaY = event.rawY - lastY
+                    val childAtTop = deltaY > 0f && childCanScrollUp(event.x, event.y)
+                    if (shouldInterceptVerticalDrag(
+                            deltaY, height, minimumHeight, maximumHeight, childAtTop
+                        )
+                    ) {
+                        dragging = true
+                        cancelAnimation()
+                        onDisallowInterceptChanged(true)
+                        return true
+                    }
+                    lastY = event.rawY
+                }
+                return dragging
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> resetGesture()
         }
