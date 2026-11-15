@@ -865,8 +865,14 @@ class SymbolDrawerView @JvmOverloads constructor(
 
     private fun setExpansionFromHeight(height: Int) {
         drawerHeight = height.coerceIn(collapsedHeight, expandedHeight)
+        val previousExpansion = expansion
         expansion = (drawerHeight - collapsedHeight).toFloat() /
             (expandedHeight - collapsedHeight).coerceAtLeast(1)
+        if (kotlin.math.abs(previousExpansion - expansion) > 0.0005f) {
+            extensions.lifecycleExtensions().forEach { extension ->
+                runCatching { extension.onExpansionChanged(expansion, expansion >= 0.999f) }
+            }
+        }
         pagerHeight = (
             collapsedHeight + (expandedGridHeight - collapsedHeight) * expansion
         ).roundToInt().coerceAtLeast(collapsedHeight)
