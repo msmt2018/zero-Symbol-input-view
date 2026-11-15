@@ -473,7 +473,7 @@ class SymbolDrawerManagerScreen(
     private fun updateFilterButtons() {
         for (index in 0 until filterBar.childCount) {
             val button = filterBar.getChildAt(index)
-            val filter = ManagerSymbolFilter.entries.getOrNull(index) ?: continue
+            val filter = ManagerSymbolFilter.values().getOrNull(index) ?: continue
             button.alpha = if (activeFilter == filter) 1f else 0.58f
             button.isSelected = activeFilter == filter
         }
