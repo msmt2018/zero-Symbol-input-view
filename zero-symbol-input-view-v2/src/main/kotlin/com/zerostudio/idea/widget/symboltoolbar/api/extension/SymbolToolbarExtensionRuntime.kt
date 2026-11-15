@@ -4,9 +4,8 @@
  */
 package com.zerostudio.idea.widget.symboltoolbar.api.extension
 
-import com.zerostudio.idea.widget.symboltoolbar.api.SymbolToolbarConfig
+import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
 import com.zerostudio.idea.widget.symboltoolbar.api.action.SymbolToolbarActionHost
-import com.zerostudio.idea.widget.symboltoolbar.api.action.SymbolToolbarActionInvocation
 import com.zerostudio.idea.widget.symboltoolbar.api.action.SymbolToolbarActionResult
 import com.zerostudio.idea.widget.symboltoolbar.api.event.SymbolToolbarActionEvent
 import com.zerostudio.idea.widget.symboltoolbar.api.event.SymbolToolbarEventHub
@@ -14,30 +13,23 @@ import com.zerostudio.idea.widget.symboltoolbar.api.model.SymbolToolbarInvocatio
 import kotlin.coroutines.cancellation.CancellationException
 import java.util.concurrent.atomic.AtomicBoolean
 
-/**
- * Per-control extension runtime. Exposes a public event hub and action dispatcher,
- * but deliberately holds no editor, drawer, Activity or concrete View reference.
- */
+/** Per-control runtime; no Activity, editor-core or concrete View instance is retained. */
 class SymbolToolbarExtensionRuntime(
     private val controlId: String,
     private val registry: SymbolToolbarExtensionRegistry,
     private val actionHost: SymbolToolbarActionHost
 ) : AutoCloseable {
     private val closed = AtomicBoolean(false)
-    val events: SymbolToolbarEventHub = SymbolToolbarEventHub(controlId)
+    val events = SymbolToolbarEventHub(controlId)
 
     init {
-        require(controlId.isNotBlank()) { "controlId must not be blank" }
-        registry.lifecycleExtensions().forEach { extension ->
-            runCatching { extension.onAttached(controlId) }
-        }
+        require(controlId.isNotBlank())
+        registry.lifecycleExtensions().forEach { runCatching { it.onAttached(controlId) } }
     }
 
-    fun onConfigChanged(config: SymbolToolbarConfig) {
+    fun onSettingsChanged(settings: SymbolDrawerSettings) {
         checkActive()
-        registry.lifecycleExtensions().forEach { extension ->
-            runCatching { extension.onConfigChanged(config) }
-        }
+        registry.lifecycleExtensions().forEach { runCatching { it.onSettingsChanged(settings) } }
     }
 
     suspend fun invoke(invocation: SymbolToolbarInvocation): SymbolToolbarActionResult {
@@ -46,15 +38,13 @@ class SymbolToolbarExtensionRuntime(
         events.publish(SymbolToolbarActionEvent.BeforeExecute(
             controlId, invocation, events.timestamp(), events.nextSequence()
         ))
-
         val interceptors = registry.invocationInterceptors()
         for (interceptor in interceptors) {
-            val decision = runCatching { interceptor.beforeInvoke(invocation) }
-                .getOrElse {
-                    val failed = SymbolToolbarActionResult.Failed(it)
-                    publishFailure(invocation, it, startedAt)
-                    return notifyAfter(interceptors, invocation, failed)
-                }
+            val decision = runCatching { interceptor.beforeInvoke(invocation) }.getOrElse {
+                val failed = SymbolToolbarActionResult.Failed(it)
+                publishFailure(invocation, it, startedAt)
+                return notifyAfter(interceptors, invocation, failed)
+            }
             when (decision) {
                 SymbolToolbarInvocationDecision.Continue -> Unit
                 SymbolToolbarInvocationDecision.Consume -> {
@@ -72,28 +62,17 @@ class SymbolToolbarExtensionRuntime(
             }
         }
 
-        val handler = registry.findAction(invocation.action.type)
+        val handler = registry.findAction(invocation.actionId)
         if (handler == null) {
-            val result = SymbolToolbarActionResult.Unsupported(invocation.action.type)
+            val result = SymbolToolbarActionResult.Unsupported(invocation.actionId)
             publishCompleted(invocation, result, startedAt)
             return notifyAfter(interceptors, invocation, result)
         }
-
         events.publish(SymbolToolbarActionEvent.Started(
             controlId, invocation, events.timestamp(), events.nextSequence()
         ))
         val result = try {
-            handler.execute(
-                SymbolToolbarActionInvocation(
-                    groupId = invocation.groupId,
-                    itemId = invocation.itemId,
-                    action = invocation.action,
-                    isLongPress = invocation.gesture == SymbolToolbarInvocation.Gesture.LONG_PRESS,
-                    gesture = invocation.gesture,
-                    eventTimeMillis = invocation.eventTimeMillis
-                ),
-                actionHost
-            )
+            handler.execute(invocation, actionHost)
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (error: Throwable) {
@@ -101,7 +80,6 @@ class SymbolToolbarExtensionRuntime(
             publishFailure(invocation, error, startedAt)
             return notifyAfter(interceptors, invocation, failed)
         }
-
         when (result) {
             is SymbolToolbarActionResult.Failed -> publishFailure(invocation, result.cause, startedAt)
             is SymbolToolbarActionResult.Rejected -> events.publish(SymbolToolbarActionEvent.Rejected(
@@ -112,11 +90,7 @@ class SymbolToolbarExtensionRuntime(
         return notifyAfter(interceptors, invocation, result)
     }
 
-    private fun publishCompleted(
-        invocation: SymbolToolbarInvocation,
-        result: SymbolToolbarActionResult,
-        startedAt: Long
-    ) {
+    private fun publishCompleted(invocation: SymbolToolbarInvocation, result: SymbolToolbarActionResult, startedAt: Long) {
         events.publish(SymbolToolbarActionEvent.Completed(
             controlId, invocation, result,
             (System.currentTimeMillis() - startedAt).coerceAtLeast(0L),
@@ -124,11 +98,7 @@ class SymbolToolbarExtensionRuntime(
         ))
     }
 
-    private fun publishFailure(
-        invocation: SymbolToolbarInvocation,
-        error: Throwable,
-        startedAt: Long
-    ) {
+    private fun publishFailure(invocation: SymbolToolbarInvocation, error: Throwable, startedAt: Long) {
         events.publish(SymbolToolbarActionEvent.Failed(
             controlId, invocation, error,
             (System.currentTimeMillis() - startedAt).coerceAtLeast(0L),
@@ -141,26 +111,18 @@ class SymbolToolbarExtensionRuntime(
         invocation: SymbolToolbarInvocation,
         result: SymbolToolbarActionResult
     ): SymbolToolbarActionResult {
-        interceptors.asReversed().forEach { interceptor ->
-            runCatching { interceptor.afterInvoke(invocation, result) }
-        }
+        interceptors.asReversed().forEach { runCatching { it.afterInvoke(invocation, result) } }
         return result
     }
 
-    private fun checkActive() {
-        check(!closed.get()) { "SymbolToolbarExtensionRuntime is closed" }
-    }
+    private fun checkActive() = check(!closed.get()) { "SymbolToolbarExtensionRuntime is closed" }
 
     override fun close() {
         if (!closed.compareAndSet(false, true)) return
-        registry.lifecycleExtensions().asReversed().forEach { extension ->
-            runCatching { extension.onDetached(controlId) }
-        }
-        events.publish(
-            com.zerostudio.idea.widget.symboltoolbar.api.event.SymbolToolbarLifecycleEvent.Detached(
-                controlId, true, events.timestamp(), events.nextSequence()
-            )
-        )
+        registry.lifecycleExtensions().asReversed().forEach { runCatching { it.onDetached(controlId) } }
+        events.publish(com.zerostudio.idea.widget.symboltoolbar.api.event.SymbolToolbarLifecycleEvent.Detached(
+            controlId, true, events.timestamp(), events.nextSequence()
+        ))
         events.close()
     }
 }
