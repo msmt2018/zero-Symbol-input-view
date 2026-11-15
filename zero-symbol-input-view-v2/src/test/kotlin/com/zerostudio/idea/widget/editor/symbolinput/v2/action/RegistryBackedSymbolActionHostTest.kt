@@ -76,6 +76,20 @@ class RegistryBackedSymbolActionHostTest {
         assertTrue(delegate.fallbackCalls.isEmpty())
     }
 
+    @Test fun customFallbackPreservesExistingAppExtensionDispatch() {
+        val delegate = FakeHost()
+        val registry = SymbolActionRegistry<SymbolActionHost>()
+        val fallbackCalls = mutableListOf<String>()
+        val host = RegistryBackedSymbolActionHost(delegate, registry) { id, payload ->
+            fallbackCalls += "${id}:${payload}"
+            true
+        }
+
+        assertTrue(host.executeExtension("app.previous", "payload"))
+        assertEquals(listOf("app.previous:payload"), fallbackCalls)
+        assertTrue(delegate.fallbackCalls.isEmpty())
+    }
+
     @Test fun unknownLegacyNumericIdRetainsOriginalFallback() {
         val delegate = FakeHost()
         assertTrue(RegistryBackedSymbolActionHost(

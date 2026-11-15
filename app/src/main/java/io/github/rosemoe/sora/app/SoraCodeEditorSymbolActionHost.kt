@@ -3,9 +3,11 @@ package io.github.rosemoe.sora.app
 import io.github.rosemoe.sora.widget.CodeEditor
 import io.github.rosemoe.sora.widget.SelectionMovement
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.GenericSymbolTextActions
+import com.zerostudio.idea.widget.editor.symbolinput.v2.action.RegistryBackedSymbolActionHost
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionHost
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionId
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionRegistry
+import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionHandler
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolTextDocument
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolTextEditing
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.ClipboardOperation
@@ -26,6 +28,27 @@ class SoraCodeEditorSymbolActionHost(
     private val extensionHandlers = SymbolActionRegistry<SoraCodeEditorSymbolActionHost>()
     private val extensionRegistrations = LinkedHashMap<String, AutoCloseable>()
     private val genericTextActions = GenericSymbolTextActions.createRegistry()
+    private val registeredActions = SymbolActionRegistry<SymbolActionHost>()
+    private val registeredActionHost = RegistryBackedSymbolActionHost(
+        delegate = this,
+        registry = registeredActions,
+        fallback = ::executeLegacyExtension
+    )
+
+    /** Register a namespaced V2 action for this editor session. Close the handle to unregister it. */
+    fun registerActionHandler(
+        actionId: SymbolActionId,
+        handler: SymbolActionHandler<SymbolActionHost>
+    ): AutoCloseable = registeredActions.register(actionId, handler)
+
+    /** Register a V1 numeric action ID without changing its persisted value. */
+    fun registerLegacyActionHandler(
+        numericId: Int,
+        handler: SymbolActionHandler<SymbolActionHost>
+    ): AutoCloseable = registeredActions.register(numericId, handler)
+
+    /** Remove all V2 registrations owned by this editor host. */
+    fun clearRegisteredActionHandlers() = registeredActions.clear()
 
     /** Register an app-defined extension action. Returns false for a blank ID. */
     fun registerExtensionHandler(
@@ -288,8 +311,12 @@ class SoraCodeEditorSymbolActionHost(
     override fun executeExtension(extensionId: String, payload: String?): Boolean {
         genericTextActions.execute(SymbolActionId("builtin", extensionId), SoraSymbolTextDocument(editor), payload)
             ?.let { return it }
-        return extensionHandlers.execute(SymbolActionId.extension(extensionId), this, payload) ?: false
+        return registeredActionHost.executeExtension(extensionId, payload)
     }
+
+    /** Preserves the pre-registry app extension callback as the final fallback. */
+    private fun executeLegacyExtension(extensionId: String, payload: String?): Boolean =
+        extensionHandlers.execute(SymbolActionId.extension(extensionId), this, payload) ?: false
 
     private class SoraSymbolTextDocument(
         private val editor: CodeEditor

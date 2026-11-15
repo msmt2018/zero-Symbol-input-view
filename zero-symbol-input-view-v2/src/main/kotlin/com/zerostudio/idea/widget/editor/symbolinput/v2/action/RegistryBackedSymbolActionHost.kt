@@ -20,7 +20,10 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.action
  */
 class RegistryBackedSymbolActionHost(
     private val delegate: SymbolActionHost,
-    private val registry: SymbolActionRegistry<SymbolActionHost>
+    private val registry: SymbolActionRegistry<SymbolActionHost>,
+    private val fallback: (String, String?) -> Boolean = { id, payload ->
+        delegate.executeExtension(id, payload)
+    }
 ) : SymbolActionHost by delegate {
 
     override fun executeExtension(extensionId: String, payload: String?): Boolean {
@@ -39,7 +42,7 @@ class RegistryBackedSymbolActionHost(
             delegate,
             payload
         )
-        return extensionResult ?: delegate.executeExtension(extensionId, payload)
+        return extensionResult ?: fallback(extensionId, payload)
     }
 
     private companion object {
