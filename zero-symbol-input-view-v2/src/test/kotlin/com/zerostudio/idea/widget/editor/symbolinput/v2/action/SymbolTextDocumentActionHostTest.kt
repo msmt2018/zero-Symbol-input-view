@@ -71,7 +71,7 @@ class SymbolTextDocumentActionHostTest {
         document.setSelection(10, 10)
         val host = SymbolTextDocumentActionHost(document)
         assertTrue(host.insertText("[\$W]\$N\$TAB\$I\$W"))
-        assertEquals("    val va[value]\n\t    value = 1lue = 1", document.value)
+        assertEquals("    val va[value]\n\t    valuelue = 1", document.value)
     }
 
     @Test fun currentLineMacroPreservesItsLeadingIndentation() {
