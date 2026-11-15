@@ -104,6 +104,11 @@ internal class SymbolGroupIndicator(
         addView(settingsButton, LayoutParams(dp(48), LayoutParams.MATCH_PARENT, android.view.Gravity.END))
     }
     fun submitGroups(groups: List<SymbolGroup>) = renderer.submitGroups(groups)
+    /** Controls the built-in settings affordance independently of indicator styling. */
+    fun setSettingsButtonVisible(visible: Boolean) {
+        settingsButton.visibility = if (visible) View.VISIBLE else View.GONE
+    }
+
     fun applySettings(settings: SymbolDrawerSettings) {
         renderer.applySettings(settings)
         settingsButton.setImageDrawable(MaterialSettingsDrawable(HostThemeColors.onSurface(context)))
