@@ -318,6 +318,40 @@ val settings = SymbolDrawerSettingsScreen(context).apply {
 
 宿主负责将它们放入 Activity、Fragment、Dialog 或自己的页面容器中。管理页和设置页可独立使用，也可由抽屉的管理/设置入口打开。
 
+### 6. 通过 JitPack 远程 Maven 导入
+
+不需要克隆仓库或把 V2 源码复制到自己的工程。先在根目录 `settings.gradle.kts` 的仓库列表添加 JitPack：
+
+```kotlin
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+        maven("https://jitpack.io")
+    }
+}
+```
+
+然后添加已经发布成功的版本（将版本号替换为实际存在的 release tag）：
+
+```kotlin
+dependencies {
+    implementation("com.github.msmt2018.zero-Symbol-input-view:zero-symbol-input-view-v2:v0.25.0")
+}
+```
+
+完整 Maven 坐标、Groovy DSL、手动发布工作流和 Tag 规则见 [V2 模块快速接入文档](zero-symbol-input-view-v2/README.md#2-jitpack-远程-maven-导入)。
+
+### 7. 编辑器解耦与扩展 API
+
+V2 不要求依赖 Sora Editor 或任何编辑器核心对象。宿主只需实现 `SymbolActionHost`，把文本插入、选区替换、光标、删除、剪贴板和编辑器命令映射到自己已有的编辑器 API。可选实现 `SymbolTextDocument`，复用通用行、选区、光标和文档编辑算法。Sora Adapter 应放在宿主应用或独立可选模块中，不应进入 V2 核心 AAR。
+
+每个 `SymbolDrawerView` 提供 `drawer.extensions`，用于注册自定义动作、分组指示器、设置 Tab、设置项和主题 Provider，也可隐藏/恢复内置功能而不删除源码。详见 [扩展 API 完整文档](zero-symbol-input-view-v2/api-docs/12-extension-framework.md)。
+
+### 8. V1 / MT 管理器紧凑 JSON 互通
+
+管理界面提供 `importMtManagerJson(json)` 和 `exportMtManagerJson()`，用于旧版紧凑分组/符号 JSON（字段 `n/d/a/b/c/d/e`）。采用该结构的文件可以直接导入。V2 完整备份应使用 `importBundle` / `exportBundle`，以保留 V2 专属动作和稳定 ID。旧格式无法表达全部 V2 动作；导出遇到不支持的动作会明确拒绝，不会静默丢失。详见 [MT JSON 互通说明](zero-symbol-input-view-v2/README.md#10-mt-管理器--v1-json-互通)。
+
 ---
 
 ## 数据模型与动作系统
