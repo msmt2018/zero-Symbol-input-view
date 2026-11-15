@@ -357,7 +357,7 @@ class SymbolDrawerManagerScreen(
         menu.menu.add("添加符号").setOnMenuItemClickListener { editSymbol(null); true }
         menu.menu.add("添加分组").setOnMenuItemClickListener {
             promptGroupName("新建分组") { title ->
-                runCatching { selectedGroupId = manager.createGroup(title).id; refresh() }
+                runCatching { selectedGroupId = manager.addGroup(title).id; refresh() }
                     .onFailure(::reportError)
             }
             true
@@ -893,11 +893,15 @@ class SymbolDrawerManagerScreen(
         }
         val index = manager.groups.indexOfFirst { it.id == selectedGroupId }
         if (index >= 0 && groupTabs.selectedTabPosition != index) groupTabs.getTabAt(index)?.select()
-        for (tabIndex in 0 until groupTabs.tabCount) {
-            val tab = groupTabs.getTabAt(tabIndex) ?: continue
-            tab.view.setOnLongClickListener {
-                (tab.tag as? String)?.let { id -> showGroupTabMenu(it, id) }
-                true
+        val tabStrip = groupTabs.getChildAt(0) as? ViewGroup
+        if (tabStrip != null) {
+            for (tabIndex in 0 until minOf(groupTabs.tabCount, tabStrip.childCount)) {
+                val tabView = tabStrip.getChildAt(tabIndex)
+                val groupId = groupTabs.getTabAt(tabIndex)?.tag as? String ?: continue
+                tabView.setOnLongClickListener {
+                    showGroupTabMenu(it, groupId)
+                    true
+                }
             }
         }
     }
