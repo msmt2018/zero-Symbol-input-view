@@ -644,6 +644,7 @@ internal class SymbolPageAdapter(
         }
 
         fun detach() {
+            touchListener?.cancel()
             if (!attachedToWindow) return
             attachedToWindow = false
             val extension = activeExtension ?: return
