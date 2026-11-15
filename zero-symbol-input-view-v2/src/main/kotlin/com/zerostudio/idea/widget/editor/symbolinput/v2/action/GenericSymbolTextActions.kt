@@ -1,9 +1,11 @@
 package com.zerostudio.idea.widget.editor.symbolinput.v2.action
 
+import com.zerostudio.idea.widget.drawer.action.SymbolTextDocument as PublicSymbolTextDocument
+
 /**
  * Editor-independent implementations for common text-editing commands.
  *
- * These functions work only through SymbolTextDocument. Sora, a custom editor,
+ * These functions work only through PublicSymbolTextDocument. Sora, a custom editor,
  * or a future editor core needs to provide one small adapter instead of
  * reimplementing each action.
  */
@@ -11,8 +13,8 @@ object GenericSymbolTextActions {
     private const val MAX_DOCUMENT_WIDE_CHARS = 32 * 1024 * 1024
     private const val MAX_DOCUMENT_WIDE_LINES = 200_000
 
-    private val handlers: Map<String, SymbolActionHandler<SymbolTextDocument>> = buildMap {
-        fun add(id: String, action: (SymbolTextDocument, String?) -> Boolean) {
+    private val handlers: Map<String, SymbolActionHandler<PublicSymbolTextDocument>> = buildMap {
+        fun add(id: String, action: (PublicSymbolTextDocument, String?) -> Boolean) {
             put(id, SymbolActionHandler(action))
         }
 
@@ -102,8 +104,8 @@ object GenericSymbolTextActions {
 
     /** Create a reverse-ID registry for all built-in generic text actions. */
     @JvmStatic
-    fun createRegistry(): SymbolActionRegistry<SymbolTextDocument> =
-        SymbolActionRegistry<SymbolTextDocument>().also { registry ->
+    fun createRegistry(): SymbolActionRegistry<PublicSymbolTextDocument> =
+        SymbolActionRegistry<PublicSymbolTextDocument>().also { registry ->
             handlers.forEach { (id, handler) ->
                 registry.register(SymbolActionId("builtin", id), handler)
             }
@@ -112,11 +114,11 @@ object GenericSymbolTextActions {
     @JvmStatic
     fun supportedCommandIds(): Set<String> = handlers.keys
 
-    private fun currentLine(document: SymbolTextDocument): Int =
+    private fun currentLine(document: PublicSymbolTextDocument): Int =
         document.lineForOffset(document.cursorOffset.coerceIn(0, document.textLength))
             .coerceIn(0, document.lineCount - 1)
 
-    private fun deleteLine(document: SymbolTextDocument, line: Int): Boolean {
+    private fun deleteLine(document: PublicSymbolTextDocument, line: Int): Boolean {
         if (!document.isEditable || document.lineCount <= 0) return false
         val start = document.lineStartOffset(line)
         val end = when {
@@ -133,7 +135,7 @@ object GenericSymbolTextActions {
         return true
     }
 
-    private fun clearLine(document: SymbolTextDocument, line: Int): Boolean {
+    private fun clearLine(document: PublicSymbolTextDocument, line: Int): Boolean {
         if (!document.isEditable) return false
         val start = document.lineStartOffset(line)
         val end = document.lineEndOffset(line)
@@ -142,7 +144,7 @@ object GenericSymbolTextActions {
         return true
     }
 
-    private fun replaceLine(document: SymbolTextDocument, line: Int, replacement: String): Boolean {
+    private fun replaceLine(document: PublicSymbolTextDocument, line: Int, replacement: String): Boolean {
         if (!document.isEditable) return false
         val start = document.lineStartOffset(line)
         val end = document.lineEndOffset(line)
@@ -151,7 +153,7 @@ object GenericSymbolTextActions {
         return true
     }
 
-    private fun duplicateLine(document: SymbolTextDocument): Boolean {
+    private fun duplicateLine(document: PublicSymbolTextDocument): Boolean {
         if (!document.isEditable) return false
         val line = currentLine(document)
         val end = document.lineEndOffset(line)
@@ -163,7 +165,7 @@ object GenericSymbolTextActions {
         return true
     }
 
-    private fun insertBlankLineAbove(document: SymbolTextDocument): Boolean {
+    private fun insertBlankLineAbove(document: PublicSymbolTextDocument): Boolean {
         if (!document.isEditable) return false
         val line = currentLine(document)
         val start = document.lineStartOffset(line)
@@ -173,7 +175,7 @@ object GenericSymbolTextActions {
         return true
     }
 
-    private fun insertBlankLineBelow(document: SymbolTextDocument): Boolean {
+    private fun insertBlankLineBelow(document: PublicSymbolTextDocument): Boolean {
         if (!document.isEditable) return false
         val line = currentLine(document)
         val end = document.lineEndOffset(line)
@@ -183,7 +185,7 @@ object GenericSymbolTextActions {
         return true
     }
 
-    private fun joinWithNextLine(document: SymbolTextDocument): Boolean {
+    private fun joinWithNextLine(document: PublicSymbolTextDocument): Boolean {
         if (!document.isEditable) return false
         val line = currentLine(document)
         if (line >= document.lineCount - 1) return false
@@ -194,7 +196,7 @@ object GenericSymbolTextActions {
         return true
     }
 
-    private fun moveLine(document: SymbolTextDocument, direction: Int): Boolean {
+    private fun moveLine(document: PublicSymbolTextDocument, direction: Int): Boolean {
         if (!document.isEditable) return false
         val line = currentLine(document)
         val target = line + direction
@@ -226,14 +228,14 @@ object GenericSymbolTextActions {
         return true
     }
 
-    private fun selectCurrentLine(document: SymbolTextDocument): Boolean {
+    private fun selectCurrentLine(document: PublicSymbolTextDocument): Boolean {
         val line = currentLine(document)
         document.setSelection(document.lineStartOffset(line), document.lineEndOffset(line))
         return true
     }
 
     private fun transformCurrentLine(
-        document: SymbolTextDocument,
+        document: PublicSymbolTextDocument,
         transform: (String) -> String
     ): Boolean {
         if (!document.isEditable) return false
@@ -241,7 +243,7 @@ object GenericSymbolTextActions {
         return replaceLine(document, line, transform(document.lineText(line)))
     }
 
-    private fun trimCurrentLine(document: SymbolTextDocument): Boolean {
+    private fun trimCurrentLine(document: PublicSymbolTextDocument): Boolean {
         if (!document.isEditable) return false
         val line = currentLine(document)
         val content = document.lineText(line)
@@ -251,7 +253,7 @@ object GenericSymbolTextActions {
         return document.replace(document.lineStartOffset(line) + trimmedLength, end, "")
     }
 
-    private fun toggleLineComments(document: SymbolTextDocument, marker: String): Boolean {
+    private fun toggleLineComments(document: PublicSymbolTextDocument, marker: String): Boolean {
         if (!document.isEditable || marker.isEmpty()) return false
         val firstLine = document.lineForOffset(document.selectionStart).coerceIn(0, document.lineCount - 1)
         var lastLine = document.lineForOffset(document.selectionEnd).coerceIn(0, document.lineCount - 1)
@@ -274,7 +276,7 @@ object GenericSymbolTextActions {
         return true
     }
 
-    private fun indentCurrentLine(document: SymbolTextDocument, indent: String): Boolean {
+    private fun indentCurrentLine(document: PublicSymbolTextDocument, indent: String): Boolean {
         if (!document.isEditable || indent.isEmpty()) return false
         val start = document.lineStartOffset(currentLine(document))
         val previousCursor = document.cursorOffset
@@ -284,7 +286,7 @@ object GenericSymbolTextActions {
         return true
     }
 
-    private fun unindentCurrentLine(document: SymbolTextDocument): Boolean {
+    private fun unindentCurrentLine(document: PublicSymbolTextDocument): Boolean {
         if (!document.isEditable) return false
         val start = document.lineStartOffset(currentLine(document))
         val content = document.lineText(currentLine(document))
@@ -304,7 +306,7 @@ object GenericSymbolTextActions {
         return true
     }
 
-    private fun deleteSelection(document: SymbolTextDocument): Boolean {
+    private fun deleteSelection(document: PublicSymbolTextDocument): Boolean {
         if (!document.isEditable || document.selectionStart == document.selectionEnd) return false
         val start = document.selectionStart
         if (!document.replace(start, document.selectionEnd, "")) return false
@@ -312,7 +314,7 @@ object GenericSymbolTextActions {
         return true
     }
 
-    private fun duplicateSelection(document: SymbolTextDocument): Boolean {
+    private fun duplicateSelection(document: PublicSymbolTextDocument): Boolean {
         if (!document.isEditable || document.selectionStart == document.selectionEnd) return false
         val start = document.selectionStart
         val end = document.selectionEnd
@@ -323,7 +325,7 @@ object GenericSymbolTextActions {
     }
 
     private fun transformSelection(
-        document: SymbolTextDocument,
+        document: PublicSymbolTextDocument,
         transform: (String) -> String
     ): Boolean {
         if (!document.isEditable || document.selectionStart == document.selectionEnd) return false
@@ -335,7 +337,7 @@ object GenericSymbolTextActions {
         return true
     }
 
-    private fun wrapSelection(document: SymbolTextDocument, prefix: String, suffix: String): Boolean {
+    private fun wrapSelection(document: PublicSymbolTextDocument, prefix: String, suffix: String): Boolean {
         if (!document.isEditable || document.selectionStart == document.selectionEnd) return false
         val start = document.selectionStart
         val end = document.selectionEnd
@@ -346,7 +348,7 @@ object GenericSymbolTextActions {
     }
 
 
-    private fun trimLeadingCurrentLine(document: SymbolTextDocument): Boolean {
+    private fun trimLeadingCurrentLine(document: PublicSymbolTextDocument): Boolean {
         if (!document.isEditable) return false
         val line = currentLine(document)
         val content = document.lineText(line)
@@ -360,7 +362,7 @@ object GenericSymbolTextActions {
         return true
     }
 
-    private fun duplicateLineAbove(document: SymbolTextDocument): Boolean {
+    private fun duplicateLineAbove(document: PublicSymbolTextDocument): Boolean {
         if (!document.isEditable) return false
         val line = currentLine(document)
         val start = document.lineStartOffset(line)
@@ -371,7 +373,7 @@ object GenericSymbolTextActions {
         return true
     }
 
-    private fun lineSeparatorBefore(document: SymbolTextDocument, line: Int): String? {
+    private fun lineSeparatorBefore(document: PublicSymbolTextDocument, line: Int): String? {
         val start = document.lineStartOffset(line)
         if (start >= 2 && document.charAt(start - 2) == '\r' && document.charAt(start - 1) == '\n') return "\r\n"
         if (start > 0 && document.charAt(start - 1) == '\r') return "\r"
@@ -379,7 +381,7 @@ object GenericSymbolTextActions {
         return null
     }
 
-    private fun lineSeparatorAfter(document: SymbolTextDocument, line: Int): String? {
+    private fun lineSeparatorAfter(document: PublicSymbolTextDocument, line: Int): String? {
         val end = document.lineEndOffset(line)
         if (end >= document.textLength) return null
         return when (document.charAt(end)) {
@@ -389,23 +391,23 @@ object GenericSymbolTextActions {
         }
     }
 
-    private fun lineSeparator(document: SymbolTextDocument, line: Int): String =
+    private fun lineSeparator(document: PublicSymbolTextDocument, line: Int): String =
         lineSeparatorBefore(document, line) ?: lineSeparatorAfter(document, line) ?: "\n"
 
-    private fun wrapSelectionWithTag(document: SymbolTextDocument, payload: String?): Boolean {
+    private fun wrapSelectionWithTag(document: PublicSymbolTextDocument, payload: String?): Boolean {
         val tag = payload?.trim()?.takeIf { it.matches(Regex("[A-Za-z][A-Za-z0-9:-]{0,63}")) }
             ?: return false
         return wrapSelection(document, "<$tag>", "</$tag>")
     }
 
-    private fun extendSelectionToLineBoundary(document: SymbolTextDocument, start: Boolean): Boolean {
+    private fun extendSelectionToLineBoundary(document: PublicSymbolTextDocument, start: Boolean): Boolean {
         val line = currentLine(document)
         val boundary = if (start) document.lineStartOffset(line) else document.lineEndOffset(line)
         document.setSelection(if (start) boundary else document.cursorOffset, if (start) document.cursorOffset else boundary)
         return true
     }
 
-    private fun selectedLineRange(document: SymbolTextDocument): IntRange? {
+    private fun selectedLineRange(document: PublicSymbolTextDocument): IntRange? {
         val start = document.selectionStart
         val end = document.selectionEnd
         if (start == end) return null
@@ -415,7 +417,7 @@ object GenericSymbolTextActions {
         return if (last >= first) first..last else null
     }
 
-    private fun indentSelectedLines(document: SymbolTextDocument, indent: String): Boolean {
+    private fun indentSelectedLines(document: PublicSymbolTextDocument, indent: String): Boolean {
         if (!document.isEditable || indent.isEmpty()) return false
         val range = selectedLineRange(document) ?: return false
         val oldStart = document.selectionStart
@@ -428,7 +430,7 @@ object GenericSymbolTextActions {
         return true
     }
 
-    private fun unindentSelectedLines(document: SymbolTextDocument): Boolean {
+    private fun unindentSelectedLines(document: PublicSymbolTextDocument): Boolean {
         if (!document.isEditable) return false
         val range = selectedLineRange(document) ?: return false
         val oldStart = document.selectionStart
@@ -462,7 +464,7 @@ object GenericSymbolTextActions {
         return true
     }
 
-    private fun reorderSelectedLines(document: SymbolTextDocument, reverse: Boolean): Boolean {
+    private fun reorderSelectedLines(document: PublicSymbolTextDocument, reverse: Boolean): Boolean {
         if (!document.isEditable || document.textLength > MAX_DOCUMENT_WIDE_CHARS ||
             document.lineCount > MAX_DOCUMENT_WIDE_LINES
         ) return false
@@ -483,7 +485,7 @@ object GenericSymbolTextActions {
         return true
     }
 
-    private fun trimDocumentLeading(document: SymbolTextDocument): Boolean {
+    private fun trimDocumentLeading(document: PublicSymbolTextDocument): Boolean {
         if (!document.isEditable || document.textLength > MAX_DOCUMENT_WIDE_CHARS ||
             document.lineCount > MAX_DOCUMENT_WIDE_LINES
         ) return false
@@ -511,7 +513,7 @@ object GenericSymbolTextActions {
         return changed
     }
 
-    private fun ensureFinalNewline(document: SymbolTextDocument, payload: String?): Boolean {
+    private fun ensureFinalNewline(document: PublicSymbolTextDocument, payload: String?): Boolean {
         if (!document.isEditable || document.textLength == 0) return false
         val last = document.charAt(document.textLength - 1)
         if (last == '\n' || last == '\r') return false
@@ -531,14 +533,14 @@ object GenericSymbolTextActions {
         return true
     }
 
-    private fun moveToLineBoundary(document: SymbolTextDocument, start: Boolean): Boolean {
+    private fun moveToLineBoundary(document: PublicSymbolTextDocument, start: Boolean): Boolean {
         val line = currentLine(document)
         val offset = if (start) document.lineStartOffset(line) else document.lineEndOffset(line)
         document.setSelection(offset, offset)
         return true
     }
 
-    private fun moveWord(document: SymbolTextDocument, backwards: Boolean): Boolean {
+    private fun moveWord(document: PublicSymbolTextDocument, backwards: Boolean): Boolean {
         var offset = document.cursorOffset.coerceIn(0, document.textLength)
         if (backwards) {
             while (offset > 0 && !isWordCharacter(document.charAt(offset - 1))) offset--
@@ -551,7 +553,7 @@ object GenericSymbolTextActions {
         return true
     }
 
-    private fun deleteWord(document: SymbolTextDocument, backwards: Boolean): Boolean {
+    private fun deleteWord(document: PublicSymbolTextDocument, backwards: Boolean): Boolean {
         if (!document.isEditable) return false
         val caret = document.cursorOffset.coerceIn(0, document.textLength)
         val boundary = wordBoundary(document, caret, backwards)
@@ -563,7 +565,7 @@ object GenericSymbolTextActions {
         return true
     }
 
-    private fun selectWord(document: SymbolTextDocument): Boolean {
+    private fun selectWord(document: PublicSymbolTextDocument): Boolean {
         if (document.textLength == 0) return false
         var caret = document.cursorOffset.coerceIn(0, document.textLength)
         if (caret == document.textLength || (caret < document.textLength && !isWordCharacter(document.charAt(caret)))) {
@@ -579,7 +581,7 @@ object GenericSymbolTextActions {
         return true
     }
 
-    private fun wordBoundary(document: SymbolTextDocument, caret: Int, backwards: Boolean): Int {
+    private fun wordBoundary(document: PublicSymbolTextDocument, caret: Int, backwards: Boolean): Int {
         var offset = caret
         if (backwards) {
             while (offset > 0 && !isWordCharacter(document.charAt(offset - 1))) offset--
@@ -591,7 +593,7 @@ object GenericSymbolTextActions {
         return offset
     }
 
-    private fun trimDocument(document: SymbolTextDocument): Boolean {
+    private fun trimDocument(document: PublicSymbolTextDocument): Boolean {
         if (!document.isEditable ||
             document.textLength > MAX_DOCUMENT_WIDE_CHARS ||
             document.lineCount > MAX_DOCUMENT_WIDE_LINES
@@ -609,7 +611,7 @@ object GenericSymbolTextActions {
         return changed
     }
 
-    private fun removeBlankLines(document: SymbolTextDocument): Boolean {
+    private fun removeBlankLines(document: PublicSymbolTextDocument): Boolean {
         if (!document.isEditable || document.textLength > MAX_DOCUMENT_WIDE_CHARS ||
             document.lineCount > MAX_DOCUMENT_WIDE_LINES
         ) return false
@@ -624,7 +626,7 @@ object GenericSymbolTextActions {
         return changed
     }
 
-    private fun setCaret(document: SymbolTextDocument, offset: Int): Boolean {
+    private fun setCaret(document: PublicSymbolTextDocument, offset: Int): Boolean {
         val safe = offset.coerceIn(0, document.textLength)
         document.setSelection(safe, safe)
         return true
