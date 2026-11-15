@@ -430,17 +430,18 @@ internal class SymbolPageAdapter(
                 }
                 target = holder.label
             }
+            val boundExtension = extension
             target.isClickable = true
             target.isFocusable = true
             holder.interactionTarget = target
             val hasLongPress = item.longAction != null ||
-                (extension?.let { candidate ->
+                (boundExtension?.let { candidate ->
                     runCatching { candidate.wantsLongPress(legacyItem) }.getOrDefault(false)
                 } == true)
             target.setOnClickListener {
                 val current = holder.bindingAdapterPosition
                 if (current != RecyclerView.NO_POSITION && getItem(current).id == item.id) {
-                    if (extension != null) extension.onClick(target, legacyItem, state)
+                    boundExtension?.onClick(target, legacyItem, state)
                     onSymbolAction(getItem(current), false)
                 }
             }
@@ -452,7 +453,7 @@ internal class SymbolPageAdapter(
             val dispatchLongAction = {
                 val current = holder.bindingAdapterPosition
                 if (current != RecyclerView.NO_POSITION && getItem(current).id == item.id) {
-                    if (extension != null) extension.onLongPress(target, legacyItem, state.copy(pressed = true))
+                    boundExtension?.onLongPress(target, legacyItem, state.copy(pressed = true))
                     onSymbolAction(getItem(current), true)
                 }
             }
@@ -468,8 +469,8 @@ internal class SymbolPageAdapter(
                 hasLongAction = hasLongPress,
                 onLongPress = dispatchLongAction,
                 onTouch = { event ->
-                    if (extension != null) {
-                        extension.onTouch(
+                    if (boundExtension != null) {
+                        boundExtension.onTouch(
                             target, legacyItem,
                             state.copy(
                                 pressed = event.actionMasked != MotionEvent.ACTION_UP &&
