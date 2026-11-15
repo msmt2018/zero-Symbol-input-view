@@ -151,15 +151,24 @@ class SymbolDrawerExtensionRegistry {
     ): AutoCloseable {
         require(id.matches(EXTENSION_ID)) { "Invalid extension ID: $id" }
         val token = Any()
-        synchronized(lock) { target[id] = Registered(token, value) }
-        val secondaryHandle = try {
-            afterInsert?.invoke()
-        } catch (error: Throwable) {
-            synchronized(lock) {
-                if (target[id]?.token === token) target.remove(id)
+        // Keep replacement and its secondary registration in one critical
+        // section. Otherwise concurrent registrations with the same ID can
+        // leave the public contribution and its action handler pointing at
+        // different instances.
+        val secondaryHandle = synchronized(lock) {
+            val previous = target[id]
+            target[id] = Registered(token, value)
+            try {
+                afterInsert?.invoke()
+            } catch (error: Throwable) {
+                // Registration is transactional: if setup fails, restore the
+                // previous contribution instead of silently deleting it.
+                if (target[id]?.token === token) {
+                    if (previous == null) target.remove(id)
+                    else target[id] = previous
+                }
+                throw error
             }
-            notifyChanged()
-            throw error
         }
         notifyChanged()
         var closed = false
