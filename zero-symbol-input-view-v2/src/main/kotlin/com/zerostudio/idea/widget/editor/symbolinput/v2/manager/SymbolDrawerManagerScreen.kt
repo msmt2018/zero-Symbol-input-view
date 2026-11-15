@@ -163,7 +163,7 @@ class SymbolDrawerManagerScreen(
     /** Optional session registry; when supplied, registered app actions appear in the action picker. */
     private val extensionRegistry: SymbolDrawerExtensionRegistry? = null,
     /** Optional live toolbar target; when supplied, manager imports/editing sync automatically. */
-    drawer: SymbolDrawerView? = null
+    private val liveDrawer: SymbolDrawerView? = null
 ) : LinearLayout(context) {
 
     var onGroupsChanged: ((List<SymbolGroup>) -> Unit)? = null
@@ -257,7 +257,12 @@ class SymbolDrawerManagerScreen(
         )
         buildUndoBar()
         refresh()
-        drawer?.let(::bindToDrawer)
+        liveDrawer?.let(::bindToDrawer)
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        if (drawerBindingHandle == null) liveDrawer?.let(::bindToDrawer)
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
