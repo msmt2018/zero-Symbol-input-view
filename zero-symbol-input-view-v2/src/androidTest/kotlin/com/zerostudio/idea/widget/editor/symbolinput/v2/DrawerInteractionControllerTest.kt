@@ -36,6 +36,7 @@ class DrawerInteractionControllerTest {
                     com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup("third", "Third", emptyList())
                 )
                 drawer.submitGroups(groups)
+                androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().waitForIdleSync()
                 drawer.selectGroup(1, false)
                 assertEquals(1, drawer.getCurrentGroupIndex())
                 drawer.selectGroup(2, false)
