@@ -15,3 +15,7 @@ typealias SymbolDrawerSettingExtension = com.zerostudio.idea.widget.editor.symbo
 typealias SymbolDrawerSettingsScope = com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerSettingsScope
 typealias SymbolDrawerThemeExtension = com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerThemeExtension
 typealias SymbolDrawerTheme = com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerTheme
+typealias SymbolDrawerItemViewExtension = com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerItemViewExtension
+typealias SymbolDrawerItemViewState = com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerItemViewState
+typealias SymbolDrawerLegacyGroupProvider = com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerLegacyGroupProvider
+typealias SymbolDrawerLifecycleExtension = com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerLifecycleExtension
