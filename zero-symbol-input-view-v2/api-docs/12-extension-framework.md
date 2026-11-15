@@ -179,12 +179,10 @@ fun interface SymbolActionHandler<C> {
 
 `SymbolDrawerSettingsTabExtension.id` 和 `SymbolDrawerSettingExtension.tabId` 是设置页面内部使用的 Tab 标识，应与目标设置容器中的 Tab ID 一致。它们与 `SymbolDrawerBuiltInFeatures` 的内置功能可见性 ID 属于不同命名空间，不能混用。设置扩展可以使用宿主自定义 ID；建议宿主定义常量，例如：
 
-- `appearance`
-- `layout`
-- `interaction`
-- `performance`
-- `data`
-- `editor`
+- 内置设置页的实际 `tabId` 为：`appearance`、`layout`、`tablet`、`interaction`、`performance-search`、`data`。
+- 自定义设置 Tab 使用扩展自身的 `id`；该 Tab 内的设置项以相同 `tabId` 归属。
+
+不要将示例名称当作内置 Tab ID；宿主可以自行扩展其它 Tab，但必须自行提供对应的设置页面。
 
 注册项的 `tabId` 必须与宿主设置容器使用的 ID 一致。注册表负责贡献发现与排序；具体设置 UI 容器负责把返回的 View 放入对应页面。
 
