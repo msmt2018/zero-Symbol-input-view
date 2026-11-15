@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.LinearLayout
+import android.widget.PopupWindow
 import android.widget.ScrollView
 import android.widget.TextView
 import java.lang.reflect.Modifier
@@ -28,6 +29,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSet
 import com.zerostudio.idea.widget.editor.symbolinput.v2.testing.DrawerTestHostActivity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.concurrent.CountDownLatch
@@ -309,6 +311,44 @@ class DrawerUiContractTest {
                 val backup = screen.exportBundle()
                 screen.importBundle(backup)
                 assertEquals(sample(), repository.value)
+            }
+        }
+    }
+
+    @Test fun dragPreviewUsesAnIndependentNonTouchPopupAndDoesNotResizeManager() {
+        ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val screen = SymbolDrawerManagerScreen(activity, Groups(sample()))
+                activity.content.addView(screen, FrameLayout.LayoutParams(-1, -1))
+                val width = (420f * activity.resources.displayMetrics.density).toInt()
+                val height = (720f * activity.resources.displayMetrics.density).toInt()
+                screen.measure(
+                    View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
+                )
+                screen.layout(0, 0, width, height)
+                val childCountBefore = screen.childCount
+                val measuredHeightBefore = screen.measuredHeight
+
+                val showPreview = SymbolDrawerManagerScreen::class.java
+                    .getDeclaredMethod("showDragPreview")
+                    .apply { isAccessible = true }
+                showPreview.invoke(screen)
+
+                val popupField = SymbolDrawerManagerScreen::class.java
+                    .getDeclaredField("previewPopup")
+                    .apply { isAccessible = true }
+                val popup = popupField.get(screen) as? PopupWindow
+                assertNotNull("Drag preview must be hosted by its own PopupWindow", popup)
+                assertTrue("Preview popup should be visible during a drag", popup!!.isShowing)
+                assertFalse("Preview must not steal the active drag touch stream", popup.isTouchable)
+                assertEquals("Preview must not add rows to the manager layout", childCountBefore, screen.childCount)
+                assertEquals("Preview must not change the measured manager height", measuredHeightBefore, screen.measuredHeight)
+
+                SymbolDrawerManagerScreen::class.java
+                    .getDeclaredMethod("destroyDragPreview")
+                    .apply { isAccessible = true }
+                    .invoke(screen)
             }
         }
     }
