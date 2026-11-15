@@ -378,6 +378,16 @@ class SymbolDrawerSettingsScreen(
                     text = "扩展页面加载失败：${extension.title}（${error.message ?: "未知错误"}）"
                     setTextColor(android.graphics.Color.RED)
                 }, matchWrap()) }
+            extensionSettings.asSequence()
+                .filter { it.tabId == extension.id }
+                .forEach { setting ->
+                    runCatching { setting.createView(context, settingsScope) }
+                        .onSuccess { page.addView(it, matchWrap()) }
+                        .onFailure { error -> page.addView(TextView(context).apply {
+                            text = "扩展设置加载失败：${setting.title}（${error.message ?: "未知错误"}）"
+                            setTextColor(android.graphics.Color.RED)
+                        }, matchWrap()) }
+                }
         }
         activePage = null
         tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
