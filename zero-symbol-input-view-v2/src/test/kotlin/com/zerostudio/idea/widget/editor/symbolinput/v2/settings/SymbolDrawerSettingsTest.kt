@@ -205,6 +205,22 @@ class SymbolDrawerSettingsTest {
         }
     }
 
+    @Test fun groupIndicatorCatalogContainsManyIndependentModesAndKeepsLegacyTextValue() {
+        assertTrue(GroupIndicatorStyle.values().size >= 40)
+        assertEquals(GroupIndicatorStyle.TEXT, SymbolDrawerSettingsCodec.decode(
+            SymbolDrawerSettingsCodec.encode(SymbolDrawerSettings(indicatorStyle = GroupIndicatorStyle.TEXT))
+        ).indicatorStyle)
+        assertEquals(GroupIndicatorStyle.TEXT_TABS, SymbolDrawerSettingsCodec.decode(
+            SymbolDrawerSettingsCodec.encode(SymbolDrawerSettings(indicatorStyle = GroupIndicatorStyle.TEXT_TABS))
+        ).indicatorStyle)
+        assertEquals(GroupIndicatorStyle.GOOEY_METABALL, SymbolDrawerSettingsCodec.decode(
+            SymbolDrawerSettingsCodec.encode(SymbolDrawerSettings(indicatorStyle = GroupIndicatorStyle.GOOEY_METABALL))
+        ).indicatorStyle)
+        assertEquals(GroupIndicatorStyle.RADIAL_RING, SymbolDrawerSettingsCodec.decode(
+            SymbolDrawerSettingsCodec.encode(SymbolDrawerSettings(indicatorStyle = GroupIndicatorStyle.RADIAL_RING))
+        ).indicatorStyle)
+    }
+
     private fun assertFails(block: () -> Unit) {
         try {
             block()
