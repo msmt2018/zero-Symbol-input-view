@@ -66,6 +66,22 @@ class SymbolGroupManagerContractTest {
         assertFalse(manager.groups.first().symbols.any { it.id == 1L })
     }
 
+    @Test fun failedBatchRemovalDoesNotPublishPartialDeletion() {
+        val first = symbol(1, "first")
+        val second = symbol(2, "second")
+        val initial = listOf(SymbolGroup("a", "A", listOf(first, second)))
+        val repo = MemoryRepository(initial)
+        val manager = SymbolGroupManager(repo)
+        repo.failWrites = true
+
+        assertThrows(IllegalStateException::class.java) {
+            manager.removeSymbols("a", setOf(1L, 2L))
+        }
+
+        assertEquals(initial, manager.groups)
+        assertEquals(initial, repo.data)
+    }
+
     @Test fun staleBatchSelectionAndInvalidOrderDoNotPartiallyWrite() {
         val repo = MemoryRepository(listOf(SymbolGroup("a", "A", listOf(symbol(1)))))
         val manager = SymbolGroupManager(repo)

@@ -655,7 +655,7 @@ class SymbolDrawerManagerScreen(
             selectedSymbolIds.clear()
             updateBatchSummary()
             refresh()
-            showUndo("已删除 \${ids.size} 个符号") {
+            showUndo("已删除 ${ids.size} 个符号") {
                 manager.replaceAll(before)
                 restoreUsageState(previousUsage)
             }
@@ -1272,7 +1272,6 @@ class SymbolDrawerManagerScreen(
                         manager.replaceAll(previous)
                         restoreUsageState(previousUsage)
                         selectedGroupId = previousSelection
-                        refresh()
                     }
                 }.onFailure(::reportError)
             }
