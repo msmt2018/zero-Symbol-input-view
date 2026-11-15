@@ -75,6 +75,9 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerIntera
 import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.SymbolGroupIndicator
 import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.SymbolPageAdapter
 import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerExtensionRegistry
+import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolGroupIndicatorComponent
+import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolGroupIndicatorState
+import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolGroupIndicatorExtension
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionHost
 import kotlin.math.roundToInt
 
@@ -135,6 +138,13 @@ class SymbolDrawerView @JvmOverloads constructor(
     private val indicator = SymbolGroupIndicator(context) { selectGroup(it, true) }.apply {
         onSettingsClick = { openSettings() }
     }
+    private val indicatorHost = FrameLayout(context).apply {
+        addView(indicator, FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+    }
+    private var customIndicatorId: String? = null
+    private var activeCustomIndicatorExtension: SymbolGroupIndicatorExtension? = null
+    private var customIndicatorComponent: SymbolGroupIndicatorComponent? = null
+    private var extensionObserver: AutoCloseable? = null
     private val pager = ViewPager2(context).apply {
         orientation = ViewPager2.ORIENTATION_HORIZONTAL
         offscreenPageLimit = 1
@@ -167,7 +177,7 @@ class SymbolDrawerView @JvmOverloads constructor(
     init {
         clipChildren = false
         clipToPadding = false
-        addView(indicator, LayoutParams(LayoutParams.MATCH_PARENT, 0))
+        addView(indicatorHost, LayoutParams(LayoutParams.MATCH_PARENT, 0))
         addView(pager, LayoutParams(LayoutParams.MATCH_PARENT, collapsedHeight))
         pager.adapter = pageAdapter
         // Load the durable settings snapshot before the first visible layout.
@@ -181,7 +191,7 @@ class SymbolDrawerView @JvmOverloads constructor(
         pager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 if (suppressPageCallbacks) return
-                indicator.setSelectedIndex(position)
+                setIndicatorSelectedIndex(position)
                 onGroupChangedListener?.invoke(position, groups.getOrNull(position))
             }
         })
@@ -207,7 +217,7 @@ class SymbolDrawerView @JvmOverloads constructor(
         // synchronously so a settings slider updates the visible drawer without
         // waiting for an asynchronous ListAdapter diff to finish.
         recalculateGeometry()
-        indicator.applySettings(settings)
+        applyIndicatorSettings(settings)
         pager.offscreenPageLimit = if (settings.prefetchAdjacentGroups) settings.pageCacheLimit else 1
 
         // Most settings (haptics, animation, auto-collapse, cache policy) do
@@ -284,12 +294,73 @@ class SymbolDrawerView @JvmOverloads constructor(
             .also { it.show() }
     }
 
+
+    /**
+     * Activates a registered custom group indicator. The component receives
+     * group snapshots and selection callbacks, while ViewPager2 remains the
+     * single owner of actual page navigation.
+     *
+     * Returns false when the ID is not registered or component creation fails.
+     */
+    fun setCustomGroupIndicator(extensionId: String): Boolean {
+        val extension = extensions.indicators().firstOrNull { it.id == extensionId } ?: return false
+        val component = runCatching {
+            extension.create(
+                context,
+                SymbolGroupIndicatorState(groups, pager.currentItem) { index -> selectGroup(index, true) }
+            )
+        }.getOrElse { return false }
+        indicatorHost.removeAllViews()
+        indicatorHost.addView(
+            component.view,
+            FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
+        )
+        customIndicatorId = extensionId
+        activeCustomIndicatorExtension = extension
+        customIndicatorComponent = component
+        component.submitGroups(groups)
+        component.setSelectedIndex(pager.currentItem)
+        component.applySettings(settings)
+        requestLayout()
+        invalidate()
+        return true
+    }
+
+    /** Restores the built-in indicator without changing the current group/page. */
+    fun useBuiltInGroupIndicator() {
+        customIndicatorId = null
+        activeCustomIndicatorExtension = null
+        customIndicatorComponent = null
+        indicatorHost.removeAllViews()
+        indicatorHost.addView(
+            indicator,
+            FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
+        )
+        indicator.applySettings(settings)
+        indicator.submitGroups(groups)
+        indicator.setSelectedIndex(pager.currentItem)
+        requestLayout()
+        invalidate()
+    }
+
+    private fun setIndicatorSelectedIndex(index: Int) {
+        customIndicatorComponent?.setSelectedIndex(index) ?: indicator.setSelectedIndex(index)
+    }
+
+    private fun submitIndicatorGroups(value: List<SymbolGroup>) {
+        customIndicatorComponent?.submitGroups(value) ?: indicator.submitGroups(value)
+    }
+
+    private fun applyIndicatorSettings(value: SymbolDrawerSettings) {
+        customIndicatorComponent?.applySettings(value) ?: indicator.applySettings(value)
+    }
+
     fun getSettings(): SymbolDrawerSettings = settings
 
     /** Refresh palette after the host changes its theme without recreating its Activity. */
     fun refreshHostTheme() {
         setBackgroundColor(com.zerostudio.idea.widget.editor.symbolinput.v2.ui.HostThemeColors.surface(context))
-        indicator.setBackgroundColor(com.zerostudio.idea.widget.editor.symbolinput.v2.ui.HostThemeColors.surface(context))
+        indicatorHost.setBackgroundColor(com.zerostudio.idea.widget.editor.symbolinput.v2.ui.HostThemeColors.surface(context))
         indicator.applySettings(settings)
         applySettings(settings)
     }
@@ -303,6 +374,18 @@ class SymbolDrawerView @JvmOverloads constructor(
         // Catch changes made while this view was detached.
         val latest = settingsRepository.load().settings
         if (latest != settings) applySettings(latest)
+        if (extensionObserver == null) {
+            extensionObserver = extensions.observe(emitCurrent = false) { snapshot ->
+                post {
+                    val selectedId = customIndicatorId ?: return@post
+                    val updated = snapshot.indicators.firstOrNull { it.id == selectedId }
+                    when {
+                        updated == null -> useBuiltInGroupIndicator()
+                        updated !== activeCustomIndicatorExtension -> setCustomGroupIndicator(selectedId)
+                    }
+                }
+            }
+        }
         interactionController.onAttached()
         recalculateGeometry()
         if (settings.rememberExpandedState) {
@@ -325,6 +408,8 @@ class SymbolDrawerView @JvmOverloads constructor(
         }
         settingsDialog?.dismiss()
         settingsDialog = null
+        extensionObserver?.close()
+        extensionObserver = null
         interactionController.onDetached()
         super.onDetachedFromWindow()
     }
@@ -383,7 +468,7 @@ class SymbolDrawerView @JvmOverloads constructor(
             groups.indexOfFirst { it.id == previousId }.takeIf { it >= 0 }
         } else null
         val target = restored ?: pager.currentItem.coerceIn(0, (groups.size - 1).coerceAtLeast(0))
-        indicator.submitGroups(groups)
+        submitIndicatorGroups(groups)
         pageAdapter.submitList(groups) {
             if (groups.isNotEmpty() && target in groups.indices) {
                 pager.setCurrentItem(target, false)
@@ -462,8 +547,8 @@ class SymbolDrawerView @JvmOverloads constructor(
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val width = MeasureSpec.getSize(widthMeasureSpec)
-        val indicatorHeight = indicator.layoutParams.height.coerceAtLeast(0)
-        indicator.measure(
+        val indicatorHeight = indicatorHost.layoutParams.height.coerceAtLeast(0)
+        indicatorHost.measure(
             MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
             MeasureSpec.makeMeasureSpec(indicatorHeight, MeasureSpec.EXACTLY)
         )
@@ -471,15 +556,15 @@ class SymbolDrawerView @JvmOverloads constructor(
             MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
             MeasureSpec.makeMeasureSpec(pagerHeight, MeasureSpec.EXACTLY)
         )
-        val desiredHeight = indicator.measuredHeight + pager.measuredHeight
+        val desiredHeight = indicatorHost.measuredHeight + pager.measuredHeight
         val resolvedHeight = resolveSize(desiredHeight, heightMeasureSpec)
         setMeasuredDimension(width, resolvedHeight)
     }
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
         val width = right - left
-        val indicatorHeight = indicator.measuredHeight
-        indicator.layout(0, 0, width, indicatorHeight)
+        val indicatorHeight = indicatorHost.measuredHeight
+        indicatorHost.layout(0, 0, width, indicatorHeight)
         pager.layout(0, indicatorHeight, width, indicatorHeight + pager.measuredHeight)
     }
 
@@ -596,15 +681,15 @@ class SymbolDrawerView @JvmOverloads constructor(
     private fun updateVisualState(fraction: Float) {
         val reveal = DrawerGeometry.indicatorReveal(fraction)
         val indicatorHeight = (config.indicatorHeightDp * resources.displayMetrics.density * reveal).roundToInt()
-        val params = indicator.layoutParams
+        val params = indicatorHost.layoutParams
         if (params.height != indicatorHeight) {
             params.height = indicatorHeight
-            indicator.layoutParams = params
+            indicatorHost.layoutParams = params
         }
-        indicator.alpha = reveal
-        indicator.translationY = -((1f - reveal) * config.indicatorHeightDp *
+        indicatorHost.alpha = reveal
+        indicatorHost.translationY = -((1f - reveal) * config.indicatorHeightDp *
             resources.displayMetrics.density * 0.2f)
-        indicator.visibility = if (indicatorHeight == 0) View.INVISIBLE else View.VISIBLE
+        indicatorHost.visibility = if (indicatorHeight == 0) View.INVISIBLE else View.VISIBLE
     }
 
     internal class DrawerSavedState : View.BaseSavedState {
