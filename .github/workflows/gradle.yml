@@ -197,7 +197,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Publish V2 release to local Maven repository
-        run: ./gradlew :zero-symbol-input-view-v2:publishReleasePublicationToMavenLocal --no-daemon
+        run: ./gradlew -PjitpackBuild=true :zero-symbol-input-view-v2:publishReleasePublicationToMavenLocal --no-daemon
         env:
           VERSION: 0.0.0-ci
 
