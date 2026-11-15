@@ -311,6 +311,8 @@ val groups = drawer.reloadLegacyGroupsFromExtensions(persist = true)
 
 `SymbolDrawerLifecycleExtension` 可观察原控件的 attach/detach、设置变化、分组变化、当前分组变化、抽屉展开进度和符号调用。回调接收原始 Legacy 分组/符号记录及原有 `SymbolDrawerSettings`。所有回调由控件隔离扩展异常；扩展不得在回调中阻塞 UI 线程。
 
+同一 `id` 的生命周期扩展被替换时，控件会先对旧实例调用 `onDetached`，再对新实例调用 `onAttached`。比较采用实例身份而不是 `equals()`，因此即使扩展实现是字段相同的数据类，也不会跳过资源切换。
+
 ### 9.4 Legacy 数字动作注册
 
 对于 `SymbolItem.shortAction` / `longAction` 中保存的数字动作 ID，使用：
