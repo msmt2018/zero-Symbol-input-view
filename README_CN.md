@@ -371,6 +371,47 @@ V2 不要求依赖 Sora Editor 或任何编辑器核心对象。宿主只需实�
 
 扩展对象及处理器只存在于当前运行时，不会自动写入 JSON。持久化时应保存稳定 ID 和配置值，重新创建控件/会话时重新注册扩展。动作宿主只暴露宿主显式授予的能力；扩展 API 不持有编辑器核心对象，也不访问抽屉状态。
 
+#### 7.2 对外事件接口与简洁动作 DSL
+
+事件位于 `com.zerostudio.idea.widget.symboltoolbar.api.event`。事件分为分组、符号项交互、动作执行、状态/配置、生命周期和自定义扩展事件。每个事件携带 `controlId`、时间戳和递增序号；动作事件携带原始调用上下文、结果或异常。
+
+```kotlin
+val runtime = SymbolToolbarExtensionRuntime(
+    controlId = "editor.symbols",
+    registry = extensions,
+    actionHost = editorActionHost
+)
+
+// 只订阅动作执行结果
+val actionEvents = runtime.events.on<SymbolToolbarActionEvent.Completed> { event ->
+    logger.info("${event.invocation.itemId}: ${event.result}")
+}
+
+// 订阅全部事件，适合调试面板或埋点
+val allEvents = runtime.events.subscribe { event -> logger.debug(event.toString()) }
+```
+
+动作实现无需创建 Handler 类。使用 `action(type) { }` 即可定义执行代码：
+
+```kotlin
+val insertSnippet = extensions.action("my.plugin.insert-snippet") {
+    val snippet = action.payload ?: return@action SymbolToolbarActionResult.Rejected(
+        "Missing snippet payload"
+    )
+    insert(snippet)
+}
+
+val deleteWord = extensions.action("my.plugin.delete-word") {
+    command("editor.deleteWordBackward")
+}
+```
+
+`SymbolToolbarActionContext` 提供 `action`、`groupId`、`itemId`、`isLongPress`、`host`，以及 `insert()`、`deleteBackward()`、`moveCursor()`、`command()` 等快捷方法。需要更细粒度能力时可直接调用 `host` 或实现底层 `SymbolToolbarActionHandler`。
+
+事件监听返回 `AutoCloseable`，应在插件/页面/控件生命周期结束时关闭。事件监听器异常会被隔离；事件 Hub 按控件实例隔离，不允许跨控件误投递。事件对象用于进程内通知，不应直接序列化异常对象或 lambda；持久化仅保存 action type、payload 和 arguments。
+
+**事件接入说明：** 当前事件 Hub 和动作运行时已经提供公开订阅、分发及动作阶段事件。符号项按下/释放、分组切换、配置变化等 UI 事件仍需由具体控件实现调用对应事件发布入口；不能仅凭注册监听器就认为旧控件已经自动发出所有事件。控件接入阶段必须逐项连接这些事件，并通过交互测试验证触发时机和顺序。
+
 ### 8. V1 / MT 管理器紧凑 JSON 互通
 
 管理界面提供 `importMtManagerJson(json)` 和 `exportMtManagerJson()`，用于旧版紧凑分组/符号 JSON（字段 `n/d/a/b/c/d/e`）。采用该结构的文件可以直接导入。V2 完整备份应使用 `importBundle` / `exportBundle`，以保留 V2 专属动作和稳定 ID。旧格式无法表达全部 V2 动作；导出遇到不支持的动作会明确拒绝，不会静默丢失。详见 [MT JSON 互通说明](zero-symbol-input-view-v2/README.md#10-mt-管理器--v1-json-互通)。
