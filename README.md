@@ -343,34 +343,11 @@ dependencies {
 
 The complete Maven coordinate, Groovy DSL variant, publication workflow, and release-tag rules are documented in [the V2 module README](zero-symbol-input-view-v2/README.md#2-jitpack-remote-maven-import).
 
-### 7. Editor-independent toolbar extension API
+### 7. Extending the existing symbol drawer
 
-The public toolbar API is backed by `SymbolDrawerToolbarControl`, an adapter over the real `SymbolDrawerView`. It does not require Sora Editor or another editor-core object. The host supplies a `SymbolToolbarActionHost` and coroutine scope; the toolbar exposes its own `SymbolToolbarExtensionRegistry` and `SymbolToolbarExtensionRuntime`.
+The extension API is implemented by the drawer's own `SymbolDrawerExtensionRegistry` and consumed directly by `SymbolDrawerView`, `SymbolGroupIndicator`, `SymbolPageAdapter`, and the existing settings screen. There is no second toolbar control, parallel view hierarchy, or independent toolbar persistence layer.
 
-The public symbol-data contract deliberately reuses the original V1 models:
-
-- `com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolGroup`
-- `com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolItem`
-
-Settings use `SymbolDrawerSettings` directly. No parallel group, item, or toolbar-settings model is used. The adapter converts the submitted legacy data through the existing `LegacySymbolDataCodec` before handing it to the V2 drawer renderer. Numeric `shortAction` / `longAction` IDs and `shortText` / `longText` payloads are passed to the runtime unchanged.
-
-Example:
-
-```kotlin
-val control = SymbolDrawerToolbarControl(
-    drawer = drawerView,
-    actionHost = appActionHost,
-    coroutineScope = lifecycleScope,
-    settingsRepository = settingsRepository
-)
-
-val registration = control.extensions.action(1201) {
-    // This is the original SymbolItem and its numeric action payload.
-    insert(item.display)
-}
-```
-
-Click and long-press action pipelines can be registered independently against the exact legacy `SymbolItem` instance with `symbolItemActions(item, click = { ... }, longPress = { ... })`. These executable lambdas are runtime-only and are not serialized into a second JSON document. Use the existing group repository, `LegacySymbolDataCodec`, `SymbolDrawerSettingsRepository`, and `SymbolDrawerSettingsCodec` for persistence.
+Public symbol data uses the original `model.legacy.SymbolGroup` / `SymbolItem` contract where legacy symbol records are exposed. Settings use `SymbolDrawerSettings`; runtime registrations are recreated by the host when a drawer session is created and are not serialized into a parallel document.
 
 ## Build and Test
 
