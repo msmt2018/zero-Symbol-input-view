@@ -131,7 +131,8 @@ internal class SymbolPageAdapter(
     private val onSymbolAction: (SymbolEntry, Boolean) -> Unit,
     private val extensions: SymbolDrawerExtensionRegistry,
     private val legacyItemResolver: (SymbolEntry) -> SymbolItem,
-    private val canScrollGridVertically: () -> Boolean = { true }
+    private val canScrollGridVertically: () -> Boolean = { true },
+    private val themeProvider: () -> com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerTheme? = { null }
 ) : ListAdapter<SymbolGroup, SymbolPageAdapter.PageHolder>(GROUP_DIFF) {
 
     data class GridSpacingState(
@@ -223,7 +224,7 @@ internal class SymbolPageAdapter(
                 }
             }
         }
-        return PageHolder(grid, config, settings, onSymbolAction, spacingState, extensions, legacyItemResolver)
+        return PageHolder(grid, config, settings, onSymbolAction, spacingState, extensions, legacyItemResolver, themeProvider)
     }
 
     override fun onBindViewHolder(holder: PageHolder, position: Int) {
@@ -254,9 +255,10 @@ internal class SymbolPageAdapter(
         onSymbolAction: (SymbolEntry, Boolean) -> Unit,
         private val spacingState: GridSpacingState,
         extensions: SymbolDrawerExtensionRegistry,
-        legacyItemResolver: (SymbolEntry) -> SymbolItem
+        legacyItemResolver: (SymbolEntry) -> SymbolItem,
+        themeProvider: () -> com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerTheme?
     ) : RecyclerView.ViewHolder(grid) {
-        private val symbolsAdapter = SymbolAdapter(config, settings, onSymbolAction, spacingState, extensions, legacyItemResolver)
+        private val symbolsAdapter = SymbolAdapter(config, settings, onSymbolAction, spacingState, extensions, legacyItemResolver, themeProvider)
         init { grid.adapter = symbolsAdapter }
         fun bind(groupIndex: Int, symbols: List<SymbolEntry>) {
             val groupChanged = symbolsAdapter.groupIndex != groupIndex
@@ -302,7 +304,8 @@ internal class SymbolPageAdapter(
         private val onSymbolAction: (SymbolEntry, Boolean) -> Unit,
         private val spacingState: GridSpacingState,
         private val extensions: SymbolDrawerExtensionRegistry,
-        private val legacyItemResolver: (SymbolEntry) -> SymbolItem
+        private val legacyItemResolver: (SymbolEntry) -> SymbolItem,
+        private val themeProvider: () -> com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerTheme?
     ) : ListAdapter<SymbolEntry, SymbolHolder>(SYMBOL_DIFF) {
         var groupIndex: Int = -1
         fun refreshItemExtensions() {
@@ -312,7 +315,7 @@ internal class SymbolPageAdapter(
             val container = android.widget.FrameLayout(parent.context)
             val label = TextView(parent.context).apply {
                 gravity = Gravity.CENTER
-                setTextColor(HostThemeColors.onSurface(context))
+                setTextColor(themeProvider()?.onSurface ?: HostThemeColors.onSurface(context))
                 val selectableBackground = TypedValue()
                 if (context.theme.resolveAttribute(android.R.attr.selectableItemBackground, selectableBackground, true) && selectableBackground.resourceId != 0) {
                     setBackgroundResource(selectableBackground.resourceId)
@@ -363,7 +366,8 @@ internal class SymbolPageAdapter(
                 position = position,
                 selected = false,
                 pressed = false,
-                enabled = true
+                enabled = true,
+                theme = themeProvider()
             )
             var extension = extensions.itemViews().firstOrNull { candidate ->
                 runCatching { candidate.accepts(legacyItem) }.getOrDefault(false)
