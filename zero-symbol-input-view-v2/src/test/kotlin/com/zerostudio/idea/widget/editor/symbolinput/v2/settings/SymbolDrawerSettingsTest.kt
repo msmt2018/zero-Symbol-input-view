@@ -171,7 +171,7 @@ class SymbolDrawerSettingsTest {
 
     @Test fun schemaVersionIsAlwaysUpgradedAfterPermissiveV1Decode() {
         val restored = SymbolDrawerSettingsCodec.decode("""{"schemaVersion":1,"columns":8}""")
-        assertEquals(3, restored.schemaVersion)
+        assertEquals(SymbolDrawerSettings.CURRENT_SCHEMA_VERSION, restored.schemaVersion)
         assertEquals(8, restored.columns)
     }
 
