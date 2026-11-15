@@ -1,20 +1,19 @@
 /*
- * Extension contracts for independent symbol toolbar controls.
+ * Extension contracts for symbol toolbar controls.
+ * Symbol groups/items/settings use the canonical V1/V2 models directly.
  * SPDX-License-Identifier: AGPL-3.0-only AND GPL-3.0-only AND Apache-2.0
  */
 package com.zerostudio.idea.widget.symboltoolbar.api.extension
 
 import android.content.Context
 import android.view.View
-import com.zerostudio.idea.widget.symboltoolbar.api.SymbolToolbarConfig
-import com.zerostudio.idea.widget.symboltoolbar.api.action.SymbolToolbarAction
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolGroup
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolItem
+import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
 import com.zerostudio.idea.widget.symboltoolbar.api.action.SymbolToolbarActionHost
 import com.zerostudio.idea.widget.symboltoolbar.api.action.SymbolToolbarActionResult
-import com.zerostudio.idea.widget.symboltoolbar.api.model.SymbolToolbarGroup
-import com.zerostudio.idea.widget.symboltoolbar.api.model.SymbolToolbarItem
 import com.zerostudio.idea.widget.symboltoolbar.api.model.SymbolToolbarInvocation
 
-/** Common metadata used by discovery UIs and deterministic extension ordering. */
 interface SymbolToolbarExtension {
     val id: String
     val title: String
@@ -22,15 +21,13 @@ interface SymbolToolbarExtension {
     val priority: Int get() = 0
 }
 
-/** Supplies groups without coupling the control to a repository implementation. */
 interface SymbolToolbarGroupProvider : SymbolToolbarExtension {
-    suspend fun loadGroups(): List<SymbolToolbarGroup>
+    suspend fun loadGroups(): List<SymbolGroup>
 }
 
-/** Allows a host to provide a completely custom item View while retaining semantic item data. */
 interface SymbolToolbarItemViewExtension : SymbolToolbarExtension {
-    fun createView(context: Context, item: SymbolToolbarItem, state: SymbolToolbarItemViewState): View
-    fun bindView(view: View, item: SymbolToolbarItem, state: SymbolToolbarItemViewState)
+    fun createView(context: Context, item: SymbolItem, state: SymbolToolbarItemViewState): View
+    fun bindView(view: View, item: SymbolItem, state: SymbolToolbarItemViewState)
     fun onViewRecycled(view: View) = Unit
 }
 
@@ -39,39 +36,36 @@ data class SymbolToolbarItemViewState(
     val pressed: Boolean = false,
     val enabled: Boolean = true,
     val position: Int = 0,
-    val groupId: String? = null
+    val groupIndex: Int = -1
 )
 
-/** Replaces only group navigation presentation; the host remains owner of selection. */
 interface SymbolToolbarGroupIndicatorExtension : SymbolToolbarExtension {
     fun createView(context: Context, state: SymbolToolbarGroupIndicatorState): SymbolToolbarGroupIndicator
 }
 
 interface SymbolToolbarGroupIndicator {
     val view: View
-    fun submitGroups(groups: List<SymbolToolbarGroup>)
-    fun setSelectedGroup(groupId: String?)
-    fun setOnGroupSelectedListener(listener: (String) -> Unit)
+    fun submitGroups(groups: List<SymbolGroup>)
+    fun setSelectedGroup(index: Int)
+    fun setOnGroupSelectedListener(listener: (Int) -> Unit)
     fun onDispose() = Unit
 }
 
 data class SymbolToolbarGroupIndicatorState(
-    val groups: List<SymbolToolbarGroup>,
-    val selectedGroupId: String?,
-    val config: SymbolToolbarConfig
+    val groups: List<SymbolGroup>,
+    val selectedGroupIndex: Int,
+    val settings: SymbolDrawerSettings
 )
 
-/** Adds a host-owned settings page/section without requiring a particular settings framework. */
 interface SymbolToolbarSettingsExtension : SymbolToolbarExtension {
     fun createView(context: Context, scope: SymbolToolbarSettingsScope): View
 }
 
 interface SymbolToolbarSettingsScope {
-    val config: SymbolToolbarConfig
-    fun updateConfig(transform: (SymbolToolbarConfig) -> SymbolToolbarConfig)
+    val settings: SymbolDrawerSettings
+    fun updateSettings(transform: (SymbolDrawerSettings) -> SymbolDrawerSettings)
 }
 
-/** Provides host-independent visual tokens. Colors are Android ARGB integers. */
 interface SymbolToolbarThemeExtension : SymbolToolbarExtension {
     fun resolve(context: Context): SymbolToolbarTheme
 }
@@ -91,7 +85,6 @@ data class SymbolToolbarTheme(
     }
 }
 
-/** Gives extensions a safe veto/observe point around semantic item invocations. */
 interface SymbolToolbarInvocationInterceptor : SymbolToolbarExtension {
     fun beforeInvoke(invocation: SymbolToolbarInvocation): SymbolToolbarInvocationDecision =
         SymbolToolbarInvocationDecision.Continue
@@ -104,28 +97,25 @@ sealed interface SymbolToolbarInvocationDecision {
     data class Reject(val reason: String) : SymbolToolbarInvocationDecision
 }
 
-/** Optional lifecycle notifications for extensions bound to a control instance. */
 interface SymbolToolbarLifecycleExtension : SymbolToolbarExtension {
     fun onAttached(controlId: String) = Unit
-    fun onConfigChanged(config: SymbolToolbarConfig) = Unit
+    fun onSettingsChanged(settings: SymbolDrawerSettings) = Unit
     fun onDetached(controlId: String) = Unit
 }
 
-/** Declarative action contribution. Runtime handlers are registered separately. */
+/** Adds a numeric V1 action handler to the toolbar's existing SymbolItem action slot. */
 data class SymbolToolbarActionContribution(
-    val id: String,
+    val actionId: Int,
     val title: String,
     val description: String = "",
-    val action: SymbolToolbarAction,
     val priority: Int = 0
 ) {
     init {
-        require(id.isNotBlank())
+        require(actionId >= 0)
         require(title.isNotBlank())
     }
 }
 
-/** Handler adapter may use only the host capabilities explicitly granted by the embedding app. */
 fun interface SymbolToolbarHostAction {
     suspend fun execute(
         invocation: SymbolToolbarInvocation,
