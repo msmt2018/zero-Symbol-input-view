@@ -250,8 +250,11 @@ class SymbolDrawerExtensionRegistry {
             settingsItems.clear()
             themes.clear()
             builtInVisibility.clear()
+            // Keep action handlers in the same critical section as their
+            // owning contributions so a concurrent register cannot be
+            // published and then accidentally erased by this clear().
+            actionHandlers.clear()
         }
-        actionHandlers.clear()
         notifyChanged()
     }
 
