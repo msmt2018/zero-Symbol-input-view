@@ -633,7 +633,8 @@ internal class SymbolPageAdapter(
             attachedToWindow = false
             val extension = activeExtension ?: return
             val view = customView ?: return
-            runCatching { extension.onViewDetachedFromWindow(view, boundLegacyItem) }
+            val item = boundLegacyItem ?: return
+            runCatching { extension.onViewDetachedFromWindow(view, item) }
                 .onFailure { reportExtensionError(extension.id, it) }
         }
 
