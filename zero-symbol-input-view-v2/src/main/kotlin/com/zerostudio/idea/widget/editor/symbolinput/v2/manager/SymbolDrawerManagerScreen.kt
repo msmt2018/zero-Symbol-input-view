@@ -114,7 +114,7 @@ private data class SymbolActionOption(
     val extension: SymbolDrawerActionExtension? = null
 ) {
     val hasPayload: Boolean
-        get() = extension != null || builtin?.hasPayload ?: (legacyId?.let(LegacySymbolActionCatalog::hasTextPayload) == true)
+        get() = extension != null || (builtin?.hasPayload ?: (legacyId?.let(LegacySymbolActionCatalog::hasTextPayload) == true))
 
     val payloadHint: String?
         get() = extension?.payloadHint ?: builtin?.payloadHint
