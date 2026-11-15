@@ -149,4 +149,26 @@ class SymbolDrawerExtensionRegistryTest {
         handle.close()
         assertTrue(registry.itemViews().isEmpty())
     }
+
+    @Test
+    fun legacyProvidersAndLifecycleContributionsAreVisibleInSnapshots() {
+        val registry = SymbolDrawerExtensionRegistry()
+        val provider = object : SymbolDrawerLegacyGroupProvider {
+            override val id = "sample.groups"
+            override val title = "Sample groups"
+            override suspend fun loadGroups() =
+                listOf(com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolGroup("sample"))
+        }
+        val lifecycle = object : SymbolDrawerLifecycleExtension {
+            override val id = "sample.lifecycle"
+        }
+        val providerHandle = registry.registerGroupProvider(provider)
+        val lifecycleHandle = registry.registerLifecycle(lifecycle)
+        assertEquals("sample.groups", registry.snapshot().groupProviders.single().id)
+        assertEquals("sample.lifecycle", registry.snapshot().lifecycle.single().id)
+        providerHandle.close()
+        lifecycleHandle.close()
+        assertTrue(registry.snapshot().groupProviders.isEmpty())
+        assertTrue(registry.snapshot().lifecycle.isEmpty())
+    }
 }
