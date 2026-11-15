@@ -391,10 +391,13 @@ class SymbolDrawerSettingsScreen(
                         .onSuccess { view ->
                             addExtensionView(page, view, extension.id) { extension.onViewDisposed(view) }
                         }
-                        .onFailure { error -> page.addView(TextView(context).apply {
-                            text = "扩展设置加载失败：${extension.title}（${error.message ?: "未知错误"}）"
-                            setTextColor(android.graphics.Color.RED)
-                        }, matchWrap()) }
+                        .onFailure { error ->
+                            extensionRegistry?.reportError(extension.id, error)
+                            page.addView(TextView(context).apply {
+                                text = "扩展设置加载失败：${extension.title}（${error.message ?: "未知错误"}）"
+                                setTextColor(android.graphics.Color.RED)
+                            }, matchWrap())
+                        }
                 }
         }
         extensionTabs.forEachIndexed { extensionIndex, extension ->
@@ -415,12 +418,15 @@ class SymbolDrawerSettingsScreen(
             if (index == selectedTabIndex) activeScrollView = scroll
             runCatching { extension.createView(context, settingsScope) }
                 .onSuccess { view ->
-                    addExtensionView(page, view) { extension.onViewDisposed(view) }
+                    addExtensionView(page, view, extension.id) { extension.onViewDisposed(view) }
                 }
-                .onFailure { error -> page.addView(TextView(context).apply {
-                    text = "扩展页面加载失败：${extension.title}（${error.message ?: "未知错误"}）"
-                    setTextColor(android.graphics.Color.RED)
-                }, matchWrap()) }
+                .onFailure { error ->
+                    extensionRegistry?.reportError(extension.id, error)
+                    page.addView(TextView(context).apply {
+                        text = "扩展页面加载失败：${extension.title}（${error.message ?: "未知错误"}）"
+                        setTextColor(android.graphics.Color.RED)
+                    }, matchWrap())
+                }
             extensionSettings.asSequence()
                 .filter { it.tabId == extension.id }
                 .forEach { setting ->
