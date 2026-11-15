@@ -107,6 +107,32 @@ class SymbolDrawerExtensionRegistryTest {
         assertNull(registry.actionHandlers.get(92))
     }
 
+    @Test
+    fun clearRemovesCurrentActionsAndAllowsFreshRegistration() {
+        val registry = SymbolDrawerExtensionRegistry()
+        var oldCalled = false
+        var newCalled = false
+        val oldHandle = registry.registerAction(
+            SymbolDrawerActionExtension("clear.action", "Old", handler = { _, _ -> oldCalled = true; true })
+        )
+
+        registry.clear()
+        assertTrue(registry.snapshot().actions.isEmpty())
+        assertNull(registry.actionHandlers.get(SymbolActionId.extension("clear.action")))
+
+        val newHandle = registry.registerAction(
+            SymbolDrawerActionExtension("clear.action", "New", handler = { _, _ -> newCalled = true; true })
+        )
+        // Closing a handle from before clear must not unregister the new entry.
+        oldHandle.close()
+        assertTrue(registry.wrapActionHost(Host()).executeExtension("clear.action", null))
+        assertFalse(oldCalled)
+        assertTrue(newCalled)
+
+        newHandle.close()
+        assertNull(registry.actionHandlers.get(SymbolActionId.extension("clear.action")))
+    }
+
     @Test fun builtInVisibilityDefaultsToVisibleAndCanBeRestored() {
         val registry = SymbolDrawerExtensionRegistry()
         assertTrue(registry.isBuiltInVisible("builtin.search"))
