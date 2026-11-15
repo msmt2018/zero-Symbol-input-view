@@ -52,6 +52,13 @@ class SymbolTextEditingTest {
         assertEquals(expansion.text.length, expansion.selectionEndOffset)
     }
 
+    @Test fun cursorMarkerPlacesCaretWithoutSelectingText() {
+        assertEquals(
+            SymbolTextMacroExpansion("abc", 1, 1),
+            SymbolTextEditing.expandMacro("a$Cb", "")
+        )
+    }
+
     @Test fun backwardAndForwardDeletionKeepSurrogatePairsIntact() {
         val emoji = "A😀B"
         assertEquals(SymbolTextRange(1, 3),
