@@ -373,53 +373,73 @@ V2 不要求依赖 Sora Editor 或任何编辑器核心对象。宿主只需实�
 
 #### 7.2 对外事件接口与简洁动作 DSL
 
-事件监听与动作代码是两种不同能力：
-
-- **事件接口**：监听控件发生了什么，并允许在回调中自由编写 Kotlin 代码，例如日志、统计、状态同步、调用业务服务。
-- **动作列表**：定义用户点击/长按符号时真正执行哪些动作。它不是只读事件通知，而是可执行的有序代码列表。
-
-**单击和长按是两份完全独立的动作列表**。一个符号可以配置多个单击步骤、多个长按步骤；执行时按列表顺序运行，遇到非 Success 结果即停止。长按不会自动执行单击列表，单击也不会执行长按列表。开发者写入的 lambda 仅保存在当前进程运行时，不会被序列化进 JSON。
+事件监听与动作代码是两种不同能力：事件监听回调允许开发者自由编写 Kotlin；动作列表则定义点击/长按时真正执行的有序步骤。单击和长按是两份独立列表，不会相互回退。
 
 ```kotlin
 val bindings = symbolItemActions(
     itemId = "symbol.arrow",
     click = {
-        step("insert-arrow") { insert(" -> ") }
-        step("record-click") {
+        step("insert") { insert(" -> ") }
+        step("analytics") {
             analytics.track("arrow_clicked")
             SymbolToolbarActionResult.Success
         }
     },
     longPress = {
-        step("insert-template") { insert(" -> { }") }
-        step("move-cursor") { moveCursor(-2) }
-        step("notify-plugin") {
+        step("template") { insert(" -> { }") }
+        step("plugin") {
             myPlugin.onArrowLongPressed(itemId)
             SymbolToolbarActionResult.Success
         }
     }
 )
-val registration = actionLists.register(bindings)
+actionLists.register(bindings)
 ```
 
-上面的 analytics、myPlugin 是开发者自己的 Kotlin 对象；API 不限制回调里只能调用内置编辑动作。需要编辑文本时可使用 insert、deleteBackward、moveCursor、command，也可调用自己的同步/挂起业务逻辑。每一步返回 SymbolToolbarActionResult.Success 才继续下一步；返回 Rejected、Unsupported 或 Failed 会终止当前列表。协程取消会继续向上传播。
+#### 7.3 自动持久化、JSON 导入导出与动作重绑定
 
-事件订阅示例：
+持久化分为声明数据和运行时代码两部分：
+
+- 符号项/分组/动作 ID、点击和长按动作顺序、动作参数、插件配置等声明数据可以保存为 JSON。
+- Kotlin lambda、函数引用、插件对象和 View/编辑器实例不写入 JSON。它们不是可移植数据。
+- 导入时通过稳定的 actionId 由已安装插件重新绑定 Kotlin 执行代码；缺失的插件动作返回 Unsupported，不会执行错误的替代动作。
+- 插件自有配置通过 SymbolToolbarJsonCodec 注册编解码器，未知插件 JSON payload 在导入/导出往返中保留。
 
 ```kotlin
-val runtime = SymbolToolbarExtensionRuntime(
-    controlId = "editor.symbols",
-    registry = extensions,
-    actionHost = editorActionHost
-)
-val subscription = runtime.events.on<SymbolToolbarActionEvent.Completed> { event ->
-    logger.info("item=${event.invocation.itemId}, result=${event.result}")
+val persistence = SymbolToolbarPersistence(documentStore)
+val document = SymbolToolbarDocument(
+    toolbarId = "editor.symbols",
+    actions = listOf(
+        PersistedSymbolItemActions(
+            itemId = "arrow",
+            click = listOf(
+                PersistedSymbolAction("tap-insert", "my.plugin.insert",
+                    JsonObject().apply { addProperty("text", " -> ") })
+            ),
+            longPress = listOf(
+                PersistedSymbolAction("hold-template", "my.plugin.template")
+            )
+        )
+    )
+ )
+persistence.save(document)                 // 持久化
+val json = persistence.export(document)    // 导出 JSON
+val restored = persistence.import(json)    // 导入并校验
+```
+
+插件在启动/安装时注册 actionId 对应的执行代码：
+
+```kotlin
+val rebinder = SymbolToolbarActionRebinder()
+rebinder.register("my.plugin.insert") { arguments ->
+    val text = arguments.asJsonObject.get("text").asString
+    insert(text)
 }
 ```
 
-SymbolToolbarActionListRegistry 用于按 itemId 保存和替换单击/长按动作列表；register 返回的 AutoCloseable 只注销本次注册。列表执行器 SymbolToolbarActionList.execute(invocation, host) 负责按序执行并在第一个非成功结果处停止。
+SymbolToolbarDocumentStore 是存储边界，宿主可接 SharedPreferences、DataStore 或 Room；当前提供 InMemory 实现用于测试。JSON 文档包含 schema/version，导入会检查版本和 toolbarId。自动保存由宿主在配置/动作声明提交时调用 save，或通过 observe 接入自己的状态流；不应在每次手指移动等高频事件上写盘。
 
-**接入状态说明：** 本次新增的是完整的动作列表声明、运行时注册与顺序执行 API。它尚不能单独证明旧版 SymbolDrawerView 已自动使用这些列表；真实控件必须在识别到 TAP/LONG_PRESS 后，分别查找对应列表并执行。现有旧模型的 shortAction/longAction 和 V1 数字动作兼容路径不应被删除或改写，接入时应保留旧动作作为兼容回退路径。事件 Hub 的 UI 事件也必须由控件在真实触摸/分页/设置回调中发布后才会触发。
+**重要限制：** 这些持久化与重绑定 API 已提供，但旧版 SymbolDrawerView 还没有全部切换到此文档模型，也尚未完成真实控件自动保存/恢复闭环。控件接入时必须保留原 V1 数字动作兼容、shortAction/longAction 回退和现有交互，不得把可执行 lambda 直接序列化。
 ### 8. V1 / MT 管理器紧凑 JSON 互通
 
 管理界面提供 `importMtManagerJson(json)` 和 `exportMtManagerJson()`，用于旧版紧凑分组/符号 JSON（字段 `n/d/a/b/c/d/e`）。采用该结构的文件可以直接导入。V2 完整备份应使用 `importBundle` / `exportBundle`，以保留 V2 专属动作和稳定 ID。旧格式无法表达全部 V2 动作；导出遇到不支持的动作会明确拒绝，不会静默丢失。详见 [MT JSON 互通说明](zero-symbol-input-view-v2/README.md#10-mt-管理器--v1-json-互通)。
