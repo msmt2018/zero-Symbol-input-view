@@ -29,7 +29,11 @@ data class SymbolToolbarActionInvocation(
     val groupId: String,
     val itemId: String,
     val action: SymbolToolbarAction,
-    val isLongPress: Boolean
+    val isLongPress: Boolean,
+    val gesture: com.zerostudio.idea.widget.symboltoolbar.api.model.SymbolToolbarInvocation.Gesture =
+        if (isLongPress) com.zerostudio.idea.widget.symboltoolbar.api.model.SymbolToolbarInvocation.Gesture.LONG_PRESS
+        else com.zerostudio.idea.widget.symboltoolbar.api.model.SymbolToolbarInvocation.Gesture.TAP,
+    val eventTimeMillis: Long = System.currentTimeMillis()
 )
 
 /** Minimal capabilities, deliberately independent of a specific editor. */
