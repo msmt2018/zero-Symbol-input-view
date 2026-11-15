@@ -1383,7 +1383,18 @@ class SymbolDrawerManagerScreen(
             addView(longAction, matchWrap())
             addView(longText, matchWrap())
             addView(TextView(context).apply {
-                text = "\$\$ 表示字面量 \$；\$S/\$E 标记选区起止；\$T 表示当前选中文本"
+                text = listOf(
+                    "\$\$  输出字面量 \$",
+                    "\$S   设置选区起始位置",
+                    "\$E   设置选区结束位置",
+                    "\$T   插入当前选中文本",
+                    "\$C   设置光标位置（与选区标记分开使用）",
+                    "\$N   插入当前文档的换行符",
+                    "\$TAB 插入一个制表符",
+                    "\$L   插入光标所在行的文本",
+                    "\$W   插入光标所在单词",
+                    "\$I   插入光标所在行的缩进"
+                ).joinToString("\\n")
                 textSize = 12f
                 alpha = 0.7f
             }, matchWrap())
