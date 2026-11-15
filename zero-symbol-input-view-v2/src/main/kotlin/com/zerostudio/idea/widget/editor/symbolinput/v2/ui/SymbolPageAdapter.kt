@@ -370,7 +370,9 @@ internal class SymbolPageAdapter(
                 theme = themeProvider()
             )
             var extension = extensions.itemViews().firstOrNull { candidate ->
-                runCatching { candidate.accepts(legacyItem) }.getOrDefault(false)
+                runCatching { candidate.accepts(legacyItem) }.onFailure {
+                    extensions.reportError(candidate.id, it)
+                }.getOrDefault(false)
             }
             var custom: View? = null
             if (extension != null) {
@@ -378,7 +380,7 @@ internal class SymbolPageAdapter(
                     holder.recycle()
                     custom = runCatching {
                         extension!!.createView(holder.root.context, legacyItem, state)
-                    }.getOrNull()
+                    }.onFailure { extensions.reportError(extension!!.id, it) }.getOrNull()
                     if (custom != null) {
                         // Mark ownership before attaching so a failed attach still
                         // runs the extension's recycle hook before falling back.
@@ -405,7 +407,8 @@ internal class SymbolPageAdapter(
                 }
                 if (extension != null && custom != null) {
                     holder.boundLegacyItem = legacyItem.copy()
-                    val bound = runCatching { extension!!.bindView(custom!!, legacyItem, state) }.isSuccess
+                    val bound = runCatching { extension!!.bindView(custom!!, legacyItem, state) }
+                        .onFailure { extensions.reportError(extension!!.id, it) }.isSuccess
                     if (!bound) {
                         holder.recycle()
                         extension = null
@@ -457,6 +460,7 @@ internal class SymbolPageAdapter(
                 if (current != RecyclerView.NO_POSITION && getItem(current).id == item.id) {
                     boundExtension?.let { extension ->
                         runCatching { extension.onClick(target, legacyItem, state) }
+                            .onFailure { extensions.reportError(extension.id, it) }
                     }
                     onSymbolAction(getItem(current), false)
                 }
@@ -472,7 +476,7 @@ internal class SymbolPageAdapter(
                     boundExtension?.let { extension ->
                         runCatching {
                             extension.onLongPress(target, legacyItem, state.copy(pressed = true))
-                        }
+                        }.onFailure { extensions.reportError(extension.id, it) }
                     }
                     onSymbolAction(getItem(current), true)
                 }
@@ -499,7 +503,7 @@ internal class SymbolPageAdapter(
                                     enabled = target.isEnabled
                                 ),
                                 event
-                            )
+                            ).onFailure { extensions.reportError(boundExtension.id, it) }
                         }
                     }
                 }
@@ -601,6 +605,7 @@ internal class SymbolPageAdapter(
             val view = customView
             if (extension != null && view != null) {
                 runCatching { extension.onViewRecycled(view, boundLegacyItem) }
+                    .onFailure { /* Registry may already be disposed; recycle remains best-effort. */ }
             }
             activeExtension = null
             customView = null
