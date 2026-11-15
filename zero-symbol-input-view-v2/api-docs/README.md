@@ -23,7 +23,7 @@ V2 是独立实现，与旧版库并行存在。V2 默认存储使用独立 Shar
 | [09 — 自适应窗口 API](09-adaptive-window.md) | WindowAdaptiveInfo、布局解析、网格和侧边停靠 |
 | [10 — 类型索引与兼容性](10-api-index-compatibility.md) | 类型总表、边界条件、兼容策略、排错清单 |
 | [11 — 手势与内置文本动作](11-interaction-and-builtins.md) | DrawerInteractionController、文本命令目录和完整 command ID |
-| [12 — 扩展注册框架](12-extension-framework.md) | 自定义动作、指示器、设置 Tab、设置项、主题和内置功能隐藏 |
+| [12 — 扩展注册框架](12-extension-framework.md) | 自定义动作、指示器、设置 Tab、设置项、主题和内置功能隐藏 |\n| [13 — 公共包路径与编辑器中立动作](13-public-package-and-editor-neutral-actions.md) | `widget.drawer` 公共入口、文本文档契约、行列/光标/事务编辑与迁移边界 |
 
 ## 模块坐标
 
