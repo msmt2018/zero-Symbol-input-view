@@ -14,7 +14,7 @@ typealias SymbolToolbarActionBlock = suspend SymbolToolbarActionContext.() -> Sy
  * Rich action context. The original invocation and the explicitly granted host
  * are both available; no editor implementation is leaked through this API.
  */
-class SymbolToolbarActionContext internal constructor(
+class SymbolToolbarActionContext(
     val invocation: SymbolToolbarInvocation,
     val host: SymbolToolbarActionHost
 ) {
