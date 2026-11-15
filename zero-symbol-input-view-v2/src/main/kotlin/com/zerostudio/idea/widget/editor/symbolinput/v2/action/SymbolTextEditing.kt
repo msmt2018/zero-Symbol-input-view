@@ -42,19 +42,19 @@ object SymbolTextEditing {
         currentLineText: String = "",
         currentWordText: String = "",
         lineSeparator: String = "\n",
-        currentIndent: String = currentLineText.takeWhile { it == ' ' || it == '\\t' }
+        currentIndent: String = currentLineText.takeWhile { it == ' ' || it == '\t' }
     ): SymbolTextMacroExpansion {
         val output = StringBuilder(template.length + selectedText.length + currentLineText.length)
         var insertionOffset: Int? = null
         var selectionEndOffset: Int? = null
         var index = 0
         while (index < template.length) {
-            if (template.startsWith("$TAB", index)) {
-                output.append('\\t')
+            if (template.startsWith("\$TAB", index)) {
+                output.append('\t')
                 index += 4
                 continue
             }
-            if (template[index] != '
+            if (template[index] != '$' || index + 1 >= template.length) {
                 output.append(template[index++])
                 continue
             }
@@ -69,6 +69,10 @@ object SymbolTextEditing {
                 }
                 'E' -> {
                     if (selectionEndOffset == null) selectionEndOffset = output.length
+                    index += 2
+                }
+                'C' -> {
+                    insertionOffset = output.length
                     index += 2
                 }
                 'T' -> {
@@ -97,11 +101,10 @@ object SymbolTextEditing {
                 }
             }
         }
-        val start = insertionOffset ?: output.length
-        val end = selectionEndOffset ?: start
-        return SymbolTextMacroExpansion(output.toString(), start, end)
+        val startOffset = insertionOffset ?: output.length
+        val endOffset = selectionEndOffset ?: startOffset
+        return SymbolTextMacroExpansion(output.toString(), startOffset, endOffset)
     }
-
     /**
      * Returns the UTF-16 range for deleting one adjacent Unicode code point.
      * A supplementary character is represented by a surrogate pair and must
