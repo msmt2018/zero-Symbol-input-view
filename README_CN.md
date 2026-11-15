@@ -98,6 +98,33 @@ drawer.reloadGroups()
 
 示例中的 `createMyEditorActionHost` 和编辑器实现由宿主负责。动作 API 是同步接口，应在编辑器要求的线程调用。
 
+
+## 远程 Maven SDK（JitPack）
+
+V2 可以作为远程 Android SDK 依赖接入，不需要克隆本仓库，也不需要把模块源码复制到宿主工程。发布后的 Maven artifact 由 JitPack 提供。
+
+先在依赖仓库配置中添加 JitPack。如果宿主工程使用 Gradle 集中式仓库管理，应在根目录的 `settings.gradle.kts` 中配置，而不只是写在 app 模块里：
+
+```kotlin
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+        maven("https://jitpack.io")
+    }
+}
+```
+
+然后在 app 模块的 `build.gradle.kts` 中添加 V2 SDK：
+
+```kotlin
+dependencies {
+    implementation("com.github.msmt2018.zero-Symbol-input-view:zero-symbol-input-view-v2:<published-tag>")
+}
+```
+
+将 `<published-tag>` 替换为已经创建且 JitPack 构建及 artifact 验证成功的 Git Tag（例如 `vX.Y.Z`）。版本号使用完整 Tag 名称，包含开头的 `v`；不要把尚未发布的分支名当作正式依赖版本。公开 artifact 不需要 Maven 账号、密码或 GitHub Token。完整坐标以及远程/本地接入说明见 [V2 模块接入指南](zero-symbol-input-view-v2/README.md#2-jitpack-远程-maven-导入)。
+
 ## 扩展 API 开发
 
 扩展 API 接入的是**现有符号控件**，不会重新创建第二套工具栏、分页模型、手势识别器或持久化层。
