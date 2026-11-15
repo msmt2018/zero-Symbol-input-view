@@ -127,6 +127,37 @@ class DrawerInteractionControllerTest {
         }
     }
 
+    @Test fun downwardGestureTransfersToDrawerWhenScrollableChildReachesTop() {
+        ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val controller = DrawerInteractionController(activity, onHeightChanged = { _, _, _ -> })
+                controller.setBounds(100, 300, 250)
+                controller.onAttached()
+                val down = event(MotionEvent.ACTION_DOWN, 100f, 100f, 10L)
+                val childScroll = event(MotionEvent.ACTION_MOVE, 100f, 130f, 20L)
+                val reachesTop = event(MotionEvent.ACTION_MOVE, 100f, 160f, 30L)
+                val continues = event(MotionEvent.ACTION_MOVE, 100f, 180f, 40L)
+                try {
+                    assertFalse(controller.onInterceptTouchEvent(down) { _, _ -> false })
+                    assertFalse(controller.onInterceptTouchEvent(childScroll) { _, _ -> true })
+                    assertTrue(controller.onInterceptTouchEvent(reachesTop) { _, _ -> false })
+                    assertTrue(controller.onTouchEvent(reachesTop))
+                    assertEquals("Only movement after the child reached its top transfers to the drawer",
+                        220, controller.currentHeightPx)
+                    assertTrue(controller.onInterceptTouchEvent(continues) { _, _ -> false })
+                    assertTrue(controller.onTouchEvent(continues))
+                    assertEquals(200, controller.currentHeightPx)
+                } finally {
+                    down.recycle()
+                    childScroll.recycle()
+                    reachesTop.recycle()
+                    continues.recycle()
+                    controller.onDetached()
+                }
+            }
+        }
+    }
+
     private fun event(action: Int, x: Float, y: Float, time: Long): MotionEvent =
         MotionEvent.obtain(0L, time, action, x, y, 0)
 }
