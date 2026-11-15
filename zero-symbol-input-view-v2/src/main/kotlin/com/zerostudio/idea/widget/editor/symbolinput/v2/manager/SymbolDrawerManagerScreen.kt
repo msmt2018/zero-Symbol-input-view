@@ -326,6 +326,8 @@ class SymbolDrawerManagerScreen(
             if (drawer.onSymbolUsedListener === usageListener) {
                 drawer.onSymbolUsedListener = previousUsageListener
             }
+            builtInVisibilityObserver?.close()
+            builtInVisibilityObserver = null
             if (drawerBindingHandle === ownerHandle) drawerBindingHandle = null
         }
         drawerBindingHandle = ownerHandle
