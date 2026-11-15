@@ -48,6 +48,7 @@ interface SymbolToolbarGroupIndicator {
     fun submitGroups(groups: List<SymbolGroup>)
     fun setSelectedGroup(index: Int)
     fun setOnGroupSelectedListener(listener: (Int) -> Unit)
+    fun applySettings(settings: SymbolDrawerSettings) = Unit
     fun onDispose() = Unit
 }
 
