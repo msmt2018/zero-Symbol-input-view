@@ -456,6 +456,7 @@ class SymbolDrawerView @JvmOverloads constructor(
         if (extensionObserver == null) {
             extensionObserver = extensions.observe(emitCurrent = false) { snapshot ->
                 post {
+                    if (!isAttachedToWindow) return@post
                     pageAdapter.refreshItemExtensions()
                     syncLifecycleExtensions(snapshot.lifecycle)
                     indicator.setSettingsButtonVisible(snapshot.builtInVisibility["builtin.settings"] ?: true)
