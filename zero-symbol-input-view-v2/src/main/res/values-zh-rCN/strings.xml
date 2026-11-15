@@ -21,8 +21,7 @@
     <string name="symbol_drawer_019">$UP  将当前选中文本转换为大写（长指令）</string>
     <string name="symbol_drawer_020">$V   将当前选中文本转换为小写</string>
     <string name="symbol_drawer_021">$W   插入光标所在单词</string>
-    <string name="symbol_drawer_022">$  输出字面量 $2
-    <string name="symbol_drawer_023">三角指针</string>
+    <string name="symbol_drawer_022">$$  输出字面量 $</string>
     <string name="symbol_drawer_024">上移</string>
     <string name="symbol_drawer_025">下移</string>
     <string name="symbol_drawer_026">主题与显示</string>

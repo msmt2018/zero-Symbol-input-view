@@ -21,8 +21,7 @@
     <string name="symbol_drawer_019">$UP Convert selected text to uppercase (long form)</string>
     <string name="symbol_drawer_020">$V Convert selected text to lowercase</string>
     <string name="symbol_drawer_021">$W Insert current word</string>
-    <string name="symbol_drawer_022">$ Output a literal $2
-    <string name="symbol_drawer_023">Triangle pointer</string>
+    <string name="symbol_drawer_022">$$  Output a literal $</string>
     <string name="symbol_drawer_024">Move up</string>
     <string name="symbol_drawer_025">Move down</string>
     <string name="symbol_drawer_026">Theme and display</string>
