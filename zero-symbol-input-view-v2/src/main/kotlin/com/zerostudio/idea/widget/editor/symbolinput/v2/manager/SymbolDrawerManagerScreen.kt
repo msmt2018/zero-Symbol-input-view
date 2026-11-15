@@ -163,6 +163,16 @@ class SymbolDrawerManagerScreen(
     private val searchField = EditText(context)
     private val searchToggle = MaterialButton(context)
     private val searchContainer = LinearLayout(context)
+    private val filterBar = LinearLayout(context)
+    private val preferenceStore = context.getSharedPreferences("zero_symbol_manager_usage_v2", Context.MODE_PRIVATE)
+    private val favoriteIds = linkedSetOf<Long>().apply {
+        addAll(preferenceStore.getStringSet("favorites", emptySet()).orEmpty().mapNotNull(String::toLongOrNull))
+    }
+    private val recentIds = ArrayDeque<Long>().apply {
+        preferenceStore.getString("recent", "").orEmpty().split(',').mapNotNull(String::toLongOrNull)
+            .take(30).forEach(::addLast)
+    }
+    private var activeFilter = ManagerSymbolFilter.ALL
     private var rebuildingTabs = false
     private val emptyView = TextView(context)
     private var symbolList: RecyclerView? = null
@@ -197,6 +207,7 @@ class SymbolDrawerManagerScreen(
         buildHeader()
         buildGroupControls()
         buildSearch()
+        buildFilterBar()
         buildSymbolList()
         buildUndoBar()
         refresh()
@@ -435,6 +446,58 @@ class SymbolDrawerManagerScreen(
         })
         searchContainer.addView(searchField, matchWrap())
         addView(searchContainer, matchWrap())
+    }
+
+    private fun buildFilterBar() {
+        filterBar.orientation = HORIZONTAL
+        filterBar.gravity = android.view.Gravity.CENTER_VERTICAL
+        filterBar.setPadding(0, dp(4), 0, dp(4))
+        val filters = listOf(
+            ManagerSymbolFilter.ALL to "全部",
+            ManagerSymbolFilter.FAVORITES to "收藏",
+            ManagerSymbolFilter.RECENT to "最近"
+        )
+        filters.forEach { (filter, label) ->
+            filterBar.addView(actionButton(label) {
+                activeFilter = filter
+                refreshSymbols()
+                updateFilterButtons()
+            }, LayoutParams(LayoutParams.WRAP_CONTENT, dp(36)).apply {
+                marginEnd = dp(6)
+            })
+        }
+        addView(filterBar, matchWrap())
+        updateFilterButtons()
+    }
+
+    private fun updateFilterButtons() {
+        for (index in 0 until filterBar.childCount) {
+            val button = filterBar.getChildAt(index)
+            val filter = ManagerSymbolFilter.entries.getOrNull(index) ?: continue
+            button.alpha = if (activeFilter == filter) 1f else 0.58f
+            button.isSelected = activeFilter == filter
+        }
+    }
+
+    private fun persistUsageState() {
+        preferenceStore.edit()
+            .putStringSet("favorites", favoriteIds.map(Long::toString).toSet())
+            .putString("recent", recentIds.joinToString(","))
+            .apply()
+    }
+
+    private fun toggleFavorite(symbol: SymbolEntry) {
+        if (!favoriteIds.add(symbol.id)) favoriteIds.remove(symbol.id)
+        persistUsageState()
+        refreshSymbols()
+        toast(if (symbol.id in favoriteIds) "已加入收藏" else "已取消收藏")
+    }
+
+    private fun markRecentlyUsed(symbol: SymbolEntry) {
+        recentIds.remove(symbol.id)
+        recentIds.addFirst(symbol.id)
+        while (recentIds.size > 30) recentIds.removeLast()
+        persistUsageState()
     }
 
     private fun buildSymbolList() {
@@ -716,16 +779,25 @@ class SymbolDrawerManagerScreen(
     private fun refreshSymbols() {
         val group = currentGroup()
         val query = searchField.text?.toString()?.trim().orEmpty()
-        val symbols = group?.symbols.orEmpty().filter { symbol ->
-            query.isEmpty() ||
+        val source = group?.symbols.orEmpty()
+        val filtered = source.filter { symbol ->
+            val matchesQuery = query.isEmpty() ||
                 symbol.label.contains(query, ignoreCase = true) ||
                 (settings.searchIncludesActionPayload && (
                     symbol.shortAction.toString().contains(query, ignoreCase = true) ||
-                        symbol.longAction?.let {
-                            it.toString().contains(query, ignoreCase = true)
-                        } == true
+                        symbol.longAction?.let { it.toString().contains(query, ignoreCase = true) } == true
                     ))
+            val matchesFilter = when (activeFilter) {
+                ManagerSymbolFilter.ALL -> true
+                ManagerSymbolFilter.FAVORITES -> symbol.id in favoriteIds
+                ManagerSymbolFilter.RECENT -> symbol.id in recentIds
+            }
+            matchesQuery && matchesFilter
         }
+        val symbols = if (activeFilter == ManagerSymbolFilter.RECENT) {
+            val order = recentIds.withIndex().associate { it.value to it.index }
+            filtered.sortedBy { order[it.id] ?: Int.MAX_VALUE }
+        } else filtered
         symbolAdapter.submitList(symbols)
         emptyView.visibility = if (symbols.isEmpty()) View.VISIBLE else View.GONE
         selectedSymbolIds.retainAll(group?.symbols?.mapTo(mutableSetOf()) { it.id }.orEmpty())
@@ -987,6 +1059,13 @@ class SymbolDrawerManagerScreen(
 
     private fun showSymbolMenu(symbol: SymbolEntry, anchor: View) {
         val menu = PopupMenu(context, anchor)
+        menu.menu.add(if (symbol.id in favoriteIds) "取消收藏" else "加入收藏")
+            .setOnMenuItemClickListener { toggleFavorite(symbol); true }
+        menu.menu.add("标记为最近使用").setOnMenuItemClickListener {
+            markRecentlyUsed(symbol)
+            refreshSymbols()
+            true
+        }
         menu.menu.add("编辑").setOnMenuItemClickListener { editSymbol(symbol); true }
         menu.menu.add("复制到本分组").setOnMenuItemClickListener {
             currentGroup()?.let { manager.copySymbol(it.id, symbol.id, it.id); refresh() }
@@ -1101,6 +1180,8 @@ class SymbolDrawerManagerScreen(
 
     private fun matchWrap() = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
     private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
+
+    private enum class ManagerSymbolFilter { ALL, FAVORITES, RECENT }
 
     private class SymbolAdapter(
         private val onClick: (SymbolEntry) -> Unit,
