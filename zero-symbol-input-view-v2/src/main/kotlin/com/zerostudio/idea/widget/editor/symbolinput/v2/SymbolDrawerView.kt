@@ -92,6 +92,7 @@ class SymbolDrawerView @JvmOverloads constructor(
 ) : ViewGroup(context, attrs, defStyleAttr) {
     private companion object {
         const val SETTINGS_PREFERENCE_KEY = "settings_json_v1"
+        const val EXPANSION_STATE_KEY = "remembered_expanded_state"
     }
 
     fun interface OnSymbolActionListener {
@@ -189,6 +190,7 @@ class SymbolDrawerView @JvmOverloads constructor(
         val previousSettings = settings
         val previousConfig = config
         settings = value.copy(themeMode = com.zerostudio.idea.widget.editor.symbolinput.v2.settings.ThemeMode.SYSTEM)
+        if (!settings.rememberExpandedState) settingsPreferences.edit().remove(EXPANSION_STATE_KEY).apply()
         config = settings.toDrawerConfig()
         setBackgroundColor(com.zerostudio.idea.widget.editor.symbolinput.v2.ui.HostThemeColors.surface(context))
 
@@ -206,6 +208,8 @@ class SymbolDrawerView @JvmOverloads constructor(
         // make rapid settings adjustments appear frozen.
         val adapterPresentationChanged =
             previousSettings.showSymbolLabels != settings.showSymbolLabels ||
+            previousSettings.showFullSymbolLabels != settings.showFullSymbolLabels ||
+            previousSettings.symbolLabelTextSizeSp != settings.symbolLabelTextSizeSp ||
             previousSettings.showActionHints != settings.showActionHints ||
             previousSettings.longPressTimeoutMs != settings.longPressTimeoutMs
         val gridGeometryChanged =
@@ -389,6 +393,28 @@ class SymbolDrawerView @JvmOverloads constructor(
 
     fun setExpanded(expanded: Boolean, animate: Boolean = true) {
         animateTo(if (expanded) 1f else 0f, animate)
+        if (settings.rememberExpandedState) {
+            settingsPreferences.edit().putBoolean(EXPANSION_STATE_KEY, expanded).apply()
+        }
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        if (settings.rememberExpandedState) {
+            val remembered = settingsPreferences.getBoolean(EXPANSION_STATE_KEY, false)
+            post { animateTo(if (remembered) 1f else 0f, animated = false) }
+        } else {
+            settingsPreferences.edit().remove(EXPANSION_STATE_KEY).apply()
+        }
+    }
+
+    override fun onDetachedFromWindow() {
+        if (settings.rememberExpandedState) {
+            settingsPreferences.edit()
+                .putBoolean(EXPANSION_STATE_KEY, expansion >= 0.5f)
+                .apply()
+        }
+        super.onDetachedFromWindow()
     }
 
     fun onHostResume() {
