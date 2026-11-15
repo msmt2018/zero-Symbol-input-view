@@ -358,6 +358,11 @@ class SymbolDrawerManagerScreen(
         groupTabs.setTabTextColors(secondaryTextColor(), primaryColor())
         searchField.background = roundedSurface(surfaceColor(), 14)
         refreshSymbols()
+        // ListAdapter may calculate an empty diff when only the palette changed.
+        // Force existing holders through the normal bind path so every visible
+        // row receives the new theme tokens without replacing the list or its
+        // selection/undo state.
+        symbolAdapter.rebindTheme()
     }
 
     /**
@@ -1720,6 +1725,10 @@ class SymbolDrawerManagerScreen(
         private val isSelected: (SymbolEntry) -> Boolean,
         private val onBatchToggle: (SymbolEntry) -> Unit
     ) : ListAdapter<SymbolEntry, SymbolHolder>(DIFF) {
+        fun rebindTheme() {
+            if (itemCount > 0) notifyItemRangeChanged(0, itemCount)
+        }
+
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SymbolHolder {
             val ctx = parent.context
             val title = TextView(ctx).apply {
