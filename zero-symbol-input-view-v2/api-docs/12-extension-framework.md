@@ -4,6 +4,19 @@
 
 本页描述 V2 的运行时扩展注册机制。扩展 API 的目标是让宿主添加自己的动作、指示器、设置 Tab、设置项和主题，并控制内置功能的可见性，而不需要修改 V2 源码。
 
+推荐从公共包导入，不要在新接入代码中引用历史实现包：
+
+```kotlin
+import com.zerostudio.idea.widget.drawer.SymbolDrawerView
+import com.zerostudio.idea.widget.drawer.extension.*
+import com.zerostudio.idea.widget.drawer.action.SymbolAction
+import com.zerostudio.idea.widget.drawer.action.SymbolActionId
+import com.zerostudio.idea.widget.drawer.action.SymbolActionRegistry
+import com.zerostudio.idea.widget.drawer.action.SymbolActionHandler
+```
+
+当前公共扩展类型通过 Kotlin `typealias` 暴露；这是 Kotlin 源码级兼容入口，不会生成可供 Java 直接导入的独立类。若需要 Java ABI 稳定性，后续必须把公共 API 声明物理迁移为真实 public 类型，而不能把 typealias 误当作 Java API。
+
 ## 1. SymbolDrawerExtensionRegistry
 
 每个 `SymbolDrawerView` 持有独立实例：
