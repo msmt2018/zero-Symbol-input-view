@@ -144,7 +144,7 @@ SymbolDrawerSettingsScreen(
 回调属性：
 
 - `onSettingsChanged: ((SymbolDrawerSettings) -> Unit)?`：保存/导入/重置等变更成功后提供新快照。宿主通常连接 `drawer::applySettings`。
-- `onGroupsChanged: ((List<SymbolGroup>) -> Unit)?`：涉及分组数据变更时提供快照。
+- `onGroupsChanged: ((List<SymbolGroup>) -> Unit)?`：涉及分组数据变更时提供快照。\n- `onExportJson: ((String) -> Unit)?`：导出设置 JSON 时提供备份文本，便于宿主保存到文件/云端。
 - `onExportJson: ((String) -> Unit)?`：导出设置 JSON 后通知宿主。
 - `onError: ((Throwable) -> Unit)?`：操作失败通知。
 
