@@ -206,3 +206,11 @@ override fun onResume() {
 ```
 
 如果 Fragment 的 View 会销毁重建，回调应绑定到当前 View 生命周期，不要让旧 View 持有已销毁 Fragment。
+
+## 扩展注册与动作宿主
+
+`SymbolDrawerView.extensions` 返回该 View 独立的 `SymbolDrawerExtensionRegistry`。可通过 `registerAction`、`registerIndicator`、`registerSettingsTab`、`registerSetting`、`registerTheme` 注册自定义贡献；列表分别通过 `actions()`、`indicators()`、`settingsTabs()`、`settingsItems()`、`themes()` 读取。每次注册返回 `AutoCloseable`，页面或编辑器会话结束时关闭。
+
+`bindActionHost(host)` 返回经过扩展注册表装饰的 `SymbolActionHost`，使 `SymbolAction.Extension` 自动分发到当前 View 已注册的动作 handler；未知扩展仍回退到宿主原始 `executeExtension`。该方法不会创建或持有新的编辑器对象。
+
+`extensions.setBuiltInVisible(featureId, visible)` 设置宿主定义的内置功能可见性覆盖；注册表只保存状态，具体 UI 列表应读取 `isBuiltInVisible` 后决定是否显示。扩展注册对象不持久化，重建后需重新注册。
