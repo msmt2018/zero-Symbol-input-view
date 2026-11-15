@@ -3,6 +3,7 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2
 import android.os.Parcelable
 import android.util.SparseArray
 import android.view.View
+import android.view.MotionEvent
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.LinearLayout
@@ -367,6 +368,50 @@ class DrawerUiContractTest {
                 expectedGridHeight, collapsedGridHeight)
             assertFalse("Collapsed toolbar must keep exactly its configured rows fixed", collapsedCanScroll)
             assertTrue("The expanded grid must allow scrolling when content exceeds its viewport", expandedCanScroll)
+        }
+    }
+
+    @Test fun verticalTouchDragCanExpandTheBottomDrawer() {
+        ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
+            var expandedAfterDrag = false
+            scenario.onActivity { activity ->
+                val drawer = SymbolDrawerView(activity)
+                activity.content.addView(drawer, FrameLayout.LayoutParams(-1, -1))
+                drawer.submitGroups(sample()) {
+                    val width = (420f * activity.resources.displayMetrics.density).toInt()
+                    val height = (640f * activity.resources.displayMetrics.density).toInt()
+                    drawer.measure(
+                        View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                        View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
+                    )
+                    drawer.layout(0, 0, width, drawer.measuredHeight)
+                    drawer.setExpanded(false, false)
+                    val downTime = android.os.SystemClock.uptimeMillis()
+                    fun send(action: Int, y: Float, offset: Long): Boolean {
+                        val event = MotionEvent.obtain(
+                            downTime,
+                            downTime + offset,
+                            action,
+                            width / 2f,
+                            y,
+                            0
+                        )
+                        return try {
+                            drawer.dispatchTouchEvent(event)
+                        } finally {
+                            event.recycle()
+                        }
+                    }
+                    send(MotionEvent.ACTION_DOWN, 360f, 0)
+                    send(MotionEvent.ACTION_MOVE, 90f, 120)
+                    expandedAfterDrag = drawer.isExpanded()
+                    send(MotionEvent.ACTION_UP, 90f, 160)
+                }
+            }
+            assertTrue(
+                "A vertical drag must be intercepted by the drawer and expand it; child-disallow requests must not disable its own interception",
+                expandedAfterDrag
+            )
         }
     }
 
