@@ -200,8 +200,9 @@ class SymbolDrawerSettingsScreen(
         extensionId: String,
         dispose: () -> Unit
     ) {
-        val safeDispose = {
+        val safeDispose: () -> Unit = {
             runCatching(dispose).onFailure { extensionRegistry?.reportError(extensionId, it) }
+            Unit
         }
         runCatching { page.addView(view, matchWrap()) }
             .onSuccess { extensionViewDisposers += safeDispose }
