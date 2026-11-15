@@ -87,6 +87,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionExecu
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionCancellation
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionResult
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.roundToInt
 
 /**
@@ -178,6 +179,7 @@ class SymbolDrawerView @JvmOverloads constructor(
     private var activeThemeExtension: com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerThemeExtension? = null
     private var activeTheme: SymbolDrawerTheme? = null
     private val themeObservers = CopyOnWriteArrayList<(SymbolDrawerTheme?) -> Unit>()
+    private var publishedThemeSnapshot: SymbolDrawerTheme? = null
 
     /** Current custom theme tokens; null means the host/system palette is active. */
     val themeSnapshot: SymbolDrawerTheme? get() = activeTheme
@@ -192,10 +194,9 @@ class SymbolDrawerView @JvmOverloads constructor(
             runCatching { observer(activeTheme) }
                 .onFailure { extensions.reportError("drawer.theme.observer", it) }
         }
-        var closed = false
+        val closed = AtomicBoolean(false)
         return AutoCloseable {
-            if (!closed) {
-                closed = true
+            if (closed.compareAndSet(false, true)) {
                 themeObservers.remove(observer)
             }
         }
@@ -547,9 +548,15 @@ class SymbolDrawerView @JvmOverloads constructor(
         // Rebind existing custom cells so their state receives the new theme
         // without replacing the page adapter or disturbing the current page.
         pageAdapter.refreshItemExtensions()
-        themeObservers.forEach { observer ->
-            runCatching { observer(theme) }
-                .onFailure { extensions.reportError("drawer.theme.observer", it) }
+        // Theme refreshes can be triggered by host configuration callbacks as
+        // well as extension registration. Publish only an actual token change so
+        // bound manager/settings surfaces do not render redundantly.
+        if (publishedThemeSnapshot != theme) {
+            publishedThemeSnapshot = theme
+            themeObservers.forEach { observer ->
+                runCatching { observer(theme) }
+                    .onFailure { extensions.reportError("drawer.theme.observer", it) }
+            }
         }
     }
 
