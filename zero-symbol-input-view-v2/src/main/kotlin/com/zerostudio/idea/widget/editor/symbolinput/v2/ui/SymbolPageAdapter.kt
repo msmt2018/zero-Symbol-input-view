@@ -223,7 +223,7 @@ internal class SymbolPageAdapter(
                 }
             }
         }
-        return PageHolder(grid, config, settings, onSymbolAction, spacingState)
+        return PageHolder(grid, config, settings, onSymbolAction, spacingState, extensions, legacyItemResolver)
     }
 
     override fun onBindViewHolder(holder: PageHolder, position: Int) {
@@ -360,6 +360,7 @@ internal class SymbolPageAdapter(
                     holder.customView = custom
                 }
                 val custom = holder.customView ?: holder.label
+                holder.boundLegacyItem = legacyItem.copy()
                 extension.bindView(custom, legacyItem, state)
                 target = custom
             } else {
@@ -388,13 +389,17 @@ internal class SymbolPageAdapter(
             }
             target.isClickable = true
             target.isFocusable = true
+            holder.interactionTarget = target
             target.setOnClickListener {
                 val current = holder.bindingAdapterPosition
                 if (current != RecyclerView.NO_POSITION && getItem(current).id == item.id) {
                     onSymbolAction(getItem(current), false)
                 }
             }
-            holder.accessibilityLongActionId?.let { ViewCompat.removeAccessibilityAction(target, it) }
+            holder.accessibilityTarget?.let { previous ->
+                holder.accessibilityLongActionId?.let { ViewCompat.removeAccessibilityAction(previous, it) }
+            }
+            holder.accessibilityTarget = target
             holder.accessibilityLongActionId = null
             val dispatchLongAction = {
                 val current = holder.bindingAdapterPosition
@@ -499,6 +504,8 @@ internal class SymbolPageAdapter(
         var boundLegacyItem: SymbolItem? = null
         var touchListener: SymbolCellTouchListener? = null
         var accessibilityLongActionId: Int? = null
+        var accessibilityTarget: View? = null
+        var interactionTarget: View? = null
 
         fun recycle() {
             touchListener?.cancel()
@@ -511,8 +518,14 @@ internal class SymbolPageAdapter(
             activeExtension = null
             customView = null
             boundLegacyItem = null
-            accessibilityLongActionId?.let { ViewCompat.removeAccessibilityAction(root, it) }
+            accessibilityTarget?.let { target ->
+                accessibilityLongActionId?.let { ViewCompat.removeAccessibilityAction(target, it) }
+                target.setOnClickListener(null)
+                target.setOnTouchListener(null)
+            }
+            accessibilityTarget = null
             accessibilityLongActionId = null
+            interactionTarget = null
             root.setOnClickListener(null)
             root.setOnTouchListener(null)
             label.setOnClickListener(null)
