@@ -55,6 +55,7 @@ import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.FrameLayout
 import android.widget.PopupMenu
 import android.widget.Spinner
 import android.widget.ScrollView
@@ -71,6 +72,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.ItemTouchHelper
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SharedPreferencesSymbolGroupRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupBundleCodec
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupManager
@@ -91,7 +93,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowAdaptiveI
 import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.AdaptiveContentLayoutResolver
 import com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawerView
 
-private class SymbolHolder(val root: LinearLayout, val title: TextView, val detail: TextView) : RecyclerView.ViewHolder(root)
+private class SymbolHolder(val root: LinearLayout, val title: TextView, val detail: TextView, val dragHandle: TextView) : RecyclerView.ViewHolder(root)
 
 private data class SymbolActionOption(
     val label: String,
@@ -164,9 +166,13 @@ class SymbolDrawerManagerScreen(
     private var rebuildingTabs = false
     private val emptyView = TextView(context)
     private var symbolList: RecyclerView? = null
+    private var previewPanel: LinearLayout? = null
+    private var previewDrawer: SymbolDrawerView? = null
+    private var reorderTouchHelper: ItemTouchHelper? = null
     private val symbolAdapter = SymbolAdapter(
         onClick = { symbol -> editSymbol(symbol) },
-        onLongClick = { symbol, anchor -> showSymbolMenu(symbol, anchor) }
+        onLongClick = { symbol, anchor -> showSymbolMenu(symbol, anchor) },
+        onDragHandle = { holder -> reorderTouchHelper?.startDrag(holder) }
     )
     private var selectedGroupId: String? = manager.groups.firstOrNull()?.id
     private val undoBar = LinearLayout(context)
@@ -427,6 +433,106 @@ class SymbolDrawerManagerScreen(
         } else {
             addView(list, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
         }
+        installSymbolReordering(list)
+        buildDragPreviewPanel()
+    }
+
+    /**
+     * Reordering uses the same repository-backed manager transaction as the
+     * explicit move commands. The preview is a fresh SymbolDrawerView instance,
+     * not the Activity's live toolbar; it is detached and released as soon as
+     * the drag gesture ends.
+     */
+    private fun installSymbolReordering(list: RecyclerView) {
+        val callback = object : ItemTouchHelper.SimpleCallback(
+            ItemTouchHelper.UP or ItemTouchHelper.DOWN,
+            0
+        ) {
+            override fun onMove(
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                target: RecyclerView.ViewHolder
+            ): Boolean {
+                if (searchField.text?.isNotBlank() == true) return false
+                val from = viewHolder.bindingAdapterPosition
+                val to = target.bindingAdapterPosition
+                val group = currentGroup() ?: return false
+                if (from == RecyclerView.NO_POSITION || to == RecyclerView.NO_POSITION ||
+                    from !in group.symbols.indices || to !in group.symbols.indices || from == to
+                ) return false
+                manager.moveSymbol(group.id, from, to)
+                symbolAdapter.submitList(currentGroup()?.symbols?.toList().orEmpty())
+                updateDragPreview()
+                return true
+            }
+
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) = Unit
+
+            override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
+                super.onSelectedChanged(viewHolder, actionState)
+                if (actionState == ItemTouchHelper.ACTION_STATE_DRAG) {
+                    showDragPreview()
+                }
+            }
+
+            override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
+                super.clearView(recyclerView, viewHolder)
+                refresh()
+                destroyDragPreview()
+            }
+
+            override fun isLongPressDragEnabled(): Boolean = false
+        }
+        reorderTouchHelper = ItemTouchHelper(callback).also { it.attachToRecyclerView(list) }
+    }
+
+    private fun buildDragPreviewPanel() {
+        val panel = LinearLayout(context).apply {
+            orientation = VERTICAL
+            visibility = View.GONE
+            setPadding(dp(8), dp(6), dp(8), dp(4))
+            background = roundedSurface(surfaceColor(), 14)
+        }
+        panel.addView(TextView(context).apply {
+            text = "实时工具栏预览 · 拖动结束自动释放"
+            textSize = 11f
+            setTextColor(secondaryTextColor())
+        }, LayoutParams(LayoutParams.MATCH_PARENT, dp(22)))
+        previewPanel = panel
+        addView(panel, LayoutParams(LayoutParams.MATCH_PARENT, dp(174)))
+    }
+
+    private fun showDragPreview() {
+        val panel = previewPanel ?: return
+        if (previewDrawer != null) return
+        val preview = SymbolDrawerView(context).apply {
+            applySettings(settings)
+            setRepository(repository, reload = false)
+            submitGroups(manager.groups, preserveSelectedGroup = true)
+            onSymbolActionListener = null
+            onOpenManagerListener = null
+            onOpenSettingsListener = null
+            onGroupChangedListener = null
+        }
+        previewDrawer = preview
+        panel.visibility = View.VISIBLE
+        panel.addView(preview, LayoutParams(LayoutParams.MATCH_PARENT, dp(140)))
+        preview.post { preview.setExpanded(true, false) }
+    }
+
+    private fun updateDragPreview() {
+        previewDrawer?.submitGroups(manager.groups, preserveSelectedGroup = true)
+    }
+
+    private fun destroyDragPreview() {
+        val preview = previewDrawer ?: return
+        preview.onSymbolActionListener = null
+        preview.onOpenManagerListener = null
+        preview.onOpenSettingsListener = null
+        preview.onGroupChangedListener = null
+        (preview.parent as? ViewGroup)?.removeView(preview)
+        previewDrawer = null
+        previewPanel?.visibility = View.GONE
     }
 
     private fun buildUndoBar() {
@@ -867,7 +973,8 @@ class SymbolDrawerManagerScreen(
 
     private class SymbolAdapter(
         private val onClick: (SymbolEntry) -> Unit,
-        private val onLongClick: (SymbolEntry, View) -> Unit
+        private val onLongClick: (SymbolEntry, View) -> Unit,
+        private val onDragHandle: (RecyclerView.ViewHolder) -> Unit
     ) : ListAdapter<SymbolEntry, SymbolHolder>(DIFF) {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SymbolHolder {
             val ctx = parent.context
@@ -896,13 +1003,24 @@ class SymbolDrawerManagerScreen(
                     setBackgroundColor(HostThemeColors.primary(ctx))
                 }, LinearLayout.LayoutParams(dp(ctx, 3), ViewGroup.LayoutParams.MATCH_PARENT))
                 addView(textColumn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+                val dragHandle = TextView(ctx).apply {
+                    text = "⋮⋮"
+                    textSize = 20f
+                    gravity = android.view.Gravity.CENTER
+                    setTextColor(HostThemeColors.secondaryText(ctx))
+                    contentDescription = "拖动调整符号位置"
+                    isClickable = true
+                    isFocusable = true
+                }
+                addView(dragHandle, LinearLayout.LayoutParams(dp(ctx, 40), ViewGroup.LayoutParams.MATCH_PARENT))
                 isClickable = true
                 isFocusable = true
                 val lp = RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
                 lp.bottomMargin = dp(ctx, 7)
                 layoutParams = lp
             }
-            return SymbolHolder(root, title, detail)
+            val dragHandle = root.getChildAt(root.childCount - 1) as TextView
+            return SymbolHolder(root, title, detail, dragHandle)
         }
 
         override fun onBindViewHolder(holder: SymbolHolder, position: Int) {
@@ -914,6 +1032,14 @@ class SymbolDrawerManagerScreen(
             holder.root.contentDescription = "${symbol.label}，短按$shortName，长按$longName"
             holder.root.setOnClickListener { onClick(symbol) }
             holder.root.setOnLongClickListener { onLongClick(symbol, holder.root); true }
+            holder.dragHandle.isEnabled = true
+            holder.dragHandle.alpha = if (holder.bindingAdapterPosition == RecyclerView.NO_POSITION) 0.45f else 1f
+            holder.dragHandle.setOnTouchListener { _, event ->
+                if (event.actionMasked == android.view.MotionEvent.ACTION_DOWN) {
+                    onDragHandle(holder)
+                    true
+                } else false
+            }
         }
 
         companion object {
