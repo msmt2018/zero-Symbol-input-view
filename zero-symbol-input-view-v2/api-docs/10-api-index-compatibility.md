@@ -33,7 +33,7 @@
 | SymbolActionRegistry<C> | 进程内 handler 注册表 |
 | RegistryBackedSymbolActionHost | 带注册表的 host 装饰器 |
 | SymbolActionJsonCodec | typed action JSON 编解码 |
-| SymbolTextDocument | 通用文本编辑接口 |
+| SymbolTextDocument | 通用文本编辑接口 |\n| SymbolTextDocumentActionHost | 基于通用文档 Adapter 的默认动作宿主 |\n| SymbolTextClipboard | 剪贴板能力注入接口 |
 | GenericSymbolTextActions | 通用文本动作 handler 集 |
 | SymbolTextEditing | 宏/文本范围/插入计算工具 |
 | BuiltinSymbolActionCatalog | 内置编辑器命令目录 |
@@ -237,3 +237,6 @@ API 判断当前窗口可用宽度，不是设备方向。确认传入的是 Act
 - 对 Repository 测试写入失败、损坏 JSON、迁移已完成、迁移目标非空等路径。
 - 对动作测试 host 返回 false、抛异常、取消、深层 Composite、超长 payload 和未知扩展 ID。
 - 公开 API 新增/删除/改签名时同步更新本目录和 README，并增加契约测试。
+
+
+扩展注册 API 类型索引见 [12 — 扩展注册框架](12-extension-framework.md)，包括 SymbolDrawerExtensionRegistry、SymbolDrawerActionExtension、SymbolGroupIndicatorExtension、SymbolDrawerSettingsTabExtension、SymbolDrawerSettingExtension、SymbolDrawerThemeExtension 和 SymbolDrawerTheme。
