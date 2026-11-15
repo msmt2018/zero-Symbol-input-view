@@ -125,8 +125,8 @@ class DrawerInteractionController(
                     // Re-evaluate a vertical gesture on every move. A nested
                     // scrolling child may consume the first downward movement
                     // and reach its top later in the same finger gesture.
-                    // Track the last child-owned position so interception does
-                    // not replay the child's already-consumed distance.
+                    // lastY is advanced on child-owned moves, so interception
+                    // never replays distance already consumed by that child.
                     val deltaY = event.rawY - lastY
                     val childAtTop = deltaY > 0f && childCanScrollUp(event.x, event.y)
                     if (shouldInterceptVerticalDrag(
@@ -138,6 +138,10 @@ class DrawerInteractionController(
                         onDisallowInterceptChanged(true)
                         return true
                     }
+                    lastY = event.rawY
+                } else if (!dragging) {
+                    // Preserve the latest child-owned position while the axis
+                    // is still undecided (or has been locked horizontally).
                     lastY = event.rawY
                 }
                 return dragging
