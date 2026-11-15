@@ -18,3 +18,5 @@ typealias DrawerTypography = com.zerostudio.idea.widget.editor.symbolinput.v2.dr
 typealias DrawerMotion = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerMotion
 typealias DrawerShape = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerShape
 typealias DrawerThemeResolver = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerThemeResolver
+
+typealias SymbolDrawerView = com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawerView
