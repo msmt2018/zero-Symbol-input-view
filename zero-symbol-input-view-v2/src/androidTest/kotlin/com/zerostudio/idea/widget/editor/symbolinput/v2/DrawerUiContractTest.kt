@@ -14,6 +14,8 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.viewpager2.widget.ViewPager2
+import com.zerostudio.idea.widget.editor.symbolinput.v2.state.DrawerGeometry
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.button.MaterialButton
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupRepository
@@ -313,21 +315,30 @@ class DrawerUiContractTest {
         }
     }
 
-    @Test fun collapsedToolbarLocksItsFirstTwoRowsUntilDrawerExpansion() {
+    @Test fun collapsedToolbarUsesTheConfiguredVisibleRowCount() {
         ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
-            val committed = CountDownLatch(1)
+            val checked = CountDownLatch(1)
+            var collapsedGridHeight = -1
+            var expectedGridHeight = -1
             var collapsedCanScroll = true
             var expandedCanScroll = false
-            val checked = CountDownLatch(1)
             scenario.onActivity { activity ->
                 val drawer = SymbolDrawerView(activity)
                 activity.content.addView(drawer, FrameLayout.LayoutParams(-1, -1))
+                val density = activity.resources.displayMetrics.density
+                val settings = SymbolDrawerSettings(
+                    columns = 10,
+                    collapsedRows = 3,
+                    cellHeightDp = 28,
+                    minimumTouchTargetDp = 40
+                )
+                drawer.applySettings(settings)
                 val symbols = (1L..200L).map { id ->
                     SymbolEntry(id, "s$id", SymbolAction.InsertText("s$id"))
                 }
                 drawer.submitGroups(listOf(SymbolGroup("many", "Many", symbols))) {
-                    val width = (420f * activity.resources.displayMetrics.density).toInt()
-                    val height = (480f * activity.resources.displayMetrics.density).toInt()
+                    val width = (420f * density).toInt()
+                    val height = (640f * density).toInt()
                     fun layoutDrawer() {
                         drawer.measure(
                             View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
@@ -341,6 +352,8 @@ class DrawerUiContractTest {
                         it is RecyclerView && it.layoutManager is GridLayoutManager
                     } as RecyclerView
                     collapsedCanScroll = grid.canScrollVertically(1)
+                    collapsedGridHeight = grid.measuredHeight
+                    expectedGridHeight = DrawerGeometry.collapsedHeightPx(settings.toDrawerConfig(), density)
                     drawer.setExpanded(true, false)
                     layoutDrawer()
                     grid.post {
@@ -350,8 +363,47 @@ class DrawerUiContractTest {
                 }
             }
             assertTrue("The expanded grid did not finish layout", checked.await(5, TimeUnit.SECONDS))
-            assertFalse("Collapsed toolbar must keep its configured first two rows fixed", collapsedCanScroll)
+            assertEquals("Collapsed height must use the layout setting, not a hard-coded row count",
+                expectedGridHeight, collapsedGridHeight)
+            assertFalse("Collapsed toolbar must keep exactly its configured rows fixed", collapsedCanScroll)
             assertTrue("The expanded grid must allow scrolling when content exceeds its viewport", expandedCanScroll)
+        }
+    }
+
+    @Test fun horizontalPagerKeepsOneSymbolGroupPerSwipePage() {
+        ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
+            val changed = CountDownLatch(1)
+            var pageCount = 0
+            var selectedPage = -1
+            scenario.onActivity { activity ->
+                val drawer = SymbolDrawerView(activity)
+                activity.content.addView(drawer, FrameLayout.LayoutParams(-1, -1))
+                drawer.submitGroups(sample()) {
+                    val width = (420f * activity.resources.displayMetrics.density).toInt()
+                    val height = (480f * activity.resources.displayMetrics.density).toInt()
+                    drawer.measure(
+                        View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                        View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
+                    )
+                    drawer.layout(0, 0, width, drawer.measuredHeight)
+                    val pager = find(drawer) { it is ViewPager2 } as ViewPager2
+                    pageCount = pager.adapter?.itemCount ?: 0
+                    pager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+                        override fun onPageSelected(position: Int) {
+                            selectedPage = position
+                            if (position == 1) changed.countDown()
+                        }
+                    })
+                    check(pager.isUserInputEnabled) { "Horizontal group paging must remain enabled" }
+                    check(pager.beginFakeDrag()) { "ViewPager2 refused to begin a horizontal page drag" }
+                    pager.fakeDragBy(-width * 0.85f)
+                    pager.endFakeDrag()
+                }
+            }
+            assertTrue("A horizontal swipe did not advance to the next symbol group",
+                changed.await(5, TimeUnit.SECONDS))
+            assertEquals("Each symbol group must occupy exactly one pager page", 2, pageCount)
+            assertEquals(1, selectedPage)
         }
     }
 
