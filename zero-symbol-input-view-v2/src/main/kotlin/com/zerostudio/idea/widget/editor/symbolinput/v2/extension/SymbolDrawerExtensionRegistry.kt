@@ -7,6 +7,7 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.extension
 
 import android.content.Context
 import android.view.View
+import android.view.MotionEvent
 import java.util.concurrent.CopyOnWriteArrayList
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.RegistryBackedSymbolActionHost
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionHandler
@@ -241,6 +242,10 @@ interface SymbolDrawerItemViewExtension {
     fun accepts(item: SymbolItem): Boolean = true
     fun createView(context: Context, item: SymbolItem, state: SymbolDrawerItemViewState): View
     fun bindView(view: View, item: SymbolItem, state: SymbolDrawerItemViewState)
+    /** Receives the original touch stream without intercepting drawer scrolling or paging. */
+    fun onTouch(view: View, item: SymbolItem, state: SymbolDrawerItemViewState, event: MotionEvent) = Unit
+    fun onClick(view: View, item: SymbolItem, state: SymbolDrawerItemViewState) = Unit
+    fun onLongPress(view: View, item: SymbolItem, state: SymbolDrawerItemViewState) = Unit
     fun onViewRecycled(view: View, item: SymbolItem?) = Unit
 }
 
