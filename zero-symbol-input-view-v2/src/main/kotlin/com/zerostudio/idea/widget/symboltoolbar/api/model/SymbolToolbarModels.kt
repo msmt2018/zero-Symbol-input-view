@@ -1,51 +1,26 @@
 /*
- * Independent symbol toolbar data contracts.
+ * Symbol toolbar invocation metadata. Symbol data itself is the original V1 model.
  * SPDX-License-Identifier: AGPL-3.0-only AND GPL-3.0-only AND Apache-2.0
  */
 package com.zerostudio.idea.widget.symboltoolbar.api.model
 
-import com.zerostudio.idea.widget.symboltoolbar.api.action.SymbolToolbarAction
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolGroup
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolItem
 
-/** Stable, immutable group identity and ordered item snapshot. */
-data class SymbolToolbarGroup(
-    val id: String,
-    val title: String,
-    val items: List<SymbolToolbarItem>,
-    val metadata: Map<String, String> = emptyMap()
-) {
-    init {
-        require(id.isNotBlank()) { "group id must not be blank" }
-        require(title.isNotBlank()) { "group title must not be blank" }
-        require(items.map { it.id }.distinct().size == items.size) {
-            "item IDs must be unique within a group"
-        }
-    }
-}
-
-/** A toolbar item is presentation data plus declarative actions, not a View. */
-data class SymbolToolbarItem(
-    val id: String,
-    val label: String,
-    val accessibilityLabel: String = label,
-    val shortAction: SymbolToolbarAction,
-    val longAction: SymbolToolbarAction? = null,
-    val enabled: Boolean = true,
-    val metadata: Map<String, String> = emptyMap()
-) {
-    init {
-        require(id.isNotBlank()) { "item id must not be blank" }
-        require(label.isNotEmpty()) { "item label must not be empty" }
-        require(accessibilityLabel.isNotBlank()) { "accessibilityLabel must not be blank" }
-    }
-}
-
-/** The complete semantic invocation; gesture details are explicit. */
+/**
+ * Gesture metadata around the original mutable V1 symbol records.
+ * No second group/item model is introduced: callers receive the exact objects
+ * submitted to the toolbar, including the numeric action ID and text payload.
+ */
 data class SymbolToolbarInvocation(
-    val groupId: String,
-    val itemId: String,
-    val action: SymbolToolbarAction,
+    val group: SymbolGroup,
+    val item: SymbolItem,
     val gesture: Gesture,
-    val eventTimeMillis: Long
+    val eventTimeMillis: Long = System.currentTimeMillis()
 ) {
     enum class Gesture { TAP, LONG_PRESS, ACCESSIBILITY }
+
+    val isLongPress: Boolean get() = gesture == Gesture.LONG_PRESS
+    val actionId: Int get() = if (isLongPress) item.longAction ?: item.shortAction else item.shortAction
+    val payload: String? get() = if (isLongPress) item.longText else item.shortText
 }
