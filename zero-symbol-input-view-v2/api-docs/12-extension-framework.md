@@ -125,16 +125,16 @@ fun interface SymbolActionHandler<C> {
 
 ### SymbolDrawerSettingsTabExtension
 
-- `id)：Tab 稳定 ID。
-- `title)：Tab 标题。
-- `priority)：排序。
+- `id`：Tab 稳定 ID。
+- `title`：Tab 标题。
+- `priority`：排序。
 - `createView(context, scope))：返回完整设置页 View。
 
 ### SymbolDrawerSettingExtension
 
 - `id)：设置项稳定 ID。
-- `tabId)：目标设置 Tab ID。
-- `title)：设置项名称。
+- `tabId`：目标设置 Tab ID。
+- `title`：设置项名称。
 - `priority)：在目标 Tab 内排序。
 - `createView(context, scope))：创建设置项 View。
 
