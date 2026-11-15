@@ -202,8 +202,21 @@ class SymbolDrawerView @JvmOverloads constructor(
             previousSettings.showSymbolLabels != settings.showSymbolLabels ||
             previousSettings.showActionHints != settings.showActionHints ||
             previousSettings.longPressTimeoutMs != settings.longPressTimeoutMs
-        val gridGeometryChanged = previousConfig != config
-        if (!adapterPresentationChanged && !gridGeometryChanged) return
+        val gridGeometryChanged =
+            previousConfig.columns != config.columns ||
+            previousConfig.collapsedRows != config.collapsedRows ||
+            previousConfig.cellHeightDp != config.cellHeightDp ||
+            previousConfig.cellHorizontalSpacingDp != config.cellHorizontalSpacingDp ||
+            previousConfig.cellVerticalSpacingDp != config.cellVerticalSpacingDp ||
+            previousConfig.indicatorHeightDp != config.indicatorHeightDp ||
+            previousConfig.maxExpandedHeightDp != config.maxExpandedHeightDp ||
+            previousConfig.minimumTouchTargetDp != config.minimumTouchTargetDp
+        if (!adapterPresentationChanged && !gridGeometryChanged) {
+            // Motion thresholds and duration still update the live controller,
+            // but they do not require recycling every symbol cell.
+            recalculateGeometry()
+            return
+        }
 
         // Keep the current adapter attached until the replacement has a full
         // data snapshot, then restore the selected group atomically.
