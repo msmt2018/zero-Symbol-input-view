@@ -75,6 +75,27 @@ class GenericSymbolTextActionsExecutionCoverageTest {
     }
 
     @Test
+    fun insertPayloadUsesOnlyTheEditorIndependentDocumentContract() {
+        val registry = GenericSymbolTextActions.createRegistry()
+        val document = TestDocument(
+            text = "before selected after",
+            cursor = 15,
+            selectionStart = 7,
+            selectionEnd = 15
+        )
+
+        assertEquals(
+            true,
+            registry.execute(SymbolActionId("builtin", "insert_payload"), document, "inserted")
+        )
+        assertEquals("before inserted after", document.text)
+        assertEquals(15, document.cursorOffset)
+        assertEquals(15, document.selectionStart)
+        assertEquals(15, document.selectionEnd)
+        assertTrue(document.hasValidState())
+    }
+
+    @Test
     fun readOnlyDocumentsRejectMutatingActionsWithoutChangingText() {
         val registry = GenericSymbolTextActions.createRegistry()
         val document = TestDocument("alpha\nbeta", 2, 0, 5, isEditable = false)

@@ -20,6 +20,22 @@ object GenericSymbolTextActions {
         add("line.delete") { d, _ -> deleteLine(d, currentLine(d)) }
         add("line.clear") { d, _ -> clearLine(d, currentLine(d)) }
         add("line.replace") { d, payload -> replaceLine(d, currentLine(d), payload.orEmpty()) }
+        add("insert_payload") { document, payload ->
+            if (!document.isEditable) {
+                false
+            } else {
+                val start = minOf(document.selectionStart, document.selectionEnd)
+                val end = maxOf(document.selectionStart, document.selectionEnd)
+                val replacement = payload.orEmpty()
+                if (!document.replace(start, end, replacement)) {
+                    false
+                } else {
+                    val caret = start + replacement.length
+                    document.setSelection(caret, caret)
+                    true
+                }
+            }
+        }
         add("line.insertAbove") { d, _ -> insertBlankLineAbove(d) }
         add("line.insertBelow") { d, _ -> insertBlankLineBelow(d) }
         add("line.joinNext") { d, _ -> joinWithNextLine(d) }

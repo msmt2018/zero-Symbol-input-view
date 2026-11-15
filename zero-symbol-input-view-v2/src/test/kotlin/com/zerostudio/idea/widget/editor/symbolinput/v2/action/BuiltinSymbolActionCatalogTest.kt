@@ -9,7 +9,7 @@ class BuiltinSymbolActionCatalogTest {
     @Test fun everyGenericActionIsAvailableAndEveryHostActionHasAHostContract() {
         val genericIds = GenericSymbolTextActions.supportedCommandIds()
         val catalogIds = BuiltinSymbolActionCatalog.options.map { it.commandId }
-        val hostCommandIds = setOf("undo", "redo", "indent", "unindent", "format", "insert_payload")
+        val hostCommandIds = setOf("undo", "redo", "indent", "unindent", "format")
         val registry = GenericSymbolTextActions.createRegistry()
 
         assertEquals("Built-in action IDs must be unique", catalogIds.size, catalogIds.toSet().size)
@@ -22,7 +22,7 @@ class BuiltinSymbolActionCatalogTest {
             assertNotNull("Generic action '$id' must have a reverse-lookup handler",
                 registry.get(SymbolActionId("builtin", id)))
         }
-        assertEquals(60, genericIds.size)
+        assertEquals(61, genericIds.size)
         assertEquals(66, catalogIds.size)
     }
 }

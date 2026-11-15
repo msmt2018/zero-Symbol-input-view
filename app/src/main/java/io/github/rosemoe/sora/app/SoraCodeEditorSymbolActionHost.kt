@@ -212,7 +212,6 @@ class SoraCodeEditorSymbolActionHost(
             "indent", "editor.indent" -> editor.indentOrCommitTab()
             "unindent", "editor.unindent" -> editor.unindentSelection()
             "format", "editor.format" -> editor.formatCodeAsync()
-            "insert_payload" -> editor.commitText(payload.orEmpty())
             else -> return false
         }
         return true
