@@ -61,6 +61,17 @@ class DrawerGeometryTest {
     }
 
     @Test
+    fun collapsedHeightTracksConfiguredRowsInsteadOfAViewHardcodedRowCount() {
+        listOf(1, 2, 3, 5, 8).forEach { rows ->
+            val configured = config.copy(collapsedRows = rows)
+            assertEquals(
+                DrawerGeometry.gridHeightPx(rows, configured, 1f),
+                DrawerGeometry.collapsedHeightPx(configured, 1f)
+            )
+        }
+    }
+
+    @Test
     fun expandedHeightUsesLargestGroup() {
         val groups = listOf(group("a", 5), group("b", 9))
         assertEquals(102, DrawerGeometry.expandedHeightPx(groups, config, 1f))
