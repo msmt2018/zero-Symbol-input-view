@@ -50,7 +50,8 @@ interface SymbolTextDocument {
 
     fun positionForOffset(offset: Int): TextDocumentPosition {
         val safeOffset = offset.coerceIn(0, textLength)
-        val line = lineForOffset(safeOffset).coerceIn(0, (lineCount - 1).coerceAtLeast(0))
+        if (lineCount <= 0) return TextDocumentPosition(0, safeOffset)
+        val line = lineForOffset(safeOffset).coerceIn(0, lineCount - 1)
         return TextDocumentPosition(line, (safeOffset - lineStartOffset(line)).coerceAtLeast(0))
     }
 
@@ -76,25 +77,28 @@ interface SymbolTextDocument {
         if (!isEditable) return false
         if (edits.isEmpty()) return true
         val ordered = edits.sortedByDescending { it.start }
-        var previousStart = Int.MAX_VALUE
-        if (ordered.any { it.start < 0 || it.end < it.start || it.end > textLength ||
-                it.end > previousStart.also { _ -> previousStart = it.start } }) {
-            return false
+        var previousStart = textLength + 1
+        for (edit in ordered) {
+            if (edit.start < 0 || edit.end < edit.start || edit.end > textLength ||
+                edit.end > previousStart
+            ) return false
+            previousStart = edit.start
         }
-        var committed = 0
         beginEditTransaction()
+        var finished = false
         return try {
             for (edit in ordered) {
                 if (!replace(edit.start, edit.end, edit.replacement)) {
                     endEditTransaction(false)
+                    finished = true
                     return false
                 }
-                committed++
             }
             endEditTransaction(true)
+            finished = true
             true
         } catch (error: Throwable) {
-            runCatching { endEditTransaction(false) }
+            if (!finished) runCatching { endEditTransaction(false) }
             throw error
         }
     }
