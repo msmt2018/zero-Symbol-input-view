@@ -172,7 +172,10 @@ class SymbolDrawerManagerScreen(
     private val symbolAdapter = SymbolAdapter(
         onClick = { symbol -> editSymbol(symbol) },
         onLongClick = { symbol, anchor -> showSymbolMenu(symbol, anchor) },
-        onDragHandle = { holder -> reorderTouchHelper?.startDrag(holder) }
+        onDragHandle = { holder -> reorderTouchHelper?.startDrag(holder) },
+        isBatchMode = { batchMode },
+        isSelected = { symbol -> symbol.id in selectedSymbolIds },
+        onBatchToggle = { symbol -> toggleBatchSelection(symbol) }
     )
     private var selectedGroupId: String? = manager.groups.firstOrNull()?.id
     private val selectedSymbolIds = linkedSetOf<Long>()
@@ -1102,7 +1105,10 @@ class SymbolDrawerManagerScreen(
     private class SymbolAdapter(
         private val onClick: (SymbolEntry) -> Unit,
         private val onLongClick: (SymbolEntry, View) -> Unit,
-        private val onDragHandle: (RecyclerView.ViewHolder) -> Unit
+        private val onDragHandle: (RecyclerView.ViewHolder) -> Unit,
+        private val isBatchMode: () -> Boolean,
+        private val isSelected: (SymbolEntry) -> Boolean,
+        private val onBatchToggle: (SymbolEntry) -> Unit
     ) : ListAdapter<SymbolEntry, SymbolHolder>(DIFF) {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SymbolHolder {
             val ctx = parent.context
@@ -1158,16 +1164,19 @@ class SymbolDrawerManagerScreen(
             val longName = symbol.legacyLongActionId?.let(::actionName) ?: symbol.longAction?.javaClass?.simpleName ?: "无"
             holder.detail.text = "短按  $shortName    ·    长按  $longName"
             holder.root.contentDescription = "${symbol.label}，短按$shortName，长按$longName"
-            val selected = symbol.id in selectedSymbolIds
-            holder.root.alpha = if (batchMode && selected) 0.72f else 1f
+            val selecting = isBatchMode()
+            val selected = isSelected(symbol)
+            holder.root.alpha = if (selecting && selected) 0.72f else 1f
+            holder.title.text = (if (selecting) (if (selected) "☑ " else "□ ") else "") +
+                (if (symbol.icon.isNullOrEmpty()) symbol.label else "${symbol.icon}  ${symbol.label}")
             holder.root.setOnClickListener {
-                if (batchMode) toggleBatchSelection(symbol) else onClick(symbol)
+                if (isBatchMode()) onBatchToggle(symbol) else onClick(symbol)
             }
             holder.root.setOnLongClickListener {
-                if (batchMode) toggleBatchSelection(symbol) else onLongClick(symbol, holder.root)
+                if (isBatchMode()) onBatchToggle(symbol) else onLongClick(symbol, holder.root)
                 true
             }
-            holder.dragHandle.visibility = if (batchMode) View.GONE else View.VISIBLE
+            holder.dragHandle.visibility = if (selecting) View.GONE else View.VISIBLE
             holder.dragHandle.isEnabled = true
             holder.dragHandle.alpha = if (holder.bindingAdapterPosition == RecyclerView.NO_POSITION) 0.45f else 1f
             holder.dragHandle.setOnTouchListener { _, event ->
