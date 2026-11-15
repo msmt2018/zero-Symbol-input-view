@@ -177,13 +177,12 @@ class DrawerUiContractTest {
 
                 val searchButton = find(manager) {
                     it.tag == "symbol_manager_search_button"
-                } as? MaterialButton
+                } as? MaterialButton ?: error("Material search button was not created")
                 val searchContainer = find(manager) {
                     it.tag == "symbol_manager_search_container"
                 }
-                assertNotNull(searchButton)
                 assertEquals(View.GONE, searchContainer.visibility)
-                assertTrue(requireNotNull(searchButton).performClick())
+                assertTrue(searchButton.performClick())
                 assertEquals(View.VISIBLE, searchContainer.visibility)
                 assertEquals("收起", searchButton.text.toString())
                 assertTrue(searchButton.performClick())
