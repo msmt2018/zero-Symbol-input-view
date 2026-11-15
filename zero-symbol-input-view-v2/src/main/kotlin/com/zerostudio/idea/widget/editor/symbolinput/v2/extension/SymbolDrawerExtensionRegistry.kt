@@ -9,6 +9,7 @@ import android.content.Context
 import android.view.View
 import android.view.MotionEvent
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.atomic.AtomicBoolean
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.RegistryBackedSymbolActionHost
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionHandler
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionHost
@@ -104,10 +105,9 @@ class SymbolDrawerExtensionRegistry {
         require(actionId >= 0) { "Legacy action ID must be non-negative" }
         val registration = actionHandlers.register(actionId, handler)
         notifyChanged()
-        var closed = false
+        val closed = AtomicBoolean(false)
         return AutoCloseable {
-            if (!closed) {
-                closed = true
+            if (closed.compareAndSet(false, true)) {
                 registration.close()
                 notifyChanged()
             }
