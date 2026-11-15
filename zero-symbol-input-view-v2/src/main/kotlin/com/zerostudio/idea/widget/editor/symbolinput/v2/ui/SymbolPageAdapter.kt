@@ -299,6 +299,9 @@ internal class SymbolPageAdapter(
             }
         }
         fun refreshItemExtensions() {
+            grid.setBackgroundColor(
+                themeProvider()?.surface ?: HostThemeColors.surface(grid.context)
+            )
             symbolsAdapter.refreshItemExtensions()
         }
         fun clear() = symbolsAdapter.submitList(emptyList())
