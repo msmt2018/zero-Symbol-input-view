@@ -175,6 +175,7 @@ class SymbolDrawerView @JvmOverloads constructor(
     )
 
     init {
+        indicator.setSettingsButtonVisible(isBuiltInFeatureVisible("builtin.settings"))
         clipChildren = false
         clipToPadding = false
         addView(indicatorHost, LayoutParams(LayoutParams.MATCH_PARENT, 0))
