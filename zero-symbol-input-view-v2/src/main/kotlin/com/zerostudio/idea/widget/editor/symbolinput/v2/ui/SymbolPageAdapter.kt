@@ -348,26 +348,47 @@ internal class SymbolPageAdapter(
                 pressed = false,
                 enabled = true
             )
-            val extension = extensions.itemViews().firstOrNull { candidate ->
+            var extension = extensions.itemViews().firstOrNull { candidate ->
                 runCatching { candidate.accepts(legacyItem) }.getOrDefault(false)
             }
-            val target: View
+            var custom: View? = null
             if (extension != null) {
-                if (holder.activeExtension?.id != extension.id) {
+                if (holder.activeExtension !== extension) {
                     holder.recycle()
-                    val custom = extension.createView(holder.root.context, legacyItem, state)
-                    holder.root.removeAllViews()
-                    holder.root.addView(custom, android.widget.FrameLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT
-                    ))
-                    holder.activeExtension = extension
-                    holder.customView = custom
+                    custom = runCatching {
+                        extension!!.createView(holder.root.context, legacyItem, state)
+                    }.getOrNull()
+                    if (custom != null) {
+                        holder.root.removeAllViews()
+                        holder.root.addView(custom, android.widget.FrameLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.MATCH_PARENT
+                        ))
+                        holder.activeExtension = extension
+                        holder.customView = custom
+                    } else {
+                        extension = null
+                    }
+                } else {
+                    custom = holder.customView
                 }
-                val custom = holder.customView ?: holder.label
-                holder.boundLegacyItem = legacyItem.copy()
-                extension.bindView(custom, legacyItem, state)
-                target = custom
+                if (extension != null && custom != null) {
+                    holder.boundLegacyItem = legacyItem.copy()
+                    val bound = runCatching { extension!!.bindView(custom!!, legacyItem, state) }.isSuccess
+                    if (!bound) {
+                        holder.recycle()
+                        extension = null
+                        custom = null
+                    }
+                } else {
+                    holder.recycle()
+                    extension = null
+                }
+            }
+
+            val target: View
+            if (extension != null && custom != null) {
+                target = custom!!
             } else {
                 holder.recycle()
                 holder.root.removeAllViews()
