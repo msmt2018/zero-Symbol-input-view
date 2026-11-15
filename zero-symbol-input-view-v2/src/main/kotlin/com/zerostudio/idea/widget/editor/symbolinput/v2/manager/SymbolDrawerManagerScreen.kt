@@ -91,7 +91,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SharedPreferenc
 import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowAdaptiveInfo
 import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.AdaptiveContentLayoutResolver
 import com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawerView
-import android.widget.HorizontalScrollView
+import com.google.android.material.tabs.TabLayout
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerPage
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerPageHost
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.panel.DrawerPanelContent
@@ -178,8 +178,7 @@ class SymbolDrawerManagerScreen(
             previewDrawer?.applySettings(settings)
         }
     }
-    private val groupNavigationBar = LinearLayout(context)
-    private val groupNavigationScroll = HorizontalScrollView(context)
+    private val groupTabs = TabLayout(context)
     private val groupPageHost = DrawerPageHost(context)
     private val groupPageContents = LinkedHashMap<String, GroupPageContent>()
     private val searchField = EditText(context)
@@ -228,7 +227,6 @@ class SymbolDrawerManagerScreen(
         buildHeader()
         buildGroupControls()
         buildSearch()
-        buildFilterBar()
         buildSymbolList()
         addView(
             groupPageHost,
@@ -254,11 +252,11 @@ class SymbolDrawerManagerScreen(
         (symbolList?.layoutManager as? GridLayoutManager)?.let { grid ->
             if (grid.spanCount != spec.cardColumns) grid.spanCount = spec.cardColumns
         }
-        groupNavigationScroll.layoutParams?.let { params ->
+        groupTabs.layoutParams?.let { params ->
             val targetHeight = dp(if (spec.cardColumns > 1) 52 else 48)
             if (params.height != targetHeight) {
                 params.height = targetHeight
-                groupNavigationScroll.layoutParams = params
+                groupTabs.layoutParams = params
             }
         }
     }
@@ -327,53 +325,76 @@ class SymbolDrawerManagerScreen(
     private var groupActionsButton: Button? = null
 
     private fun buildHeader() {
-        val row = horizontalRow().apply { gravity = android.view.Gravity.CENTER_VERTICAL }
-        row.addView(TextView(context).apply {
-            text = "符号管理"
-            textSize = 17f
-            setTextColor(HostThemeColors.onSurface(context))
-            setTypeface(typeface, android.graphics.Typeface.BOLD)
-        }, LinearLayout.LayoutParams(0, dp(44), 1f))
-        val batchButton = actionButton("批量") { }
-        batchButton.setOnClickListener { setBatchMode(!batchMode) }
-        row.addView(batchButton, LayoutParams(LayoutParams.WRAP_CONTENT, dp(40)))
-        val addButton = actionButton("＋ 添加") { }
-        addButton.setOnClickListener { showAddMenu(addButton) }
-        row.addView(addButton, LayoutParams(LayoutParams.WRAP_CONTENT, dp(40)))
-        searchToggle.apply {
-            text = "搜索"
+        val row = horizontalRow().apply { gravity = android.view.Gravity.END or android.view.Gravity.CENTER_VERTICAL }
+        val menuButton = MaterialButton(context).apply {
+            text = "更多"
             isAllCaps = false
             textSize = 13f
-            minWidth = dp(84)
+            minWidth = dp(64)
             minHeight = dp(40)
             insetTop = 0
             insetBottom = 0
             cornerRadius = dp(12)
-            icon = context.getDrawable(android.R.drawable.ic_menu_search)
+            icon = context.getDrawable(android.R.drawable.ic_menu_more)
             iconSize = dp(18)
-            iconPadding = dp(5)
             iconGravity = MaterialButton.ICON_GRAVITY_TEXT_START
             iconTint = android.content.res.ColorStateList.valueOf(HostThemeColors.onSurface(context))
-            contentDescription = "打开符号搜索"
-            setOnClickListener {
-                val show = searchContainer.visibility != View.VISIBLE
-                searchContainer.visibility = if (show) View.VISIBLE else View.GONE
-                text = if (show) "收起" else "搜索"
-                contentDescription = if (show) "收起符号搜索" else "打开符号搜索"
-                if (!show) searchField.text?.clear() else searchField.requestFocus()
-            }
+            setTextColor(HostThemeColors.onSurface(context))
+            backgroundTintList = android.content.res.ColorStateList.valueOf(surfaceColor())
+            strokeWidth = dp(1)
+            strokeColor = android.content.res.ColorStateList.valueOf(HostThemeColors.outline(context))
+            setOnClickListener { showManagerMenu(this) }
         }
-        row.addView(searchToggle, LayoutParams(LayoutParams.WRAP_CONTENT, dp(40)))
+        row.addView(menuButton, LayoutParams(LayoutParams.WRAP_CONTENT, dp(40)))
         addView(row, matchWrap())
     }
 
+    private fun showManagerMenu(anchor: View) {
+        val menu = PopupMenu(context, anchor, android.view.Gravity.END)
+        menu.menu.add(if (batchMode) "退出批量选择" else "批量")
+            .setOnMenuItemClickListener { setBatchMode(!batchMode); true }
+        menu.menu.add("添加符号").setOnMenuItemClickListener { editSymbol(null); true }
+        menu.menu.add("添加分组").setOnMenuItemClickListener {
+            promptGroupName("新建分组") { title ->
+                runCatching { selectedGroupId = manager.createGroup(title).id; refresh() }
+                    .onFailure(::reportError)
+            }
+            true
+        }
+        menu.menu.add(if (searchContainer.visibility == View.VISIBLE) "收起搜索" else "搜索")
+            .setOnMenuItemClickListener {
+                val show = searchContainer.visibility != View.VISIBLE
+                searchContainer.visibility = if (show) View.VISIBLE else View.GONE
+                if (show) searchField.requestFocus() else searchField.text?.clear()
+                true
+            }
+        menu.menu.add("筛选")
+        menu.menu.add("全部").setOnMenuItemClickListener { setActiveFilter(ManagerSymbolFilter.ALL); true }
+        menu.menu.add("收藏").setOnMenuItemClickListener { setActiveFilter(ManagerSymbolFilter.FAVORITES); true }
+        menu.menu.add("最近").setOnMenuItemClickListener { setActiveFilter(ManagerSymbolFilter.RECENT); true }
+        menu.show()
+    }
+
+    private fun setActiveFilter(filter: ManagerSymbolFilter) {
+        activeFilter = filter
+        refreshSymbols()
+        updateFilterButtons()
+    }
+
     private fun buildGroupControls() {
-        groupNavigationBar.orientation = HORIZONTAL
-        groupNavigationBar.gravity = android.view.Gravity.CENTER_VERTICAL
-        groupNavigationScroll.isHorizontalScrollBarEnabled = false
-        groupNavigationScroll.addView(groupNavigationBar, ViewGroup.LayoutParams(
-            ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT
-        ))
+        groupTabs.tabMode = TabLayout.MODE_SCROLLABLE
+        groupTabs.isInlineLabel = true
+        groupTabs.setSelectedTabIndicatorColor(HostThemeColors.primary(context))
+        groupTabs.setTabTextColors(HostThemeColors.secondaryText(context), HostThemeColors.primary(context))
+        groupTabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab) {
+                val id = tab.tag as? String ?: return
+                selectedGroupId = id
+                groupPageHost.selectPage(groupPageId(id))
+            }
+            override fun onTabUnselected(tab: TabLayout.Tab) = Unit
+            override fun onTabReselected(tab: TabLayout.Tab) = Unit
+        })
         groupPageHost.navigationController.addListener { snapshot, _ ->
             snapshot.selectedPageId?.removePrefix(GROUP_PAGE_PREFIX)?.let { id ->
                 if (selectedGroupId != id) {
@@ -383,9 +404,8 @@ class SymbolDrawerManagerScreen(
             }
             updateGroupNavigationButtons()
         }
-        addView(groupNavigationScroll, LayoutParams(LayoutParams.MATCH_PARENT, dp(48)))
+        addView(groupTabs, LayoutParams(LayoutParams.MATCH_PARENT, dp(48)))
     }
-
     private fun showAddMenu(anchor: View) {
         val menu = PopupMenu(context, anchor)
         menu.menu.add("新建分组").setOnMenuItemClickListener {
@@ -502,15 +522,10 @@ class SymbolDrawerManagerScreen(
             ManagerSymbolFilter.RECENT to "最近"
         )
         filters.forEach { (filter, label) ->
-            filterBar.addView(actionButton(label) {
-                activeFilter = filter
-                refreshSymbols()
-                updateFilterButtons()
-            }, LayoutParams(LayoutParams.WRAP_CONTENT, dp(36)).apply {
-                marginEnd = dp(6)
-            })
+            filterBar.addView(actionButton(label) { setActiveFilter(filter) },
+                LayoutParams(LayoutParams.WRAP_CONTENT, dp(36)).apply { marginEnd = dp(6) })
         }
-        addView(filterBar, matchWrap())
+        filterBar.visibility = View.GONE
         updateFilterButtons()
     }
 
@@ -857,22 +872,24 @@ class SymbolDrawerManagerScreen(
     private fun groupPageId(groupId: String) = GROUP_PAGE_PREFIX + groupId
 
     private fun updateGroupNavigationButtons() {
-        groupNavigationBar.removeAllViews()
-        manager.groups.forEach { group ->
-            val selected = group.id == selectedGroupId
-            val button = actionButton(group.title) {
-                groupPageHost.selectPage(groupPageId(group.id))
-            }.apply {
-                isSelected = selected
-                alpha = if (selected) 1f else 0.62f
-                setOnLongClickListener {
-                    showGroupTabMenu(it, group.id)
-                    true
-                }
+        val existing = (0 until groupTabs.tabCount).mapNotNull { groupTabs.getTabAt(it)?.tag as? String }
+        val next = manager.groups.map { it.id }
+        if (existing != next) {
+            groupTabs.removeAllTabs()
+            manager.groups.forEach { group ->
+                groupTabs.addTab(groupTabs.newTab().setText(group.title).setTag(group.id), false)
             }
-            groupNavigationBar.addView(button, LayoutParams(
-                LayoutParams.WRAP_CONTENT, dp(40)
-            ).apply { marginEnd = dp(6) })
+        } else {
+            manager.groups.forEachIndexed { index, group -> groupTabs.getTabAt(index)?.text = group.title }
+        }
+        val index = manager.groups.indexOfFirst { it.id == selectedGroupId }
+        if (index >= 0 && groupTabs.selectedTabPosition != index) groupTabs.getTabAt(index)?.select()
+        for (tabIndex in 0 until groupTabs.tabCount) {
+            val tab = groupTabs.getTabAt(tabIndex) ?: continue
+            tab.view.setOnLongClickListener {
+                (tab.tag as? String)?.let { id -> showGroupTabMenu(it, id) }
+                true
+            }
         }
     }
 
