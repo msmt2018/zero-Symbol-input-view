@@ -485,8 +485,15 @@ class SymbolDrawerView @JvmOverloads constructor(
             // RecyclerView before the horizontal axis was known. Clear that
             // nested lock once a horizontal swipe is recognized so the pager
             // can take over and perform its normal page snap.
+            // A symbol grid is itself a RecyclerView nested inside the
+            // ViewPager2 RecyclerView. Its disallow-intercept request marks
+            // BOTH ancestor ViewGroups as disallowing interception. Clear both
+            // levels after the drawer has positively classified the gesture as
+            // horizontal, otherwise the pager's RecyclerView never receives
+            // the MOVE sequence needed to settle on the next group.
             (pager.getChildAt(0) as? ViewGroup)
                 ?.requestDisallowInterceptTouchEvent(false)
+            pager.requestDisallowInterceptTouchEvent(false)
         }
         return intercepted
     }
