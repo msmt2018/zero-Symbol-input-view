@@ -133,6 +133,28 @@ class SymbolDrawerExtensionRegistryTest {
         assertNull(registry.actionHandlers.get(SymbolActionId.extension("clear.action")))
     }
 
+    @Test
+    fun builtInFeatureIdsAreStableAndDistinct() {
+        val ids = listOf(
+            SymbolDrawerBuiltInFeatures.SEARCH,
+            SymbolDrawerBuiltInFeatures.FAVORITES,
+            SymbolDrawerBuiltInFeatures.RECENT,
+            SymbolDrawerBuiltInFeatures.SETTINGS,
+            SymbolDrawerBuiltInFeatures.MANAGER
+        )
+        assertEquals(ids.size, ids.toSet().size)
+        assertEquals(
+            listOf(
+                "builtin.search",
+                "builtin.favorites",
+                "builtin.recent",
+                "builtin.settings",
+                "builtin.manager"
+            ),
+            ids
+        )
+    }
+
     @Test fun builtInVisibilityDefaultsToVisibleAndCanBeRestored() {
         val registry = SymbolDrawerExtensionRegistry()
         assertTrue(registry.isBuiltInVisible("builtin.search"))
