@@ -218,7 +218,8 @@ private class IndicatorRenderer(
             GroupIndicatorStyle.HEXAGON_NODES, GroupIndicatorStyle.GLOWING_NODES ->
                 drawShapes(canvas, slot, horizontalInset, centerY, radius, style)
             GroupIndicatorStyle.STACKED_CARDS, GroupIndicatorStyle.MINI_PREVIEW,
-            GroupIndicatorStyle.THUMBNAIL_STRIP, GroupIndicatorStyle.NUMBER_BADGES ->
+            GroupIndicatorStyle.THUMBNAIL_STRIP, GroupIndicatorStyle.NUMBER_BADGES,
+            GroupIndicatorStyle.DIGITAL_COUNTER ->
                 drawCards(canvas, slot, horizontalInset, centerY, h, style)
         }
     }
@@ -371,7 +372,7 @@ private class IndicatorRenderer(
             val active = i == selected
             paint.color = if (active) primary else onSurface
             paint.alpha = if (active) 220 else 65
-            val cardH = if (style == GroupIndicatorStyle.NUMBER_BADGES) dp(22f) else h * .52f
+            val cardH = if (style == GroupIndicatorStyle.NUMBER_BADGES || style == GroupIndicatorStyle.DIGITAL_COUNTER) dp(22f) else h * .52f
             c.drawRoundRect(x - slot * .38f, cy - cardH / 2, x + slot * .38f, cy + cardH / 2, dp(5f), dp(5f), paint)
             if (style == GroupIndicatorStyle.NUMBER_BADGES || style == GroupIndicatorStyle.DIGITAL_COUNTER) {
                 paint.color = if (active) HostThemeColors.onPrimary(context) else surface
