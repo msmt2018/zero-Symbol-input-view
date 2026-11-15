@@ -24,17 +24,27 @@ dependencies {
 
 ### JitPack 集成
 
-```kotlin
-repositories {
-    maven("https://jitpack.io")
-}
+若项目使用集中式仓库管理，在根目录 `settings.gradle.kts` 的 `dependencyResolutionManagement.repositories` 中添加：
 
+```kotlin
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+        maven("https://jitpack.io")
+    }
+}
+```
+
+然后在 app 模块添加：
+
+```kotlin
 dependencies {
     implementation("com.github.msmt2018.zero-Symbol-input-view:zero-symbol-input-view-v2:<published-version>")
 }
 ```
 
-请使用实际已发布的版本 Tag。仓库默认分支的源码快照不代表该版本已经发布到 JitPack。
+Groovy DSL 可使用 `maven { url 'https://jitpack.io' }`。若启用了 `FAIL_ON_PROJECT_REPOS`，必须在 settings 文件配置仓库。请使用已发布且 JitPack 构建成功的 Git Tag；分支源码快照不代表已发布。
 
 ## 3. 布局中放置组件
 
