@@ -495,14 +495,18 @@ internal class SymbolPageAdapter(
                 onLongPress = dispatchLongAction,
                 onTouch = { event ->
                     if (boundExtension != null) {
+                        val itemState = state.copy(
+                            pressed = event.actionMasked != MotionEvent.ACTION_UP &&
+                                event.actionMasked != MotionEvent.ACTION_CANCEL &&
+                                event.actionMasked != MotionEvent.ACTION_POINTER_DOWN,
+                            enabled = target.isEnabled
+                        )
+                        runCatching { boundExtension.onStateChanged(target, legacyItem, itemState) }
+                            .onFailure { extensions.reportError(boundExtension.id, it) }
                         runCatching {
                             boundExtension.onTouch(
                                 target, legacyItem,
-                                state.copy(
-                                    pressed = event.actionMasked != MotionEvent.ACTION_UP &&
-                                        event.actionMasked != MotionEvent.ACTION_CANCEL,
-                                    enabled = target.isEnabled
-                                ),
+                                itemState,
                                 event
                             )
                         }.onFailure { extensions.reportError(boundExtension.id, it) }
