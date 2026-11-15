@@ -259,8 +259,11 @@ internal class SymbolPageAdapter(
         private val symbolsAdapter = SymbolAdapter(config, settings, onSymbolAction, spacingState, extensions, legacyItemResolver)
         init { grid.adapter = symbolsAdapter }
         fun bind(groupIndex: Int, symbols: List<SymbolEntry>) {
+            val groupChanged = symbolsAdapter.groupIndex != groupIndex
             symbolsAdapter.groupIndex = groupIndex
-            symbolsAdapter.submitList(symbols.toList())
+            symbolsAdapter.submitList(symbols.toList()) {
+                if (groupChanged) symbolsAdapter.refreshItemExtensions()
+            }
             if (!settings.showFullSymbolLabels || !settings.showSymbolLabels) {
                 spacingState.fullLabelMinimumCellWidthDp = 0f
                 return
