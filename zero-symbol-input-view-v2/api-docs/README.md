@@ -5,6 +5,9 @@
 ## 语言
 
 - [English API documentation](en/README.md)
+- [简体中文 API documentation](README.md)
+
+- [English API documentation](en/README.md)
 - [简体中文 API documentation](../README.md)
 
 ## 文档地图
