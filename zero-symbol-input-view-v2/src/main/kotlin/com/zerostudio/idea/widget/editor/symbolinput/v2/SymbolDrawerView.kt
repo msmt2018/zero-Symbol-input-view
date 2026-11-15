@@ -414,6 +414,9 @@ class SymbolDrawerView @JvmOverloads constructor(
         indicatorHost.setBackgroundColor(background)
         indicator.applyTheme(theme)
         customIndicatorComponent?.applyTheme(theme)
+        // Rebind existing custom cells so their state receives the new theme
+        // without replacing the page adapter or disturbing the current page.
+        pageAdapter.refreshItemExtensions()
     }
 
     /** Query runtime visibility for a built-in entry owned by this drawer session. */
