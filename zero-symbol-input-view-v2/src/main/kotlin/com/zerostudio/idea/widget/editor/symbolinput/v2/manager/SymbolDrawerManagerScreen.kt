@@ -76,6 +76,7 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.ItemTouchHelper
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SharedPreferencesSymbolGroupRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupBundleCodec
+import com.zerostudio.idea.widget.editor.symbolinput.v2.data.LegacySymbolDataCodec
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupManager
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.LegacySymbolDataMigration
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolDrawerDefaults
@@ -320,6 +321,36 @@ class SymbolDrawerManagerScreen(
     }
 
     fun exportBundle(): String = SymbolGroupBundleCodec.encode(manager.groups)
+
+    /**
+     * Exports the legacy compact JSON array used by the V1 symbol-toolbar
+     * interchange format (group fields n/d; item fields a/b/c/d/e).
+     *
+     * This is intended for MT Manager/V1-compatible import-export workflows.
+     * V2-only actions that cannot be represented by the legacy numeric action
+     * catalog cause an IllegalArgumentException instead of being silently lost.
+     */
+    fun exportMtManagerJson(): String = LegacySymbolDataCodec.encode(manager.groups)
+
+    /**
+     * Imports a legacy compact symbol JSON file. Decoding is strict and validates
+     * the complete payload before replacing current data. Existing import undo
+     * behaviour is preserved.
+     */
+    fun importMtManagerJson(json: String) {
+        val previous = manager.groups.toList()
+        val previousUsage = snapshotUsageState()
+        val previousSelection = selectedGroupId
+        val imported = LegacySymbolDataCodec.decode(json)
+        manager.replaceAll(imported)
+        selectedGroupId = imported.firstOrNull()?.id
+        refresh()
+        showUndo("已导入旧版/MT 管理器符号 JSON") {
+            manager.replaceAll(previous)
+            restoreUsageState(previousUsage)
+            selectedGroupId = previousSelection
+        }
+    }
 
     fun importBundle(json: String) {
         val previous = manager.groups.toList()
