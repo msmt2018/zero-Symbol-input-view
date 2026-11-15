@@ -33,7 +33,9 @@
 | SymbolActionRegistry<C> | 进程内 handler 注册表 |
 | RegistryBackedSymbolActionHost | 带注册表的 host 装饰器 |
 | SymbolActionJsonCodec | typed action JSON 编解码 |
-| SymbolTextDocument | 通用文本编辑接口 |\n| SymbolTextDocumentActionHost | 基于通用文档 Adapter 的默认动作宿主 |\n| SymbolTextClipboard | 剪贴板能力注入接口 |
+| SymbolTextDocument | 通用文本编辑接口 |
+| SymbolTextDocumentActionHost | 基于通用文档 Adapter 的默认动作宿主 |
+| SymbolTextClipboard | 剪贴板能力注入接口 |
 | GenericSymbolTextActions | 通用文本动作 handler 集 |
 | SymbolTextEditing | 宏/文本范围/插入计算工具 |
 | BuiltinSymbolActionCatalog | 内置编辑器命令目录 |
