@@ -230,3 +230,100 @@ val visible = drawer.extensions.isBuiltInVisible(DrawerFeatureIds.SEARCH)
 - 注册表不会替宿主 Activity 创建导航、管理器或窗口；扩展 View 的生命周期仍由承载它的 UI 控制。
 
 这些边界避免扩展注册表越权修改 Activity 或替换 V2 的 ViewPager2 分页状态。
+
+## 9. 原控件符号单元格、Legacy 数据和生命周期扩展
+
+以下扩展均由现有 `SymbolDrawerView.extensions` 注册，并由原有页面适配器、分页器和动作宿主消费。它们不创建独立符号列表、独立分页器或第二套符号数据模型。
+
+### 9.1 自定义单元格渲染
+
+公开入口位于 `com.zerostudio.idea.widget.drawer.extension`：
+
+- `SymbolDrawerItemViewExtension`
+- `SymbolDrawerItemViewState`
+
+符号内容参数始终是原有 `model.legacy.SymbolItem`。自定义 View 只替换当前网格单元格的内容；单元格尺寸、RecyclerView 复用、短按/长按动作分发和分页滚动仍由原控件管理。
+
+```kotlin
+val rendererHandle = drawer.extensions.registerItemView(
+    object : SymbolDrawerItemViewExtension {
+        override val id = "com.example.drawer.operator-cell"
+        override val title = "Operator cell"
+        override val priority = 50
+
+        override fun accepts(item: SymbolItem): Boolean =
+            item.display.startsWith("operator:")
+
+        override fun createView(
+            context: Context,
+            item: SymbolItem,
+            state: SymbolDrawerItemViewState
+        ): View = createOperatorCell(context)
+
+        override fun bindView(
+            view: View,
+            item: SymbolItem,
+            state: SymbolDrawerItemViewState
+        ) {
+            bindOperatorCell(view, item.display, state.enabled)
+        }
+
+        override fun onTouch(
+            view: View,
+            item: SymbolItem,
+            state: SymbolDrawerItemViewState,
+            event: MotionEvent
+        ) {
+            // 观察事件即可；不要 retain MotionEvent 或消费/拦截它。
+        }
+
+        override fun onClick(
+            view: View,
+            item: SymbolItem,
+            state: SymbolDrawerItemViewState
+        ) {
+            // 额外 UI 反馈；原有短按动作仍由 Drawer 的 action host 执行。
+        }
+
+        override fun onViewRecycled(view: View, item: SymbolItem?) {
+            releaseOperatorCell(view)
+        }
+    }
+)
+```
+
+`accepts` 按注册优先级、ID 顺序查找，第一个接受该 item 的扩展生效。没有扩展接受、`createView` 失败或 `bindView` 抛出异常时，控件回退到原生单元格。替换/注销扩展后，页面会重新绑定可见项。RecyclerView 回收时调用 `onViewRecycled`。
+
+默认情况下，扩展不改变触摸仲裁。适配器的触摸观察回调始终返回给原 View/RecyclerView/ViewPager2 流程，不得在回调中保存 MotionEvent。若要启用长按扩展回调，覆盖 `wantsLongPress(item)`；该回调与 legacy `longAction` 共用同一个长按时序，不会另建手势识别器。
+
+### 9.2 Legacy 分组提供器
+
+`SymbolDrawerLegacyGroupProvider.loadGroups()` 返回的就是原有 `model.legacy.SymbolGroup` 列表。通过控件的 suspend API 加载：
+
+```kotlin
+val providerHandle = drawer.extensions.registerGroupProvider(provider)
+val groups = drawer.reloadLegacyGroupsFromExtensions(persist = true)
+```
+
+提供器由 `priority`、`id` 排序。结果通过现有 `LegacySymbolDataCodec` 进入真实控件数据管线；持久化仍由控件原有 `SymbolGroupRepository` 负责。不要把 Provider 当成另一个常驻数据仓库。
+
+### 9.3 生命周期回调
+
+`SymbolDrawerLifecycleExtension` 可观察原控件的 attach/detach、设置变化、分组变化、当前分组变化、抽屉展开进度和符号调用。回调接收原始 Legacy 分组/符号记录及原有 `SymbolDrawerSettings`。所有回调由控件隔离扩展异常；扩展不得在回调中阻塞 UI 线程。
+
+### 9.4 Legacy 数字动作注册
+
+对于 `SymbolItem.shortAction` / `longAction` 中保存的数字动作 ID，使用：
+
+```kotlin
+val actionHandle = drawer.extensions.registerLegacyAction(1201) { host, payload ->
+    host.executeEditorCommand("com.example.command", payload)
+}
+```
+
+payload 从原有 `shortText` / `longText` 传递，不需要转换成新的字符串动作模型。动作执行仍通过原有 `SymbolActionHost` 和 `SymbolActionRegistry`；未注册的动作按原宿主 fallback 处理。
+
+### 9.5 注册句柄
+
+每个注册方法都返回 `AutoCloseable`。句柄应绑定到宿主 Fragment 的 viewLifecycleOwner 或编辑器会话；View renderer 在注销后会由原页面适配器重新绑定，扩展自行释放其 View 持有的资源。不要在静态对象中持有 Activity、Drawer 或 View。
+
