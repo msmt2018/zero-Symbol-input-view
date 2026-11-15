@@ -100,15 +100,18 @@ class SymbolDrawerExtensionRegistry {
         notifyChanged()
         var closed = false
         return AutoCloseable {
-            synchronized(lock) {
-                if (!closed) {
+            val removed = synchronized(lock) {
+                if (closed) {
+                    false
+                } else {
                     closed = true
                     if (target[id]?.token === token) {
                         target.remove(id)
-                        notifyChanged()
-                    }
+                        true
+                    } else false
                 }
             }
+            if (removed) notifyChanged()
             secondaryHandle?.close()
         }
     }
