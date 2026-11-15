@@ -384,7 +384,7 @@ class DrawerUiContractTest {
                 assertEquals("Inline preview must be placed above the group pages", screen, panel.parent)
                 assertEquals(View.VISIBLE, panel.visibility)
                 assertEquals("Preview drawer must be inside the inline preview host", content, preview.parent)
-                assertEquals("Persistent edit mode must not create a touch-stealing popup", null, popup)
+                assertTrue("Persistent edit mode must not create a touch-stealing popup", popup == null)
 
                 val manager = screenClass.getDeclaredField("manager")
                     .apply { isAccessible = true }.get(screen)
@@ -404,8 +404,8 @@ class DrawerUiContractTest {
                     .apply { isAccessible = true }
                     .invoke(screen)
                 assertEquals(View.GONE, panel.visibility)
-                assertEquals(null, screenClass.getDeclaredField("previewDrawer")
-                    .apply { isAccessible = true }.get(screen))
+                assertTrue(screenClass.getDeclaredField("previewDrawer")
+                    .apply { isAccessible = true }.get(screen) == null)
             }
         }
     }
