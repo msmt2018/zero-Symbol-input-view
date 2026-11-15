@@ -1,6 +1,6 @@
 # 12 — 扩展注册框架 API
 
-包：`com.zerostudio.idea.widget.editor.symbolinput.v2.extension`
+公开扩展 API 包：`com.zerostudio.idea.widget.drawer.extension`（实现类型由原控件内部包提供，公开别名保持稳定）。控件入口：`com.zerostudio.idea.widget.drawer.SymbolDrawerView`。
 
 本页描述 V2 的运行时扩展注册机制。扩展 API 的目标是让宿主添加自己的动作、指示器、设置 Tab、设置项和主题，并控制内置功能的可见性，而不需要修改 V2 源码。
 
@@ -121,7 +121,7 @@ fun interface SymbolActionHandler<C> {
 - `applyTheme(theme)`：可选回调，接收当前 drawer theme token；默认实现为空操作。
 - `onDispose()`：可选释放钩子；组件被替换或移除时调用，默认实现为空操作。
 
-指示器组件只负责 UI 呈现。不得自己创建另一套符号页或持久化 group selection。宿主指示器容器应把 View 放入原指示器槽位，并在 groups/settings/page selection 改变时调用对应方法。组件离开窗口时应释放 animator、listener 等资源。
+指示器组件只负责 UI 呈现。不得自己创建另一套符号页或持久化 group selection。宿主指示器容器应把 View 放入原指示器槽位，并在 groups/settings/page selection 改变时调用对应方法。控件在替换指示器前先创建并初始化新组件；新组件初始化或挂载失败时保留原指示器。组件的 `submitGroups`、`setSelectedIndex`、`applySettings`、`applyTheme` 回调抛异常时会报告扩展错误并恢复内置指示器；`onDispose` 抛异常不会阻断控件切换。组件离开窗口时应释放 animator、listener 等资源。
 
 ## 4. 设置扩展
 
@@ -294,7 +294,7 @@ val rendererHandle = drawer.extensions.registerItemView(
 
 `accepts` 按注册优先级、ID 顺序查找，第一个接受该 item 的扩展生效。没有扩展接受、`createView` 失败或 `bindView` 抛出异常时，控件回退到原生单元格。替换/注销扩展后，页面会重新绑定可见项。ViewHolder 进入/离开窗口时分别调用 `onViewAttachedToWindow` / `onViewDetachedFromWindow`；替换 renderer 或 RecyclerView 回收时先执行 detach，再调用 `onViewRecycled`。这些方法均有默认空实现，旧扩展无需修改即可兼容。
 
-默认情况下，扩展不改变触摸仲裁。适配器的触摸观察回调始终返回给原 View/RecyclerView/ViewPager2 流程，不得在回调中保存 MotionEvent。若要启用长按扩展回调，覆盖 `wantsLongPress(item)`；该回调与 legacy `longAction` 共用同一个长按时序，不会另建手势识别器。
+默认情况下，扩展不改变触摸仲裁。适配器的触摸观察回调始终返回给原 View/RecyclerView/ViewPager2 流程，不得在回调中保存 MotionEvent。手势因滚动阈值、`ACTION_CANCEL`、多指触摸或 ViewHolder 回收而取消时，扩展会收到 `pressed=false` 的 `onStateChanged`；长按派发结束后也会复位 pressed 状态。若要启用长按扩展回调，覆盖 `wantsLongPress(item)`；该回调与 legacy `longAction` 共用同一个长按时序，不会另建手势识别器。
 
 ### 9.2 Legacy 分组提供器
 
@@ -366,3 +366,16 @@ SymbolDrawerView.onExtensionErrorListener (also available through drawer.extensi
 - `onViewRecycled(view, item)`：ViewHolder 回收/释放 renderer 时调用。
 
 这些回调由原 `SymbolPageAdapter` 内部的符号子 Adapter 直接转发，不创建额外 RecyclerView。所有回调均有默认空实现。扩展应在 detach 时暂停仅在可见期间运行的动画/观察，在 recycle 时释放 View 实例持有的资源。若运行时替换 renderer，旧 renderer 会先收到 detach，再收到 recycle；新 renderer 在绑定完成且 View 已 attach 时收到 attach。
+
+
+### 公共 API 入口
+
+应用代码优先从以下稳定包导入，不需要依赖内部实现包：
+
+```kotlin
+import com.zerostudio.idea.widget.drawer.SymbolDrawerView
+import com.zerostudio.idea.widget.drawer.extension.SymbolDrawerItemViewExtension
+import com.zerostudio.idea.widget.drawer.extension.SymbolDrawerExtensionRegistry
+```
+
+`SymbolDrawerView.extensions` 返回当前控件会话自己的注册表。所有扩展仍由原控件和原 `SymbolPageAdapter` 消费；公开包 facade 只是稳定 API 入口，不创建第二套控件或数据模型。
