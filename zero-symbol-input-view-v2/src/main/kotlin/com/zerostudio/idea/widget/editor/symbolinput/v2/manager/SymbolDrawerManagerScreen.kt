@@ -161,7 +161,9 @@ class SymbolDrawerManagerScreen(
     private val repository: SymbolGroupRepository = SharedPreferencesSymbolGroupRepository(context),
     private val embeddedInSettings: Boolean = false,
     /** Optional session registry; when supplied, registered app actions appear in the action picker. */
-    private val extensionRegistry: SymbolDrawerExtensionRegistry? = null
+    private val extensionRegistry: SymbolDrawerExtensionRegistry? = null,
+    /** Optional live toolbar target; when supplied, manager imports/editing sync automatically. */
+    drawer: SymbolDrawerView? = null
 ) : LinearLayout(context) {
 
     var onGroupsChanged: ((List<SymbolGroup>) -> Unit)? = null
@@ -255,6 +257,7 @@ class SymbolDrawerManagerScreen(
         )
         buildUndoBar()
         refresh()
+        drawer?.let(::bindToDrawer)
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -303,8 +306,11 @@ class SymbolDrawerManagerScreen(
         val previousListener = onGroupsChanged
         val previousUsageListener = drawer.onSymbolUsedListener
         val listener: (List<SymbolGroup>) -> Unit = { committedGroups ->
-            previousListener?.invoke(committedGroups)
+            // The visible toolbar is the primary consumer. An unrelated observer
+            // must never prevent the actual drawer from receiving imported data.
             drawer.submitGroups(committedGroups, preserveSelectedGroup = true)
+            runCatching { previousListener?.invoke(committedGroups) }
+                .onFailure(::reportError)
         }
         val usageListener: (SymbolEntry, Boolean) -> Unit = { symbol, _ ->
             recordRecentlyUsed(symbol.id)
@@ -1070,7 +1076,8 @@ class SymbolDrawerManagerScreen(
         // Keep the inline toolbar preview in lockstep with every committed
         // manager mutation, not only drag-reorder operations.
         updateDragPreview()
-        onGroupsChanged?.invoke(groups)
+        runCatching { onGroupsChanged?.invoke(groups) }
+            .onFailure(::reportError)
     }
 
     private fun groupPageId(groupId: String) = GROUP_PAGE_PREFIX + groupId
