@@ -209,7 +209,7 @@ class SymbolDrawerView @JvmOverloads constructor(
                 onGroupChangedListener?.invoke(position, groups.getOrNull(position))
                 val legacyGroup = legacyGroupAt(position)
                 extensions.lifecycleExtensions().forEach { extension ->
-                    runCatching { extension.onGroupSelected(position, legacyGroup) }
+                    runCatching { extension.onGroupSelected(position, legacyGroup) }.onFailure { extensions.reportError(extension.id, it) }
                 }
             }
         })
@@ -230,7 +230,7 @@ class SymbolDrawerView @JvmOverloads constructor(
         config = settings.toDrawerConfig()
         applyDrawerTheme()
         extensions.lifecycleExtensions().forEach { extension ->
-            runCatching { extension.onSettingsChanged(settings) }
+            runCatching { extension.onSettingsChanged(settings) }.onFailure { extensions.reportError(extension.id, it) }
         }
 
         // Anchor geometry (especially the user-configured collapsed row count)
@@ -390,7 +390,7 @@ class SymbolDrawerView @JvmOverloads constructor(
             return true
         }
         val extension = extensions.themes().firstOrNull { it.id == extensionId } ?: return false
-        val resolved = runCatching { extension.resolve(context, settings) }.getOrElse { return false }
+        val resolved = runCatching { extension.resolve(context, settings) }.onFailure { extensions.reportError(extension.id, it) }.getOrElse { return false }
         activeThemeExtensionId = extensionId
         activeThemeExtension = extension
         activeTheme = resolved
@@ -408,7 +408,7 @@ class SymbolDrawerView @JvmOverloads constructor(
                 activeTheme = null
             } else {
                 activeThemeExtension = extension
-                activeTheme = runCatching { extension.resolve(context, settings) }.getOrNull()
+                activeTheme = runCatching { extension.resolve(context, settings) }.onFailure { extensions.reportError(extension.id, it) }.getOrNull()
             }
         }
         val theme = activeTheme
@@ -506,7 +506,7 @@ class SymbolDrawerView @JvmOverloads constructor(
         settingsDialog?.dismiss()
         settingsDialog = null
         attachedLifecycleExtensions.toList().asReversed().forEach { extension ->
-            runCatching { extension.onDetached(this@SymbolDrawerView) }
+            runCatching { extension.onDetached(this@SymbolDrawerView) }.onFailure { extensions.reportError(extension.id, it) }
         }
         attachedLifecycleExtensions.clear()
         extensionObserver?.close()
@@ -525,7 +525,7 @@ class SymbolDrawerView @JvmOverloads constructor(
         }
         current.forEach { extension ->
             if (attachedLifecycleExtensions.add(extension)) {
-                runCatching { extension.onAttached(this) }
+                runCatching { extension.onAttached(this) }.onFailure { extensions.reportError(extension.id, it) }
             }
         }
     }
@@ -556,7 +556,7 @@ class SymbolDrawerView @JvmOverloads constructor(
                     HapticMode.ALL -> performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                 }
                 extensions.lifecycleExtensions().forEach { extension ->
-                    runCatching { extension.onSymbolInvoked(resolveLegacyItem(symbol), longPress) }
+                    runCatching { extension.onSymbolInvoked(resolveLegacyItem(symbol), longPress) }.onFailure { extensions.reportError(extension.id, it) }
                 }
                 onSymbolActionListener?.onAction(symbol, longPress)
                 onSymbolUsedListener?.invoke(symbol, longPress)
@@ -675,7 +675,7 @@ class SymbolDrawerView @JvmOverloads constructor(
         groups = value.map { it.copy(symbols = it.symbols.toList()) }
         val legacySnapshot = groups.mapIndexedNotNull { index, _ -> legacyGroupAt(index) }
         extensions.lifecycleExtensions().forEach { extension ->
-            runCatching { extension.onGroupsChanged(legacySnapshot) }
+            runCatching { extension.onGroupsChanged(legacySnapshot) }.onFailure { extensions.reportError(extension.id, it) }
         }
         val restored = if (preserveSelectedGroup && previousId != null) {
             groups.indexOfFirst { it.id == previousId }.takeIf { it >= 0 }
@@ -887,7 +887,7 @@ class SymbolDrawerView @JvmOverloads constructor(
             (expandedHeight - collapsedHeight).coerceAtLeast(1)
         if (kotlin.math.abs(previousExpansion - expansion) > 0.0005f) {
             extensions.lifecycleExtensions().forEach { extension ->
-                runCatching { extension.onExpansionChanged(expansion, expansion >= 0.999f) }
+                runCatching { extension.onExpansionChanged(expansion, expansion >= 0.999f) }.onFailure { extensions.reportError(extension.id, it) }
             }
         }
         pagerHeight = (
