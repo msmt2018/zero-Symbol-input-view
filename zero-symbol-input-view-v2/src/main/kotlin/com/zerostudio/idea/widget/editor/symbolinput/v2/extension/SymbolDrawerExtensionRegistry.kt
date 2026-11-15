@@ -195,6 +195,8 @@ interface SymbolGroupIndicatorComponent {
     fun submitGroups(groups: List<SymbolGroup>)
     fun setSelectedIndex(index: Int)
     fun applySettings(settings: SymbolDrawerSettings)
+    /** Optional theme tokens supplied by the owning drawer session. */
+    fun applyTheme(theme: SymbolDrawerTheme?) = Unit
 }
 
 /** A custom indicator is automatically discoverable from the extension registry. */
