@@ -47,6 +47,8 @@ class SymbolTextDocumentActionHost(
         val separator = when {
             lineEnd < document.textLength && document.charAt(lineEnd) == '\r' &&
                 lineEnd + 1 < document.textLength && document.charAt(lineEnd + 1) == '\n' -> "\r\n"
+            lineEnd > lineStart && document.charAt(lineEnd) == '\n' &&
+                document.charAt(lineEnd - 1) == '\r' -> "\r\n"
             lineEnd < document.textLength && document.charAt(lineEnd) == '\r' -> "\r"
             lineEnd < document.textLength && document.charAt(lineEnd) == '\n' -> "\n"
             lineStart >= 2 && document.charAt(lineStart - 2) == '\r' &&
