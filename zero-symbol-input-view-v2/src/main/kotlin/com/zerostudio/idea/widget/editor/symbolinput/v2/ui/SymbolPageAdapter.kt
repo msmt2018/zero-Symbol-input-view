@@ -74,6 +74,10 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
 import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowAdaptiveInfo
 import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.AdaptiveGridResolver
+import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerExtensionRegistry
+import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerItemViewExtension
+import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerItemViewState
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolItem
 
 /**
  * Material Symbols Outlined "settings" vector, rendered directly from Kotlin.
@@ -125,6 +129,8 @@ internal class SymbolPageAdapter(
     private val config: DrawerConfig,
     private val settings: SymbolDrawerSettings,
     private val onSymbolAction: (SymbolEntry, Boolean) -> Unit,
+    private val extensions: SymbolDrawerExtensionRegistry,
+    private val legacyItemResolver: (SymbolEntry) -> SymbolItem,
     private val canScrollGridVertically: () -> Boolean = { true }
 ) : ListAdapter<SymbolGroup, SymbolPageAdapter.PageHolder>(GROUP_DIFF) {
 
@@ -221,7 +227,7 @@ internal class SymbolPageAdapter(
     }
 
     override fun onBindViewHolder(holder: PageHolder, position: Int) {
-        holder.bind(getItem(position).symbols)
+        holder.bind(position, getItem(position).symbols)
     }
 
     override fun onViewRecycled(holder: PageHolder) {
@@ -233,11 +239,14 @@ internal class SymbolPageAdapter(
         private val config: DrawerConfig,
         private val settings: SymbolDrawerSettings,
         onSymbolAction: (SymbolEntry, Boolean) -> Unit,
-        private val spacingState: GridSpacingState
+        private val spacingState: GridSpacingState,
+        extensions: SymbolDrawerExtensionRegistry,
+        legacyItemResolver: (SymbolEntry) -> SymbolItem
     ) : RecyclerView.ViewHolder(grid) {
-        private val symbolsAdapter = SymbolAdapter(config, settings, onSymbolAction, spacingState)
+        private val symbolsAdapter = SymbolAdapter(config, settings, onSymbolAction, spacingState, extensions, legacyItemResolver)
         init { grid.adapter = symbolsAdapter }
-        fun bind(symbols: List<SymbolEntry>) {
+        fun bind(groupIndex: Int, symbols: List<SymbolEntry>) {
+            symbolsAdapter.groupIndex = groupIndex
             symbolsAdapter.submitList(symbols.toList())
             if (!settings.showFullSymbolLabels || !settings.showSymbolLabels) {
                 spacingState.fullLabelMinimumCellWidthDp = 0f
@@ -272,9 +281,13 @@ internal class SymbolPageAdapter(
         private val config: DrawerConfig,
         private val settings: SymbolDrawerSettings,
         private val onSymbolAction: (SymbolEntry, Boolean) -> Unit,
-        private val spacingState: GridSpacingState
+        private val spacingState: GridSpacingState,
+        private val extensions: SymbolDrawerExtensionRegistry,
+        private val legacyItemResolver: (SymbolEntry) -> SymbolItem
     ) : ListAdapter<SymbolEntry, SymbolHolder>(SYMBOL_DIFF) {
+        var groupIndex: Int = -1
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SymbolHolder {
+            val container = android.widget.FrameLayout(parent.context)
             val label = TextView(parent.context).apply {
                 gravity = Gravity.CENTER
                 setTextColor(HostThemeColors.onSurface(context))
@@ -297,51 +310,91 @@ internal class SymbolPageAdapter(
                 isClickable = true
                 isFocusable = true
                 minHeight = dp(context, maxOf(config.cellHeightDp, config.minimumTouchTargetDp))
-                layoutParams = RecyclerView.LayoutParams(
+                layoutParams = android.widget.FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
-                    dp(context, maxOf(config.cellHeightDp, config.minimumTouchTargetDp))
-                ).apply {
-                    marginStart = dp(context, spacingState.horizontalSpacingDp / 2)
-                    marginEnd = dp(context, spacingState.horizontalSpacingDp / 2)
-                    topMargin = dp(context, spacingState.verticalSpacingDp / 2)
-                    bottomMargin = dp(context, spacingState.verticalSpacingDp / 2)
-                }
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                )
             }
-            return SymbolHolder(label)
+            container.addView(label)
+            container.layoutParams = RecyclerView.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(parent.context, maxOf(config.cellHeightDp, config.minimumTouchTargetDp))
+            ).apply {
+                marginStart = dp(parent.context, spacingState.horizontalSpacingDp / 2)
+                marginEnd = dp(parent.context, spacingState.horizontalSpacingDp / 2)
+                topMargin = dp(parent.context, spacingState.verticalSpacingDp / 2)
+                bottomMargin = dp(parent.context, spacingState.verticalSpacingDp / 2)
+            }
+            return SymbolHolder(container, label)
         }
 
         override fun onViewRecycled(holder: SymbolHolder) {
-            holder.touchListener?.cancel()
-            holder.label.setOnTouchListener(null)
+            holder.recycle()
             super.onViewRecycled(holder)
         }
 
         override fun onBindViewHolder(holder: SymbolHolder, position: Int) {
             val item = getItem(position)
-            val isSettingsAction = item.shortAction == SymbolAction.OpenManager
-            if (isSettingsAction) {
-                holder.label.text = ""
-                val icon = MaterialSettingsDrawable(
-                    HostThemeColors.onSurface(holder.label.context)
-                )
-                val size = dp(holder.label.context, 22)
-                icon?.setBounds(0, 0, size, size)
-                holder.label.setCompoundDrawables(null, icon, null, null)
-                holder.label.contentDescription = "设置"
+            val legacyItem = legacyItemResolver(item)
+            val state = SymbolDrawerItemViewState(
+                groupIndex = groupIndex,
+                position = position,
+                selected = false,
+                pressed = false,
+                enabled = true
+            )
+            val extension = extensions.itemViews().firstOrNull { candidate ->
+                runCatching { candidate.accepts(legacyItem) }.getOrDefault(false)
+            }
+            val target: View
+            if (extension != null) {
+                if (holder.activeExtension?.id != extension.id) {
+                    holder.recycle()
+                    val custom = extension.createView(holder.root.context, legacyItem, state)
+                    holder.root.removeAllViews()
+                    holder.root.addView(custom, android.widget.FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    ))
+                    holder.activeExtension = extension
+                    holder.customView = custom
+                }
+                val custom = holder.customView ?: holder.label
+                extension.bindView(custom, legacyItem, state)
+                target = custom
             } else {
-                holder.label.setCompoundDrawables(null, null, null, null)
-                holder.label.text = if (settings.showSymbolLabels) item.label else item.icon?.takeIf { it.isNotBlank() } ?: item.label
-                holder.label.contentDescription = if (settings.showActionHints) {
-                    "${item.label}, ${item.shortAction}"
-                } else item.label
+                holder.recycle()
+                holder.root.removeAllViews()
+                holder.root.addView(holder.label, android.widget.FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                ))
+                val isSettingsAction = item.shortAction == SymbolAction.OpenManager
+                if (isSettingsAction) {
+                    holder.label.text = ""
+                    val icon = MaterialSettingsDrawable(HostThemeColors.onSurface(holder.label.context))
+                    val size = dp(holder.label.context, 22)
+                    icon.setBounds(0, 0, size, size)
+                    holder.label.setCompoundDrawables(null, icon, null, null)
+                    holder.label.contentDescription = "设置"
+                } else {
+                    holder.label.setCompoundDrawables(null, null, null, null)
+                    holder.label.text = if (settings.showSymbolLabels) item.label else item.icon?.takeIf { it.isNotBlank() } ?: item.label
+                    holder.label.contentDescription = if (settings.showActionHints) {
+                        "${item.label}, ${item.shortAction}"
+                    } else item.label
+                }
+                target = holder.label
             }
-            holder.label.setOnClickListener {
+            target.isClickable = true
+            target.isFocusable = true
+            target.setOnClickListener {
                 val current = holder.bindingAdapterPosition
-                if (current != RecyclerView.NO_POSITION) onSymbolAction(getItem(current), false)
+                if (current != RecyclerView.NO_POSITION && getItem(current).id == item.id) {
+                    onSymbolAction(getItem(current), false)
+                }
             }
-            holder.accessibilityLongActionId?.let {
-                ViewCompat.removeAccessibilityAction(holder.label, it)
-            }
+            holder.accessibilityLongActionId?.let { ViewCompat.removeAccessibilityAction(target, it) }
             holder.accessibilityLongActionId = null
             val dispatchLongAction = {
                 val current = holder.bindingAdapterPosition
@@ -351,24 +404,19 @@ internal class SymbolPageAdapter(
             }
             if (item.longAction != null) {
                 holder.accessibilityLongActionId = ViewCompat.addAccessibilityAction(
-                    holder.label,
-                    "执行长按动作"
-                ) { _, _ ->
-                    dispatchLongAction()
-                    true
-                }
+                    target, "执行长按动作"
+                ) { _, _ -> dispatchLongAction(); true }
             }
             holder.touchListener?.cancel()
             holder.touchListener = SymbolCellTouchListener(
-                view = holder.label,
+                view = target,
                 longPressTimeoutMs = settings.longPressTimeoutMs,
                 hasLongAction = item.longAction != null,
                 onLongPress = dispatchLongAction
             )
-            holder.label.setOnTouchListener(holder.touchListener)
+            target.setOnTouchListener(holder.touchListener)
         }
     }
-
 
     /**
      * Uses the configured timeout rather than the platform-global long-press
@@ -442,10 +490,34 @@ internal class SymbolPageAdapter(
         }
     }
 
-    private class SymbolHolder(view: TextView) : RecyclerView.ViewHolder(view) {
-        val label: TextView = view
+    private class SymbolHolder(
+        val root: android.widget.FrameLayout,
+        val label: TextView
+    ) : RecyclerView.ViewHolder(root) {
+        var activeExtension: SymbolDrawerItemViewExtension? = null
+        var customView: View? = null
+        var boundLegacyItem: SymbolItem? = null
         var touchListener: SymbolCellTouchListener? = null
         var accessibilityLongActionId: Int? = null
+
+        fun recycle() {
+            touchListener?.cancel()
+            touchListener = null
+            val extension = activeExtension
+            val view = customView
+            if (extension != null && view != null) {
+                runCatching { extension.onViewRecycled(view, boundLegacyItem) }
+            }
+            activeExtension = null
+            customView = null
+            boundLegacyItem = null
+            accessibilityLongActionId?.let { ViewCompat.removeAccessibilityAction(root, it) }
+            accessibilityLongActionId = null
+            root.setOnClickListener(null)
+            root.setOnTouchListener(null)
+            label.setOnClickListener(null)
+            label.setOnTouchListener(null)
+        }
     }
 
     private companion object {
