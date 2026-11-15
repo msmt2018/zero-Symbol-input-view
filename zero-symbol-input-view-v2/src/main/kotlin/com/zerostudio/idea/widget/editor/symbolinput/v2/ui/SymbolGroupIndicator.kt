@@ -192,7 +192,7 @@ private class IndicatorRenderer(
         paint.color = onSurface
         paint.alpha = 90
         when (style) {
-            GroupIndicatorStyle.TEXT_TABS -> drawTextTabs(canvas, slot, horizontalInset, h)
+            GroupIndicatorStyle.TEXT_TABS, GroupIndicatorStyle.TEXT -> drawTextTabs(canvas, slot, horizontalInset, h)
             GroupIndicatorStyle.PILL -> drawPill(canvas, x, centerY, slot, h)
             GroupIndicatorStyle.DOTS, GroupIndicatorStyle.PULSE_DOTS,
             GroupIndicatorStyle.ORBIT_DOTS -> drawDots(canvas, slot, horizontalInset, centerY, radius, style)
