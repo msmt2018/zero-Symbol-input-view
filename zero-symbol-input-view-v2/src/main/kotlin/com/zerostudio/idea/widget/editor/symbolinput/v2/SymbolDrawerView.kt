@@ -47,6 +47,7 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2
 
 import android.app.AlertDialog
 import android.content.Context
+import android.content.SharedPreferences
 import android.os.Parcel
 import android.os.Parcelable
 import android.util.AttributeSet
@@ -89,6 +90,9 @@ class SymbolDrawerView @JvmOverloads constructor(
     defStyleAttr: Int = 0,
     private var config: DrawerConfig = DrawerConfig()
 ) : ViewGroup(context, attrs, defStyleAttr) {
+    private companion object {
+        const val SETTINGS_PREFERENCE_KEY = "settings_json_v1"
+    }
 
     fun interface OnSymbolActionListener {
         fun onAction(symbol: SymbolEntry, isLongPress: Boolean)
@@ -103,6 +107,18 @@ class SymbolDrawerView @JvmOverloads constructor(
     var onGroupChangedListener: ((Int, SymbolGroup?) -> Unit)? = null
 
     private val settingsRepository = SharedPreferencesSymbolDrawerSettingsRepository(context.applicationContext)
+    private val settingsPreferences = context.applicationContext.getSharedPreferences(
+        "symbol_drawer_v2_settings",
+        Context.MODE_PRIVATE
+    )
+    private val settingsPreferenceListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == SETTINGS_PREFERENCE_KEY) {
+            // Settings may be edited by a separate settings screen or reset/imported
+            // elsewhere. Re-read the durable snapshot and update this live instance.
+            applySettings(settingsRepository.load().settings)
+        }
+    }
+    private var settingsListenerRegistered = false
     private val hasPersistedSettings = settingsRepository.hasStoredSettings()
     private var settings = settingsRepository.load().settings.copy(themeMode = ThemeMode.SYSTEM)
     private var settingsDialog: AlertDialog? = null
@@ -236,6 +252,25 @@ class SymbolDrawerView @JvmOverloads constructor(
         indicator.setBackgroundColor(com.zerostudio.idea.widget.editor.symbolinput.v2.ui.HostThemeColors.surface(context))
         indicator.applySettings(settings)
         applySettings(settings)
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        if (!settingsListenerRegistered) {
+            settingsPreferences.registerOnSharedPreferenceChangeListener(settingsPreferenceListener)
+            settingsListenerRegistered = true
+        }
+        // Catch changes made while this view was detached.
+        val latest = settingsRepository.load().settings
+        if (latest != settings) applySettings(latest)
+    }
+
+    override fun onDetachedFromWindow() {
+        if (settingsListenerRegistered) {
+            settingsPreferences.unregisterOnSharedPreferenceChangeListener(settingsPreferenceListener)
+            settingsListenerRegistered = false
+        }
+        super.onDetachedFromWindow()
     }
 
     override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
