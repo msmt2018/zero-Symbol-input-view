@@ -155,7 +155,7 @@ class SymbolDrawerView @JvmOverloads constructor(
     private var activeThemeExtension: com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerThemeExtension? = null
     private var activeTheme: SymbolDrawerTheme? = null
     private var extensionObserver: AutoCloseable? = null
-    private val attachedLifecycleExtensions = LinkedHashSet<com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerLifecycleExtension>()
+    private val attachedLifecycleExtensions = LinkedHashMap<String, com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerLifecycleExtension>()
     private val pager = ViewPager2(context).apply {
         orientation = ViewPager2.ORIENTATION_HORIZONTAL
         offscreenPageLimit = 1
@@ -585,8 +585,9 @@ class SymbolDrawerView @JvmOverloads constructor(
         }
         settingsDialog?.dismiss()
         settingsDialog = null
-        attachedLifecycleExtensions.toList().asReversed().forEach { extension ->
-            runCatching { extension.onDetached(this@SymbolDrawerView) }.onFailure { extensions.reportError(extension.id, it) }
+        attachedLifecycleExtensions.values.toList().asReversed().forEach { extension ->
+            runCatching { extension.onDetached(this@SymbolDrawerView) }
+                .onFailure { extensions.reportError(extension.id, it) }
         }
         attachedLifecycleExtensions.clear()
         extensionObserver?.close()
@@ -600,15 +601,24 @@ class SymbolDrawerView @JvmOverloads constructor(
     private fun syncLifecycleExtensions(
         current: List<com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerLifecycleExtension>
     ) {
-        val wanted = current.toSet()
-        attachedLifecycleExtensions.filter { it !in wanted }.toList().asReversed().forEach { removed ->
-            attachedLifecycleExtensions.remove(removed)
-            runCatching { removed.onDetached(this) }
-                .onFailure { extensions.reportError(removed.id, it) }
-        }
+        // A contribution can be replaced under the same ID. Compare by object
+        // identity, not equals(): data-class implementations may compare equal
+        // even though their captured resources and callbacks are different.
+        val wantedById = current.associateBy { it.id }
+        attachedLifecycleExtensions.entries
+            .filter { (id, attached) -> wantedById[id] !== attached }
+            .toList()
+            .asReversed()
+            .forEach { (id, removed) ->
+                attachedLifecycleExtensions.remove(id)
+                runCatching { removed.onDetached(this) }
+                    .onFailure { extensions.reportError(removed.id, it) }
+            }
         current.forEach { extension ->
-            if (attachedLifecycleExtensions.add(extension)) {
-                runCatching { extension.onAttached(this) }.onFailure { extensions.reportError(extension.id, it) }
+            if (attachedLifecycleExtensions[extension.id] !== extension) {
+                attachedLifecycleExtensions[extension.id] = extension
+                runCatching { extension.onAttached(this) }
+                    .onFailure { extensions.reportError(extension.id, it) }
             }
         }
     }
