@@ -78,6 +78,34 @@ class SymbolDrawerExtensionRegistryTest {
         assertTrue(second)
     }
 
+    @Test
+    fun replacedLegacyActionSurvivesClosingPreviousHandle() {
+        val registry = SymbolDrawerExtensionRegistry()
+        var first = false
+        var second = false
+        val firstHandle = registry.registerLegacyAction(91) { _, _ -> first = true; true }
+        registry.registerLegacyAction(91) { _, _ -> second = true; true }
+
+        firstHandle.close()
+        assertTrue(registry.wrapActionHost(Host()).executeExtension("legacy.action.91", null))
+        assertFalse(first)
+        assertTrue(second)
+    }
+
+    @Test
+    fun legacyActionHandleCanBeClosedRepeatedly() {
+        val registry = SymbolDrawerExtensionRegistry()
+        var notifications = 0
+        registry.observe(emitCurrent = false) { notifications++ }
+        val handle = registry.registerLegacyAction(92) { _, _ -> true }
+        assertEquals(1, notifications)
+
+        handle.close()
+        handle.close()
+        assertEquals(2, notifications)
+        assertNull(registry.actionHandlers.get(92))
+    }
+
     @Test fun builtInVisibilityDefaultsToVisibleAndCanBeRestored() {
         val registry = SymbolDrawerExtensionRegistry()
         assertTrue(registry.isBuiltInVisible("builtin.search"))
