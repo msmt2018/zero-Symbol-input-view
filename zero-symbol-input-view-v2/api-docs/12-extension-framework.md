@@ -132,15 +132,15 @@ fun interface SymbolActionHandler<C> {
 
 ### SymbolDrawerSettingExtension
 
-- `id)：设置项稳定 ID。
+- `id`：设置项稳定 ID。
 - `tabId`：目标设置 Tab ID。
 - `title`：设置项名称。
-- `priority)：在目标 Tab 内排序。
+- `priority`：在目标 Tab 内排序。
 - `createView(context, scope))：创建设置项 View。
 
 ### SymbolDrawerSettingsScope
 
-- `current)：当前 `SymbolDrawerSettings` 快照。
+- `current`：当前 `SymbolDrawerSettings` 快照。
 - `update(transform))：把新快照提交给宿主设置管理器。
 
 扩展设置可以只使用 V2 Settings 中已有字段，也可以把自己的字段保存在宿主存储中。不要把第三方扩展的任意 JSON 塞进 V2 固定 schema，避免版本升级时发生字段冲突。
@@ -162,18 +162,18 @@ fun interface SymbolActionHandler<C> {
 
 ### SymbolDrawerThemeExtension
 
-- `id)：稳定主题 ID。
-- `title)：主题名称。
-- `priority)：列表排序。
+- `id`：稳定主题 ID。
+- `title`：主题名称。
+- `priority`：列表排序。
 - `resolve(context, settings))：根据 Android Context 和当前设置返回颜色 token。
 
 ### SymbolDrawerTheme
 
 所有颜色均为 Android ARGB Int：
 
-- `primary)、`onPrimary)
-- `surface)、`onSurface)
-- `secondaryText)、`outline)
+- `primary`、`onPrimary`
+- `surface`、`onSurface`
+- `secondaryText`、`outline`
 - `drawerBackground`，默认等于 surface。
 - `selectedCellBackground`，默认等于 primary。
 
