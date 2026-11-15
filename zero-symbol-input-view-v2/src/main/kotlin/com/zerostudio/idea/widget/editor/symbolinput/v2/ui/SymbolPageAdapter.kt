@@ -430,6 +430,10 @@ internal class SymbolPageAdapter(
             target.isClickable = true
             target.isFocusable = true
             holder.interactionTarget = target
+            val hasLongPress = item.longAction != null ||
+                (extension?.let { candidate ->
+                    runCatching { candidate.wantsLongPress(legacyItem) }.getOrDefault(false)
+                } == true)
             target.setOnClickListener {
                 val current = holder.bindingAdapterPosition
                 if (current != RecyclerView.NO_POSITION && getItem(current).id == item.id) {
@@ -449,7 +453,7 @@ internal class SymbolPageAdapter(
                     onSymbolAction(getItem(current), true)
                 }
             }
-            if (item.longAction != null) {
+            if (hasLongPress) {
                 holder.accessibilityLongActionId = ViewCompat.addAccessibilityAction(
                     target, "执行长按动作"
                 ) { _, _ -> dispatchLongAction(); true }
@@ -458,7 +462,7 @@ internal class SymbolPageAdapter(
             holder.touchListener = SymbolCellTouchListener(
                 view = target,
                 longPressTimeoutMs = settings.longPressTimeoutMs,
-                hasLongAction = item.longAction != null,
+                hasLongAction = hasLongPress,
                 onLongPress = dispatchLongAction,
                 onTouch = { event ->
                     if (extension != null) {
