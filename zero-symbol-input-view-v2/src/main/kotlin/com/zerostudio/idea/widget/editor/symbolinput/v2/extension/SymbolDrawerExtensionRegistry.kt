@@ -46,6 +46,10 @@ object SymbolDrawerBuiltInFeatures {
 class SymbolDrawerExtensionRegistry {
     private data class Registered<T>(val token: Any, val value: T)
     private val lock = Any()
+    // Keep observer delivery ordered even when independent threads mutate the
+    // registry concurrently. Snapshots are captured only after entering this
+    // dispatch lock, so a delayed notification cannot publish stale state.
+    private val notificationLock = Any()
     private val actions = LinkedHashMap<String, Registered<SymbolDrawerActionExtension>>()
     private val indicators = LinkedHashMap<String, Registered<SymbolGroupIndicatorExtension>>()
     private val itemViews = LinkedHashMap<String, Registered<SymbolDrawerItemViewExtension>>()
@@ -98,8 +102,11 @@ class SymbolDrawerExtensionRegistry {
         )
     }
 
-    private fun notifyChanged() {
-        val next = synchronized(lock) { revision += 1; snapshot() }
+    private fun notifyChanged() = synchronized(notificationLock) {
+        val next = synchronized(lock) {
+            revision += 1
+            snapshot()
+        }
         listeners.forEach { callback -> runCatching { callback(next) } }
     }
 
