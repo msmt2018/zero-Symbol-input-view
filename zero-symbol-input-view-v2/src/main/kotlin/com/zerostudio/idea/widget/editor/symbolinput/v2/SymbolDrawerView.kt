@@ -445,6 +445,7 @@ class SymbolDrawerView @JvmOverloads constructor(
         if (extensionObserver == null) {
             extensionObserver = extensions.observe(emitCurrent = false) { snapshot ->
                 post {
+                    pageAdapter.refreshItemExtensions()
                     indicator.setSettingsButtonVisible(snapshot.builtInVisibility["builtin.settings"] ?: true)
                     activeThemeExtensionId?.let { themeId ->
                         val updatedTheme = snapshot.themes.firstOrNull { it.id == themeId }
