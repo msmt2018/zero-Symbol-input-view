@@ -20,6 +20,7 @@ class DrawerInteractionControllerTest {
                     collapsedRows = configuredRows
                 )
                 drawer.applySettings(settings)
+                androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().waitForIdleSync()
                 val width = (360f * activity.resources.displayMetrics.density).toInt()
                 drawer.measure(
                     android.view.View.MeasureSpec.makeMeasureSpec(width, android.view.View.MeasureSpec.EXACTLY),
@@ -36,9 +37,9 @@ class DrawerInteractionControllerTest {
                 )
                 drawer.submitGroups(groups)
                 drawer.selectGroup(1, false)
-                assertEquals(1, drawer.currentGroupIndex)
+                assertEquals(1, drawer.getCurrentGroupIndex())
                 drawer.selectGroup(2, false)
-                assertEquals(2, drawer.currentGroupIndex)
+                assertEquals(2, drawer.getCurrentGroupIndex())
             }
         }
     }
