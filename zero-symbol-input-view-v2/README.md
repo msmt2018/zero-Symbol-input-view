@@ -656,3 +656,37 @@ V2 新数据使用版本化 typed-action JSON envelope，保存稳定 Group/Symb
 
 完整开发文档位于 [api-docs/](api-docs/README.md)，覆盖 SymbolDrawerView、模型与动作、ActionHost/Executor/Registry、Repository、Manager、Settings、通用 Drawer、手势、导航、自适应窗口、扩展注册表、兼容性和故障排查。
 
+## Public drawer API package and editor-neutral actions
+
+New Kotlin integrations should import the reusable drawer API from `com.zerostudio.idea.widget.drawer` rather than coupling their code to the symbol-input feature package:
+
+```kotlin
+import com.zerostudio.idea.widget.drawer.DrawerContainer
+import com.zerostudio.idea.widget.drawer.core.DrawerController
+import com.zerostudio.idea.widget.drawer.navigation.DrawerPageHost
+import com.zerostudio.idea.widget.drawer.action.SymbolTextDocument
+import com.zerostudio.idea.widget.drawer.action.SymbolTextDocumentActionHost
+import com.zerostudio.idea.widget.drawer.extension.SymbolDrawerExtensionRegistry
+```
+
+The generic drawer package is separate from the symbol-input product namespace. The current release branch exposes the new package through Kotlin type-alias facades while the implementation sources are being relocated; Java source cannot use Kotlin type aliases as Java classes. See [API package migration and editor-neutral document contract](api-docs/13-public-package-and-editor-neutral-actions.md) for the exact compatibility boundary.
+
+### No editor-core dependency
+
+V2 action execution does not require a Sora `CodeEditor`, a custom editor class, an editor View, or an editor-core instance. The host implements `SymbolTextDocument` for the active text buffer. It exposes UTF-16 text ranges, line/column mapping, caret/selection, and replace operations. The action host then executes built-in operations against that contract.
+
+```kotlin
+val document: SymbolTextDocument = MyBufferAdapter(myTextBuffer)
+val actionHost = SymbolTextDocumentActionHost(document)
+val boundHost = drawer.bindActionHost(actionHost)
+```
+
+`MyBufferAdapter` is application-owned and only translates the target editor's buffer operations into the document contract. It does not pass the editor object into V2. Clipboard, manager navigation and app-specific commands are injected as optional host capabilities.
+
+The document contract also provides line/column conversion, selection access, optional edit transaction hooks and right-to-left multi-range edits. Cursor-left/right and adjacent code-point deletion read only the UTF-16 code units around the caret rather than copying the full document.
+
+### Live extension snapshots
+
+`SymbolDrawerExtensionRegistry.observe { snapshot -> ... }` provides lifecycle-managed change notifications. `snapshot()` returns immutable sorted contribution lists for actions, indicators, settings tabs/items, themes and built-in visibility overrides. Close the returned observer handle when the owning screen/view is disposed.
+
+The observer API enables host UI surfaces to render contributions dynamically. Registration alone does not automatically inject every extension into the built-in action picker, indicator renderer or settings tabs yet; those UI consumers are still being integrated.
