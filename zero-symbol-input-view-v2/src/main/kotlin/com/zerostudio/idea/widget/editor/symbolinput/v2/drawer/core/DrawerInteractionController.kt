@@ -136,6 +136,18 @@ class DrawerInteractionController(
                         dragging = true
                         cancelAnimation()
                         onDisallowInterceptChanged(true)
+                        // The MOVE that crosses touch slop is the first event
+                        // transferred from the child to this drawer. Consume its
+                        // displacement here and advance lastY before returning;
+                        // ViewGroup may deliver this same MOVE to onTouchEvent
+                        // immediately after interception, where it must be a no-op.
+                        val dragDelta = lastY - event.rawY
+                        lastY = event.rawY
+                        if (dragDelta != 0f) {
+                            setHeight(
+                                (height + dragDelta.roundToInt()).coerceIn(minimumHeight, maximumHeight)
+                            )
+                        }
                         return true
                     }
                     lastY = event.rawY
