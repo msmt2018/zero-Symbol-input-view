@@ -170,6 +170,7 @@ class SymbolDrawerView @JvmOverloads constructor(
 
     private var repository: SymbolGroupRepository =
         SharedPreferencesSymbolGroupRepository(context.applicationContext)
+    private var repositoryObserver: AutoCloseable? = null
     private var groups: List<SymbolGroup> = emptyList()
     private var collapsedHeight = DrawerGeometry.collapsedHeightPx(config, resources.displayMetrics.density)
     private var expandedGridHeight = collapsedHeight
@@ -483,6 +484,7 @@ class SymbolDrawerView @JvmOverloads constructor(
                 }
             }
         }
+        observeRepositoryChanges()
         interactionController.onAttached()
         recalculateGeometry()
         if (settings.rememberExpandedState) {
@@ -511,6 +513,8 @@ class SymbolDrawerView @JvmOverloads constructor(
         attachedLifecycleExtensions.clear()
         extensionObserver?.close()
         extensionObserver = null
+        repositoryObserver?.close()
+        repositoryObserver = null
         interactionController.onDetached()
         super.onDetachedFromWindow()
     }
@@ -653,8 +657,27 @@ class SymbolDrawerView @JvmOverloads constructor(
         return supplied
     }
 
+    private fun observeRepositoryChanges() {
+        if (repositoryObserver != null) return
+        val observable = repository as? com.zerostudio.idea.widget.editor.symbolinput.v2.data.ObservableSymbolGroupRepository
+            ?: return
+        repositoryObserver = observable.observeGroups {
+            post {
+                if (isAttachedToWindow && repository === observable) {
+                    runCatching { reloadGroups() }
+                        .onFailure { onExtensionErrorListener?.invoke("repository.groups", it) }
+                }
+            }
+        }
+    }
+
     fun setRepository(value: SymbolGroupRepository, reload: Boolean = true) {
-        repository = value
+        if (repository !== value) {
+            repositoryObserver?.close()
+            repositoryObserver = null
+            repository = value
+        }
+        if (isAttachedToWindow) observeRepositoryChanges()
         if (reload) reloadGroups()
     }
 
