@@ -329,6 +329,7 @@ class SymbolDrawerView @JvmOverloads constructor(
             }
         }
     }
+    )
 
     fun setRepository(value: SymbolGroupRepository, reload: Boolean = true) {
         repository = value
