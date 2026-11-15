@@ -122,8 +122,8 @@ import java.lang.ref.WeakReference
 import java.util.zip.ZipFile
 import java.util.regex.PatternSyntaxException
 import com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawerView
-import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionExecutor
-import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionResult
+import com.zerostudio.idea.widget.drawer.action.SymbolActionExecutor
+import com.zerostudio.idea.widget.drawer.action.SymbolActionResult
 import com.zerostudio.idea.widget.editor.symbolinput.v2.manager.SymbolDrawerManagerScreen
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SharedPreferencesSymbolDrawerSettingsRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettingsScreen
