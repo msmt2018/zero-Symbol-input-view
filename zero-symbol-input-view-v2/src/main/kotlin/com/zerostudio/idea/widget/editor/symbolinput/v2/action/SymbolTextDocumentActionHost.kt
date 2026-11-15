@@ -68,6 +68,7 @@ class SymbolTextDocumentActionHost(
     }
 
     override fun moveCursor(target: CursorTarget): Boolean {
+        if (document.lineCount <= 0) return false
         val length = document.textLength.coerceAtLeast(0)
         val cursor = document.cursorOffset.coerceIn(0, length)
         val line = document.lineForOffset(cursor).coerceIn(0, document.lineCount - 1)
@@ -98,6 +99,7 @@ class SymbolTextDocumentActionHost(
 
     override fun delete(kind: DeleteKind): Boolean {
         if (!document.isEditable) return false
+        if (document.lineCount <= 0) return false
         val length = document.textLength
         val selectionStart = minOf(document.selectionStart, document.selectionEnd).coerceIn(0, length)
         val selectionEnd = maxOf(document.selectionStart, document.selectionEnd).coerceIn(selectionStart, length)
@@ -119,8 +121,11 @@ class SymbolTextDocumentActionHost(
                         val deleteEnd = if (line < document.lineCount - 1) {
                             document.lineStartOffset(line + 1).coerceIn(end, length)
                         } else if (line > 0) end else end
+                        val previousSeparatorLength = if (line > 0 && start >= 2 &&
+                            document.textBetween(start - 2, start) == "\r\n"
+                        ) 2 else 1
                         val deleteStart = if (line == document.lineCount - 1 && line > 0) {
-                            (start - 1).coerceAtLeast(0)
+                            (start - previousSeparatorLength).coerceAtLeast(0)
                         } else start
                         SymbolTextRange(deleteStart, deleteEnd)
                     }
