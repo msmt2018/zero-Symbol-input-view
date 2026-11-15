@@ -39,7 +39,7 @@ class SymbolTextDocumentContractTest {
         val document = Buffer("abc\nxy")
         assertEquals(TextDocumentPosition(1, 1), document.positionForOffset(5))
         assertEquals(5, document.offsetForPosition(TextDocumentPosition(1, 1)))
-        assertEquals(4, document.offsetForPosition(TextDocumentPosition(1, 99)))
+        assertEquals(6, document.offsetForPosition(TextDocumentPosition(1, 99)))
     }
 
     @Test fun appliesNonOverlappingEditsFromRightToLeft() {
