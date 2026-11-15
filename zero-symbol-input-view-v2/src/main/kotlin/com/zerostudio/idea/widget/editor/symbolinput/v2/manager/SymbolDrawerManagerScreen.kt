@@ -94,6 +94,8 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SharedPreferenc
 import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowAdaptiveInfo
 import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.AdaptiveContentLayoutResolver
 import com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawerView
+import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerActionExtension
+import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerExtensionRegistry
 import com.google.android.material.tabs.TabLayout
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerPage
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerPageHost
@@ -108,13 +110,14 @@ private data class SymbolActionOption(
     val legacyId: Int? = null,
     val builtin: BuiltinSymbolActionOption? = null,
     val keepCurrent: Boolean = false,
-    val none: Boolean = false
+    val none: Boolean = false,
+    val extension: SymbolDrawerActionExtension? = null
 ) {
     val hasPayload: Boolean
-        get() = builtin?.hasPayload ?: (legacyId?.let(LegacySymbolActionCatalog::hasTextPayload) == true)
+        get() = extension != null || builtin?.hasPayload ?: (legacyId?.let(LegacySymbolActionCatalog::hasTextPayload) == true)
 
     val payloadHint: String?
-        get() = builtin?.payloadHint
+        get() = extension?.payloadHint ?: builtin?.payloadHint
 }
 
 /**
@@ -156,7 +159,9 @@ internal fun resolveEditorFormMaxHeightPx(
 class SymbolDrawerManagerScreen(
     context: Context,
     private val repository: SymbolGroupRepository = SharedPreferencesSymbolGroupRepository(context),
-    private val embeddedInSettings: Boolean = false
+    private val embeddedInSettings: Boolean = false,
+    /** Optional session registry; when supplied, registered app actions appear in the action picker. */
+    private val extensionRegistry: SymbolDrawerExtensionRegistry? = null
 ) : LinearLayout(context) {
 
     var onGroupsChanged: ((List<SymbolGroup>) -> Unit)? = null
@@ -1285,10 +1290,14 @@ class SymbolDrawerManagerScreen(
         val builtinOptions = BuiltinSymbolActionCatalog.options.map { option ->
             SymbolActionOption("[V2] " + option.label, builtin = option)
         }
+        val extensionOptions = extensionRegistry?.actions().orEmpty().map { extension ->
+            SymbolActionOption("[扩展] " + extension.title, extension = extension)
+        }
         val shortOptions = buildList {
             if (preserveShortAction) add(SymbolActionOption("保留当前动作", keepCurrent = true))
             addAll(legacyOptions)
             addAll(builtinOptions)
+            addAll(extensionOptions)
         }
         val shortOffset = if (preserveShortAction) 1 else 0
         val shortIndex = if (preserveShortAction) 0 else (shortLegacyIndex ?: 0) + shortOffset
@@ -1298,6 +1307,7 @@ class SymbolDrawerManagerScreen(
             add(SymbolActionOption("无长按动作", none = true))
             addAll(legacyOptions)
             addAll(builtinOptions)
+            addAll(extensionOptions)
         }
         val longOffset = if (preserveLongAction) 2 else 1
         val longIndex = when {
@@ -1409,6 +1419,8 @@ class SymbolDrawerManagerScreen(
                         keepShort -> existing!!.shortAction
                         shortOption.builtin != null ->
                             SymbolAction.EditorCommand(shortOption.builtin.commandId, shortPayload)
+                        shortOption.extension != null ->
+                            SymbolAction.Extension(shortOption.extension.id, shortPayload)
                         shortOption.legacyId != null ->
                             LegacySymbolActionAdapter.convert(LegacySymbolAction(shortOption.legacyId, shortPayload))
                         else -> SymbolAction.InsertText("")
@@ -1431,6 +1443,8 @@ class SymbolDrawerManagerScreen(
                         longOption.none -> null
                         longOption.builtin != null ->
                             SymbolAction.EditorCommand(longOption.builtin.commandId, longPayload)
+                        longOption.extension != null ->
+                            SymbolAction.Extension(longOption.extension.id, longPayload)
                         longOption.legacyId != null ->
                             LegacySymbolActionAdapter.convert(LegacySymbolAction(longOption.legacyId, longPayload))
                         else -> null
