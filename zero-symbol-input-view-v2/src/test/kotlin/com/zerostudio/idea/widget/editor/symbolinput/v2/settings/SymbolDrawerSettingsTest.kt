@@ -164,7 +164,7 @@ class SymbolDrawerSettingsTest {
 
     @Test fun settingsDecoderRejectsUnsupportedVersionsAndUnknownEnums() {
         assertFails { SymbolDrawerSettingsCodec.decode("""{"schemaVersion":0}""") }
-        assertFails { SymbolDrawerSettingsCodec.decode("""{"schemaVersion":3}""") }
+        assertFails { SymbolDrawerSettingsCodec.decode("""{"schemaVersion":4}""") }
         assertFails { SymbolDrawerSettingsCodec.decode("""{"schemaVersion":2,"themeMode":"AUTO"}""") }
         assertFails { SymbolDrawerSettingsCodec.decode("""{"schemaVersion":2,"sideDockEdge":"TOP"}""") }
     }
