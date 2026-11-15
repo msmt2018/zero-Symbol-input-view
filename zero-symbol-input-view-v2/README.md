@@ -23,8 +23,8 @@ drawer.onSymbolActionListener =
     SymbolDrawerView.OnSymbolActionListener { symbol, isLongPress ->
         val action = if (isLongPress) symbol.longAction else symbol.shortAction
         if (action != null) {
-            // Existing Sora Editor integration can reuse the legacy executor:
-            // SymbolActionExecutor.execute(editor, action.type, action.payload, drawer.onOpenManagerListener)
+            // Execute the typed V2 action through your SymbolActionHost adapter.
+            // val result = actionExecutor.execute(action, editorActionHost)
         }
     }
 
