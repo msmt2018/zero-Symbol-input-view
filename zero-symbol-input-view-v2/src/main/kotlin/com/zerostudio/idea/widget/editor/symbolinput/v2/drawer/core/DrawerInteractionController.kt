@@ -99,7 +99,9 @@ class DrawerInteractionController(
                 lastY = event.rawY
                 dragging = false
                 gestureAxis = AXIS_UNDECIDED
-                onDisallowInterceptChanged(true)
+                // Do not lock ancestors before the gesture axis is known.
+                // Let the child pager/scroll container participate in the
+                // initial DOWN event; arbitration happens after touch slop.
                 velocityTracker?.recycle()
                 velocityTracker = VelocityTracker.obtain().also { it.addMovement(event) }
             }
