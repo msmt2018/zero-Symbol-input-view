@@ -158,6 +158,7 @@ class SymbolDrawerView @JvmOverloads constructor(
         overScrollMode = View.OVER_SCROLL_NEVER
     }
     private var legacyItemsBySymbolId: Map<Long, SymbolItem> = emptyMap()
+    private var preserveLegacyMappingOnSubmit = false
     private var pageAdapter = createPageAdapter()
     private var suppressPageCallbacks = false
     private var adapterSwapGeneration = 0
@@ -201,6 +202,10 @@ class SymbolDrawerView @JvmOverloads constructor(
                 if (suppressPageCallbacks) return
                 setIndicatorSelectedIndex(position)
                 onGroupChangedListener?.invoke(position, groups.getOrNull(position))
+                val legacyGroup = legacyGroupAt(position)
+                extensions.lifecycleExtensions().forEach { extension ->
+                    runCatching { extension.onGroupSelected(position, legacyGroup) }
+                }
             }
         })
         reloadGroups()
@@ -219,6 +224,9 @@ class SymbolDrawerView @JvmOverloads constructor(
         if (!settings.rememberExpandedState) settingsPreferences.edit().remove(EXPANSION_STATE_KEY).apply()
         config = settings.toDrawerConfig()
         applyDrawerTheme()
+        extensions.lifecycleExtensions().forEach { extension ->
+            runCatching { extension.onSettingsChanged(settings) }
+        }
 
         // Anchor geometry (especially the user-configured collapsed row count)
         // belongs to the drawer shell, not to symbol-cell presentation. Apply it
@@ -442,6 +450,9 @@ class SymbolDrawerView @JvmOverloads constructor(
                 registered !== activeCustomIndicatorExtension -> setCustomGroupIndicator(selectedId)
             }
         }
+        extensions.lifecycleExtensions().forEach { extension ->
+            runCatching { extension.onAttached(this@SymbolDrawerView) }
+        }
         if (extensionObserver == null) {
             extensionObserver = extensions.observe(emitCurrent = false) { snapshot ->
                 post {
@@ -485,6 +496,9 @@ class SymbolDrawerView @JvmOverloads constructor(
         }
         settingsDialog?.dismiss()
         settingsDialog = null
+        extensions.lifecycleExtensions().asReversed().forEach { extension ->
+            runCatching { extension.onDetached(this@SymbolDrawerView) }
+        }
         extensionObserver?.close()
         extensionObserver = null
         interactionController.onDetached()
@@ -515,6 +529,9 @@ class SymbolDrawerView @JvmOverloads constructor(
                     }
                     HapticMode.ALL -> performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                 }
+                extensions.lifecycleExtensions().forEach { extension ->
+                    runCatching { extension.onSymbolInvoked(resolveLegacyItem(symbol), longPress) }
+                }
                 onSymbolActionListener?.onAction(symbol, longPress)
                 onSymbolUsedListener?.invoke(symbol, longPress)
                 if (settings.autoCollapseAfterAction) setExpanded(false, true)
@@ -536,12 +553,17 @@ class SymbolDrawerView @JvmOverloads constructor(
         val converted = LegacySymbolDataCodec.decode(
             com.google.gson.Gson().toJson(value)
         )
-        submitGroups(converted, preserveSelectedGroup, onCommitted)
         legacyItemsBySymbolId = buildMap {
             var index = 0L
             value.forEach { group ->
                 group.items.forEach { item -> put(++index, item.copy()) }
             }
+        }
+        preserveLegacyMappingOnSubmit = true
+        try {
+            submitGroups(converted, preserveSelectedGroup, onCommitted)
+        } finally {
+            preserveLegacyMappingOnSubmit = false
         }
     }
 
@@ -555,6 +577,23 @@ class SymbolDrawerView @JvmOverloads constructor(
             longText = entry.legacyLongText
         )
 
+    private fun legacyGroupAt(index: Int): com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolGroup? {
+        val group = groups.getOrNull(index) ?: return null
+        return com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolGroup(
+            name = group.title,
+            items = group.symbols.map(::resolveLegacyItem).toMutableList()
+        )
+    }
+
+    /** Loads extension-provided legacy groups in deterministic priority/ID order. */
+    suspend fun reloadLegacyGroupsFromExtensions(): List<com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolGroup> {
+        val providers = extensions.groupProviders()
+        if (providers.isEmpty()) return emptyList()
+        val supplied = providers.flatMap { provider -> provider.loadGroups() }
+        submitLegacyGroups(supplied)
+        return supplied
+    }
+
     fun setRepository(value: SymbolGroupRepository, reload: Boolean = true) {
         repository = value
         if (reload) reloadGroups()
@@ -565,7 +604,7 @@ class SymbolDrawerView @JvmOverloads constructor(
         preserveSelectedGroup: Boolean = true,
         onCommitted: (() -> Unit)? = null
     ) {
-        legacyItemsBySymbolId = emptyMap()
+        if (!preserveLegacyMappingOnSubmit) legacyItemsBySymbolId = emptyMap()
         require(value.map { it.id }.distinct().size == value.size) {
             "Symbol group IDs must be unique"
         }
@@ -576,6 +615,10 @@ class SymbolDrawerView @JvmOverloads constructor(
         }
         val previousId = groups.getOrNull(pager.currentItem)?.id
         groups = value.map { it.copy(symbols = it.symbols.toList()) }
+        val legacySnapshot = groups.mapIndexedNotNull { index, _ -> legacyGroupAt(index) }
+        extensions.lifecycleExtensions().forEach { extension ->
+            runCatching { extension.onGroupsChanged(legacySnapshot) }
+        }
         val restored = if (preserveSelectedGroup && previousId != null) {
             groups.indexOfFirst { it.id == previousId }.takeIf { it >= 0 }
         } else null
