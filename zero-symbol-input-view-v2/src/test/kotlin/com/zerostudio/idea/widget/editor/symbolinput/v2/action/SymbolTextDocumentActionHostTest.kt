@@ -74,6 +74,14 @@ class SymbolTextDocumentActionHostTest {
         assertEquals("    val va[value]\n\t    val value = 1lue = 1", document.value)
     }
 
+    @Test fun finalLineInsertionPreservesPreviousCrLfSeparator() {
+        val document = Document("first\\r\\nlast")
+        document.setSelection(document.value.length, document.value.length)
+        val host = SymbolTextDocumentActionHost(document)
+        assertTrue(host.insertText("x\\$N"))
+        assertEquals("first\\r\\nlastx\\r\\n", document.value)
+    }
+
     @Test fun surroundSelectionKeepsInnerTextSelected() {
         val document = Document("hello")
         document.setSelection(1, 4)
