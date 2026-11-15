@@ -210,6 +210,9 @@ class SymbolDrawerManagerScreen(
     /** One immutable snapshot for the whole drag gesture; intermediate swaps are not separate undo steps. */
     private var reorderGestureSnapshot: List<SymbolGroup>? = null
     private var reorderGestureGroupId: String? = null
+    /** In-memory order while ItemTouchHelper owns the gesture; persisted once on release. */
+    private var reorderWorkingGroupId: String? = null
+    private var reorderWorkingSymbols: MutableList<SymbolEntry>? = null
     private val symbolAdapter = SymbolAdapter(
         onClick = { symbol -> editSymbol(symbol) },
         onLongClick = { symbol, anchor -> showSymbolMenu(symbol, anchor) },
@@ -746,14 +749,20 @@ class SymbolDrawerManagerScreen(
                 target: RecyclerView.ViewHolder
             ): Boolean {
                 if (searchField.text?.isNotBlank() == true) return false
+                val group = currentGroup() ?: return false
+                if (reorderWorkingGroupId != group.id) return false
+                val items = reorderWorkingSymbols ?: group.symbols.toMutableList().also {
+                    reorderWorkingSymbols = it
+                    reorderWorkingGroupId = group.id
+                }
                 val from = viewHolder.bindingAdapterPosition
                 val to = target.bindingAdapterPosition
-                val group = currentGroup() ?: return false
                 if (from == RecyclerView.NO_POSITION || to == RecyclerView.NO_POSITION ||
-                    from !in group.symbols.indices || to !in group.symbols.indices || from == to
+                    from !in items.indices || to !in items.indices || from == to
                 ) return false
-                manager.moveSymbol(group.id, from, to)
-                symbolAdapter.submitList(currentGroup()?.symbols?.toList().orEmpty())
+                val moved = items.removeAt(from)
+                items.add(to, moved)
+                symbolAdapter.submitList(items.toList())
                 updateDragPreview()
                 return true
             }
@@ -770,6 +779,8 @@ class SymbolDrawerManagerScreen(
                             group.copy(symbols = group.symbols.toList())
                         }
                         reorderGestureGroupId = selectedGroupId
+                        reorderWorkingGroupId = selectedGroupId
+                        reorderWorkingSymbols = currentGroup()?.symbols?.toMutableList()
                     }
                     showDragPreview()
                 }
@@ -779,16 +790,33 @@ class SymbolDrawerManagerScreen(
                 super.clearView(recyclerView, viewHolder)
                 val before = reorderGestureSnapshot
                 val previousGroupId = reorderGestureGroupId
+                val changedGroupId = reorderWorkingGroupId
+                val orderedIds = reorderWorkingSymbols?.map { it.id }
                 reorderGestureSnapshot = null
                 reorderGestureGroupId = null
-                refresh()
-                // Intermediate onMove calls persist their latest order, but the user
-                // sees and undoes the entire physical drag as one logical operation.
-                if (before != null && before != manager.groups) {
-                    showUndo("已调整符号顺序") {
-                        manager.replaceAll(before.map { it.copy(symbols = it.symbols.toList()) })
-                        selectedGroupId = previousGroupId
+                reorderWorkingGroupId = null
+                reorderWorkingSymbols = null
+                runCatching {
+                    // ItemTouchHelper can report many swaps during one physical drag.
+                    // Keep those swaps transient and write one repository transaction
+                    // only after the gesture has completed.
+                    if (before != null && changedGroupId != null && orderedIds != null) {
+                        val previousOrder = before.firstOrNull { it.id == changedGroupId }
+                            ?.symbols?.map { it.id }
+                        if (previousOrder != null && previousOrder != orderedIds) {
+                            manager.reorderSymbols(changedGroupId, orderedIds)
+                        }
                     }
+                    refresh()
+                    if (before != null && before != manager.groups) {
+                        showUndo("已调整符号顺序") {
+                            manager.replaceAll(before.map { it.copy(symbols = it.symbols.toList()) })
+                            selectedGroupId = previousGroupId
+                        }
+                    }
+                }.onFailure {
+                    refresh()
+                    reportError(it)
                 }
                 destroyDragPreview()
             }
@@ -923,8 +951,15 @@ class SymbolDrawerManagerScreen(
 
     private fun updateDragPreview() {
         previewDrawer?.let { preview ->
-            preview.submitGroups(manager.groups, preserveSelectedGroup = true)
-            manager.groups.indexOfFirst { it.id == selectedGroupId }
+            val workingGroupId = reorderWorkingGroupId
+            val workingSymbols = reorderWorkingSymbols
+            val previewGroups = if (workingGroupId != null && workingSymbols != null) {
+                manager.groups.map { group ->
+                    if (group.id == workingGroupId) group.copy(symbols = workingSymbols.toList()) else group
+                }
+            } else manager.groups
+            preview.submitGroups(previewGroups, preserveSelectedGroup = true)
+            previewGroups.indexOfFirst { it.id == selectedGroupId }
                 .takeIf { it >= 0 }?.let { preview.selectGroup(it, false) }
         }
     }
@@ -1086,6 +1121,8 @@ class SymbolDrawerManagerScreen(
         // could be mistaken for a later drag after the view is reattached.
         reorderGestureSnapshot = null
         reorderGestureGroupId = null
+        reorderWorkingGroupId = null
+        reorderWorkingSymbols = null
         reorderTouchHelper?.attachToRecyclerView(null)
         reorderTouchHelper = null
         super.onDetachedFromWindow()
