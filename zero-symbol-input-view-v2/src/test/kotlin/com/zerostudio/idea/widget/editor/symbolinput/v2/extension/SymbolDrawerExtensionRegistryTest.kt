@@ -125,4 +125,28 @@ class SymbolDrawerExtensionRegistryTest {
             SymbolDrawerActionExtension("bad id", "Bad", handler = { _, _ -> true })
         )
     }
+
+    @Test
+    fun itemViewRendererIsPublishedAndUnregisteredFromTheDrawerRegistry() {
+        val registry = SymbolDrawerExtensionRegistry()
+        val renderer = object : SymbolDrawerItemViewExtension {
+            override val id = "sample.renderer"
+            override val title = "Sample renderer"
+            override fun createView(
+                context: android.content.Context,
+                item: com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolItem,
+                state: SymbolDrawerItemViewState
+            ): android.view.View = error("Creation is owned by SymbolPageAdapter")
+            override fun bindView(
+                view: android.view.View,
+                item: com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolItem,
+                state: SymbolDrawerItemViewState
+            ) = Unit
+        }
+        val handle = registry.registerItemView(renderer)
+        assertEquals("sample.renderer", registry.itemViews().single().id)
+        assertEquals("sample.renderer", registry.snapshot().itemViews.single().id)
+        handle.close()
+        assertTrue(registry.itemViews().isEmpty())
+    }
 }
