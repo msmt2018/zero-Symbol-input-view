@@ -252,14 +252,19 @@ class DrawerUiContractTest {
         }
     }
 
-    @Test fun managerScreenInflatesTabsAndBackupImportRoundTrips() {
+    @Test fun managerScreenInflatesDrawerNavigationAndBackupImportRoundTrips() {
         ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
                 val repository = Groups(sample())
                 val screen = SymbolDrawerManagerScreen(activity, repository)
                 activity.content.addView(screen, FrameLayout.LayoutParams(-1, -1))
-                val tabs = find(screen) { it is TabLayout } as TabLayout
-                assertEquals(2, tabs.tabCount)
+                val navigation = find(screen) { it is android.widget.HorizontalScrollView }
+                    as android.widget.HorizontalScrollView
+                val buttons = navigation.getChildAt(0) as LinearLayout
+                assertEquals(2, buttons.childCount)
+                assertEquals(listOf("One", "Two"), (0 until buttons.childCount).map {
+                    (buttons.getChildAt(it) as TextView).text.toString()
+                })
                 val backup = screen.exportBundle()
                 screen.importBundle(backup)
                 assertEquals(sample(), repository.value)
