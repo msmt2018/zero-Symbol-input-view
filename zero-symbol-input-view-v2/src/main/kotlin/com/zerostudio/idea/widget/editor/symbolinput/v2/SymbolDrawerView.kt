@@ -151,6 +151,7 @@ class SymbolDrawerView @JvmOverloads constructor(
     private var activeThemeExtension: com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerThemeExtension? = null
     private var activeTheme: SymbolDrawerTheme? = null
     private var extensionObserver: AutoCloseable? = null
+    private val attachedLifecycleExtensions = LinkedHashSet<com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerLifecycleExtension>()
     private val pager = ViewPager2(context).apply {
         orientation = ViewPager2.ORIENTATION_HORIZONTAL
         offscreenPageLimit = 1
@@ -450,13 +451,12 @@ class SymbolDrawerView @JvmOverloads constructor(
                 registered !== activeCustomIndicatorExtension -> setCustomGroupIndicator(selectedId)
             }
         }
-        extensions.lifecycleExtensions().forEach { extension ->
-            runCatching { extension.onAttached(this@SymbolDrawerView) }
-        }
+        syncLifecycleExtensions(extensions.lifecycleExtensions())
         if (extensionObserver == null) {
             extensionObserver = extensions.observe(emitCurrent = false) { snapshot ->
                 post {
                     pageAdapter.refreshItemExtensions()
+                    syncLifecycleExtensions(snapshot.lifecycle)
                     indicator.setSettingsButtonVisible(snapshot.builtInVisibility["builtin.settings"] ?: true)
                     activeThemeExtensionId?.let { themeId ->
                         val updatedTheme = snapshot.themes.firstOrNull { it.id == themeId }
@@ -496,13 +496,29 @@ class SymbolDrawerView @JvmOverloads constructor(
         }
         settingsDialog?.dismiss()
         settingsDialog = null
-        extensions.lifecycleExtensions().asReversed().forEach { extension ->
+        attachedLifecycleExtensions.toList().asReversed().forEach { extension ->
             runCatching { extension.onDetached(this@SymbolDrawerView) }
         }
+        attachedLifecycleExtensions.clear()
         extensionObserver?.close()
         extensionObserver = null
         interactionController.onDetached()
         super.onDetachedFromWindow()
+    }
+
+    private fun syncLifecycleExtensions(
+        current: List<com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerLifecycleExtension>
+    ) {
+        val wanted = current.toSet()
+        attachedLifecycleExtensions.filter { it !in wanted }.toList().asReversed().forEach { removed ->
+            attachedLifecycleExtensions.remove(removed)
+            runCatching { removed.onDetached(this) }
+        }
+        current.forEach { extension ->
+            if (attachedLifecycleExtensions.add(extension)) {
+                runCatching { extension.onAttached(this) }
+            }
+        }
     }
 
     override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
@@ -589,11 +605,14 @@ class SymbolDrawerView @JvmOverloads constructor(
         groups.indices.mapNotNull(::legacyGroupAt)
 
     /** Loads extension-provided legacy groups in deterministic priority/ID order. */
-    suspend fun reloadLegacyGroupsFromExtensions(): List<com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolGroup> {
+    suspend fun reloadLegacyGroupsFromExtensions(
+        persist: Boolean = false
+    ): List<com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolGroup> {
         val providers = extensions.groupProviders()
         if (providers.isEmpty()) return emptyList()
         val supplied = providers.flatMap { provider -> provider.loadGroups() }
         submitLegacyGroups(supplied)
+        if (persist) saveGroups()
         return supplied
     }
 
