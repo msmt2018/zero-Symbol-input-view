@@ -17,6 +17,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionRegis
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolItem
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolGroup as LegacySymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
 
 /**
@@ -289,7 +290,7 @@ interface SymbolDrawerItemViewExtension {
 
 /** Stable navigation contract supplied to custom indicator components. */
 data class SymbolGroupIndicatorState(
-    val groups: List<SymbolGroup>,
+    val groups: List<LegacySymbolGroup>,
     val selectedIndex: Int,
     val onSelectGroup: (Int) -> Unit
 )
@@ -297,7 +298,7 @@ data class SymbolGroupIndicatorState(
 /** A custom indicator owns its View but not the underlying group/page state. */
 interface SymbolGroupIndicatorComponent {
     val view: View
-    fun submitGroups(groups: List<SymbolGroup>)
+    fun submitGroups(groups: List<LegacySymbolGroup>)
     fun setSelectedIndex(index: Int)
     fun applySettings(settings: SymbolDrawerSettings)
     /** Optional theme tokens supplied by the owning drawer session. */
