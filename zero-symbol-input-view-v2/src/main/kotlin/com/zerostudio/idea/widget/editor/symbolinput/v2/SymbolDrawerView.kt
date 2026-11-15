@@ -522,6 +522,7 @@ class SymbolDrawerView @JvmOverloads constructor(
         attachedLifecycleExtensions.filter { it !in wanted }.toList().asReversed().forEach { removed ->
             attachedLifecycleExtensions.remove(removed)
             runCatching { removed.onDetached(this) }
+                .onFailure { extensions.reportError(removed.id, it) }
         }
         current.forEach { extension ->
             if (attachedLifecycleExtensions.add(extension)) {
