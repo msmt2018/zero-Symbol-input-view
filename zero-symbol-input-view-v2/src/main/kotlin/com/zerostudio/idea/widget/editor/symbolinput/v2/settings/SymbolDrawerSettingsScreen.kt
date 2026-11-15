@@ -90,9 +90,7 @@ class SymbolDrawerSettingsScreen(
     private val groupRepository: SymbolGroupRepository =
         SharedPreferencesSymbolGroupRepository(context),
     /** Optional session registry for app-contributed settings tabs and rows. */
-    private val extensionRegistry: SymbolDrawerExtensionRegistry? = null,
-    /** Optional live drawer source for shared theme tokens and notifications. */
-    private val liveDrawer: SymbolDrawerView? = null
+    private val extensionRegistry: SymbolDrawerExtensionRegistry? = null
 ) : LinearLayout(context) {
 
     var onSettingsChanged: ((SymbolDrawerSettings) -> Unit)? = null
@@ -110,6 +108,7 @@ class SymbolDrawerSettingsScreen(
     private val content = LinearLayout(context).apply { orientation = VERTICAL }
     private var extensionObserver: AutoCloseable? = null
     private var themeObserver: AutoCloseable? = null
+    private var themeSource: SymbolDrawerView? = null
     private var drawerTheme: SymbolDrawerTheme? = null
     private val extensionViewDisposers = mutableListOf<() -> Unit>()
     private var extensionViewsDisposedOnDetach = false
@@ -166,6 +165,24 @@ class SymbolDrawerSettingsScreen(
         }
     }
 
+    /** Bind the settings surface to the owning drawer without changing its constructor ABI. */
+    fun bindThemeSource(drawer: SymbolDrawerView) {
+        if (themeSource === drawer) return
+        themeObserver?.close()
+        themeObserver = null
+        themeSource = drawer
+        drawerTheme = drawer.themeSnapshot
+        if (isAttachedToWindow) observeDrawerTheme()
+    }
+
+    private fun observeDrawerTheme() {
+        if (themeObserver != null) return
+        themeObserver = themeSource?.observeTheme(emitCurrent = false) { theme ->
+            drawerTheme = theme
+            post { if (isAttachedToWindow) render() }
+        }
+    }
+
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
         if (extensionViewsDisposedOnDetach) {
@@ -178,13 +195,7 @@ class SymbolDrawerSettingsScreen(
                 }
             }
         }
-        if (themeObserver == null) {
-            drawerTheme = liveDrawer?.themeSnapshot
-            themeObserver = liveDrawer?.observeTheme(emitCurrent = false) { theme ->
-                drawerTheme = theme
-                post { if (isAttachedToWindow) render() }
-            }
-        }
+        observeDrawerTheme()
         if (extensionObserver == null) {
             extensionObserver = extensionRegistry?.observe(emitCurrent = false) {
                 post { if (isAttachedToWindow) render() }

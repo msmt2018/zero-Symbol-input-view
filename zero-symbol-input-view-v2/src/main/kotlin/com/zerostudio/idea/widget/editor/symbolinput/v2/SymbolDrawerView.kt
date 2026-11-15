@@ -346,9 +346,9 @@ class SymbolDrawerView @JvmOverloads constructor(
             context,
             settingsRepository,
             repository,
-            extensionRegistry = extensions,
-            liveDrawer = this
+            extensionRegistry = extensions
         ).apply {
+            bindThemeSource(this@SymbolDrawerView)
             onSettingsChanged = { applySettings(it) }
             onGroupsChanged = {
                 submitGroups(it)
