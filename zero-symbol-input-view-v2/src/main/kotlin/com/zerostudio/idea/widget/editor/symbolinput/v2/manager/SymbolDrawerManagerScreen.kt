@@ -311,6 +311,7 @@ class SymbolDrawerManagerScreen(
 
     fun importBundle(json: String) {
         val previous = manager.groups.toList()
+        val previousUsage = snapshotUsageState()
         val previousSelection = selectedGroupId
         val imported = SymbolGroupBundleCodec.decode(json)
         manager.replaceAll(imported)
@@ -318,6 +319,7 @@ class SymbolDrawerManagerScreen(
         refresh()
         showUndo("已导入符号抽屉备份") {
             manager.replaceAll(previous)
+            restoreUsageState(previousUsage)
             selectedGroupId = previousSelection
         }
     }
