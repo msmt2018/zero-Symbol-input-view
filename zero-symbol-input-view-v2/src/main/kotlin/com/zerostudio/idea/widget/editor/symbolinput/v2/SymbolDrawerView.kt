@@ -452,10 +452,21 @@ class SymbolDrawerView @JvmOverloads constructor(
         pager.layout(0, indicatorHeight, width, indicatorHeight + pager.measuredHeight)
     }
 
-    override fun onInterceptTouchEvent(event: MotionEvent): Boolean =
-        interactionController.onInterceptTouchEvent(event) { x, y ->
+    override fun onInterceptTouchEvent(event: MotionEvent): Boolean {
+        val intercepted = interactionController.onInterceptTouchEvent(event) { x, y ->
             canScrollableDescendantScrollVertically(-1, x, y)
         }
+        if (interactionController.isHorizontalGestureLocked) {
+            // A vertical grid inside a ViewPager2 page may have propagated
+            // requestDisallowInterceptTouchEvent(true) to ViewPager2's internal
+            // RecyclerView before the horizontal axis was known. Clear that
+            // nested lock once a horizontal swipe is recognized so the pager
+            // can take over and perform its normal page snap.
+            (pager.getChildAt(0) as? ViewGroup)
+                ?.requestDisallowInterceptTouchEvent(false)
+        }
+        return intercepted
+    }
 
     /**
      * Finds a vertically scrollable descendant under the active pointer.
