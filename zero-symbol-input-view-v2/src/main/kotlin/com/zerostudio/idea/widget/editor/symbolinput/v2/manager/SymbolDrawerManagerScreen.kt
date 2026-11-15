@@ -886,7 +886,10 @@ class SymbolDrawerManagerScreen(
         if (existing != next) {
             groupTabs.removeAllTabs()
             manager.groups.forEach { group ->
-                groupTabs.addTab(groupTabs.newTab().setText(group.title).setTag(group.id), false)
+                val tab = groupTabs.newTab()
+                tab.text = group.title
+                tab.tag = group.id
+                groupTabs.addTab(tab, false)
             }
         } else {
             manager.groups.forEachIndexed { index, group -> groupTabs.getTabAt(index)?.text = group.title }
