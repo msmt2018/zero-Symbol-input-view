@@ -350,6 +350,7 @@ class SymbolDrawerView @JvmOverloads constructor(
         }
 
         val previousComponent = customIndicatorComponent
+        val previousExtension = activeCustomIndicatorExtension
         val previousView = previousComponent?.view ?: indicator
         val replacement = runCatching {
             indicatorHost.removeView(previousView)
@@ -381,7 +382,7 @@ class SymbolDrawerView @JvmOverloads constructor(
         previousComponent?.let { previous ->
             runCatching { previous.onDispose() }
                 .onFailure { error ->
-                    activeCustomIndicatorExtension?.let { extensions.reportError(it.id, error) }
+                    previousExtension?.let { extensions.reportError(it.id, error) }
                 }
         }
         requestLayout()
