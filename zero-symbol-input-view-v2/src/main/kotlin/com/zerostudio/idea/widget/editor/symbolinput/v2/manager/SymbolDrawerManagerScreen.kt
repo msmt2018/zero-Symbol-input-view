@@ -228,6 +228,7 @@ class SymbolDrawerManagerScreen(
     private var reorderWorkingSymbols: MutableList<SymbolEntry>? = null
     private val symbolAdapter = SymbolAdapter(
         onClick = { symbol -> editSymbol(symbol) },
+        themeProvider = { drawerTheme },
         onLongClick = { symbol, anchor -> showSymbolMenu(symbol, anchor) },
         onDragHandle = { holder -> reorderTouchHelper?.startDrag(holder) },
         isBatchMode = { batchMode },
@@ -1714,6 +1715,7 @@ class SymbolDrawerManagerScreen(
         private val onClick: (SymbolEntry) -> Unit,
         private val onLongClick: (SymbolEntry, View) -> Unit,
         private val onDragHandle: (RecyclerView.ViewHolder) -> Unit,
+        private val themeProvider: () -> SymbolDrawerTheme?,
         private val isBatchMode: () -> Boolean,
         private val isSelected: (SymbolEntry) -> Boolean,
         private val onBatchToggle: (SymbolEntry) -> Unit
@@ -1722,12 +1724,12 @@ class SymbolDrawerManagerScreen(
             val ctx = parent.context
             val title = TextView(ctx).apply {
                 textSize = 15f
-                setTextColor(onSurfaceColor())
+                setTextColor(themeProvider()?.onSurface ?: HostThemeColors.onSurface(ctx))
                 setTypeface(typeface, android.graphics.Typeface.BOLD)
             }
             val detail = TextView(ctx).apply {
                 textSize = 12f
-                setTextColor(secondaryTextColor(ctx))
+                setTextColor(themeProvider()?.secondaryText ?: HostThemeColors.secondaryText(ctx))
                 setPadding(0, dp(ctx, 4), 0, 0)
             }
             val textColumn = LinearLayout(ctx).apply {
@@ -1740,16 +1742,16 @@ class SymbolDrawerManagerScreen(
             val root = LinearLayout(ctx).apply {
                 orientation = HORIZONTAL
                 gravity = android.view.Gravity.CENTER_VERTICAL
-                background = roundedSurface(ctx, HostThemeColors.surface(ctx), dp(ctx, 12))
+                background = roundedSurface(ctx, themeProvider()?.surface ?: HostThemeColors.surface(ctx), dp(ctx, 12))
                 addView(View(ctx).apply {
-                    setBackgroundColor(HostThemeColors.primary(ctx))
+                    setBackgroundColor(themeProvider()?.primary ?: HostThemeColors.primary(ctx))
                 }, LinearLayout.LayoutParams(dp(ctx, 3), ViewGroup.LayoutParams.MATCH_PARENT))
                 addView(textColumn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
                 val dragHandle = TextView(ctx).apply {
                     text = "⋮⋮"
                     textSize = 20f
                     gravity = android.view.Gravity.CENTER
-                    setTextColor(secondaryTextColor(ctx))
+                    setTextColor(themeProvider()?.secondaryText ?: HostThemeColors.secondaryText(ctx))
                     contentDescription = "拖动调整符号位置"
                     isClickable = true
                     isFocusable = true
@@ -1772,6 +1774,13 @@ class SymbolDrawerManagerScreen(
             val longName = symbol.legacyLongActionId?.let(::actionName) ?: symbol.longAction?.javaClass?.simpleName ?: "无"
             holder.detail.text = "短按  $shortName    ·    长按  $longName"
             holder.root.contentDescription = "${symbol.label}，短按$shortName，长按$longName"
+            val theme = themeProvider()
+            val itemContext = holder.root.context
+            holder.root.background = roundedSurface(itemContext, theme?.surface ?: HostThemeColors.surface(itemContext), dp(itemContext, 12))
+            holder.title.setTextColor(theme?.onSurface ?: HostThemeColors.onSurface(itemContext))
+            holder.detail.setTextColor(theme?.secondaryText ?: HostThemeColors.secondaryText(itemContext))
+            holder.dragHandle.setTextColor(theme?.secondaryText ?: HostThemeColors.secondaryText(itemContext))
+            holder.root.getChildAt(0).setBackgroundColor(theme?.primary ?: HostThemeColors.primary(itemContext))
             val selecting = isBatchMode()
             val selected = isSelected(symbol)
             holder.root.alpha = if (selecting && selected) 0.72f else 1f
@@ -1823,12 +1832,14 @@ class SymbolDrawerManagerScreen(
                 val index = LegacySymbolActionCatalog.values.indexOf(id)
                 return LegacySymbolActionCatalog.labels.getOrNull(index) ?: "动作 $id"
             }
-            private fun roundedSurface(context: Context, color: Int, radius: Int) = GradientDrawable().apply {
+        }
+
+        private fun roundedSurface(context: Context, color: Int, radius: Int) =
+            GradientDrawable().apply {
                 setColor(color)
                 cornerRadius = radius.toFloat()
-                setStroke(1, HostThemeColors.outline(context))
+                setStroke(1, themeProvider()?.outline ?: HostThemeColors.outline(context))
             }
-        }
     }
 
     private fun roundedSurface(color: Int, radiusDp: Int) = GradientDrawable().apply {

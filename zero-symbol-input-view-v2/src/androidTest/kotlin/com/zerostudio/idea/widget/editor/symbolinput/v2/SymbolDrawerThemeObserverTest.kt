@@ -27,10 +27,10 @@ class SymbolDrawerThemeObserverTest {
         selectedCellBackground = seed + 7
     )
 
-    private fun provider(id: String, value: SymbolDrawerTheme) =
+    private fun provider(extensionId: String, value: SymbolDrawerTheme) =
         object : SymbolDrawerThemeExtension {
-            override val id = id
-            override val title = id
+            override val id = extensionId
+            override val title = extensionId
             override fun resolve(
                 context: android.content.Context,
                 settings: SymbolDrawerSettings
