@@ -106,7 +106,7 @@
     <string name="symbol_drawer_104">Tablet mode</string>
     <string name="symbol_drawer_105">Bottom underline</string>
     <string name="symbol_drawer_106">Bottom toolbar and tablet adaptation</string>
-    <string name="symbol_drawer_107">Remember the drawer's last expanded or collapsed state. When disabled, it starts collapsed each time.</string>
+    <string name="symbol_drawer_107">Remember the drawer\'s last expanded or collapsed state. When disabled, it starts collapsed each time.</string>
     <string name="symbol_drawer_108">Keep symbol titles on one line without truncation. The grid reduces columns based on the longest title and scales down long labels.</string>
     <string name="symbol_drawer_109">Arc nodes</string>
     <string name="symbol_drawer_110">Elastic wave</string>
