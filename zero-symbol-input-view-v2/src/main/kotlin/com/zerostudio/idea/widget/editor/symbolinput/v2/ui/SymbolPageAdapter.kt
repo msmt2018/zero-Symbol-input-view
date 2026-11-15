@@ -261,6 +261,12 @@ internal class SymbolPageAdapter(
         private val symbolsAdapter = SymbolAdapter(config, settings, onSymbolAction, spacingState, extensions, legacyItemResolver, themeProvider)
         init { grid.adapter = symbolsAdapter }
         fun bind(groupIndex: Int, symbols: List<SymbolEntry>) {
+            // Theme extensions can change while this page holder remains alive.
+            // Re-apply the live snapshot on every bind rather than only when the
+            // RecyclerView is first created.
+            grid.setBackgroundColor(
+                themeProvider()?.surface ?: HostThemeColors.surface(grid.context)
+            )
             val groupChanged = symbolsAdapter.groupIndex != groupIndex
             symbolsAdapter.groupIndex = groupIndex
             symbolsAdapter.submitList(symbols.toList()) {
@@ -371,13 +377,22 @@ internal class SymbolPageAdapter(
         override fun onBindViewHolder(holder: SymbolHolder, position: Int) {
             val item = getItem(position)
             val legacyItem = legacyItemResolver(item)
+            val theme = themeProvider()
             val state = SymbolDrawerItemViewState(
                 groupIndex = groupIndex,
                 position = position,
                 selected = false,
                 pressed = false,
                 enabled = true,
-                theme = themeProvider()
+                theme = theme
+            )
+            // Existing ViewHolders are rebound on theme changes. Update native
+            // cell colors here so a theme swap is visible without recycling.
+            holder.root.setBackgroundColor(
+                theme?.surface ?: HostThemeColors.surface(holder.root.context)
+            )
+            holder.label.setTextColor(
+                theme?.onSurface ?: HostThemeColors.onSurface(holder.label.context)
             )
             var extension = extensions.itemViews().firstOrNull { candidate ->
                 runCatching { candidate.accepts(legacyItem) }.onFailure {
@@ -443,7 +458,7 @@ internal class SymbolPageAdapter(
                 val isSettingsAction = item.shortAction == SymbolAction.OpenManager
                 if (isSettingsAction) {
                     holder.label.text = ""
-                    val icon = MaterialSettingsDrawable(HostThemeColors.onSurface(holder.label.context))
+                    val icon = MaterialSettingsDrawable(theme?.onSurface ?: HostThemeColors.onSurface(holder.label.context))
                     val size = dp(holder.label.context, 22)
                     icon.setBounds(0, 0, size, size)
                     holder.label.setCompoundDrawables(null, icon, null, null)
