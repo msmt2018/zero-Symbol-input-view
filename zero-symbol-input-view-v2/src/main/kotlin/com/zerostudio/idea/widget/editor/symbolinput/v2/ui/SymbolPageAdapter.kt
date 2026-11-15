@@ -185,7 +185,7 @@ internal class SymbolPageAdapter(
                     baseHorizontalSpacingDp = config.cellHorizontalSpacingDp,
                     adaptive = true,
                     baseVerticalSpacingDp = config.cellVerticalSpacingDp,
-                    lockColumnCount = true
+                    lockColumnCount = !settings.showFullSymbolLabels
                 )
                 if (adaptiveGridLayout.spanCount != gridSpec.columnCount) {
                     adaptiveGridLayout.spanCount = gridSpec.columnCount
@@ -236,7 +236,30 @@ internal class SymbolPageAdapter(
     ) : RecyclerView.ViewHolder(grid) {
         private val symbolsAdapter = SymbolAdapter(config, settings, onSymbolAction, spacingState)
         init { grid.adapter = symbolsAdapter }
-        fun bind(symbols: List<SymbolEntry>) = symbolsAdapter.submitList(symbols.toList())
+        fun bind(symbols: List<SymbolEntry>) {
+            symbolsAdapter.submitList(symbols.toList())
+            if (settings.showFullSymbolLabels) {
+                grid.post {
+                    val width = (grid.width - grid.paddingLeft - grid.paddingRight).coerceAtLeast(1)
+                    if (width <= 1 || symbols.isEmpty()) return@post
+                    val density = grid.resources.displayMetrics.density.coerceAtLeast(0.1f)
+                    val paint = android.text.TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                        textSize = 6f * grid.resources.displayMetrics.scaledDensity
+                    }
+                    val longest = symbols.asSequence()
+                        .filter { it.shortAction != SymbolAction.OpenManager && settings.showSymbolLabels }
+                        .map { paint.measureText(it.label) }
+                        .maxOrNull() ?: 0f
+                    val minimumCellWidth = maxOf(
+                        settings.minimumTouchTargetDp * density,
+                        longest + 12f * density
+                    )
+                    val adaptiveColumns = (width / minimumCellWidth).toInt().coerceIn(1, config.columns)
+                    val manager = grid.layoutManager as? GridLayoutManager ?: return@post
+                    if (manager.spanCount != adaptiveColumns) manager.spanCount = adaptiveColumns
+                }
+            }
+        }
         fun clear() = symbolsAdapter.submitList(emptyList())
     }
 
@@ -254,13 +277,17 @@ internal class SymbolPageAdapter(
                 if (context.theme.resolveAttribute(android.R.attr.selectableItemBackground, selectableBackground, true) && selectableBackground.resourceId != 0) {
                     setBackgroundResource(selectableBackground.resourceId)
                 }
-                textSize = 18f
+                textSize = settings.symbolLabelTextSizeSp.toFloat()
                 isSingleLine = true
                 maxLines = 1
                 includeFontPadding = false
-                ellipsize = android.text.TextUtils.TruncateAt.END
+                ellipsize = if (settings.showFullSymbolLabels) null else android.text.TextUtils.TruncateAt.END
                 TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(
-                    this, 8, 18, 1, TypedValue.COMPLEX_UNIT_SP
+                    this,
+                    if (settings.showFullSymbolLabels) 6 else 8,
+                    settings.symbolLabelTextSizeSp.coerceAtLeast(8),
+                    1,
+                    TypedValue.COMPLEX_UNIT_SP
                 )
                 isClickable = true
                 isFocusable = true
