@@ -99,4 +99,20 @@ class SymbolTextDocumentActionHostTest {
         assertTrue(host.moveCursor(CursorTarget.LEFT))
         assertEquals(1, document.cursorOffset)
     }
+    @Test fun backwardDeleteRemovesWholeSupplementaryCodePoint() {
+        val document = Document("a😀b")
+        document.setSelection(3, 3)
+        val host = SymbolTextDocumentActionHost(document)
+        assertTrue(host.delete(com.zerostudio.idea.widget.editor.symbolinput.v2.model.DeleteKind.BACKWARD))
+        assertEquals("ab", document.value)
+    }
+
+    @Test fun deletingFinalCrLfLineRemovesWholeSeparator() {
+        val document = Document("first\\r\\nlast")
+        document.setSelection(document.value.length, document.value.length)
+        val host = SymbolTextDocumentActionHost(document)
+        assertTrue(host.delete(com.zerostudio.idea.widget.editor.symbolinput.v2.model.DeleteKind.CURRENT_LINE))
+        assertEquals("first", document.value)
+    }
+
 }
