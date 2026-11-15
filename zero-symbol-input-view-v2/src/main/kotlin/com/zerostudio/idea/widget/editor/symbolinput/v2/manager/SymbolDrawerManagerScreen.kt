@@ -55,7 +55,6 @@ import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
-import android.widget.FrameLayout
 import android.widget.PopupMenu
 import android.widget.Spinner
 import android.widget.ScrollView
@@ -506,9 +505,12 @@ class SymbolDrawerManagerScreen(
         val panel = previewPanel ?: return
         if (previewDrawer != null) return
         val preview = SymbolDrawerView(context).apply {
-            applySettings(settings)
+            // The view reads the same persisted settings snapshot as the real
+            // toolbar on construction. Avoid a second asynchronous adapter swap.
             setRepository(repository, reload = false)
             submitGroups(manager.groups, preserveSelectedGroup = true)
+            manager.groups.indexOfFirst { it.id == selectedGroupId }
+                .takeIf { it >= 0 }?.let { selectGroup(it, false) }
             onSymbolActionListener = null
             onOpenManagerListener = null
             onOpenSettingsListener = null
@@ -521,7 +523,11 @@ class SymbolDrawerManagerScreen(
     }
 
     private fun updateDragPreview() {
-        previewDrawer?.submitGroups(manager.groups, preserveSelectedGroup = true)
+        previewDrawer?.let { preview ->
+            preview.submitGroups(manager.groups, preserveSelectedGroup = true)
+            manager.groups.indexOfFirst { it.id == selectedGroupId }
+                .takeIf { it >= 0 }?.let { preview.selectGroup(it, false) }
+        }
     }
 
     private fun destroyDragPreview() {
@@ -1058,6 +1064,13 @@ class SymbolDrawerManagerScreen(
                 setStroke(1, HostThemeColors.outline(context))
             }
         }
+    }
+
+    override fun onDetachedFromWindow() {
+        destroyDragPreview()
+        reorderTouchHelper?.attachToRecyclerView(null)
+        reorderTouchHelper = null
+        super.onDetachedFromWindow()
     }
 
     private fun roundedSurface(color: Int, radiusDp: Int) = GradientDrawable().apply {
