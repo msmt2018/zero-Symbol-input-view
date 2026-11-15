@@ -255,8 +255,6 @@ class SymbolDrawerManagerScreen(
      * Close the returned handle when this manager surface is disposed.
      */
     fun bindToDrawer(drawer: SymbolDrawerView): AutoCloseable {
-        // A manager surface owns at most one live toolbar binding. Rebinding first
-        // restores the previous listeners so callbacks cannot accumulate.
         drawerBindingHandle?.close()
         drawerBindingHandle = null
         val previousListener = onGroupsChanged
@@ -272,8 +270,6 @@ class SymbolDrawerManagerScreen(
         drawer.onSymbolUsedListener = usageListener
         drawer.setRepository(repository, reload = false)
         drawer.submitGroups(manager.groups, preserveSelectedGroup = true)
-        // Keep an idempotent owner handle so detaching this screen also detaches
-        // callbacks from the live toolbar. The returned handle remains caller-owned.
         lateinit var ownerHandle: AutoCloseable
         ownerHandle = AutoCloseable {
             if (onGroupsChanged === listener) onGroupsChanged = previousListener

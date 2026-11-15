@@ -1,0 +1,15 @@
+<component name="CopyrightManager">
+  <settings default="LGPL">
+    <module2copyright>
+      <element module="tm4e-epl-licensed" copyright="tm4e-EPL" />
+    </module2copyright>
+    <LanguageOptions name="JAVA">
+      <option name="fileTypeOverride" value="3" />
+      <option name="addBlankAfter" value="false" />
+    </LanguageOptions>
+    <LanguageOptions name="__TEMPLATE__">
+      <option name="separateBefore" value="true" />
+      <option name="separateAfter" value="true" />
+    </LanguageOptions>
+  </settings>
+</component>

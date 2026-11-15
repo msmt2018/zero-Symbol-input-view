@@ -1,0 +1,15 @@
+git init
+git branch -M main
+git remote add origin https://github.com/msmt2018/sora-editor.git
+git remote set-url origin https://github.com/msmt2018/sora-editor.git
+git add .
+#git config --global core.compression 0  #压缩级别
+#git config --global http.postBuffer 2073741824 #缓冲区大小
+
+git commit -m "Add: Symbol Input Toolbar Similar to MT Manager - Version 1.0"
+
+git push origin main
+
+
+#git pull origin ZeroStudio
+#git pull origin ZeroStudio --rebase
