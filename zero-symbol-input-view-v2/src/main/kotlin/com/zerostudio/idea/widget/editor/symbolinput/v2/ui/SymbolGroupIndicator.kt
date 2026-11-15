@@ -373,7 +373,7 @@ private class IndicatorRenderer(
             paint.alpha = if (active) 220 else 65
             val cardH = if (style == GroupIndicatorStyle.NUMBER_BADGES) dp(22f) else h * .52f
             c.drawRoundRect(x - slot * .38f, cy - cardH / 2, x + slot * .38f, cy + cardH / 2, dp(5f), dp(5f), paint)
-            if (style == GroupIndicatorStyle.NUMBER_BADGES) {
+            if (style == GroupIndicatorStyle.NUMBER_BADGES || style == GroupIndicatorStyle.DIGITAL_COUNTER) {
                 paint.color = if (active) HostThemeColors.onPrimary(context) else surface
                 paint.textAlign = Paint.Align.CENTER; paint.textSize = dp(11f)
                 c.drawText((i + 1).toString(), x, cy - (paint.ascent() + paint.descent()) / 2, paint)
