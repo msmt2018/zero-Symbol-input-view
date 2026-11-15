@@ -415,7 +415,7 @@ class DrawerUiContractTest {
         }
     }
 
-    @Test fun horizontalPagerKeepsOneSymbolGroupPerSwipePage() {
+    @Test fun horizontalTouchSwipeTurnsOneGroupPageLikeABook() {
         ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
             val changed = CountDownLatch(1)
             var pageCount = 0
@@ -423,6 +423,10 @@ class DrawerUiContractTest {
             scenario.onActivity { activity ->
                 val drawer = SymbolDrawerView(activity)
                 activity.content.addView(drawer, FrameLayout.LayoutParams(-1, -1))
+                drawer.onGroupChangedListener = { index, _ ->
+                    selectedPage = index
+                    if (index == 1) changed.countDown()
+                }
                 drawer.submitGroups(sample()) {
                     val width = (420f * activity.resources.displayMetrics.density).toInt()
                     val height = (480f * activity.resources.displayMetrics.density).toInt()
@@ -431,22 +435,43 @@ class DrawerUiContractTest {
                         View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
                     )
                     drawer.layout(0, 0, width, drawer.measuredHeight)
+                    drawer.setExpanded(true, false)
+                    drawer.measure(
+                        View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                        View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
+                    )
+                    drawer.layout(0, 0, width, drawer.measuredHeight)
                     val pager = find(drawer) { it is ViewPager2 } as ViewPager2
                     pageCount = pager.adapter?.itemCount ?: 0
-                    pager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
-                        override fun onPageSelected(position: Int) {
-                            selectedPage = position
-                            if (position == 1) changed.countDown()
-                        }
-                    })
                     check(pager.isUserInputEnabled) { "Horizontal group paging must remain enabled" }
-                    check(pager.beginFakeDrag()) { "ViewPager2 refused to begin a horizontal page drag" }
-                    pager.fakeDragBy(-width * 0.85f)
-                    pager.endFakeDrag()
+                    val y = (pager.top + pager.height / 2f).coerceAtLeast(1f)
+                    val downTime = android.os.SystemClock.uptimeMillis()
+                    fun send(action: Int, x: Float, offset: Long) {
+                        val event = MotionEvent.obtain(
+                            downTime,
+                            downTime + offset,
+                            action,
+                            x,
+                            y,
+                            0
+                        )
+                        try {
+                            drawer.dispatchTouchEvent(event)
+                        } finally {
+                            event.recycle()
+                        }
+                    }
+                    send(MotionEvent.ACTION_DOWN, width * 0.88f, 0)
+                    send(MotionEvent.ACTION_MOVE, width * 0.62f, 70)
+                    send(MotionEvent.ACTION_MOVE, width * 0.34f, 140)
+                    send(MotionEvent.ACTION_MOVE, width * 0.12f, 210)
+                    send(MotionEvent.ACTION_UP, width * 0.12f, 240)
                 }
             }
-            assertTrue("A horizontal swipe did not advance to the next symbol group",
-                changed.await(5, TimeUnit.SECONDS))
+            assertTrue(
+                "A real horizontal touch swipe must advance to the next symbol group page",
+                changed.await(5, TimeUnit.SECONDS)
+            )
             assertEquals("Each symbol group must occupy exactly one pager page", 2, pageCount)
             assertEquals(1, selectedPage)
         }
