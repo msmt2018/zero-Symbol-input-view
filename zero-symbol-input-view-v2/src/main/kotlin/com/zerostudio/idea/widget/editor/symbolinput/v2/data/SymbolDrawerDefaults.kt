@@ -60,8 +60,13 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
  * long-press insertion, and the manager entry remains a dedicated V2 action.
  */
 object SymbolDrawerDefaults {
-    fun createGroups(context: Context): List<SymbolGroup> = listOf(
-        SymbolGroup("commonlyUsed", context.getString(R.string.symbol_drawer_default_group_common), listOf(
+    fun createGroups(): List<SymbolGroup> = createGroups("Common")
+
+    fun createGroups(context: Context): List<SymbolGroup> =
+        createGroups(context.getString(R.string.symbol_drawer_default_group_common))
+
+    private fun createGroups(groupTitle: String): List<SymbolGroup> = listOf(
+        SymbolGroup("commonlyUsed", groupTitle, listOf(
             entry(1, "←", SymbolAction.MoveCursor(CursorTarget.LEFT),
                 SymbolAction.MoveCursor(CursorTarget.LINE_START)),
             entry(2, "↑", SymbolAction.MoveCursor(CursorTarget.UP),

@@ -14,6 +14,76 @@ data class BuiltinSymbolActionOption(
 
 /** Stable V2 action palette; V1 numeric entries remain separately available. */
 object BuiltinSymbolActionCatalog {
+    /** English fallback retained for callers that use the original context-free API. */
+    val options: List<BuiltinSymbolActionOption> = listOf(
+        BuiltinSymbolActionOption("line.duplicate", "Line: Duplicate current line"),
+        BuiltinSymbolActionOption("line.delete", "Line: Delete current line"),
+        BuiltinSymbolActionOption("line.clear", "Line: Clear current line"),
+        BuiltinSymbolActionOption("line.replace", "Line: Replace current line", "Enter the replacement line text"),
+        BuiltinSymbolActionOption("line.insertAbove", "Line: Insert blank line above"),
+        BuiltinSymbolActionOption("line.insertBelow", "Line: Insert blank line below"),
+        BuiltinSymbolActionOption("line.joinNext", "Line: Join with next line"),
+        BuiltinSymbolActionOption("line.moveUp", "Line: Move up"),
+        BuiltinSymbolActionOption("line.moveDown", "Line: Move down"),
+        BuiltinSymbolActionOption("line.select", "Line: Select current line"),
+        BuiltinSymbolActionOption("line.uppercase", "Line: Convert to uppercase"),
+        BuiltinSymbolActionOption("line.lowercase", "Line: Convert to lowercase"),
+        BuiltinSymbolActionOption("line.toggleCase", "Line: Toggle case"),
+        BuiltinSymbolActionOption("line.trimTrailingWhitespace", "Line: Remove trailing whitespace"),
+        BuiltinSymbolActionOption("line.trimLeadingWhitespace", "Line: Remove leading whitespace"),
+        BuiltinSymbolActionOption("line.duplicateAbove", "Line: Duplicate current line above"),
+        BuiltinSymbolActionOption("line.toggleComment", "Line: Toggle line comment", "Comment marker; defaults to //"),
+        BuiltinSymbolActionOption("editor.toggleLineComment", "Editor: Toggle line comment", "Comment marker; defaults to //"),
+        BuiltinSymbolActionOption("line.indent", "Line: Indent", "Indent text; defaults to Tab"),
+        BuiltinSymbolActionOption("line.unindent", "Line: Unindent"),
+        BuiltinSymbolActionOption("selection.delete", "Selection: Delete"),
+        BuiltinSymbolActionOption("selection.duplicate", "Selection: Duplicate after"),
+        BuiltinSymbolActionOption("selection.uppercase", "Selection: Convert to uppercase"),
+        BuiltinSymbolActionOption("selection.lowercase", "Selection: Convert to lowercase"),
+        BuiltinSymbolActionOption("selection.toggleCase", "Selection: Toggle case"),
+        BuiltinSymbolActionOption("selection.wrapParentheses", "Selection: Wrap in parentheses"),
+        BuiltinSymbolActionOption("selection.wrapBrackets", "Selection: Wrap in square brackets"),
+        BuiltinSymbolActionOption("selection.wrapBraces", "Selection: Wrap in braces"),
+        BuiltinSymbolActionOption("selection.wrapQuotes", "Selection: Wrap in double quotes"),
+        BuiltinSymbolActionOption("selection.wrapSingleQuotes", "Selection: Wrap in single quotes"),
+        BuiltinSymbolActionOption("selection.wrapBackticks", "Selection: Wrap in backticks"),
+        BuiltinSymbolActionOption("selection.wrapAngleBrackets", "Selection: Wrap in angle brackets"),
+        BuiltinSymbolActionOption("selection.wrapAsterisks", "Selection: Wrap in asterisks"),
+        BuiltinSymbolActionOption("selection.wrapUnderscores", "Selection: Wrap in underscores"),
+        BuiltinSymbolActionOption("selection.wrapHtmlTag", "Selection: Wrap in HTML tag", "Tag name, for example span"),
+        BuiltinSymbolActionOption("selection.indentLines", "Selection: Indent multiple lines", "Indent text; defaults to Tab"),
+        BuiltinSymbolActionOption("selection.unindentLines", "Selection: Unindent multiple lines"),
+        BuiltinSymbolActionOption("selection.reverseLines", "Selection: Reverse line order"),
+        BuiltinSymbolActionOption("selection.sortLines", "Selection: Sort lines alphabetically"),
+        BuiltinSymbolActionOption("selection.comment", "Selection: Toggle comments", "Comment marker; defaults to //"),
+        BuiltinSymbolActionOption("cursor.wordLeft", "Cursor: Move to previous word"),
+        BuiltinSymbolActionOption("cursor.wordRight", "Cursor: Move to next word"),
+        BuiltinSymbolActionOption("cursor.deleteWordBackward", "Cursor: Delete previous word"),
+        BuiltinSymbolActionOption("cursor.deleteWordForward", "Cursor: Delete next word"),
+        BuiltinSymbolActionOption("cursor.selectWord", "Cursor: Select current word"),
+        BuiltinSymbolActionOption("cursor.selectLine", "Cursor: Select current line"),
+        BuiltinSymbolActionOption("cursor.lineStart", "Cursor: Move to line start"),
+        BuiltinSymbolActionOption("cursor.lineEnd", "Cursor: Move to line end"),
+        BuiltinSymbolActionOption("cursor.selectToLineStart", "Cursor: Select to line start"),
+        BuiltinSymbolActionOption("cursor.selectToLineEnd", "Cursor: Select to line end"),
+        BuiltinSymbolActionOption("cursor.selectToDocumentStart", "Cursor: Select to document start"),
+        BuiltinSymbolActionOption("cursor.selectToDocumentEnd", "Cursor: Select to document end"),
+        BuiltinSymbolActionOption("cursor.documentStart", "Cursor: Move to document start"),
+        BuiltinSymbolActionOption("cursor.documentEnd", "Cursor: Move to document end"),
+        BuiltinSymbolActionOption("document.selectAll", "Document: Select all"),
+        BuiltinSymbolActionOption("document.trimTrailingWhitespace", "Document: Remove trailing whitespace"),
+        BuiltinSymbolActionOption("document.trimLeadingWhitespace", "Document: Remove leading whitespace"),
+        BuiltinSymbolActionOption("document.ensureFinalNewline", "Document: Ensure final newline", "Newline sequence; defaults to \\\\n"),
+        BuiltinSymbolActionOption("document.removeBlankLines", "Document: Remove blank lines"),
+        BuiltinSymbolActionOption("document.toggleComment", "Document: Toggle comments", "Comment marker; defaults to //"),
+        BuiltinSymbolActionOption("undo", "Editor: Undo"),
+        BuiltinSymbolActionOption("redo", "Editor: Redo"),
+        BuiltinSymbolActionOption("indent", "Editor: Indent selection"),
+        BuiltinSymbolActionOption("unindent", "Editor: Unindent selection"),
+        BuiltinSymbolActionOption("format", "Editor: Format code"),
+        BuiltinSymbolActionOption("insert_payload", "Editor: Insert payload text", "Text to insert")
+    )
+
     fun options(context: Context): List<BuiltinSymbolActionOption> = listOf(
         BuiltinSymbolActionOption("line.duplicate", context.getString(R.string.builtin_action_line_duplicate_label)),
         BuiltinSymbolActionOption("line.delete", context.getString(R.string.builtin_action_line_delete_label)),
@@ -83,6 +153,8 @@ object BuiltinSymbolActionCatalog {
         BuiltinSymbolActionOption("insert_payload", context.getString(R.string.builtin_action_insert_payload_label), context.getString(R.string.builtin_action_insert_payload_hint))
     )
 
-    private val byId get() = emptyMap<String, BuiltinSymbolActionOption>()
-    fun find(context: Context, commandId: String): BuiltinSymbolActionOption? = options(context).firstOrNull { it.commandId == commandId }
+    private val byId = options.associateBy(BuiltinSymbolActionOption::commandId)
+    fun find(commandId: String): BuiltinSymbolActionOption? = byId[commandId]
+    fun find(context: Context, commandId: String): BuiltinSymbolActionOption? =
+        options(context).firstOrNull { it.commandId == commandId }
 }
