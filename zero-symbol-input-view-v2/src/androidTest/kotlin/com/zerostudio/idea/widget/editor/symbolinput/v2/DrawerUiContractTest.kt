@@ -405,7 +405,7 @@ class DrawerUiContractTest {
                     val density = activity.resources.displayMetrics.density
                     // Start inside the collapsed grid, then move upward beyond
                     // the midpoint so the gesture must settle in Expanded.
-                    send(MotionEvent.ACTION_DOWN, 60f * density, 0)
+                    send(MotionEvent.ACTION_DOWN, 30f * density, 0)
                     send(MotionEvent.ACTION_MOVE, -320f * density, 120)
                     expandedAfterDrag = drawer.isExpanded()
                     send(MotionEvent.ACTION_UP, -320f * density, 160)
