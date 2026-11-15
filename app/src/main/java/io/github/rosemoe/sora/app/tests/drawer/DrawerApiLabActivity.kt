@@ -50,7 +50,7 @@ class DrawerApiLabActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        WindowCompat.setDecorFitsSystemWindows(window, true)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         val standard = DrawerPresets.config(DrawerPreset.STANDARD)
         demoDimensions = standard.style.dimensions
         drawer = DrawerContainer(this, standard.copy(peekContent = null, expandedContent = null))
@@ -81,6 +81,17 @@ class DrawerApiLabActivity : AppCompatActivity() {
             })
         }
         setContentView(activityRoot)
+        // Keep the drawer edge-to-edge at the bottom, but inset dashboard content
+        // below the status bar and display cutout. DrawerContainer handles bottom insets.
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(activityRoot) { view, insets ->
+            val top = insets.getInsets(
+                androidx.core.view.WindowInsetsCompat.Type.statusBars() or
+                    androidx.core.view.WindowInsetsCompat.Type.displayCutout()
+            ).top
+            view.setPadding(view.paddingLeft, top, view.paddingRight, view.paddingBottom)
+            insets
+        }
+        androidx.core.view.ViewCompat.requestApplyInsets(activityRoot)
         drawer.setTitle("")
         drawer.setMainContent(buildDashboard())
         // Start with only the real handle visible. Each scenario supplies its own panels.

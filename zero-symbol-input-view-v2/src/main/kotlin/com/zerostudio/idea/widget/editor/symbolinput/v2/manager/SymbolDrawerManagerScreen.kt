@@ -232,6 +232,7 @@ class SymbolDrawerManagerScreen(
     fun bindToDrawer(drawer: SymbolDrawerView): AutoCloseable {
         val previousListener = onGroupsChanged
         val listener: (List<SymbolGroup>) -> Unit = { committedGroups ->
+            previousListener?.invoke(committedGroups)
             drawer.submitGroups(committedGroups, preserveSelectedGroup = true)
         }
         onGroupsChanged = listener
