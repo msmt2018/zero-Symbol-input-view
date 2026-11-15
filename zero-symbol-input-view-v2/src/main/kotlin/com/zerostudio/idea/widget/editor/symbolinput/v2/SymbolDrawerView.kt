@@ -415,6 +415,11 @@ class SymbolDrawerView @JvmOverloads constructor(
     }
 
     override fun onSaveInstanceState(): Parcelable {
+        if (settings.rememberExpandedState) {
+            settingsPreferences.edit()
+                .putBoolean(EXPANSION_STATE_KEY, expansion >= 0.5f)
+                .apply()
+        }
         return DrawerSavedState(super.onSaveInstanceState()).apply {
             selectedGroupId = groups.getOrNull(pager.currentItem)?.id
             expansion = this@SymbolDrawerView.expansion
