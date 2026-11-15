@@ -933,19 +933,34 @@ class SymbolDrawerManagerScreen(
         val preview = createPreviewDrawer()
         previewDrawer = preview
         panel.addView(preview, LayoutParams(LayoutParams.MATCH_PARENT, dp(140)))
-        val popup = PopupWindow(
-            panel,
-            dp(320).coerceAtMost((resources.displayMetrics.widthPixels - dp(24)).coerceAtLeast(dp(180))),
-            dp(174),
-            false
-        ).apply {
+        val popupWidth = dp(320).coerceAtMost(
+            (resources.displayMetrics.widthPixels - dp(24)).coerceAtLeast(dp(180))
+        )
+        val popupHeight = dp(174)
+        val popup = PopupWindow(panel, popupWidth, popupHeight, false).apply {
+            // The preview is visual feedback only. It must never become the
+            // touch target while ItemTouchHelper owns the symbol drag stream.
             isTouchable = false
             isFocusable = false
             isOutsideTouchable = false
             elevation = dp(12).toFloat()
         }
         previewPopup = popup
-        popup.showAtLocation(rootView, android.view.Gravity.TOP or android.view.Gravity.END, dp(12), dp(96))
+
+        // Anchor the preview to the symbol list instead of a fixed screen Y.
+        // Its bottom edge overlaps roughly 5% of the list viewport, keeping
+        // the preview higher without covering the active drag area.
+        val rootLocation = IntArray(2)
+        val listLocation = IntArray(2)
+        rootView.getLocationOnScreen(rootLocation)
+        val list = symbolList
+        val overlapPx = ((list?.height ?: 0) * 0.05f).toInt()
+        val listTopInRoot = if (list != null && list.height > 0) {
+            list.getLocationOnScreen(listLocation)
+            listLocation[1] - rootLocation[1]
+        } else dp(96)
+        val previewTop = (listTopInRoot - popupHeight + overlapPx).coerceAtLeast(0)
+        popup.showAtLocation(rootView, android.view.Gravity.TOP or android.view.Gravity.END, dp(12), previewTop)
         preview.post { preview.setExpanded(true, false) }
     }
 
@@ -1626,11 +1641,29 @@ class SymbolDrawerManagerScreen(
             holder.dragHandle.visibility = if (selecting) View.GONE else View.VISIBLE
             holder.dragHandle.isEnabled = true
             holder.dragHandle.alpha = if (holder.bindingAdapterPosition == RecyclerView.NO_POSITION) 0.45f else 1f
+            // Keep ownership of the complete pointer stream. Returning false
+            // for MOVE/UP after consuming DOWN lets the handle's normal touch
+            // handling compete with ItemTouchHelper and can terminate an
+            // upward drag before the finger is released.
+            var dragPointerActive = false
             holder.dragHandle.setOnTouchListener { _, event ->
-                if (event.actionMasked == android.view.MotionEvent.ACTION_DOWN) {
-                    onDragHandle(holder)
-                    true
-                } else false
+                when (event.actionMasked) {
+                    android.view.MotionEvent.ACTION_DOWN -> {
+                        dragPointerActive = true
+                        onDragHandle(holder)
+                        true
+                    }
+                    android.view.MotionEvent.ACTION_MOVE,
+                    android.view.MotionEvent.ACTION_POINTER_DOWN,
+                    android.view.MotionEvent.ACTION_POINTER_UP -> dragPointerActive
+                    android.view.MotionEvent.ACTION_UP,
+                    android.view.MotionEvent.ACTION_CANCEL -> {
+                        val consumed = dragPointerActive
+                        dragPointerActive = false
+                        consumed
+                    }
+                    else -> dragPointerActive
+                }
             }
         }
 
