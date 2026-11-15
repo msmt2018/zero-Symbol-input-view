@@ -316,7 +316,7 @@ class SymbolDrawerView @JvmOverloads constructor(
                 SymbolGroupIndicatorState(groups, pager.currentItem) { index -> selectGroup(index, true) }
             )
         }.getOrElse { return false }
-        customIndicatorComponent?.onDispose()
+        runCatching { customIndicatorComponent?.onDispose() }
         indicatorHost.removeAllViews()
         indicatorHost.addView(
             component.view,
