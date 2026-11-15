@@ -25,19 +25,19 @@ val registry: SymbolDrawerExtensionRegistry = drawer.extensions
 
 ### registerIndicator(extension): AutoCloseable
 
-注册自定义分组指示器 provider。provider 通过 `indicators()` 自动进入扩展指示器列表。宿主设置 UI 可把该列表与内置选项合并显示。
+注册自定义分组指示器 provider。provider 通过 `indicators()` 进入扩展指示器列表。`SymbolDrawerView.setCustomGroupIndicator(id)` 会将组件放入真实指示器槽位，并同步 groups、page selection 和 settings。
 
 ### registerSettingsTab(extension): AutoCloseable
 
-注册一个完整的自定义设置 Tab。通过 `settingsTabs()` 获取，宿主 settings host 调用 `createView` 创建页面内容。
+注册一个完整的自定义设置 Tab。`SymbolDrawerSettingsScreen` 在传入同一 session registry 时会自动追加该 Tab，并管理其页面 View。
 
 ### registerSetting(extension): AutoCloseable
 
-注册一个自定义设置项。通过 `settingsItems()` 获取；`tabId` 用于把它放入指定设置 Tab。
+注册一个自定义设置项。`SymbolDrawerSettingsScreen` 会按 `tabId` 将其插入对应内置设置页。
 
 ### registerTheme(extension): AutoCloseable
 
-注册主题 Provider。通过 `themes()` 获取；宿主主题选择 UI 可将其与内置主题合并。
+注册主题 Provider。通过 `themes()` 获取；`SymbolDrawerView.setThemeExtension(id)` 可将主题 token 应用到抽屉外壳和内置分组指示器。自定义指示器也会收到 `applyTheme` 回调。
 
 ### actions() / indicators() / settingsTabs() / settingsItems() / themes()
 
@@ -117,7 +117,7 @@ fun interface SymbolActionHandler<C> {
 - `view`：需要插入指示器区域的 View。
 - `submitGroups(groups)`：更新分组快照。
 - `setSelectedIndex(index)`：同步选中状态。
-- `applySettings(settings)`：应用通用设置快照。
+- `applySettings(settings)`：应用通用设置快照。`applyTheme(theme)` 是可选回调，接收当前 drawer theme token；默认实现为空操作。
 
 指示器组件只负责 UI 呈现。不得自己创建另一套符号页或持久化 group selection。宿主指示器容器应把 View 放入原指示器槽位，并在 groups/settings/page selection 改变时调用对应方法。组件离开窗口时应释放 animator、listener 等资源。
 
@@ -147,7 +147,7 @@ fun interface SymbolActionHandler<C> {
 
 ### 设置 Tab ID 约定
 
-建议宿主定义常量，例如：
+当前已接入的内置 ID：`builtin.settings`（隐藏内置指示器的设置按钮）和 `builtin.manager`（阻止内置打开管理器动作）。其它 ID 可由宿主定义，并由宿主自己的 UI 查询 `isBuiltInVisible`。建议宿主定义常量，例如：
 
 - `appearance`
 - `layout`
@@ -177,7 +177,7 @@ fun interface SymbolActionHandler<C> {
 - `drawerBackground`，默认等于 surface。
 - `selectedCellBackground`，默认等于 primary。
 
-Theme provider 应尽量保持纯解析行为，不要在 resolve 中修改 Window、写入持久化数据或持有 Activity。宿主负责把颜色 token 应用到 Drawer、Manager、Settings 和 Activity 全局主题。
+Theme provider 应尽量保持纯解析行为，不要在 resolve 中修改 Window、写入持久化数据或持有 Activity。宿主可将颜色 token 应用到其它表面；当前 `SymbolDrawerView.setThemeExtension` 已覆盖抽屉外壳和内置分组指示器，符号网格、Manager、Settings 的全量主题覆盖仍在后续接入。
 
 ## 6. 内置功能隐藏策略
 
@@ -214,6 +214,17 @@ val visible = drawer.extensions.isBuiltInVisible(DrawerFeatureIds.SEARCH)
 
 ## 8. 当前集成边界
 
-该版本提供扩展贡献注册、稳定 ID、动作 handler 分发、可见性状态、View provider 和主题 token API。宿主的设置/管理 UI 应读取对应的 registry snapshot 并将贡献显示到列表或页面；仅注册 provider 不会自动修改宿主自己构建的任意设置页面层级。指示器组件同样需要由宿主的指示器容器创建并放入指示器槽位。
+当前内置消费路径：
+- 自定义动作：`SymbolDrawerManagerScreen(extensionRegistry = drawer.extensions)` 将动作加入短按/长按动作选择器，并保存为 `SymbolAction.Extension`。
+- 自定义指示器：`SymbolDrawerView.setCustomGroupIndicator(id)` 将组件放入真实指示器槽位；注册被移除/替换时，attached drawer 会恢复或重建组件。
+- 自定义设置 Tab/设置项：`SymbolDrawerSettingsScreen(extensionRegistry = drawer.extensions)` 自动追加扩展 Tab，并按内置 tabId 注入设置项；View attached 时观察注册变化。
+- 自定义主题：`SymbolDrawerView.setThemeExtension(id)` 应用抽屉外壳和分组指示器颜色，custom indicator 接收 theme 回调。
+- 内置功能可见性：`builtin.settings` 隐藏内置设置按钮；`builtin.manager` 阻止内置打开管理器动作。
 
-这条边界是刻意的：扩展 View 的布局、导航和生命周期由宿主 UI 容器控制，避免扩展注册表越权修改 Activity 或替换 V2 的 ViewPager2 分页状态。
+仍未完全接入的范围：
+- 主题 token 尚未覆盖符号单元格、Manager 和 Settings 的所有颜色。
+- 自定义指示器 ID 目前由 `setCustomGroupIndicator` 运行时选择，尚未写入 `SymbolDrawerSettings` 或提供内置选择器。
+- 其它内置功能 ID（搜索、收藏、最近使用、批量管理等）仍需对应 UI 入口逐项读取可见性。
+- 注册表不会替宿主 Activity 创建导航、管理器或窗口；扩展 View 的生命周期仍由承载它的 UI 控制。
+
+这些边界避免扩展注册表越权修改 Activity 或替换 V2 的 ViewPager2 分页状态。
