@@ -353,6 +353,63 @@ class DrawerUiContractTest {
         }
     }
 
+    @Test fun inlinePreviewEditModeCanRestoreTheEntrySnapshot() {
+        ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val repository = Groups(sample())
+                val screen = SymbolDrawerManagerScreen(activity, repository)
+                activity.content.addView(screen, FrameLayout.LayoutParams(-1, -1))
+                val width = (420f * activity.resources.displayMetrics.density).toInt()
+                val height = (720f * activity.resources.displayMetrics.density).toInt()
+                screen.measure(
+                    View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
+                )
+                screen.layout(0, 0, width, height)
+
+                val screenClass = SymbolDrawerManagerScreen::class.java
+                screenClass.getDeclaredMethod("enterPreviewEditMode")
+                    .apply { isAccessible = true }
+                    .invoke(screen)
+
+                val panel = screenClass.getDeclaredField("previewPanel")
+                    .apply { isAccessible = true }.get(screen) as View
+                val content = screenClass.getDeclaredField("previewContent")
+                    .apply { isAccessible = true }.get(screen) as ViewGroup
+                val preview = screenClass.getDeclaredField("previewDrawer")
+                    .apply { isAccessible = true }.get(screen) as View
+                val popup = screenClass.getDeclaredField("previewPopup")
+                    .apply { isAccessible = true }.get(screen)
+
+                assertEquals("Inline preview must be placed above the group pages", screen, panel.parent)
+                assertEquals(View.VISIBLE, panel.visibility)
+                assertEquals("Preview drawer must be inside the inline preview host", content, preview.parent)
+                assertEquals("Persistent edit mode must not create a touch-stealing popup", null, popup)
+
+                val manager = screenClass.getDeclaredField("manager")
+                    .apply { isAccessible = true }.get(screen)
+                val changed = sample().mapIndexed { index, group ->
+                    if (index == 0) group.copy(title = "Changed") else group
+                }
+                manager.javaClass.getDeclaredMethod("replaceAll", List::class.java)
+                    .apply { isAccessible = true }
+                    .invoke(manager, changed)
+
+                screenClass.getDeclaredMethod("restorePreviewEditMode")
+                    .apply { isAccessible = true }
+                    .invoke(screen)
+                assertEquals("Restore must return the repository to the entry snapshot", sample(), repository.value)
+
+                screenClass.getDeclaredMethod("finishPreviewEditMode")
+                    .apply { isAccessible = true }
+                    .invoke(screen)
+                assertEquals(View.GONE, panel.visibility)
+                assertEquals(null, screenClass.getDeclaredField("previewDrawer")
+                    .apply { isAccessible = true }.get(screen))
+            }
+        }
+    }
+
     @Test fun managerSymbolCardsReflowAcrossWindowSizeClasses() {
         ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
