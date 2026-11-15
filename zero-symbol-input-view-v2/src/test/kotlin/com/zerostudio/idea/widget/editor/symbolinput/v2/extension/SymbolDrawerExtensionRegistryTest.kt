@@ -19,7 +19,7 @@ class SymbolDrawerExtensionRegistryTest {
         override fun openManager() = true
         override fun executeExtension(extensionId: String, payload: String?): Boolean {
             last = extensionId to payload
-            return true
+            return false
         }
     }
 
