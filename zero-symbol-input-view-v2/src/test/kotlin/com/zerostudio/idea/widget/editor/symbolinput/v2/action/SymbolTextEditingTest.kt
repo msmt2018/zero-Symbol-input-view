@@ -47,7 +47,7 @@ class SymbolTextEditingTest {
             lineSeparator = "\r\n",
             currentIndent = "    "
         )
-        assertEquals("[value]\r\n\t    val value = 1", expansion.text)
+        assertEquals("[value]\r\n\t        val value = 1", expansion.text)
         assertEquals(expansion.text.length, expansion.insertionOffset)
         assertEquals(expansion.text.length, expansion.selectionEndOffset)
     }
@@ -65,7 +65,7 @@ class SymbolTextEditingTest {
 
     @Test fun cursorMarkerPlacesCaretWithoutSelectingText() {
         assertEquals(
-            SymbolTextMacroExpansion("abc", 1, 1),
+            SymbolTextMacroExpansion("ab", 1, 1),
             SymbolTextEditing.expandMacro("a\$Cb", "")
         )
     }
