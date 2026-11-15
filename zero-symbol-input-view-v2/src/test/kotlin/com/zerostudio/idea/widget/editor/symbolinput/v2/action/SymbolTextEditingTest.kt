@@ -38,6 +38,20 @@ class SymbolTextEditingTest {
         )
     }
 
+    @Test fun macroExpandsLineWordIndentAndWhitespaceTokens() {
+        val expansion = SymbolTextEditing.expandMacro(
+            "[$W]$N$TAB$I$L$S$E",
+            selectedText = "selected",
+            currentLineText = "    val value = 1",
+            currentWordText = "value",
+            lineSeparator = "\\r\\n",
+            currentIndent = "    "
+        )
+        assertEquals("[value]\\r\\n\\t    val value = 1", expansion.text)
+        assertEquals(expansion.text.length, expansion.insertionOffset)
+        assertEquals(expansion.text.length, expansion.selectionEndOffset)
+    }
+
     @Test fun backwardAndForwardDeletionKeepSurrogatePairsIntact() {
         val emoji = "A😀B"
         assertEquals(SymbolTextRange(1, 3),
