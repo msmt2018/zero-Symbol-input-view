@@ -381,6 +381,14 @@ class SymbolDrawerView @JvmOverloads constructor(
         // Catch changes made while this view was detached.
         val latest = settingsRepository.load().settings
         if (latest != settings) applySettings(latest)
+        indicator.setSettingsButtonVisible(isBuiltInFeatureVisible("builtin.settings"))
+        customIndicatorId?.let { selectedId ->
+            val registered = extensions.indicators().firstOrNull { it.id == selectedId }
+            when {
+                registered == null -> useBuiltInGroupIndicator()
+                registered !== activeCustomIndicatorExtension -> setCustomGroupIndicator(selectedId)
+            }
+        }
         if (extensionObserver == null) {
             extensionObserver = extensions.observe(emitCurrent = false) { snapshot ->
                 post {
