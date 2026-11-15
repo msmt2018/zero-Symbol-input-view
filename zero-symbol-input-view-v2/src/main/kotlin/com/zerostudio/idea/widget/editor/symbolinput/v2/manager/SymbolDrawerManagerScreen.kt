@@ -168,6 +168,7 @@ class SymbolDrawerManagerScreen(
 
     var onGroupsChanged: ((List<SymbolGroup>) -> Unit)? = null
     private var drawerBindingHandle: AutoCloseable? = null
+    private var builtInVisibilityObserver: AutoCloseable? = null
     var onExportBundle: ((String) -> Unit)? = null
     var onError: ((Throwable) -> Unit)? = null
 
@@ -328,6 +329,15 @@ class SymbolDrawerManagerScreen(
             if (drawerBindingHandle === ownerHandle) drawerBindingHandle = null
         }
         drawerBindingHandle = ownerHandle
+        builtInVisibilityObserver?.close()
+        builtInVisibilityObserver = drawer.extensions.observe(emitCurrent = true) { snapshot ->
+            post {
+                if (!isAttachedToWindow) return@post
+                val searchVisible = snapshot.builtInVisibility["builtin.search"] ?: true
+                searchButton?.visibility = if (searchVisible) View.VISIBLE else View.GONE
+                if (!searchVisible) setSearchVisible(false)
+            }
+        }
         return ownerHandle
     }
 
@@ -1174,6 +1184,8 @@ class SymbolDrawerManagerScreen(
         }
         drawerBindingHandle?.close()
         drawerBindingHandle = null
+        builtInVisibilityObserver?.close()
+        builtInVisibilityObserver = null
         if (previewModeActive) finishPreviewEditMode()
         destroyDragPreview()
         // A detached manager must not retain an in-flight gesture snapshot that
