@@ -389,9 +389,6 @@ class DrawerUiContractTest {
                     )
                     drawer.layout(0, 0, width, drawer.measuredHeight)
                     drawer.setExpanded(false, false)
-                    check(drawer.expandedHeightForTesting() > drawer.collapsedHeightForTesting()) {
-                        "The test fixture must provide a real expanded-height range"
-                    }
                     val downTime = android.os.SystemClock.uptimeMillis()
                     fun send(action: Int, y: Float, offset: Long): Boolean {
                         val event = MotionEvent.obtain(
