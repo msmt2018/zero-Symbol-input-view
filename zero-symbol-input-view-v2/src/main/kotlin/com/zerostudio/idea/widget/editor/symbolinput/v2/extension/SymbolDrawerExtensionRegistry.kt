@@ -145,23 +145,35 @@ class SymbolDrawerExtensionRegistry {
         require(id.matches(EXTENSION_ID)) { "Invalid extension ID: $id" }
         val token = Any()
         synchronized(lock) { target[id] = Registered(token, value) }
-        val secondaryHandle = afterInsert?.invoke()
+        val secondaryHandle = try {
+            afterInsert?.invoke()
+        } catch (error: Throwable) {
+            synchronized(lock) {
+                if (target[id]?.token === token) target.remove(id)
+            }
+            notifyChanged()
+            throw error
+        }
         notifyChanged()
         var closed = false
         return AutoCloseable {
-            val removed = synchronized(lock) {
-                if (closed) {
-                    false
-                } else {
+            val shouldClose = synchronized(lock) {
+                if (closed) false else {
                     closed = true
+                    true
+                }
+            }
+            if (shouldClose) {
+                val removed = synchronized(lock) {
                     if (target[id]?.token === token) {
                         target.remove(id)
                         true
                     } else false
                 }
+                if (removed) notifyChanged()
+                // A replaced registration still owns its secondary action handle.
+                secondaryHandle?.close()
             }
-            if (removed) notifyChanged()
-            secondaryHandle?.close()
         }
     }
 
