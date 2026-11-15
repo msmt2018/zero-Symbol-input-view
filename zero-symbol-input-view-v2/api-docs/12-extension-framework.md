@@ -221,12 +221,16 @@ val visible = drawer.extensions.isBuiltInVisible(DrawerFeatureIds.SEARCH)
 - 自定义指示器：`SymbolDrawerView.setCustomGroupIndicator(id)` 将组件放入真实指示器槽位；注册被移除/替换时，attached drawer 会恢复或重建组件。
 - 自定义设置 Tab/设置项：`SymbolDrawerSettingsScreen(extensionRegistry = drawer.extensions)` 自动追加扩展 Tab，并按内置 tabId 注入设置项；View attached 时观察注册变化。
 - 自定义主题：`SymbolDrawerView.setThemeExtension(id)` 应用抽屉外壳和分组指示器颜色，custom indicator 接收 theme 回调。
-- 内置功能可见性：`builtin.settings` 隐藏内置设置按钮；`builtin.manager` 阻止内置打开管理器动作。
+- `builtin.settings`：由 `SymbolDrawerView` 控制原内置设置入口。
+- `builtin.manager`：由 `SymbolDrawerView` 控制原内置管理器动作入口。
+- `builtin.search`：由 `SymbolDrawerManagerScreen` 控制原搜索按钮；隐藏时同时关闭搜索栏并清除搜索状态。
+- `builtin.favorites` / `builtin.recent`：由 `SymbolDrawerManagerScreen` 控制原有筛选菜单项；隐藏当前正在使用的筛选时自动回退到“全部”。
+- 管理页面可通过 `liveDrawer` 观察实时抽屉注册表；未绑定 live drawer 时，也可通过 `extensionRegistry` 单独观察同一会话注册表。观察者随 Manager View attach/detach 生命周期注册和释放。
 
 仍未完全接入的范围：
 - 主题 token 尚未覆盖符号单元格、Manager 和 Settings 的所有颜色。
 - 自定义指示器 ID 目前由 `setCustomGroupIndicator` 运行时选择，尚未写入 `SymbolDrawerSettings` 或提供内置选择器。
-- 其它内置功能 ID（搜索、收藏、最近使用、批量管理等）仍需对应 UI 入口逐项读取可见性。
+- 批量管理等尚未接入的内置入口需要在确认原控件真实 UI/动作调用点后逐项接入，不能仅添加没有消费者的 feature ID。
 - 注册表不会替宿主 Activity 创建导航、管理器或窗口；扩展 View 的生命周期仍由承载它的 UI 控制。
 
 这些边界避免扩展注册表越权修改 Activity 或替换 V2 的 ViewPager2 分页状态。
