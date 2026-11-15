@@ -97,6 +97,33 @@ drawer.reloadGroups()
 
 The sample adapter factory and editor implementation are host-owned. The action API is synchronous: call it on the thread required by your editor.
 
+
+## Remote Maven SDK (JitPack)
+
+You can consume V2 as a remote Android library without cloning this repository or copying the module into your project. The published artifact is hosted by JitPack.
+
+Add JitPack to the repositories used for dependency resolution (with centralized repositories, configure this in the root `settings.gradle.kts`, not only in the app module):
+
+```kotlin
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+        maven("https://jitpack.io")
+    }
+}
+```
+
+Then add the V2 SDK dependency to your app module's `build.gradle.kts`:
+
+```kotlin
+dependencies {
+    implementation("com.github.msmt2018.zero-Symbol-input-view:zero-symbol-input-view-v2:<published-tag>")
+}
+```
+
+Replace `<published-tag>` with a Git tag whose JitPack build and artifacts have been verified (for example, `vX.Y.Z`). The version is the tag name, including its leading `v`; do not use an unpublished branch name as a release version. The public artifact requires no Maven credentials or GitHub token. The exact coordinates and full remote/local integration instructions are documented in the [V2 module guide](zero-symbol-input-view-v2/README.md#2-jitpack-remote-maven-import).
+
 ## Extension API
 
 Extensions attach to the **existing** drawer instance. They do not create a second toolbar, page model, gesture recognizer or persistence layer.
