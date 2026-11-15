@@ -292,7 +292,7 @@ val rendererHandle = drawer.extensions.registerItemView(
 )
 ```
 
-`accepts` 按注册优先级、ID 顺序查找，第一个接受该 item 的扩展生效。没有扩展接受、`createView` 失败或 `bindView` 抛出异常时，控件回退到原生单元格。替换/注销扩展后，页面会重新绑定可见项。RecyclerView 回收时调用 `onViewRecycled`。
+`accepts` 按注册优先级、ID 顺序查找，第一个接受该 item 的扩展生效。没有扩展接受、`createView` 失败或 `bindView` 抛出异常时，控件回退到原生单元格。替换/注销扩展后，页面会重新绑定可见项。ViewHolder 进入/离开窗口时分别调用 `onViewAttachedToWindow` / `onViewDetachedFromWindow`；替换 renderer 或 RecyclerView 回收时先执行 detach，再调用 `onViewRecycled`。这些方法均有默认空实现，旧扩展无需修改即可兼容。
 
 默认情况下，扩展不改变触摸仲裁。适配器的触摸观察回调始终返回给原 View/RecyclerView/ViewPager2 流程，不得在回调中保存 MotionEvent。若要启用长按扩展回调，覆盖 `wantsLongPress(item)`；该回调与 legacy `longAction` 共用同一个长按时序，不会另建手势识别器。
 
@@ -356,3 +356,13 @@ object MyDrawerSettings : SymbolDrawerSettingExtension {
 ### Extension failure diagnostics
 
 SymbolDrawerView.onExtensionErrorListener (also available through drawer.extensions.onExtensionErrorListener) receives an extension ID and its thrown error. Group-provider failures do not stop later providers from loading. Custom item renderer callbacks (accepts, createView, bindView, wantsLongPress, touch, click, long press and recycle) are isolated and reported through the same diagnostic sink. The host diagnostic callback is itself isolated; it must not be used as a control-flow mechanism.
+
+### 单元格 View 窗口生命周期
+
+自定义单元格扩展可选择实现以下可选回调：
+
+- `onViewAttachedToWindow(view, item)`：扩展 View 随原有 RecyclerView ViewHolder 进入窗口。
+- `onViewDetachedFromWindow(view, item)`：View 离开窗口，或 renderer 被替换前调用。
+- `onViewRecycled(view, item)`：ViewHolder 回收/释放 renderer 时调用。
+
+这些回调由原 `SymbolPageAdapter` 内部的符号子 Adapter 直接转发，不创建额外 RecyclerView。所有回调均有默认空实现。扩展应在 detach 时暂停仅在可见期间运行的动画/观察，在 recycle 时释放 View 实例持有的资源。若运行时替换 renderer，旧 renderer 会先收到 detach，再收到 recycle；新 renderer 在绑定完成且 View 已 attach 时收到 attach。
