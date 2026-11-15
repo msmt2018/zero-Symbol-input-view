@@ -506,6 +506,36 @@ class SymbolDrawerManagerScreen(
         }
     }
 
+    private data class UsageState(
+        val favorites: Set<Long>,
+        val recent: List<Long>
+    )
+
+    private fun snapshotUsageState() = UsageState(favoriteIds.toSet(), recentIds.toList())
+
+    private fun restoreUsageState(state: UsageState) {
+        favoriteIds.clear()
+        favoriteIds.addAll(state.favorites)
+        recentIds.clear()
+        state.recent.take(30).forEach(recentIds::addLast)
+        persistUsageState()
+    }
+
+    private fun pruneUsageState() {
+        val liveIds = manager.groups.asSequence()
+            .flatMap { it.symbols.asSequence() }
+            .mapTo(mutableSetOf()) { it.id }
+        val retainedFavorites = favoriteIds.filterTo(linkedSetOf()) { it in liveIds }
+        val retainedRecent = recentIds.filter { it in liveIds }
+        if (retainedFavorites != favoriteIds || retainedRecent != recentIds.toList()) {
+            favoriteIds.clear()
+            favoriteIds.addAll(retainedFavorites)
+            recentIds.clear()
+            retainedRecent.forEach(recentIds::addLast)
+            persistUsageState()
+        }
+    }
+
     private fun persistUsageState() {
         preferenceStore.edit()
             .putStringSet("favorites", favoriteIds.map(Long::toString).toSet())
@@ -601,12 +631,18 @@ class SymbolDrawerManagerScreen(
     private fun batchDelete() {
         val (group, ids) = selectedBatch() ?: return
         val before = manager.groups.toList()
+        val previousUsage = snapshotUsageState()
         runCatching {
             manager.removeSymbols(group.id, ids)
+            pruneUsageState()
             selectedSymbolIds.clear()
             updateBatchSummary()
             refresh()
-            showUndo("已删除 ${ids.size} 个符号") { manager.replaceAll(before) }
+            showUndo("已删除 \${ids.size} 个符号") {
+                manager.replaceAll(before)
+                restoreUsageState(previousUsage)
+                refresh()
+            }
         }.onFailure(::reportError)
     }
 
