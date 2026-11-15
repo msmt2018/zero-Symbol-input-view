@@ -319,6 +319,40 @@ val settings = SymbolDrawerSettingsScreen(context).apply {
 
 The host can place these views in an Activity, Fragment, Dialog, or its own navigation container. They can be used independently or opened from the drawer's manager/settings entries.
 
+### 6. Import V2 from JitPack
+
+You can consume V2 without cloning this repository or including its module source. Add JitPack to the root `settings.gradle.kts` repository list:
+
+```kotlin
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+        maven("https://jitpack.io")
+    }
+}
+```
+
+Then add the published artifact (replace the version with an existing successful release tag):
+
+```kotlin
+dependencies {
+    implementation("com.github.msmt2018.zero-Symbol-input-view:zero-symbol-input-view-v2:v0.25.0")
+}
+```
+
+The complete Maven coordinate, Groovy DSL variant, publication workflow, and release-tag rules are documented in [the V2 module README](zero-symbol-input-view-v2/README.md#2-jitpack-remote-maven-import).
+
+### 7. Editor independence and extension APIs
+
+V2 does not require Sora Editor or any editor-core object. Implement `SymbolActionHost` in your application and map its methods to your editor's own insert/replace/selection/cursor/clipboard/command APIs. Optionally implement `SymbolTextDocument` to reuse generic line, selection, cursor, and document editing commands. A Sora adapter belongs in the host application or a separate optional module, never in the V2 core artifact.
+
+Each `SymbolDrawerView` exposes `drawer.extensions` for registering custom actions, group-indicator providers, settings tabs, settings rows, and theme providers. Built-in feature visibility can be overridden without deleting source code. See [the extension API reference](zero-symbol-input-view-v2/api-docs/12-extension-framework.md).
+
+### 8. V1 / MT Manager compact JSON interchange
+
+The manager exposes `importMtManagerJson(json)` and `exportMtManagerJson()` for the legacy compact group/item JSON schema (`n/d/a/b/c/d/e`). Files using that schema can be imported directly. Full V2 backups should use `importBundle` / `exportBundle`, which preserve V2-only typed actions and stable IDs. The legacy format cannot represent every V2 action; unsupported actions are rejected on legacy export rather than silently discarded. See [the detailed integration guide](zero-symbol-input-view-v2/README.md#10-mt-manager--v1-json-interchange).
+
 ---
 
 ## Data Model and Actions
