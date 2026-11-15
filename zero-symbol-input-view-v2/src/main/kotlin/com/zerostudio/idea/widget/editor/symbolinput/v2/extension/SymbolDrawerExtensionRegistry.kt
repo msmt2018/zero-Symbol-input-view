@@ -22,6 +22,20 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
 
 /**
+ * Stable identifiers for built-in drawer features consumed by the original UI.
+ *
+ * These IDs are configuration keys, not extension contribution IDs. Keep their
+ * values stable across releases so hosts can persist visibility overrides.
+ */
+object SymbolDrawerBuiltInFeatures {
+    const val SEARCH = "builtin.search"
+    const val FAVORITES = "builtin.favorites"
+    const val RECENT = "builtin.recent"
+    const val SETTINGS = "builtin.settings"
+    const val MANAGER = "builtin.manager"
+}
+
+/**
  * Process/session scoped extension point registry for a V2 drawer instance.
  *
  * Registrations are runtime objects and are deliberately not serialized. Persist
