@@ -209,6 +209,6 @@ Current scope: the shell and indicator are wired. The symbol-cell renderer, mana
 | `$TAB` | Inserts one tab character. |
 | `$L` | Inserts the complete text of the line containing the document cursor. |
 | `$W` | Inserts the word containing (or immediately preceding) the document cursor. Word characters are letters, digits, and underscore. |
-| `$I` | Inserts the leading spaces/tabs of the cursor line. |
+| `$I` | Inserts the leading spaces/tabs of the cursor line. |\n| `$U` / `$UP` | Inserts the selected text in uppercase. |\n| `$V` / `$LOW` | Inserts the selected text in lowercase. |\n| `$R` / `$REV` | Inserts the selected text in reverse order. |\n| `$CAP` | Inserts the selected text with its first character title-cased. |\n| `$TRIM` | Inserts the selected text with leading/trailing whitespace removed. |
 
-Markers are consumed and do not appear in inserted text. Selection offsets are calculated after substitutions, including `$T`, `$L`, and `$W`. Unknown `$X`-style markers remain literal instead of being silently discarded. The manager editor displays each directive on its own line.
+Markers are consumed and do not appear in inserted text. Selection offsets are calculated after substitutions, including `$T`, `$L`, `$W`, and the selection-transform directives. Unknown `$X`-style markers remain literal instead of being silently discarded. The manager editor displays each directive on its own line.
