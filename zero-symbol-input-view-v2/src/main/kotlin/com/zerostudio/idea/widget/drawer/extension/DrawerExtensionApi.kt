@@ -25,3 +25,15 @@ typealias SymbolDrawerSettings = com.zerostudio.idea.widget.editor.symbolinput.v
 typealias SymbolDrawerSettingsRepository = com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettingsRepository
 typealias SymbolActionHost = com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionHost
 typealias SymbolActionHandler<H> = com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionHandler<H>
+
+/**
+ * Stable IDs for built-in features whose original UI consumers are wired to
+ * the extension registry. These constants are part of the public API contract.
+ */
+object SymbolDrawerBuiltInFeatures {
+    const val SEARCH = com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerBuiltInFeatures.SEARCH
+    const val FAVORITES = com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerBuiltInFeatures.FAVORITES
+    const val RECENT = com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerBuiltInFeatures.RECENT
+    const val SETTINGS = com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerBuiltInFeatures.SETTINGS
+    const val MANAGER = com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerBuiltInFeatures.MANAGER
+}
