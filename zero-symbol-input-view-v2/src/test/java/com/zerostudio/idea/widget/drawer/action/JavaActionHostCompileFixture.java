@@ -22,6 +22,6 @@ final class JavaActionHostCompileFixture {
             @Override public boolean executeExtension(String extensionId, String payload) { return false; }
         };
         SymbolActionExecutor executor = new SymbolActionExecutor();
-        return executor.execute(action, host, SymbolActionCancellation.NEVER);
+        return executor.execute(action, host, () -> false);
     }
 }
