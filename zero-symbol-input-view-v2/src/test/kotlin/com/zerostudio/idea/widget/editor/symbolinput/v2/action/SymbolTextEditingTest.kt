@@ -40,14 +40,14 @@ class SymbolTextEditingTest {
 
     @Test fun macroExpandsLineWordIndentAndWhitespaceTokens() {
         val expansion = SymbolTextEditing.expandMacro(
-            "[$W]$N$TAB$I$L$S$E",
+            "[\$W]\$N\$TAB\$I\$L\$S\$E",
             selectedText = "selected",
             currentLineText = "    val value = 1",
             currentWordText = "value",
-            lineSeparator = "\\r\\n",
+            lineSeparator = "\r\n",
             currentIndent = "    "
         )
-        assertEquals("[value]\\r\\n\\t    val value = 1", expansion.text)
+        assertEquals("[value]\r\n\t    val value = 1", expansion.text)
         assertEquals(expansion.text.length, expansion.insertionOffset)
         assertEquals(expansion.text.length, expansion.selectionEndOffset)
     }
@@ -55,7 +55,7 @@ class SymbolTextEditingTest {
     @Test fun cursorMarkerPlacesCaretWithoutSelectingText() {
         assertEquals(
             SymbolTextMacroExpansion("abc", 1, 1),
-            SymbolTextEditing.expandMacro("a$Cb", "")
+            SymbolTextEditing.expandMacro("a\$Cb", "")
         )
     }
 
