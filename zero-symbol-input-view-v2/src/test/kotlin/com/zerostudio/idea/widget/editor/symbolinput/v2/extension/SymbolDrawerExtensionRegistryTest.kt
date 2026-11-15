@@ -2,6 +2,7 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.extension
 
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionHost
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionId
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolItem
 import org.junit.Assert.*
 import org.junit.Test
 
