@@ -1,56 +1,35 @@
 /*
- * Independent public API for symbol toolbar controls.
- * This package deliberately has no dependency on the drawer framework.
+ * Public API for symbol toolbar controls. Symbol data and settings reuse V2's
+ * canonical legacy data model and settings model.
  * SPDX-License-Identifier: AGPL-3.0-only AND GPL-3.0-only AND Apache-2.0
  */
 package com.zerostudio.idea.widget.symboltoolbar.api
 
-import com.zerostudio.idea.widget.symboltoolbar.api.model.SymbolToolbarGroup
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolGroup
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolItem
+import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
 import com.zerostudio.idea.widget.symboltoolbar.api.model.SymbolToolbarInvocation
 
-/**
- * Host-facing contract implemented by a symbol toolbar control.
- *
- * Implementations own their own rendering and gesture policy. A drawer may host
- * such a control, but is not part of this API and is never required.
- */
+/** Host-facing contract implemented by a symbol toolbar control. */
 interface SymbolToolbarControl {
     val state: SymbolToolbarState
-    fun submitGroups(groups: List<SymbolToolbarGroup>)
-    fun selectGroup(groupId: String, animated: Boolean = true): Boolean
-    fun updateConfig(config: SymbolToolbarConfig)
+    fun submitGroups(groups: List<SymbolGroup>)
+    fun selectGroup(index: Int, animated: Boolean = true): Boolean
+    fun updateSettings(settings: SymbolDrawerSettings)
     fun addListener(listener: SymbolToolbarListener): AutoCloseable
 }
 
-/** Immutable runtime state exposed by a toolbar implementation. */
+/** Runtime metadata only; symbol content remains in SymbolGroup/SymbolItem. */
 data class SymbolToolbarState(
-    val selectedGroupId: String? = null,
+    val selectedGroupIndex: Int = -1,
     val groupCount: Int = 0,
     val itemCount: Int = 0,
     val isEnabled: Boolean = true,
     val revision: Long = 0L
 )
 
-/** Host-neutral toolbar configuration; no drawer geometry is represented here. */
-data class SymbolToolbarConfig(
-    val columns: Int = 8,
-    val showGroupTitles: Boolean = true,
-    val showItemLabels: Boolean = true,
-    val showFullItemLabels: Boolean = false,
-    val itemTextSizeSp: Float = 14f,
-    val itemSpacingDp: Float = 4f,
-    val longPressEnabled: Boolean = true,
-    val hapticFeedbackEnabled: Boolean = true
-) {
-    init {
-        require(columns in 1..32) { "columns must be in 1..32" }
-        require(itemTextSizeSp in 6f..48f) { "itemTextSizeSp must be in 6..48" }
-        require(itemSpacingDp in 0f..64f) { "itemSpacingDp must be in 0..64" }
-    }
-}
-
 interface SymbolToolbarListener {
-    fun onGroupSelected(group: SymbolToolbarGroup) {}
-    fun onItemInvoked(event: SymbolToolbarInvocation) {}
+    fun onGroupSelected(group: SymbolGroup) {}
+    fun onItemInvoked(group: SymbolGroup, item: SymbolItem, invocation: SymbolToolbarInvocation) {}
     fun onStateChanged(state: SymbolToolbarState) {}
 }
