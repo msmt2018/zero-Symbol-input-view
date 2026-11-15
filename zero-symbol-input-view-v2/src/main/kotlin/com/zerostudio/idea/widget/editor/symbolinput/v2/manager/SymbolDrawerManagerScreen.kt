@@ -180,7 +180,6 @@ class SymbolDrawerManagerScreen(
             .take(30).forEach(::addLast)
     }
     private var activeFilter = ManagerSymbolFilter.ALL
-")
     private val emptyView = TextView(context)
     private var symbolList: RecyclerView? = null
     private var previewPanel: LinearLayout? = null
@@ -865,6 +864,7 @@ class SymbolDrawerManagerScreen(
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
         groupPageHost.setPanelVisible(true)
+        if (reorderTouchHelper == null) symbolList?.let(::installSymbolReordering)
     }
 
     override fun onDetachedFromWindow() {
@@ -1389,15 +1389,6 @@ class SymbolDrawerManagerScreen(
                 setStroke(1, HostThemeColors.outline(context))
             }
         }
-    }
-
-    override fun onDetachedFromWindow() {
-        drawerBindingHandle?.close()
-        drawerBindingHandle = null
-        destroyDragPreview()
-        reorderTouchHelper?.attachToRecyclerView(null)
-        reorderTouchHelper = null
-        super.onDetachedFromWindow()
     }
 
     private fun roundedSurface(color: Int, radiusDp: Int) = GradientDrawable().apply {
