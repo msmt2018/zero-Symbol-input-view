@@ -82,7 +82,7 @@ dependencies {
 ### 4.2 Add view in layout
 
 ```xml
-<android.zero.studio.widget.editor.symbolinput.AdvancedSymbolInputView
+<com.zerostudio.idea.widget.editor.symbolinput.AdvancedSymbolInputView
     android:id="@+id/symbol_input_view"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"/>
@@ -92,12 +92,12 @@ dependencies {
 
 ```kotlin
 val editor = findViewById<io.github.rosemoe.sora.widget.CodeEditor>(R.id.editor)
-val symbolInputView = findViewById<android.zero.studio.widget.editor.symbolinput.AdvancedSymbolInputView>(R.id.symbol_input_view)
+val symbolInputView = findViewById<com.zerostudio.idea.widget.editor.symbolinput.AdvancedSymbolInputView>(R.id.symbol_input_view)
 
 symbolInputView.bindEditor(editor)
 
 symbolInputView.onOpenManagerListener = {
-    startActivity(Intent(this, android.zero.studio.widget.editor.symbolinput.SymbolManagerActivity::class.java))
+    startActivity(Intent(this, com.zerostudio.idea.widget.editor.symbolinput.SymbolManagerActivity::class.java))
 }
 ```
 

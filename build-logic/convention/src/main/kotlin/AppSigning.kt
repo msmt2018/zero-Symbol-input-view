@@ -46,7 +46,10 @@ object AppSigning {
             is MissingEnvVarException -> "App signing config not correctly configured"
             else -> "Error when generating app signing config"
         }
-        project.logger.error(message, it)
+        project.logger.warn(
+            "$message; debug APKs use the repository's stable development key and release APKs remain unsigned.",
+            it
+        )
     }
 
     fun getAppSigningConfig(project: Project): AppSigningConfig {

@@ -1,189 +1,199 @@
-# zero-Symbol-input-view
+# Zero Symbol Input View V2
 
-`zero-Symbol-input-view` is an Android symbol-input module for code and text editing apps.
-It provides a production-ready symbol drawer + management system built around **Sora CodeEditor**,
-with support for grouped paging, gesture-controlled drawer states, configurable indicators,
-and import/export of symbol configuration JSON.
+<p align="center">
 
-![preview](zero-Symbol-input-view/ResizedImage_2026-04-27_12-59-55_6518.png)
+**A reusable symbol-input drawer and editor-neutral action framework for Android.**
 
----
-[简体中文](README_CN.md)
----
-## 1) Purpose
+[简体中文](README_CN.md) · [API Documentation](zero-symbol-input-view-v2/api-docs/README.md) · [V2 Module Guide](zero-symbol-input-view-v2/README.md)
 
-This module is designed for scenarios where users frequently input symbols, templates,
-and editing actions (e.g., cursor movement, line actions, clipboard actions) while writing code.
-
-Compared with a plain soft keyboard symbol row, this module offers:
-
-- multi-group symbol organization
-- tap/long-press dual behavior per symbol
-- stable drawer interaction (collapse/expand + drag)
-- visual group indicators (tab/line/dot/block/hidden)
-- full symbol data lifecycle management
+</p>
 
 ---
 
-## 2) Core Capabilities
+## Overview
 
-### 2.1 Runtime Input Drawer (`AdvancedSymbolInputView`)
+Zero Symbol Input View V2 is an Android library for code editors, text editors and IDEs. It provides a real grouped symbol drawer—not just a static row of shortcut buttons—with independent vertical drawer interaction, horizontal group paging, symbol management, settings, persistence and an extensible action system.
 
-- Grouped symbol pages with horizontal switching
-- Adjustable collapsed/expanded layout model
-- Gesture-based expand/collapse behavior
-- Per-symbol click and long-click action dispatch
-- Remembered expanded state and remembered last page (optional)
-- Multiple indicator styles:
-  - Standard tab indicator
-  - Minimal compact dots (bottom)
-  - Hidden indicator
-  - Top line indicator
-  - Block indicator (bottom)
+V2 is the primary integration path in this repository. The legacy V1 module remains for compatibility and data migration. New integrations should use V2.
 
-### 2.2 Symbol Management (`SymbolManagerActivity`)
+### What it provides
 
-- Group CRUD (add/edit/delete/reorder)
-- Symbol CRUD (add/edit/copy/move/delete)
-- Batch operations
-- Import/export via clipboard and file
-- Settings panel for rows, per-row count, indicator style, behavior toggles
+- **Grouped symbol pages:** each symbol group owns a page; horizontal paging is independent from vertical drawer expansion.
+- **Real drawer interaction:** drag, fling, settle, collapsed/expanded states and gesture-axis arbitration.
+- **Configurable grid:** columns, visible collapsed rows, cell dimensions, spacing, touch targets and expanded height.
+- **Group navigation:** replaceable navigation indicator presentation while the original ViewPager2 remains the single page-state owner.
+- **Editor-neutral actions:** typed actions for insertion, selection, cursor, deletion, clipboard, editor commands and extensions.
+- **Management and settings:** groups, symbols, favorites, recent items, batch operations, appearance, layout, interaction and data backup.
+- **Extensibility:** action handlers, custom cell renderers, group indicators, settings tabs/rows, themes, legacy group providers and lifecycle hooks.
+- **Adaptive layout:** compact/medium/expanded window handling and large-screen docking options.
+- **Data safety:** versioned JSON, validation, canonicalization, recovery handling and explicit V1 import/migration.
 
-### 2.3 Action Execution Model
+## Architecture
 
-Each symbol can map to:
-
-- short-press action
-- optional long-press action
-- action payload text (insert content / custom text)
-
-Action execution is delegated through `SymbolActionExecutor` to the bound editor instance.
-
-### 2.4 Same Capabilities as MT Manager
-
-- Supports direct import of JSON files from the MT Manager symbol input toolbar
-
-- Similar to importing, JSON files exported from zero-Symbol-input-view can also be directly used in the MT Manager symbol input toolbar
-
-- Mostly the same design as MT Manager.
-
----
-
-## 3) Architecture & Design
-
-### 3.1 High-level Architecture
-
-- **View layer**
-  - `AdvancedSymbolInputView`
-  - `GroupIndicatorBar`
-  - compact bottom indicator view
-  - `SymbolPageGridView`
-- **Data/model layer**
-  - `SymbolGroup`, `SymbolItem`, `SymbolUiSettings`
-- **Persistence layer**
-  - `SymbolDataManager` (SharedPreferences + JSON)
-- **Behavior layer**
-  - `SymbolActionExecutor` (editor action routing)
-
-### 3.2 Design Principles
-
-1. **Data-driven UI**: group/symbol rendering is generated from persisted JSON data.
-2. **Interaction consistency**: drawer height uses unified row-height formulas.
-3. **Extensibility**: indicator styles and symbol actions are decoupled from core paging.
-4. **Compatibility**: keeps legacy integration points (e.g., `followSystemIme`) while using the new internal drawer model.
-
-### 3.3 Indicator Design
-
-Indicator rendering is style-based:
-
-- tab-like styles render in the top indicator bar
-- compact styles render at the drawer bottom
-- hidden style suppresses indicator UI
-
-This avoids forcing a single indicator paradigm for all UX requirements.
-
----
-
-## 4) Integration
-
-### 4.1 Gradle
-
-`settings.gradle.kts`
-
-```kotlin
-include(":zero-Symbol-input-view")
+```text
+Host Application
+├── Editor / Text Document
+├── Editor Adapter
+│   ├── SymbolActionHost
+│   └── SymbolTextDocument (optional)
+└── Zero Symbol Input View V2
+    ├── SymbolDrawerView
+    │   ├── Drawer interaction + geometry
+    │   ├── ViewPager2 group pages
+    │   ├── Group indicator slot
+    │   └── SymbolPageAdapter / grid
+    ├── SymbolAction + SymbolActionExecutor
+    ├── SymbolDrawerExtensionRegistry
+    ├── Manager + Settings screens
+    └── Repository + JSON codecs
 ```
 
-`build.gradle.kts`
+**The library does not depend on a particular editor core.** The host supplies an adapter for the currently focused document. Sora, a custom editor, EditText or another editor can use the same V2 library without adding editor-specific dependencies to the V2 core.
+
+The repository also contains a separate generic Drawer framework. It is not a replacement symbol toolbar: `DrawerContainer` is a function-neutral container, while `SymbolDrawerView` retains its own symbol grid, ViewPager2 and symbol interaction pipeline.
+
+## Quick integration
+
+Add the module:
 
 ```kotlin
+// settings.gradle.kts
+include(":zero-symbol-input-view-v2")
+
+// app/build.gradle.kts
 dependencies {
-    implementation(project(":zero-Symbol-input-view"))
+    implementation(project(":zero-symbol-input-view-v2"))
 }
 ```
 
-### 4.2 Layout
+Add the view to a layout:
 
 ```xml
-<android.zero.studio.widget.editor.symbolinput.AdvancedSymbolInputView
-    android:id="@+id/symbol_input_view"
+<com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawerView
+    android:id="@+id/symbolDrawer"
     android:layout_width="match_parent"
     android:layout_height="wrap_content" />
 ```
 
-### 4.3 Activity Usage
+Connect the host action adapter:
 
 ```kotlin
-val symbolInputView = findViewById<android.zero.studio.widget.editor.symbolinput.AdvancedSymbolInputView>(R.id.symbol_input_view)
-val editor = findViewById<io.github.rosemoe.sora.widget.CodeEditor>(R.id.editor)
+val actionExecutor = SymbolActionExecutor()
+val actionHost: SymbolActionHost = createMyEditorActionHost()
 
-symbolInputView.bindEditor(editor)
-symbolInputView.onOpenManagerListener = {
-    startActivity(Intent(this, android.zero.studio.widget.editor.symbolinput.SymbolManagerActivity::class.java))
-}
+drawer.onSymbolActionListener =
+    SymbolDrawerView.OnSymbolActionListener { symbol, isLongPress ->
+        val action = if (isLongPress) symbol.longAction else symbol.shortAction
+        if (action != null) {
+            val result = drawer.executeAction(action, actionHost)
+            handleSymbolActionResult(result)
+        }
+    }
 
-override fun onResume() {
-    super.onResume()
-    symbolInputView.onHostResume()
-}
-
-// reload after settings/data changes
-symbolInputView.refreshData()
+drawer.onOpenManagerListener = { openManagerScreen() }
+drawer.onOpenSettingsListener = { openSettingsScreen() }
+drawer.reloadGroups()
 ```
 
----
+The sample adapter factory and editor implementation are host-owned. The action API is synchronous: call it on the thread required by your editor.
 
-## 5) Data Interoperability
+## Extension API
 
-The module supports JSON import/export and is compatible with symbol-config workflows
-commonly used by MT-style editor toolbars.
+Extensions attach to the **existing** drawer instance. They do not create a second toolbar, page model, gesture recognizer or persistence layer.
 
-Recommended practice:
+```kotlin
+val registration = drawer.extensions.registerAction(
+    SymbolDrawerActionExtension(
+        id = "com.example.editor.format",
+        title = "Format selection",
+        description = "Format the current selection",
+        handler = SymbolActionHandler { host, payload ->
+            host.executeEditorCommand("com.example.editor.format", payload)
+        }
+    )
+)
 
-- version and back up symbol JSON files
-- keep shared team presets under VCS
-- validate imported data before production rollout
+// Persist SymbolAction.Extension(id, payload), not the callback.
+// Close registration with its owning editor/Fragment session.
+```
 
----
+Available extension families:
 
-## 6) Project Structure (Key Files)
+| Extension | Purpose |
+|---|---|
+| Actions | Register runtime handlers addressable by stable ID + payload |
+| Item view renderer | Customize cells through the existing SymbolPageAdapter |
+| Group indicator | Replace the real group navigation indicator |
+| Settings tab / row | Add settings UI to the existing settings screen |
+| Theme | Provide ARGB theme tokens to connected drawer surfaces |
+| Legacy group provider | Feed existing V1 model records through the existing codec |
+| Lifecycle observer | Observe attach, settings, groups, selection and symbol use |
+| Built-in visibility | Hide/show supported built-in entry points |
+
+All registrations return `AutoCloseable`. The host must release handles with the owning Fragment View or editor session. Registered callbacks are runtime-only and must be registered again after process recreation.
+
+## Public API package direction
+
+New Kotlin integrations should prefer the generic drawer namespace:
+
+```kotlin
+com.zerostudio.idea.widget.drawer
+com.zerostudio.idea.widget.drawer.core
+com.zerostudio.idea.widget.drawer.navigation
+com.zerostudio.idea.widget.drawer.panel
+com.zerostudio.idea.widget.drawer.style
+com.zerostudio.idea.widget.drawer.adapter
+com.zerostudio.idea.widget.drawer.extension
+com.zerostudio.idea.widget.drawer.action
+```
+
+The symbol-input product APIs remain under:
+
+```kotlin
+com.zerostudio.idea.widget.editor.symbolinput.v2
+```
+
+Some new public package entry points are currently Kotlin typealiases to existing implementation types. They are Kotlin source-level facades, not separate Java-visible classes or a completed physical relocation. See [public package and compatibility notes](zero-symbol-input-view-v2/api-docs/13-public-package-and-editor-neutral-actions.md).
+
+## Documentation
+
+| Guide | Description |
+|---|---|
+| [V2 Module README](zero-symbol-input-view-v2/README.md) | Dependency setup, JitPack, integration and migration |
+| [API documentation index](zero-symbol-input-view-v2/api-docs/README.md) | Full API reference and navigation |
+| [SymbolDrawerView API](zero-symbol-input-view-v2/api-docs/02-symbol-drawer-view.md) | Symbol control methods, callbacks and state |
+| [Action runtime](zero-symbol-input-view-v2/api-docs/04-action-runtime.md) | Host, executor, registry, result and cancellation |
+| [Extension framework](zero-symbol-input-view-v2/api-docs/12-extension-framework.md) | Registry and extension contracts |
+| [Public Drawer API reference](zero-symbol-input-view-v2/api-docs/14-drawer-public-api-reference.md) | Generic Drawer public API |
+| [Symbol control extension guide](zero-symbol-input-view-v2/api-docs/15-symbol-control-extension-api.md) | End-to-end extension development |
+| [Adaptive window API](zero-symbol-input-view-v2/api-docs/09-adaptive-window.md) | Window and large-screen adaptation |
+
+## Build and test
+
+```bash
+./gradlew :zero-symbol-input-view-v2:assembleRelease
+./gradlew :zero-symbol-input-view-v2:test
+./gradlew :zero-symbol-input-view-v2:connectedDebugAndroidTest
+./gradlew :app:assembleDebug
+```
+
+Instrumentation tests require a connected device or emulator. Verify current CI workflow results before treating a commit as release-ready.
+
+## Compatibility and integration boundaries
+
+- V2 core does not import a specific editor engine.
+- Host adapters implement the capabilities they support; unsupported operations must return false rather than pretending success.
+- Composite actions validate the full action tree before execution, but they are not automatically transactional. Atomic rollback requires host transaction support.
+- The generic `DrawerContainer` and symbol-specific `SymbolDrawerView` have distinct roles and configuration types.
+- Kotlin typealias facade availability does not imply Java ABI compatibility.
+- Window Insets, foldables, nested scrolling, touch arbitration and accessibility must be validated in the target host layout/device matrix.
+
+## Licensing
+
+V2 project-authored source declares:
 
 ```text
-zero-Symbol-input-view/
-└── src/main/
-    ├── kotlin/android/zero/studio/widget/editor/symbolinput/
-    │   ├── AdvancedSymbolInputView.kt
-    │   ├── SymbolManagerActivity.kt
-    │   ├── SymbolData.kt
-    │   ├── SymbolDataManager.kt
-    │   └── SymbolActionExecutor.kt
-    └── res/
+AGPL-3.0-only AND GPL-3.0-only AND Apache-2.0
 ```
 
----
-
-## 7) Compatibility Notes
-
-- `AdvancedSymbolInputView.followSystemIme` is retained for legacy integration compatibility.
-- If you migrate from an older bottom-sheet based implementation, call `refreshData()` after migration.
-
+The SPDX `AND` means the terms apply cumulatively. It is not an option to select only one license. Read the full license texts and third-party notices before using, modifying or redistributing the project.

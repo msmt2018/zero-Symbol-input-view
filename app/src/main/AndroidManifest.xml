@@ -49,7 +49,12 @@
             android:shell="true"
             tools:targetApi="q" />
 
-        <activity
+                <activity
+            android:name=".tests.drawer.DrawerApiLabActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize|keyboard|navigation"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+<activity
             android:name=".tests.paged.PagedEditActivity"
             android:configChanges="orientation|keyboardHidden|screenSize|keyboard|navigation"
             android:exported="false"

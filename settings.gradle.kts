@@ -38,9 +38,21 @@ dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         google()
-        mavenCentral()
-        maven("https://repo.eclipse.org/content/groups/releases/")
+        // Prefer the public mirror before Maven Central. GitHub-hosted runners
+        // can receive transient HTTP 429 responses from repo.maven.apache.org;
+        // resolving from the mirror first avoids making routine CI builds
+        // depend on Central's metadata endpoint availability.
         maven("https://maven.aliyun.com/nexus/content/groups/public/")
+        mavenCentral()
+        // Keep Eclipse artifacts on their dedicated repository, but do not
+        // query it for unrelated modules such as Gson. This prevents a
+        // transient Eclipse repository outage from breaking resolution of
+        // Maven Central dependencies requested with version ranges.
+        maven("https://repo.eclipse.org/content/groups/releases/") {
+            content {
+                includeGroupByRegex("org\\.eclipse(\\..*)?")
+            }
+        }
         maven { url = uri("https://jitpack.io") }
         maven { url = uri("https://repo1.maven.org/maven2/") }
         maven("https://repo.itextsupport.com/android")
@@ -69,5 +81,7 @@ include(
     ":editor-lsp",
     ":language-treesitter",
     ":zero-Symbol-input-view",
+    ":zero-symbol-input-view-v2",
     ":oniguruma-native"
 )
+
