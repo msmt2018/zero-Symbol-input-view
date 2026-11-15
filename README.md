@@ -1,228 +1,72 @@
 # Zero Symbol Input View V2
 
-**A grouped symbol-input drawer and extensible editor-action system for Android.**
+<p align="center">
 
-Zero Symbol Input View V2 is a standalone Android UI library for code editors, text editors, and IDEs. It provides a configurable symbol toolbar with grouped pages, drawer gestures, management and settings screens, persistent data, and a typed action contract. The V2 UI is decoupled from any specific editor implementation, allowing the host application to connect Sora CodeEditor or another editor through an adapter.
+**A reusable symbol-input drawer and editor-neutral action framework for Android.**
 
-> V2 is the primary development and integration path in this repository. The application has migrated to V2. The V1 module remains in the repository for legacy compatibility and data migration; new integrations should target V2.
+[简体中文](README_CN.md) · [API Documentation](zero-symbol-input-view-v2/api-docs/README.md) · [V2 Module Guide](zero-symbol-input-view-v2/README.md)
 
----
-
-## Contents
-
-- [Project Goals](#project-goals)
-- [V2 Features](#v2-features)
-- [Architecture](#architecture)
-- [Module Structure](#module-structure)
-- [Integration](#integration)
-- [Data Model and Actions](#data-model-and-actions)
-- [Management, Settings, and Backup](#management-settings-and-backup)
-- [V1 Data Migration](#v1-data-migration)
-- [Build and Test](#build-and-test)
-- [Licensing and Third-Party Notices](#licensing-and-third-party-notices)
-
-## Project Goals
-
-V2 is more than a row of shortcut characters at the bottom of an editor. It is a reusable symbol-input subsystem designed to:
-
-- Organize symbols into groups, with one page per group.
-- Separate vertical drawer expansion/collapse from horizontal group paging.
-- Keep symbol data independent from editor-specific command execution.
-- Expose a clear host-adapter boundary for Sora CodeEditor and other editors.
-- Provide first-party group/symbol management, runtime settings, persistence, and JSON backup workflows.
-- Adapt content layout to phones, tablets, split-screen, and resizable windows.
-
-## V2 Features
-
-### 1. Symbol Drawer and Group Paging
-
-Main view: `SymbolDrawerView`
-
-- Data-driven symbol pages backed by groups.
-- Native horizontal paging and page settling through ViewPager2.
-- Independent vertical drawer drag, expansion, collapse, and fling settling.
-- Gesture-axis arbitration so vertical drawer handling does not steal horizontal page swipes.
-- Configurable columns, collapsed row count, cell dimensions, spacing, touch target, and maximum expanded height.
-- Optional restoration of the selected group and expanded/collapsed state.
-- Short-press and long-press symbol actions, haptics, and optional auto-collapse after an action.
-- Group indicator presentation is independent of the underlying group/page model.
-
-### 2. Group Indicators
-
-In V2, a group indicator is the navigation presentation for the group pages. It is not merely a selected-background style applied to symbol tabs.
-
-The indicator communicates the active group, page count, and navigation state. The actual pages remain owned by the separate paging container. Available style families include text tabs, text, pills, dots, underline, elastic/fluid effects, ruler and dial styles, nodes, cards, thumbnail previews, numeric counters, and navigation rails.
-
-### 3. Symbols and Actions
-
-Each symbol has a stable ID, display label, short-press action, and optional long-press action. V2 represents behavior with typed action models rather than forcing every operation into one numeric action ID.
-
-Built-in action models include:
-
-- Insert text, replace selection, and surround selected text.
-- Cursor movement and deletion.
-- Selection case transformations.
-- Editor commands and extension actions.
-- Clipboard copy, cut, and paste.
-- Composite actions that execute multiple child actions in order.
-- Opening the symbol manager.
-
-Actions are executed by a host-provided `SymbolActionHost`. The library does not assume that the host uses Sora and does not own a particular editor instance.
-
-### 4. Symbol Manager
-
-Main screen: `SymbolDrawerManagerScreen`
-
-- Add, rename, duplicate, delete, and reorder groups.
-- Add, edit, copy, move, delete, and reorder symbols.
-- Batch selection and batch operations.
-- Search, favorites, recent items, and filtering.
-- Inline preview and editing workflows.
-- Data changes are committed through the manager model and repository rather than mutating persistent data directly from UI widgets.
-
-### 5. Settings
-
-Main screen: `SymbolDrawerSettingsScreen`
-
-Settings are organized by category:
-
-| Category | Main options |
-|---|---|
-| Appearance | System theme adaptation, group indicator, group titles, symbol labels, full symbol labels, text size, action hints |
-| Layout | Columns, collapsed rows, cell height, horizontal/vertical spacing, indicator height, maximum expanded height, minimum touch target |
-| Large screens | Automatic/bottom/side layout preference and side docking edge |
-| Interaction | Long-press timeout, fling threshold, auto-collapse, remembered expansion state, animation and haptics |
-| Performance and search | Page cache, adjacent-group prefetch, search action payloads |
-| Data | Group/settings JSON import and export |
-
-The **Show full symbol labels** setting keeps titles on one line without ellipsis truncation. The grid adapts its column count and text sizing to the available width and label length.
-
-### 6. Adaptive Windows
-
-V2 separates window information, content arrangement, grid sizing, and drawer geometry. When the window size class changes, the library adjusts internal content width, grid, and spacing without treating tablet or split-screen adaptation as a change to the drawer's interaction model.
-
-The layout system provides compact, medium, and expanded window calculations, together with large-screen side-docking preferences.
-
-### 7. Persistence and Data Safety
-
-- Group data is accessed through the `SymbolGroupRepository` abstraction.
-- The default implementation uses a dedicated V2 SharedPreferences store.
-- JSON storage is versioned, validated, and canonicalized when read.
-- When stored data is malformed, the original JSON and error reason are preserved before recovery can replace the active data.
-- Group and symbol IDs are checked for uniqueness.
-- Settings use a separate versioned repository.
-- JSON backup/restore workflows are provided for group bundles and settings.
+</p>
 
 ---
+
+## Overview
+
+Zero Symbol Input View V2 is an Android library for code editors, text editors and IDEs. It provides a real grouped symbol drawer—not just a static row of shortcut buttons—with independent vertical drawer interaction, horizontal group paging, symbol management, settings, persistence and an extensible action system.
+
+V2 is the primary integration path in this repository. The legacy V1 module remains for compatibility and data migration. New integrations should use V2.
+
+### What it provides
+
+- **Grouped symbol pages:** each symbol group owns a page; horizontal paging is independent from vertical drawer expansion.
+- **Real drawer interaction:** drag, fling, settle, collapsed/expanded states and gesture-axis arbitration.
+- **Configurable grid:** columns, visible collapsed rows, cell dimensions, spacing, touch targets and expanded height.
+- **Group navigation:** replaceable navigation indicator presentation while the original ViewPager2 remains the single page-state owner.
+- **Editor-neutral actions:** typed actions for insertion, selection, cursor, deletion, clipboard, editor commands and extensions.
+- **Management and settings:** groups, symbols, favorites, recent items, batch operations, appearance, layout, interaction and data backup.
+- **Extensibility:** action handlers, custom cell renderers, group indicators, settings tabs/rows, themes, legacy group providers and lifecycle hooks.
+- **Adaptive layout:** compact/medium/expanded window handling and large-screen docking options.
+- **Data safety:** versioned JSON, validation, canonicalization, recovery handling and explicit V1 import/migration.
 
 ## Architecture
 
 ```text
-Host App / Editor
-       |
-       +-- SymbolDrawerView
-       |      |
-       |      +-- Drawer interaction & geometry
-       |      +-- ViewPager2 group pages
-       |      +-- Group indicator renderer
-       |      +-- Symbol page/grid adapter
-       |
-       +-- SymbolActionHost  <---- SymbolActionExecutor
-       |                            |
-       |                            +-- Typed SymbolAction
-       |                            +-- Composite action validation
-       |                            +-- Result / cancellation
-       |
-       +-- SymbolDrawerManagerScreen
-       |      |
-       |      +-- SymbolGroupManager
-       |      +-- SymbolGroupRepository
-       |
-       +-- SymbolDrawerSettingsScreen
-              |
-              +-- Settings repository
-              +-- JSON import/export
-
-Persistence
-  +-- Versioned symbol-group JSON
-  +-- Versioned settings JSON
-  +-- Legacy V1 migration adapter
+Host Application
+├── Editor / Text Document
+├── Editor Adapter
+│   ├── SymbolActionHost
+│   └── SymbolTextDocument (optional)
+└── Zero Symbol Input View V2
+    ├── SymbolDrawerView
+    │   ├── Drawer interaction + geometry
+    │   ├── ViewPager2 group pages
+    │   ├── Group indicator slot
+    │   └── SymbolPageAdapter / grid
+    ├── SymbolAction + SymbolActionExecutor
+    ├── SymbolDrawerExtensionRegistry
+    ├── Manager + Settings screens
+    └── Repository + JSON codecs
 ```
 
-### Architectural Boundaries
+**The library does not depend on a particular editor core.** The host supplies an adapter for the currently focused document. Sora, a custom editor, EditText or another editor can use the same V2 library without adding editor-specific dependencies to the V2 core.
 
-- **View layer** handles rendering, touch dispatch, and page state; it does not execute editor-specific commands.
-- **Model layer** uses immutable `SymbolGroup`, `SymbolEntry`, and typed `SymbolAction` models.
-- **Repository layer** handles storage, versioned encoding, validation, and migration.
-- **Action layer** handles validation, execution order, cancellation, and result reporting.
-- **Host layer** adapts editor APIs, extension commands, and navigation supplied by the integrating application.
+The repository also contains a separate generic Drawer framework. It is not a replacement symbol toolbar: `DrawerContainer` is a function-neutral container, while `SymbolDrawerView` retains its own symbol grid, ViewPager2 and symbol interaction pipeline.
 
-## Module Structure
+## Quick integration
 
-V2 is an independent Android Library module:
-
-```text
-zero-symbol-input-view-v2/
-└── src/
-    ├── main/
-    │   ├── AndroidManifest.xml
-    │   ├── kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/
-    │   │   ├── SymbolDrawerView.kt
-    │   │   ├── action/       # Action models, registry, executor, host contract
-    │   │   ├── adaptive/     # Window and content adaptation
-    │   │   ├── data/         # Repository, JSON, defaults, V1 migration
-    │   │   ├── drawer/       # Drawer state, gestures, navigation, panels, styles
-    │   │   ├── manager/      # Group and symbol management UI
-    │   │   ├── model/        # V2 data models
-    │   │   ├── settings/     # Settings model, repository, UI, file picker
-    │   │   ├── state/        # Drawer geometry and state
-    │   │   └── ui/           # Group indicators, symbol pages, host theme colors
-    │   └── res/
-    ├── src/test/             # JVM unit tests
-    └── src/androidTest/      # Android view and interaction tests
-```
-
-Main package:
-
-```text
-com.zerostudio.idea.widget.editor.symbolinput.v2
-```
-
-Main entry points:
-
-- `SymbolDrawerView`
-- `SymbolDrawerManagerScreen`
-- `SymbolDrawerSettingsScreen`
-- `SymbolGroupRepository` / `SharedPreferencesSymbolGroupRepository`
-- `SymbolGroupManager`
-- `SymbolActionHost` / `SymbolActionExecutor`
-- `SymbolActionRegistry`
-
----
-
-## Integration
-
-### 1. Add the module to a Gradle project
-
-The repository root `settings.gradle.kts` already includes:
+Add the module:
 
 ```kotlin
+// settings.gradle.kts
 include(":zero-symbol-input-view-v2")
-```
 
-Add the dependency to the host module:
-
-```kotlin
+// app/build.gradle.kts
 dependencies {
     implementation(project(":zero-symbol-input-view-v2"))
 }
 ```
 
-If you copy the V2 module into another Android project, include it in that project's `settings.gradle.kts` and make sure the project has the required repositories configured, including Google Maven and Maven Central.
-
-### 2. Create the drawer
-
-XML:
+Add the view to a layout:
 
 ```xml
 <com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawerView
@@ -231,201 +75,125 @@ XML:
     android:layout_height="wrap_content" />
 ```
 
-Or Kotlin:
+Connect the host action adapter:
 
 ```kotlin
-val drawer = SymbolDrawerView(context)
-container.addView(
-    drawer,
-    ViewGroup.LayoutParams(
-        ViewGroup.LayoutParams.MATCH_PARENT,
-        ViewGroup.LayoutParams.WRAP_CONTENT
-    )
-)
-```
+val actionExecutor = SymbolActionExecutor()
+val actionHost: SymbolActionHost = createMyEditorActionHost()
 
-### 3. Connect the action host
-
-The drawer forwards symbol actions to the host application. This example shows the integration boundary; implement the actual editor operations in your editor adapter:
-
-```kotlin
 drawer.onSymbolActionListener =
     SymbolDrawerView.OnSymbolActionListener { symbol, isLongPress ->
-        val action = if (isLongPress) {
-            symbol.longAction
-        } else {
-            symbol.shortAction
-        } ?: return@OnSymbolActionListener
-
-        // Dispatch through the app's SymbolActionHost / SymbolActionExecutor.
-        // Run on the thread required by the editor and handle Unsupported,
-        // Failed, and other execution results.
-        editorActionAdapter.execute(action)
+        val action = if (isLongPress) symbol.longAction else symbol.shortAction
+        if (action != null) {
+            val result = drawer.executeAction(action, actionHost)
+            handleSymbolActionResult(result)
+        }
     }
 
-drawer.onOpenManagerListener = {
-    // The host decides how to present the manager screen.
-}
+drawer.onOpenManagerListener = { openManagerScreen() }
+drawer.onOpenSettingsListener = { openSettingsScreen() }
+drawer.reloadGroups()
 ```
 
-The host implements the `SymbolActionHost` contract for text insertion, selection replacement, cursor movement, deletion, clipboard operations, editor commands, and extension actions. Return `false` for capabilities that are unavailable; the executor reports an explicit result.
+The sample adapter factory and editor implementation are host-owned. The action API is synchronous: call it on the thread required by your editor.
 
-### 4. Provide groups and data
+## Extension API
+
+Extensions attach to the **existing** drawer instance. They do not create a second toolbar, page model, gesture recognizer or persistence layer.
 
 ```kotlin
-val groups = listOf(
-    SymbolGroup(
-        id = "common",
-        title = "Common",
-        symbols = listOf(
-            SymbolEntry(
-                id = 1L,
-                label = "->",
-                shortAction = SymbolAction.InsertText("->")
-            )
-        )
+val registration = drawer.extensions.registerAction(
+    SymbolDrawerActionExtension(
+        id = "com.example.editor.format",
+        title = "Format selection",
+        description = "Format the current selection",
+        handler = SymbolActionHandler { host, payload ->
+            host.executeEditorCommand("com.example.editor.format", payload)
+        }
     )
 )
 
-drawer.submitGroups(groups)
-drawer.saveGroups()
-
-// Select a group by index; the second argument controls smooth scrolling.
-drawer.selectGroup(index = 0, smoothScroll = true)
-
-// Expand or collapse.
-drawer.setExpanded(expanded = true, animate = true)
+// Persist SymbolAction.Extension(id, payload), not the callback.
+// Close registration with its owning editor/Fragment session.
 ```
 
-The default repository is `SharedPreferencesSymbolGroupRepository`. You can implement `SymbolGroupRepository` and pass it to `drawer.setRepository(repository)` to use a custom data layer.
+Available extension families:
 
-### 5. Add manager and settings screens
+| Extension | Purpose |
+|---|---|
+| Actions | Register runtime handlers addressable by stable ID + payload |
+| Item view renderer | Customize cells through the existing SymbolPageAdapter |
+| Group indicator | Replace the real group navigation indicator |
+| Settings tab / row | Add settings UI to the existing settings screen |
+| Theme | Provide ARGB theme tokens to connected drawer surfaces |
+| Legacy group provider | Feed existing V1 model records through the existing codec |
+| Lifecycle observer | Observe attach, settings, groups, selection and symbol use |
+| Built-in visibility | Hide/show supported built-in entry points |
 
-Both screens are Views, so the host is not required to use a particular Activity or navigation framework:
+All registrations return `AutoCloseable`. The host must release handles with the owning Fragment View or editor session. Registered callbacks are runtime-only and must be registered again after process recreation.
+
+## Public API package direction
+
+New Kotlin integrations should prefer the generic drawer namespace:
 
 ```kotlin
-val manager = SymbolDrawerManagerScreen(context).apply {
-    onGroupsChanged = { updatedGroups ->
-        drawer.submitGroups(updatedGroups)
-    }
-}
-
-val settings = SymbolDrawerSettingsScreen(context).apply {
-    onSettingsChanged = { snapshot ->
-        drawer.applySettings(snapshot)
-    }
-}
+com.zerostudio.idea.widget.drawer
+com.zerostudio.idea.widget.drawer.core
+com.zerostudio.idea.widget.drawer.navigation
+com.zerostudio.idea.widget.drawer.panel
+com.zerostudio.idea.widget.drawer.style
+com.zerostudio.idea.widget.drawer.adapter
+com.zerostudio.idea.widget.drawer.extension
+com.zerostudio.idea.widget.drawer.action
 ```
 
-The host can place these views in an Activity, Fragment, Dialog, or its own navigation container. They can be used independently or opened from the drawer's manager/settings entries.
-
-### 6. Import V2 from JitPack
-
-You can consume V2 without cloning this repository or including its module source. Add JitPack to the root `settings.gradle.kts` repository list:
+The symbol-input product APIs remain under:
 
 ```kotlin
-dependencyResolutionManagement {
-    repositories {
-        google()
-        mavenCentral()
-        maven("https://jitpack.io")
-    }
-}
+com.zerostudio.idea.widget.editor.symbolinput.v2
 ```
 
-Then add the published artifact (replace the version with an existing successful release tag):
+Some new public package entry points are currently Kotlin typealiases to existing implementation types. They are Kotlin source-level facades, not separate Java-visible classes or a completed physical relocation. See [public package and compatibility notes](zero-symbol-input-view-v2/api-docs/13-public-package-and-editor-neutral-actions.md).
 
-```kotlin
-dependencies {
-    implementation("com.github.msmt2018.zero-Symbol-input-view:zero-symbol-input-view-v2:v0.25.0")
-}
-```
+## Documentation
 
-The complete Maven coordinate, Groovy DSL variant, publication workflow, and release-tag rules are documented in [the V2 module README](zero-symbol-input-view-v2/README.md#2-jitpack-remote-maven-import).
+| Guide | Description |
+|---|---|
+| [V2 Module README](zero-symbol-input-view-v2/README.md) | Dependency setup, JitPack, integration and migration |
+| [API documentation index](zero-symbol-input-view-v2/api-docs/README.md) | Full API reference and navigation |
+| [SymbolDrawerView API](zero-symbol-input-view-v2/api-docs/02-symbol-drawer-view.md) | Symbol control methods, callbacks and state |
+| [Action runtime](zero-symbol-input-view-v2/api-docs/04-action-runtime.md) | Host, executor, registry, result and cancellation |
+| [Extension framework](zero-symbol-input-view-v2/api-docs/12-extension-framework.md) | Registry and extension contracts |
+| [Public Drawer API reference](zero-symbol-input-view-v2/api-docs/14-drawer-public-api-reference.md) | Generic Drawer public API |
+| [Symbol control extension guide](zero-symbol-input-view-v2/api-docs/15-symbol-control-extension-api.md) | End-to-end extension development |
+| [Adaptive window API](zero-symbol-input-view-v2/api-docs/09-adaptive-window.md) | Window and large-screen adaptation |
 
-### 7. Extending the existing symbol drawer
-
-All extension points are implemented by the existing `SymbolDrawerExtensionRegistry` and consumed by the real `SymbolDrawerView`, `SymbolPageAdapter`, group indicator and settings screen. No second toolbar View, parallel state model, or independent persistence layer is introduced.
-
-The extension surface includes:
-
-- **Actions:** register handlers against the existing typed extension action IDs or original V1 numeric IDs via `registerLegacyAction`. Existing `SymbolItem.shortAction` / `longAction` and `shortText` / `longText` are not changed.
-- **Custom cells:** register `SymbolDrawerItemViewExtension`. The existing `SymbolPageAdapter` selects a renderer by `accepts`, calls `createView` / `bindView`, forwards touch/click/long-press callbacks, and calls `onViewRecycled`. The adapter retains ownership of gesture dispatch, accessibility actions, cell sizing, scrolling and recycling.
-- **Legacy group providers:** implement `SymbolDrawerLegacyGroupProvider` and load them with `SymbolDrawerView.reloadLegacyGroupsFromExtensions()`. Provider output uses the original `model.legacy.SymbolGroup` / `SymbolItem` types and passes through `LegacySymbolDataCodec`.
-- **Group indicators:** replace the built-in indicator while `ViewPager2` remains the sole owner of page selection.
-- **Settings:** contribute settings tabs or rows using the existing `SymbolDrawerSettingsScope`; the canonical `SymbolDrawerSettings` object is read and updated directly.
-- **Themes and built-in visibility:** register theme tokens and hide/show supported built-in entries without deleting their implementations.
-- **Lifecycle:** receive attach/detach, settings, group, selection and symbol-invocation callbacks through `SymbolDrawerLifecycleExtension`.
-- **Live registry observation:** observe immutable registry snapshots and close each registration handle to unregister it.
-
-Custom cell example:
-
-```kotlin
-val registration = drawer.extensions.registerItemView(
-    object : SymbolDrawerItemViewExtension {
-        override val id = "example.symbol-cell"
-        override val title = "Example symbol cell"
-
-        override fun accepts(item: SymbolItem): Boolean =
-            item.display.startsWith("my:")
-
-        override fun createView(
-            context: Context,
-            item: SymbolItem,
-            state: SymbolDrawerItemViewState
-        ): View = TextView(context)
-
-        override fun bindView(view: View, item: SymbolItem, state: SymbolDrawerItemViewState) {
-            (view as TextView).text = item.display
-            view.isEnabled = state.enabled
-        }
-    }
-)
-
-// Release the extension when its owning plugin/session is stopped.
-registration.close()
-```
-
-When a host supplies original V1 data, call `SymbolDrawerView.submitLegacyGroups(groups)`. The view converts it through the existing codec for rendering while retaining the original `SymbolItem` records for custom cell and lifecycle callbacks. Settings continue to use `SymbolDrawerSettings` and the existing settings repository.
-
-## Build and Test
-
-Use the Gradle Wrapper from the repository root:
+## Build and test
 
 ```bash
-# Build the V2 release AAR
 ./gradlew :zero-symbol-input-view-v2:assembleRelease
-
-# Run V2 JVM unit tests
 ./gradlew :zero-symbol-input-view-v2:test
-
-# Run V2 Android instrumentation tests (requires a connected device or emulator)
 ./gradlew :zero-symbol-input-view-v2:connectedDebugAndroidTest
-
-# Build the integrated sample application
 ./gradlew :app:assembleDebug
 ```
 
-Instrumentation coverage includes drawer layout, anchors/state, gesture arbitration, group paging, manager UI, settings, data migration, and lifecycle behavior. Use the actual GitHub Actions run for the current device/API matrix status.
+Instrumentation tests require a connected device or emulator. Verify current CI workflow results before treating a commit as release-ready.
 
----
+## Compatibility and integration boundaries
 
-## Licensing and Third-Party Notices
+- V2 core does not import a specific editor engine.
+- Host adapters implement the capabilities they support; unsupported operations must return false rather than pretending success.
+- Composite actions validate the full action tree before execution, but they are not automatically transactional. Atomic rollback requires host transaction support.
+- The generic `DrawerContainer` and symbol-specific `SymbolDrawerView` have distinct roles and configuration types.
+- Kotlin typealias facade availability does not imply Java ABI compatibility.
+- Window Insets, foldables, nested scrolling, touch arbitration and accessibility must be validated in the target host layout/device matrix.
 
-The SPDX license expression for V2 project-authored code is:
+## Licensing
+
+V2 project-authored source declares:
 
 ```text
 AGPL-3.0-only AND GPL-3.0-only AND Apache-2.0
 ```
 
-The `AND` operator means that all listed license terms apply cumulatively; it does not mean that recipients may choose just one. Read and comply with the applicable full license texts before using, modifying, distributing, or providing network services based on the code. Full texts are included in the V2 module and repository license files.
-
-This repository also contains upstream projects and third-party components. Their code, resources, and dependencies remain subject to their respective original licenses and copyright notices. The V2 license statement does not replace or override upstream terms.
-
-- [GNU AGPL v3.0](https://www.gnu.org/licenses/agpl-3.0.html)
-- [GNU GPL v3.0](https://www.gnu.org/licenses/gpl-3.0.html)
-- [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)
-
----
-
-[简体中文](README_CN.md)
+The SPDX `AND` means the terms apply cumulatively. It is not an option to select only one license. Read the full license texts and third-party notices before using, modifying or redistributing the project.

@@ -1,41 +1,58 @@
-# Zero Symbol Input View V2 — API 开发文档
+# Zero Symbol Input View V2 — API 文档中心
 
-> 面向 Android/Kotlin 集成开发者的完整 API 参考。本文档以当前 V2 源码为准；接口状态、限制和行为以对应版本源码为最终依据。
+> 面向 Android/Kotlin 集成者与框架扩展开发者。文档以当前分支源码为准；示例中标注的实现边界、线程和失败语义同样属于 API 契约。
 
-## 文档目标与适用范围
+## 语言
 
-本目录说明 `zero-symbol-input-view-v2` 模块对外提供的数据模型、符号抽屉、动作执行、仓储、设置、通用 Drawer、导航/面板、自适应布局和管理 UI API。文档不仅列出类名，还说明方法的输入输出、状态变化、调用时机、线程要求、失败语义和集成方式。
+- [English README](../../README.md)
+- [简体中文 README](../../README_CN.md)
 
-V2 是独立实现，与旧版库并行存在。V2 默认存储使用独立 SharedPreferences 命名空间，不会主动修改旧版存储；旧版数据只通过显式的一次性迁移适配器读取。
+## 文档地图
 
-## 快速导航
+| 文档 | 主题 | 适用场景 |
+|---|---|---|
+| [01 — 快速开始与集成](01-quick-start.md) | Gradle、初始化、生命周期、最小接入 | 第一次集成 |
+| [02 — 符号抽屉视图 API](02-symbol-drawer-view.md) | SymbolDrawerView 构造、回调、数据、分页、展开状态 | 使用符号控件 |
+| [03 — 数据模型与动作类型](03-models-and-actions.md) | 分组、符号、动作、配置模型 | 构造和交换数据 |
+| [04 — 动作注册与执行 API](04-action-runtime.md) | Host、Executor、Registry、结果、取消和 JSON | 接入编辑器动作 |
+| [05 — 仓储、管理器与迁移](05-data-and-management.md) | Repository、Manager、导入导出、V1 迁移 | 数据管理 |
+| [06 — 设置中心 API](06-settings.md) | 设置模型、持久化和运行时应用 | 定制设置 |
+| [07 — 通用 Drawer 框架](07-universal-drawer.md) | DrawerContainer、Controller、Anchor、手势和状态 | 开发通用抽屉 |
+| [08 — 页面、面板与样式](08-navigation-panels-style.md) | 页面导航、面板生命周期、主题、样式和预设 | 自定义抽屉内容 |
+| [09 — 自适应窗口 API](09-adaptive-window.md) | WindowAdaptiveInfo、布局解析、网格和侧边停靠 | 平板、分屏、折叠屏 |
+| [10 — 类型索引与兼容性](10-api-index-compatibility.md) | 类型总表、边界条件、兼容策略和排错 | 查找 API |
+| [11 — 手势与内置文本动作](11-interaction-and-builtins.md) | 手势仲裁、内置命令、模板 token 和限制 | 扩展文本编辑动作 |
+| [12 — 扩展注册框架](12-extension-framework.md) | 动作、单元格、指示器、设置、主题、生命周期扩展 | 扩展现有符号控件 |
+| [13 — 公共包路径与编辑器中立文档契约](13-public-package-and-editor-neutral-actions.md) | 新公共命名空间、UTF-16 文档契约、事务编辑 | 新包迁移与编辑器适配 |
+| [14 — 通用 Drawer 公共 API 参考](14-drawer-public-api-reference.md) | 新公共包、配置、锚点、控制器、导航、面板、样式 | 开发/复用抽屉框架 |
+| [15 — 符号控件扩展 API 实战参考](15-symbol-control-extension-api.md) | 真实控件扩展点、调用链、代码模板、生命周期与边界 | 开发符号控件插件 |
 
-| 文档 | 内容 |
-|---|---|
-| [01 — 快速开始与集成](01-quick-start.md) | Gradle、依赖、初始化、生命周期、最小可运行接入 |
-| [02 — 符号抽屉视图 API](02-symbol-drawer-view.md) | `SymbolDrawerView` 构造、回调、所有公开方法、交互和状态恢复 |
-| [03 — 数据模型与动作类型](03-models-and-actions.md) | `SymbolGroup`、`SymbolEntry`、`SymbolAction`、`DrawerConfig` 等 |
-| [04 — 动作注册与执行 API](04-action-runtime.md) | `SymbolActionHost`、Executor、Registry、JSON Codec、文本编辑接口 |
-| [05 — 仓储、管理器与迁移](05-data-and-management.md) | Repository、Manager 全部命令、导入导出和旧数据迁移 |
-| [06 — 设置中心 API](06-settings.md) | Settings 模型、Repository、Codec、运行时应用 |
-| [07 — 通用 Drawer 框架](07-universal-drawer.md) | DrawerContainer、Controller、Anchor、状态和呈现模式 |
-| [08 — 页面、面板与样式](08-navigation-panels-style.md) | 页面导航、面板生命周期、主题、样式和预设 |
-| [09 — 自适应窗口 API](09-adaptive-window.md) | WindowAdaptiveInfo、布局解析、网格和侧边停靠 |
-| [10 — 类型索引与兼容性](10-api-index-compatibility.md) | 类型总表、边界条件、兼容策略、排错清单 |
-| [11 — 手势与内置文本动作](11-interaction-and-builtins.md) | DrawerInteractionController、文本命令目录和完整 command ID |
-| [12 — 扩展注册框架](12-extension-framework.md) | 自定义动作、指示器、设置 Tab、设置项、主题和内置功能隐藏 |\n| [13 — 公共包路径与编辑器中立动作](13-public-package-and-editor-neutral-actions.md) | `widget.drawer` 公共入口、文本文档契约、行列/光标/事务编辑与迁移边界 |
+## 模块与包名
 
-## 模块坐标
+模块：`zero-symbol-input-view-v2`
 
-模块目录：`zero-symbol-input-view-v2`
-
-Android namespace：
+Android namespace 和符号输入产品 API 仍位于：
 
 ```kotlin
 com.zerostudio.idea.widget.editor.symbolinput.v2
 ```
 
-同仓库项目依赖：
+通用 Drawer 的新公共 Kotlin 入口位于：
+
+```kotlin
+com.zerostudio.idea.widget.drawer
+com.zerostudio.idea.widget.drawer.core
+com.zerostudio.idea.widget.drawer.navigation
+com.zerostudio.idea.widget.drawer.panel
+com.zerostudio.idea.widget.drawer.style
+com.zerostudio.idea.widget.drawer.adapter
+com.zerostudio.idea.widget.drawer.extension
+com.zerostudio.idea.widget.drawer.action
+```
+
+**重要：** 当前公共包中的部分类型通过 Kotlin `typealias` 暴露。Kotlin 源码可直接导入；typealias 不会生成独立 JVM/Java 类，Java 项目不能把它当成 Java 可见类导入。内部实现仍位于历史 V2 包路径，文档不会把过渡 facade 描述成已完成物理迁移。
+
+## 依赖
 
 ```kotlin
 dependencies {
@@ -43,7 +60,7 @@ dependencies {
 }
 ```
 
-JitPack 发布坐标（将版本替换为实际已发布 Tag）：
+JitPack 远程依赖请使用已经成功发布的 Git Tag：
 
 ```kotlin
 repositories {
@@ -51,45 +68,43 @@ repositories {
 }
 
 dependencies {
-    implementation("com.github.msmt2018.zero-Symbol-input-view:zero-symbol-input-view-v2:<version>")
+    implementation("com.github.msmt2018.zero-Symbol-input-view:zero-symbol-input-view-v2:<published-tag>")
 }
 ```
 
-## API 分层与选型
+不要把尚未发布的分支名当成 Maven 版本。
 
-| 使用目标 | 首选 API |
+## 按任务选择 API
+
+| 目标 | 推荐入口 |
 |---|---|
-| 在编辑器底部显示符号工具栏 | `SymbolDrawerView` |
-| 提供分组/符号数据 | `SymbolGroup`、`SymbolEntry`、`submitGroups` |
-| 将点击动作连接到编辑器 | `SymbolActionHost` + `SymbolActionExecutor` |
-| 注册宿主自定义动作 | `SymbolActionRegistry` |
-| 保存、读取和维护符号数据 | `SymbolGroupRepository`、`SymbolGroupManager` |
-| 设置 UI 和持久化 | `SymbolDrawerSettingsScreen`、`SymbolDrawerSettingsRepository` |
-| 提供独立的通用抽屉容器 | `DrawerContainer` + `DrawerConfig` |
-| 通用抽屉页面与面板 | `DrawerPageHost`、`DrawerPanelContent` |
-| 大屏/折叠屏适配 | `WindowAdaptiveInfo`、`AdaptiveLayoutResolver`、`SymbolDrawerDockingCoordinator` |
+| 显示原有符号工具栏 | `SymbolDrawerView` |
+| 读取/提交符号组 | `SymbolGroupRepository`、`submitGroups` |
+| 接入任意编辑器 | `SymbolActionHost`；需要通用文本操作时实现 `SymbolTextDocument` |
+| 注册自定义动作 | `drawer.extensions.registerAction` 或 `SymbolActionRegistry` |
+| 替换符号格子渲染 | `registerItemView` |
+| 替换真实分组指示器 | `registerIndicator` + `setCustomGroupIndicator` |
+| 扩展管理页设置页 | `registerSettingsTab`、`registerSetting` |
+| 扩展主题 | `registerTheme` + `setThemeExtension` |
+| 构建功能中立抽屉 | `DrawerContainer` + `DrawerConfig` |
+| 自定义锚点和交互 | `DrawerAnchorStrategy`、`DrawerController` |
+| 自定义页面/面板 | `DrawerPageHost`、`DrawerPanelContent` |
+| 大屏适配 | `WindowAdaptiveInfo`、`AdaptiveLayoutResolver` |
 
-## 重要设计约定
+## 全局 API 约定
 
-1. **稳定 ID 优先。** 分组 ID 在仓储中必须唯一；符号 ID 在整个仓储范围内必须唯一且不能为 `0L`。更新数据时不要用列表下标充当身份。
-2. **数据按不可变快照传递。** 调用方应使用新的 List/数据类快照更新 UI，不要在提交后原地修改传入集合。
-3. **动作与编辑器解耦。** `SymbolAction` 只描述意图；编辑器能力由宿主实现 `SymbolActionHost`。
-4. **同步执行。** 当前动作宿主接口同步调用，不会自动切换线程；编辑器要求主线程时，宿主必须在主线程调用。
-5. **事务先持久化再发布。** `SymbolGroupManager` 成功持久化后才替换内存快照；写入失败不会发布未落盘状态。
-6. **UI 生命周期由宿主负责。** Activity/Fragment 销毁、恢复、回调解除和自定义页面释放必须纳入宿主生命周期。
-7. **通用 Drawer 与符号抽屉不是同一个 UI。** `DrawerContainer` 是功能中立的独立容器；`SymbolDrawerView` 保留自己的 ViewGroup、ViewPager2 和符号网格，不要把通用容器再次套在符号抽屉外面。
+1. **稳定 ID：** 持久化数据和跨进程引用使用稳定字符串/数字 ID，不使用列表 index 作为身份。
+2. **快照：** API 接收/返回的集合按快照使用；提交后不要原地修改调用方集合。
+3. **线程：** Android View、View factory、页面生命周期和编辑器对象应在宿主要求的线程操作。动作接口是同步接口，不会自动切换主线程。
+4. **失败：** 区分无效输入、能力不支持、执行异常、取消和部分完成；不要把回调触发当成编辑成功。
+5. **生命周期：** 注册返回的 `AutoCloseable`、状态监听器和 View 回调必须随 Fragment View 或编辑器 Session 释放。
+6. **职责边界：** 符号控件、通用 Drawer、宿主编辑器和持久化仓储各自保留唯一状态所有者；不要另建平行分页器、动作引擎或数据源。
+7. **验证：** 纯 Kotlin 解析器可单元测试；窗口 Insets、嵌套滚动、触摸和可访问性仍需在真实宿主布局及目标设备验证。
 
-## 状态与成熟度说明
+## 当前实现状态说明
 
-- `SymbolDrawerView`、typed action model、Repository、Settings、Manager Screen 和 `DrawerContainer` 是源码中存在的实现。
-- 某些低层策略/解析器是纯 Kotlin 计算 API，可独立单元测试；它们不等于自动完成宿主窗口接入。
-- 不要把“配置对象存在”理解成“所有 Android 设备和所有宿主场景已验证”。窗口 Insets、折叠屏、嵌套滚动、手势和辅助功能仍需在目标设备/宿主布局中验证。
-- 不要把旧版整数动作 ID 当成 V2 主运行时模型；它们只作为迁移/兼容元数据保留。
-
-## 版本与源码核对
-
-本目录文档针对当前 PR 分支 `feat/symbol-drawer-architecture-v2` 的实现编写。升级模块版本后，请先核对对应 Tag 的公开签名与行为，再应用本文示例。对于源码中标记为 `internal`、`private` 的类型或成员，不应从应用模块直接调用。
+文档区分“类型/方法已存在”“已接入原控件消费者”和“仍需宿主实现”三种情况。注册一个扩展并不代表所有 UI 自动消费它；请查看第 12、14、15 篇中的消费路径和限制。编辑器适配器、剪贴板、管理器导航以及宿主特定命令始终由应用实现。
 
 ## 许可
 
-本模块源码文件声明的许可为 `AGPL-3.0-only AND GPL-3.0-only AND Apache-2.0`。该表达式表示许可条款累积适用，不代表可任选其一。集成和再分发前请阅读仓库中的完整许可文本及第三方依赖许可。
+模块源文件声明：`AGPL-3.0-only AND GPL-3.0-only AND Apache-2.0`。`AND` 表示许可义务累积适用，不是任选其一。集成、修改和再分发前请阅读完整许可文件及第三方依赖声明。
