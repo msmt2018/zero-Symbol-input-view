@@ -51,6 +51,16 @@ class SymbolTextDocumentContractTest {
         assertEquals("aXXcd!", document.value)
     }
 
+
+    @Test fun rejectsMultipleInsertionsAtSameOffsetAsAmbiguous() {
+        val document = Buffer("abcd")
+        assertFalse(document.applyEdits(listOf(
+            TextDocumentEdit(2, 2, "X"),
+            TextDocumentEdit(2, 2, "Y")
+        )))
+        assertEquals("abcd", document.value)
+    }
+
     @Test fun rejectsOverlappingEditsBeforeMutatingDocument() {
         val document = Buffer("abcdef")
         assertFalse(document.applyEdits(listOf(
