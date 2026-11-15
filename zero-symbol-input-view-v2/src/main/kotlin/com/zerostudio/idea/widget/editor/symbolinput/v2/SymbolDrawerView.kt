@@ -78,6 +78,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerEx
 import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolGroupIndicatorComponent
 import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolGroupIndicatorState
 import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolGroupIndicatorExtension
+import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerTheme
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionHost
 import kotlin.math.roundToInt
 
@@ -144,6 +145,9 @@ class SymbolDrawerView @JvmOverloads constructor(
     private var customIndicatorId: String? = null
     private var activeCustomIndicatorExtension: SymbolGroupIndicatorExtension? = null
     private var customIndicatorComponent: SymbolGroupIndicatorComponent? = null
+    private var activeThemeExtensionId: String? = null
+    private var activeThemeExtension: com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerThemeExtension? = null
+    private var activeTheme: SymbolDrawerTheme? = null
     private var extensionObserver: AutoCloseable? = null
     private val pager = ViewPager2(context).apply {
         orientation = ViewPager2.ORIENTATION_HORIZONTAL
@@ -211,7 +215,7 @@ class SymbolDrawerView @JvmOverloads constructor(
         settings = value.copy(themeMode = com.zerostudio.idea.widget.editor.symbolinput.v2.settings.ThemeMode.SYSTEM)
         if (!settings.rememberExpandedState) settingsPreferences.edit().remove(EXPANSION_STATE_KEY).apply()
         config = settings.toDrawerConfig()
-        setBackgroundColor(com.zerostudio.idea.widget.editor.symbolinput.v2.ui.HostThemeColors.surface(context))
+        applyDrawerTheme()
 
         // Anchor geometry (especially the user-configured collapsed row count)
         // belongs to the drawer shell, not to symbol-cell presentation. Apply it
@@ -323,6 +327,7 @@ class SymbolDrawerView @JvmOverloads constructor(
         component.submitGroups(groups)
         component.setSelectedIndex(pager.currentItem)
         component.applySettings(settings)
+        component.applyTheme(activeTheme)
         requestLayout()
         invalidate()
         return true
@@ -357,6 +362,46 @@ class SymbolDrawerView @JvmOverloads constructor(
         customIndicatorComponent?.applySettings(value) ?: indicator.applySettings(value)
     }
 
+    /** Selects a registered theme provider for the drawer shell and group indicator. */
+    fun setThemeExtension(extensionId: String?): Boolean {
+        if (extensionId == null) {
+            activeThemeExtensionId = null
+            activeThemeExtension = null
+            activeTheme = null
+            applyDrawerTheme()
+            return true
+        }
+        val extension = extensions.themes().firstOrNull { it.id == extensionId } ?: return false
+        val resolved = runCatching { extension.resolve(context, settings) }.getOrElse { return false }
+        activeThemeExtensionId = extensionId
+        activeThemeExtension = extension
+        activeTheme = resolved
+        applyDrawerTheme()
+        return true
+    }
+
+    private fun applyDrawerTheme() {
+        val selectedId = activeThemeExtensionId
+        if (selectedId != null) {
+            val extension = extensions.themes().firstOrNull { it.id == selectedId }
+            if (extension == null) {
+                activeThemeExtensionId = null
+                activeThemeExtension = null
+                activeTheme = null
+            } else {
+                activeThemeExtension = extension
+                activeTheme = runCatching { extension.resolve(context, settings) }.getOrNull()
+            }
+        }
+        val theme = activeTheme
+        val background = theme?.drawerBackground
+            ?: com.zerostudio.idea.widget.editor.symbolinput.v2.ui.HostThemeColors.surface(context)
+        setBackgroundColor(background)
+        indicatorHost.setBackgroundColor(background)
+        indicator.applyTheme(theme)
+        customIndicatorComponent?.applyTheme(theme)
+    }
+
     /** Query runtime visibility for a built-in entry owned by this drawer session. */
     fun isBuiltInFeatureVisible(featureId: String, defaultVisible: Boolean = true): Boolean =
         extensions.isBuiltInVisible(featureId, defaultVisible)
@@ -365,8 +410,7 @@ class SymbolDrawerView @JvmOverloads constructor(
 
     /** Refresh palette after the host changes its theme without recreating its Activity. */
     fun refreshHostTheme() {
-        setBackgroundColor(com.zerostudio.idea.widget.editor.symbolinput.v2.ui.HostThemeColors.surface(context))
-        indicatorHost.setBackgroundColor(com.zerostudio.idea.widget.editor.symbolinput.v2.ui.HostThemeColors.surface(context))
+        applyDrawerTheme()
         indicator.setSettingsButtonVisible(isBuiltInFeatureVisible("builtin.settings"))
         applyIndicatorSettings(settings)
         applySettings(settings)
@@ -382,6 +426,10 @@ class SymbolDrawerView @JvmOverloads constructor(
         val latest = settingsRepository.load().settings
         if (latest != settings) applySettings(latest)
         indicator.setSettingsButtonVisible(isBuiltInFeatureVisible("builtin.settings"))
+        activeThemeExtensionId?.let { themeId ->
+            if (extensions.themes().none { it.id == themeId }) setThemeExtension(null)
+            else applyDrawerTheme()
+        }
         customIndicatorId?.let { selectedId ->
             val registered = extensions.indicators().firstOrNull { it.id == selectedId }
             when {
@@ -393,6 +441,13 @@ class SymbolDrawerView @JvmOverloads constructor(
             extensionObserver = extensions.observe(emitCurrent = false) { snapshot ->
                 post {
                     indicator.setSettingsButtonVisible(snapshot.builtInVisibility["builtin.settings"] ?: true)
+                    activeThemeExtensionId?.let { themeId ->
+                        val updatedTheme = snapshot.themes.firstOrNull { it.id == themeId }
+                        when {
+                            updatedTheme == null -> setThemeExtension(null)
+                            updatedTheme !== activeThemeExtension -> setThemeExtension(themeId)
+                        }
+                    }
                     val selectedId = customIndicatorId ?: return@post
                     val updated = snapshot.indicators.firstOrNull { it.id == selectedId }
                     when {
