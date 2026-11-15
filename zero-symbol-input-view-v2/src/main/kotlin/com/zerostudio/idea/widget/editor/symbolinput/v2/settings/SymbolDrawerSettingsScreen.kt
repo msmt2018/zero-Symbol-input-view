@@ -208,6 +208,9 @@ class SymbolDrawerSettingsScreen(
                 }
                 addSwitch("显示分组名称", current.showGroupTitles) { update { copy(showGroupTitles = it) } }
                 addSwitch("显示符号标签", current.showSymbolLabels) { update { copy(showSymbolLabels = it) } }
+                addSwitch("符号完整显示", current.showFullSymbolLabels) { update { copy(showFullSymbolLabels = it) } }
+                addHint("开启后符号标题保持单行完整显示；网格会按最长标题自动减少每行列数，长标题会自动缩小字号。")
+                addSeek("符号文本字号 (sp)", current.symbolLabelTextSizeSp, 8, 32) { update { copy(symbolLabelTextSizeSp = it) } }
                 addSwitch("显示动作提示", current.showActionHints) { update { copy(showActionHints = it) } }
             },
             "布局" to {
@@ -233,6 +236,8 @@ class SymbolDrawerSettingsScreen(
                 addSeek("长按触发时间 (ms)", current.longPressTimeoutMs, 250, 1000) { update { copy(longPressTimeoutMs = it) } }
                 addSeek("展开甩动阈值 (dp/s)", current.flingVelocityDpPerSecond, 100, 6000) { update { copy(flingVelocityDpPerSecond = it) } }
                 addSwitch("执行动作后自动收起", current.autoCollapseAfterAction) { update { copy(autoCollapseAfterAction = it) } }
+                addSwitch("记忆展开状态", current.rememberExpandedState) { update { copy(rememberExpandedState = it) } }
+                addHint("开启后会记住抽屉最后一次展开或收起状态；关闭后每次进入均使用默认收起状态。")
                 section("动画与触觉")
                 addSeek("动画时长 (ms)", current.animationDurationMs, 0, 1200) { update { copy(animationDurationMs = it) } }
                 addSwitch("减少动态效果", current.reduceMotion) { update { copy(reduceMotion = it) } }
