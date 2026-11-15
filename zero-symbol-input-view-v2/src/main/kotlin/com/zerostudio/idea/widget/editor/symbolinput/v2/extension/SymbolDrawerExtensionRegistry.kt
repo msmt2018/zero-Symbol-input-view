@@ -7,6 +7,7 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.extension
 
 import android.content.Context
 import android.view.View
+import java.util.concurrent.CopyOnWriteArrayList
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.RegistryBackedSymbolActionHost
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionHandler
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionHost
@@ -32,6 +33,39 @@ class SymbolDrawerExtensionRegistry {
     private val settingsItems = LinkedHashMap<String, Registered<SymbolDrawerSettingExtension>>()
     private val themes = LinkedHashMap<String, Registered<SymbolDrawerThemeExtension>>()
     private val builtInVisibility = LinkedHashMap<String, Boolean>()
+    private val listeners = CopyOnWriteArrayList<(SymbolDrawerExtensionSnapshot) -> Unit>()
+    @Volatile private var revision: Long = 0L
+
+    /** Monotonic registry revision, useful for UI diffing and cache invalidation. */
+    fun revision(): Long = revision
+
+    /** Observe live contribution changes. The returned handle removes the listener. */
+    fun observe(
+        emitCurrent: Boolean = true,
+        listener: (SymbolDrawerExtensionSnapshot) -> Unit
+    ): AutoCloseable {
+        listeners += listener
+        if (emitCurrent) listener(snapshot())
+        return AutoCloseable { listeners.remove(listener) }
+    }
+
+    /** Immutable snapshot for UI hosts to render without holding the registry lock. */
+    fun snapshot(): SymbolDrawerExtensionSnapshot = synchronized(lock) {
+        SymbolDrawerExtensionSnapshot(
+            revision = revision,
+            actions = actions.values.map { it.value }.sortedWith(compareBy({ it.priority }, { it.id })),
+            indicators = indicators.values.map { it.value }.sortedWith(compareBy({ it.priority }, { it.id })),
+            settingsTabs = settingsTabs.values.map { it.value }.sortedWith(compareBy({ it.priority }, { it.id })),
+            settingsItems = settingsItems.values.map { it.value }.sortedWith(compareBy({ it.priority }, { it.id })),
+            themes = themes.values.map { it.value }.sortedWith(compareBy({ it.priority }, { it.id })),
+            builtInVisibility = builtInVisibility.toMap()
+        )
+    }
+
+    private fun notifyChanged() {
+        val next = synchronized(lock) { revision += 1; snapshot() }
+        listeners.forEach { callback -> runCatching { callback(next) } }
+    }
 
     /** Action registry used by the extension-aware SymbolActionHost decorator. */
     val actionHandlers = SymbolActionRegistry<SymbolActionHost>()
@@ -63,12 +97,16 @@ class SymbolDrawerExtensionRegistry {
         val token = Any()
         synchronized(lock) { target[id] = Registered(token, value) }
         val secondaryHandle = afterInsert?.invoke()
+        notifyChanged()
         var closed = false
         return AutoCloseable {
             synchronized(lock) {
                 if (!closed) {
                     closed = true
-                    if (target[id]?.token === token) target.remove(id)
+                    if (target[id]?.token === token) {
+                        target.remove(id)
+                        notifyChanged()
+                    }
                 }
             }
             secondaryHandle?.close()
@@ -97,7 +135,8 @@ class SymbolDrawerExtensionRegistry {
      */
     fun setBuiltInVisible(featureId: String, visible: Boolean) {
         require(featureId.matches(EXTENSION_ID))
-        synchronized(lock) { builtInVisibility[featureId] = visible }
+        val changed = synchronized(lock) { builtInVisibility.put(featureId, visible) != visible }
+        if (changed) notifyChanged()
     }
 
     fun isBuiltInVisible(featureId: String, defaultVisible: Boolean = true): Boolean =
@@ -121,6 +160,7 @@ class SymbolDrawerExtensionRegistry {
             builtInVisibility.clear()
         }
         actionHandlers.clear()
+        notifyChanged()
     }
 
     private companion object {
@@ -205,3 +245,14 @@ interface SymbolDrawerThemeExtension {
     val priority: Int get() = 0
     fun resolve(context: Context, settings: SymbolDrawerSettings): SymbolDrawerTheme
 }
+
+/** Immutable point-in-time view of every extension contribution. */
+data class SymbolDrawerExtensionSnapshot(
+    val revision: Long,
+    val actions: List<SymbolDrawerActionExtension>,
+    val indicators: List<SymbolGroupIndicatorExtension>,
+    val settingsTabs: List<SymbolDrawerSettingsTabExtension>,
+    val settingsItems: List<SymbolDrawerSettingExtension>,
+    val themes: List<SymbolDrawerThemeExtension>,
+    val builtInVisibility: Map<String, Boolean>
+)
