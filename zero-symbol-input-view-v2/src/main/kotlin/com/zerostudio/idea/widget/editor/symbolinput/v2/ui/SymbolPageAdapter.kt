@@ -451,7 +451,9 @@ internal class SymbolPageAdapter(
             target.setOnClickListener {
                 val current = holder.bindingAdapterPosition
                 if (current != RecyclerView.NO_POSITION && getItem(current).id == item.id) {
-                    boundExtension?.onClick(target, legacyItem, state)
+                    boundExtension?.let { extension ->
+                        runCatching { extension.onClick(target, legacyItem, state) }
+                    }
                     onSymbolAction(getItem(current), false)
                 }
             }
@@ -463,7 +465,11 @@ internal class SymbolPageAdapter(
             val dispatchLongAction = {
                 val current = holder.bindingAdapterPosition
                 if (current != RecyclerView.NO_POSITION && getItem(current).id == item.id) {
-                    boundExtension?.onLongPress(target, legacyItem, state.copy(pressed = true))
+                    boundExtension?.let { extension ->
+                        runCatching {
+                            extension.onLongPress(target, legacyItem, state.copy(pressed = true))
+                        }
+                    }
                     onSymbolAction(getItem(current), true)
                 }
             }
@@ -480,15 +486,17 @@ internal class SymbolPageAdapter(
                 onLongPress = dispatchLongAction,
                 onTouch = { event ->
                     if (boundExtension != null) {
-                        boundExtension.onTouch(
-                            target, legacyItem,
-                            state.copy(
-                                pressed = event.actionMasked != MotionEvent.ACTION_UP &&
-                                    event.actionMasked != MotionEvent.ACTION_CANCEL,
-                                enabled = target.isEnabled
-                            ),
-                            event
-                        )
+                        runCatching {
+                            boundExtension.onTouch(
+                                target, legacyItem,
+                                state.copy(
+                                    pressed = event.actionMasked != MotionEvent.ACTION_UP &&
+                                        event.actionMasked != MotionEvent.ACTION_CANCEL,
+                                    enabled = target.isEnabled
+                                ),
+                                event
+                            )
+                        }
                     }
                 }
             )
