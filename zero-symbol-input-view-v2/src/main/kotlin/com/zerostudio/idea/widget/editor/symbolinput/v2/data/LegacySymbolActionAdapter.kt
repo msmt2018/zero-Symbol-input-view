@@ -62,9 +62,11 @@ object LegacySymbolActionAdapter {
         val payload = legacy.payload
         return when (legacy.type) {
             0 -> SymbolAction.InsertText(payload.orEmpty())
-            // Historical clipboard IDs remain executable through the host adapter.
-            1 -> SymbolAction.Clipboard(ClipboardOperation.COPY)
-            2 -> SymbolAction.Clipboard(ClipboardOperation.CUT)
+            // IDs 1/2 are retained in imported data, but the current V1
+            // SymbolActionExecutor has no dispatch branches for them. Keep them
+            // as unresolved legacy extensions rather than inventing clipboard
+            // behavior during migration.
+            1, 2 -> SymbolAction.Extension("legacy.action.${legacy.type}", payload)
             // V1 cutLine() delegates to deleteLine() and does not touch the clipboard.
             // Preserve that exact numeric-ID behavior; real clipboard cut is 29/53.
             3, 34 -> SymbolAction.Delete(DeleteKind.CURRENT_LINE)
