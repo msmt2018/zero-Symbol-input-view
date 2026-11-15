@@ -566,6 +566,7 @@ internal class SymbolPageAdapter(
                 longPressed = true
                 view.isPressed = false
                 onLongPress()
+                onCancelled()
             }
         }
 
