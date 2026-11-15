@@ -377,7 +377,10 @@ class DrawerUiContractTest {
             scenario.onActivity { activity ->
                 val drawer = SymbolDrawerView(activity)
                 activity.content.addView(drawer, FrameLayout.LayoutParams(-1, -1))
-                drawer.submitGroups(sample()) {
+                val symbols = (1L..80L).map { id ->
+                    SymbolEntry(id, "s$id", SymbolAction.InsertText("s$id"))
+                }
+                drawer.submitGroups(listOf(SymbolGroup("many", "Many", symbols))) {
                     val width = (420f * activity.resources.displayMetrics.density).toInt()
                     val height = (640f * activity.resources.displayMetrics.density).toInt()
                     drawer.measure(
@@ -386,6 +389,9 @@ class DrawerUiContractTest {
                     )
                     drawer.layout(0, 0, width, drawer.measuredHeight)
                     drawer.setExpanded(false, false)
+                    check(drawer.expandedHeightForTesting() > drawer.collapsedHeightForTesting()) {
+                        "The test fixture must provide a real expanded-height range"
+                    }
                     val downTime = android.os.SystemClock.uptimeMillis()
                     fun send(action: Int, y: Float, offset: Long): Boolean {
                         val event = MotionEvent.obtain(
@@ -403,8 +409,6 @@ class DrawerUiContractTest {
                         }
                     }
                     val density = activity.resources.displayMetrics.density
-                    // Start inside the collapsed grid, then move upward beyond
-                    // the midpoint so the gesture must settle in Expanded.
                     send(MotionEvent.ACTION_DOWN, 30f * density, 0)
                     send(MotionEvent.ACTION_MOVE, -320f * density, 120)
                     expandedAfterDrag = drawer.isExpanded()
@@ -412,7 +416,7 @@ class DrawerUiContractTest {
                 }
             }
             assertTrue(
-                "A vertical drag must be intercepted by the drawer and expand it; child-disallow requests must not disable its own interception",
+                "A vertical drag must be intercepted by the drawer and expand it",
                 expandedAfterDrag
             )
         }
