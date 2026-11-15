@@ -1476,23 +1476,23 @@ class SymbolDrawerManagerScreen(
             addView(TextView(context).apply {
                 text = listOf(
                     context.getString(R.string.symbol_drawer_022),
-                    context.getString(R.string.symbol_drawer_014, S),
-                    context.getString(R.string.symbol_drawer_007, E),
-                    context.getString(R.string.symbol_drawer_015, T),
-                    context.getString(R.string.symbol_drawer_005, C),
-                    context.getString(R.string.symbol_drawer_011, N),
-                    context.getString(R.string.symbol_drawer_016, TAB),
-                    context.getString(R.string.symbol_drawer_009, L),
-                    context.getString(R.string.symbol_drawer_021, W),
-                    context.getString(R.string.symbol_drawer_008, I),
-                    context.getString(R.string.symbol_drawer_018, U),
-                    context.getString(R.string.symbol_drawer_020, V),
-                    context.getString(R.string.symbol_drawer_012, R),
-                    context.getString(R.string.symbol_drawer_019, UP),
-                    context.getString(R.string.symbol_drawer_010, LOW),
-                    context.getString(R.string.symbol_drawer_006, CAP),
-                    context.getString(R.string.symbol_drawer_017, TRIM),
-                    context.getString(R.string.symbol_drawer_013, REV)
+                    context.getString(R.string.symbol_drawer_014),
+                    context.getString(R.string.symbol_drawer_007),
+                    context.getString(R.string.symbol_drawer_015),
+                    context.getString(R.string.symbol_drawer_005),
+                    context.getString(R.string.symbol_drawer_011),
+                    context.getString(R.string.symbol_drawer_016),
+                    context.getString(R.string.symbol_drawer_009),
+                    context.getString(R.string.symbol_drawer_021),
+                    context.getString(R.string.symbol_drawer_008),
+                    context.getString(R.string.symbol_drawer_018),
+                    context.getString(R.string.symbol_drawer_020),
+                    context.getString(R.string.symbol_drawer_012),
+                    context.getString(R.string.symbol_drawer_019),
+                    context.getString(R.string.symbol_drawer_010),
+                    context.getString(R.string.symbol_drawer_006),
+                    context.getString(R.string.symbol_drawer_017),
+                    context.getString(R.string.symbol_drawer_013)
                 ).joinToString("\n")
                 textSize = 12f
                 alpha = 0.7f
