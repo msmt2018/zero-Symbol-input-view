@@ -197,6 +197,8 @@ interface SymbolGroupIndicatorComponent {
     fun applySettings(settings: SymbolDrawerSettings)
     /** Optional theme tokens supplied by the owning drawer session. */
     fun applyTheme(theme: SymbolDrawerTheme?) = Unit
+    /** Release component-owned animators/listeners when it is replaced or removed. */
+    fun onDispose() = Unit
 }
 
 /** A custom indicator is automatically discoverable from the extension registry. */
