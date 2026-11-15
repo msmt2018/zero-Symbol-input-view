@@ -182,11 +182,15 @@ zero-symbol-input-view-v2/
     └── src/androidTest/      # Android 视图/交互测试
 ```
 
-主要包名：
+主要包名与 API 边界：
 
 ```text
-com.zerostudio.idea.widget.editor.symbolinput.v2
+com.zerostudio.idea.widget.drawer              # 独立抽屉 API
+com.zerostudio.idea.widget.symboltoolbar.api   # 独立符号工具栏 API
+com.zerostudio.idea.widget.editor.symbolinput.v2 # V2 功能实现与兼容入口（迁移完成前）
 ```
+
+**重要边界：** Drawer API 只描述通用抽屉容器、锚点、手势、导航、面板、样式和抽屉扩展；Symbol Toolbar API 独立描述符号组、符号项、工具栏状态、工具栏配置、调用事件、动作宿主和工具栏扩展。符号工具栏 API 不继承、不导入、不要求创建 Drawer API 对象；抽屉仅可作为可选宿主容器。两套 API 不共享运行时状态或专属扩展注册表。旧 V2 包路径仅作为现有实现的迁移过渡位置，不应再向其中新增公共 API。
 
 主要公开入口：
 
@@ -342,7 +346,9 @@ dependencies {
 
 完整 Maven 坐标、Groovy DSL、手动发布工作流和 Tag 规则见 [V2 模块快速接入文档](zero-symbol-input-view-v2/README.md#2-jitpack-远程-maven-导入)。
 
-### 7. 编辑器解耦与扩展 API
+### 7. 编辑器解耦与独立 API
+
+符号工具栏 API 位于 `com.zerostudio.idea.widget.symboltoolbar.api`，其模型、动作协议和扩展注册位于独立子包。该 API 不引用 `DrawerContainer`、`DrawerConfig` 或任何抽屉类型。
 
 V2 不要求依赖 Sora Editor 或任何编辑器核心对象。宿主只需实现 `SymbolActionHost`，把文本插入、选区替换、光标、删除、剪贴板和编辑器命令映射到自己已有的编辑器 API。可选实现 `SymbolTextDocument`，复用通用行、选区、光标和文档编辑算法。Sora Adapter 应放在宿主应用或独立可选模块中，不应进入 V2 核心 AAR。
 
