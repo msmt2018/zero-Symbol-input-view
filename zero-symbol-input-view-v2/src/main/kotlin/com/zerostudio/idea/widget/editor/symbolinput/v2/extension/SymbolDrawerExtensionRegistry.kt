@@ -309,6 +309,10 @@ interface SymbolDrawerItemViewExtension {
     fun wantsLongPress(item: SymbolItem): Boolean = item.longAction != null
     fun createView(context: Context, item: SymbolItem, state: SymbolDrawerItemViewState): View
     fun bindView(view: View, item: SymbolItem, state: SymbolDrawerItemViewState)
+    /** Called after this cell enters the window while this renderer owns it. */
+    fun onViewAttachedToWindow(view: View, item: SymbolItem) = Unit
+    /** Called before this cell leaves the window or its renderer is replaced. */
+    fun onViewDetachedFromWindow(view: View, item: SymbolItem) = Unit
     /** Called whenever pressed/enabled state changes during the original touch stream. */
     fun onStateChanged(view: View, item: SymbolItem, state: SymbolDrawerItemViewState) = Unit
     /** Receives the original touch stream without intercepting drawer scrolling or paging. Do not retain the MotionEvent. */
