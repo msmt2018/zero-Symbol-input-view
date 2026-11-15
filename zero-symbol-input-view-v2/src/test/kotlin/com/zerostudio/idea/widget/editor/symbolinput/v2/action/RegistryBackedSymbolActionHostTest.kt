@@ -4,6 +4,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.ClipboardOperation
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.CursorTarget
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.DeleteKind
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SelectionTransform
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -91,6 +92,49 @@ class RegistryBackedSymbolActionHostTest {
             ),
             delegate.fallbackCalls
         )
+    }
+
+    @Test fun executorDispatchesExtensionThroughRegistryBackedHostExactlyOnce() {
+        val delegate = FakeHost()
+        val registry = SymbolActionRegistry<SymbolActionHost>()
+        val calls = mutableListOf<String>()
+        registry.register(SymbolActionId.extension("sample.executor")) { host, payload ->
+            assertTrue(host === delegate)
+            calls += "handler:$payload"
+            true
+        }
+
+        val result = SymbolActionExecutor().execute(
+            SymbolAction.Extension("sample.executor", "from-executor"),
+            RegistryBackedSymbolActionHost(delegate, registry)
+        )
+
+        assertEquals(SymbolActionResult.Executed, result)
+        assertEquals(listOf("handler:from-executor"), calls)
+        assertTrue(delegate.fallbackCalls.isEmpty())
+    }
+
+    @Test fun executorPreservesLegacyNumericActionDispatchAndDeclineSemantics() {
+        val delegate = FakeHost()
+        val registry = SymbolActionRegistry<SymbolActionHost>()
+        var calls = 0
+        registry.register(947) { _, payload ->
+            calls++
+            assertEquals("legacy-payload", payload)
+            false
+        }
+
+        val result = SymbolActionExecutor().execute(
+            SymbolAction.Extension("legacy.action.947", "legacy-payload"),
+            RegistryBackedSymbolActionHost(delegate, registry)
+        )
+
+        assertEquals(SymbolActionResult.Unsupported(SymbolAction.Extension(
+            "legacy.action.947",
+            "legacy-payload"
+        )), result)
+        assertEquals(1, calls)
+        assertTrue(delegate.fallbackCalls.isEmpty())
     }
 
     @Test fun customFallbackPreservesExistingAppExtensionDispatch() {
