@@ -22,6 +22,7 @@ English documentation for Android/Kotlin integrators and extension developers. T
 | [14 — Drawer public API reference](14-drawer-public-api-reference.md) | Generic Drawer API reference |
 | [15 — Symbol control extension guide](15-symbol-control-extension-api.md) | Practical extension recipes and lifecycle |
 | [16 — Testing, release and troubleshooting](16-testing-release-troubleshooting.md) | Test layers, release checks and diagnostics |
+| [17 — Source audit notes](17-source-audit-notes.md) | Confirmed API boundaries and remaining validation |
 
 ## Packages
 
