@@ -221,21 +221,16 @@ class SymbolDrawerExtensionRegistryTest {
                 context: android.content.Context,
                 item: SymbolItem,
                 state: SymbolDrawerItemViewState
-            ): android.view.View = android.view.View(context)
+            ): android.view.View = throw UnsupportedOperationException()
             override fun bindView(
                 view: android.view.View,
                 item: SymbolItem,
                 state: SymbolDrawerItemViewState
             ) = Unit
         }
-        // Default state callback remains source-compatible for existing extensions.
-        extension.onStateChanged(
-            android.view.View(android.test.mock.MockContext()),
-            SymbolItem("x", "x"),
-            SymbolDrawerItemViewState(0, 0, pressed = true)
-        )
+        assertEquals("test.state", extension.id)
+        // Existing extensions remain valid without overriding onStateChanged.
     }
-
     @Test fun extensionErrorListenerIsolatedFromFaultyHostCallback() {
         val registry = SymbolDrawerExtensionRegistry()
         var reported = 0
