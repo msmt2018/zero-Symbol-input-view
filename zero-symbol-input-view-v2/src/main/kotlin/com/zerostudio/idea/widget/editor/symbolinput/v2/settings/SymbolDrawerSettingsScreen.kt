@@ -105,6 +105,7 @@ class SymbolDrawerSettingsScreen(
     private var spacingReflowInProgress = false
     private val content = LinearLayout(context).apply { orientation = VERTICAL }
     private var extensionObserver: AutoCloseable? = null
+    private val extensionViewDisposers = mutableListOf<() -> Unit>()
     private val documentPicker = JsonDocumentPicker(
         context,
         onImported = ::handleImportedJson,
@@ -169,7 +170,23 @@ class SymbolDrawerSettingsScreen(
     override fun onDetachedFromWindow() {
         extensionObserver?.close()
         extensionObserver = null
+        disposeExtensionViews()
         super.onDetachedFromWindow()
+    }
+
+    private fun disposeExtensionViews() {
+        val pending = extensionViewDisposers.toList()
+        extensionViewDisposers.clear()
+        pending.forEach { dispose -> runCatching(dispose) }
+    }
+
+    private fun addExtensionView(
+        page: LinearLayout,
+        view: View,
+        dispose: () -> Unit
+    ) {
+        extensionViewDisposers += dispose
+        page.addView(view, matchWrap())
     }
 
     fun reload() {
@@ -181,6 +198,7 @@ class SymbolDrawerSettingsScreen(
     fun getSettings(): SymbolDrawerSettings = current
 
     private fun render() {
+        disposeExtensionViews()
         content.removeAllViews()
         content.setBackgroundColor(surfaceColor())
         activePage = null
@@ -349,7 +367,9 @@ class SymbolDrawerSettingsScreen(
                 .filter { it.tabId == builtInTabIds.getOrNull(index) }
                 .forEach { extension ->
                     runCatching { extension.createView(context, settingsScope) }
-                        .onSuccess { page.addView(it, matchWrap()) }
+                        .onSuccess { view ->
+                            addExtensionView(page, view) { extension.onViewDisposed(view) }
+                        }
                         .onFailure { error -> page.addView(TextView(context).apply {
                             text = "扩展设置加载失败：${extension.title}（${error.message ?: "未知错误"}）"
                             setTextColor(android.graphics.Color.RED)
@@ -373,7 +393,9 @@ class SymbolDrawerSettingsScreen(
             pageHost.addView(scroll, FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
             if (index == selectedTabIndex) activeScrollView = scroll
             runCatching { extension.createView(context, settingsScope) }
-                .onSuccess { page.addView(it, matchWrap()) }
+                .onSuccess { view ->
+                    addExtensionView(page, view) { extension.onViewDisposed(view) }
+                }
                 .onFailure { error -> page.addView(TextView(context).apply {
                     text = "扩展页面加载失败：${extension.title}（${error.message ?: "未知错误"}）"
                     setTextColor(android.graphics.Color.RED)
@@ -382,7 +404,9 @@ class SymbolDrawerSettingsScreen(
                 .filter { it.tabId == extension.id }
                 .forEach { setting ->
                     runCatching { setting.createView(context, settingsScope) }
-                        .onSuccess { page.addView(it, matchWrap()) }
+                        .onSuccess { view ->
+                            addExtensionView(page, view) { setting.onViewDisposed(view) }
+                        }
                         .onFailure { error -> page.addView(TextView(context).apply {
                             text = "扩展设置加载失败：${setting.title}（${error.message ?: "未知错误"}）"
                             setTextColor(android.graphics.Color.RED)
