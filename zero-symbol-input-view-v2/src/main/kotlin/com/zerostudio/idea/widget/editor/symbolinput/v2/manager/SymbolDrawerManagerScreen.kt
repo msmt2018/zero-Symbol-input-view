@@ -331,17 +331,43 @@ class SymbolDrawerManagerScreen(
             if (drawerBindingHandle === ownerHandle) drawerBindingHandle = null
         }
         drawerBindingHandle = ownerHandle
-        builtInVisibilityObserver?.close()
-        builtInVisibilityObserver = drawer.extensions.observe(emitCurrent = true) { snapshot ->
-            post {
-                if (!isAttachedToWindow) return@post
-                val searchVisible = snapshot.builtInVisibility["builtin.search"] ?: true
-                searchButton?.visibility = if (searchVisible) View.VISIBLE else View.GONE
-                if (!searchVisible) setSearchVisible(false)
-            }
-        }
+        observeBuiltInVisibility(drawer.extensions)
         return ownerHandle
     }
+
+    /**
+     * Uses the same registry that owns the drawer extensions. This also works
+     * when the manager is embedded without a live drawer instance.
+     */
+    private fun observeBuiltInVisibility(registry: SymbolDrawerExtensionRegistry?) {
+        builtInVisibilityObserver?.close()
+        builtInVisibilityObserver = null
+        if (registry == null || !isAttachedToWindow) return
+        builtInVisibilityObserver = registry.observe(emitCurrent = true) { snapshot ->
+            post {
+                if (!isAttachedToWindow) return@post
+                val visibility = snapshot.builtInVisibility
+                val searchVisible = visibility["builtin.search"] ?: true
+                val favoritesVisible = visibility["builtin.favorites"] ?: true
+                val recentVisible = visibility["builtin.recent"] ?: true
+                searchButton?.visibility = if (searchVisible) View.VISIBLE else View.GONE
+                if (!searchVisible) setSearchVisible(false)
+
+                val activeFilterHidden =
+                    (activeFilter == ManagerSymbolFilter.FAVORITES && !favoritesVisible) ||
+                    (activeFilter == ManagerSymbolFilter.RECENT && !recentVisible)
+                if (activeFilterHidden) {
+                    activeFilter = ManagerSymbolFilter.ALL
+                    refreshSymbols()
+                }
+            }
+        }
+    }
+
+    private fun isBuiltInFeatureVisible(featureId: String): Boolean =
+        liveDrawer?.isBuiltInFeatureVisible(featureId)
+            ?: extensionRegistry?.isBuiltInVisible(featureId)
+            ?: true
 
     fun exportBundle(): String = SymbolGroupBundleCodec.encode(manager.groups)
 
@@ -459,11 +485,15 @@ class SymbolDrawerManagerScreen(
             true
         }
         val filters = menu.menu.addSubMenu("筛选")
-        listOf(
-            ManagerSymbolFilter.ALL to "全部",
-            ManagerSymbolFilter.FAVORITES to "收藏",
-            ManagerSymbolFilter.RECENT to "最近"
-        ).forEach { (filter, label) ->
+        buildList {
+            add(ManagerSymbolFilter.ALL to "全部")
+            if (isBuiltInFeatureVisible("builtin.favorites")) {
+                add(ManagerSymbolFilter.FAVORITES to "收藏")
+            }
+            if (isBuiltInFeatureVisible("builtin.recent")) {
+                add(ManagerSymbolFilter.RECENT to "最近")
+            }
+        }.forEach { (filter, label) ->
             filters.add(if (activeFilter == filter) "✓ $label" else label)
                 .setOnMenuItemClickListener { setActiveFilter(filter); true }
         }
@@ -1166,6 +1196,9 @@ class SymbolDrawerManagerScreen(
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
         if (drawerBindingHandle == null) liveDrawer?.let(::bindToDrawer)
+        if (builtInVisibilityObserver == null) {
+            observeBuiltInVisibility(liveDrawer?.extensions ?: extensionRegistry)
+        }
         if (!settingsListenerRegistered) {
             settingsPreferences.registerOnSharedPreferenceChangeListener(settingsPreferenceListener)
             settingsListenerRegistered = true
