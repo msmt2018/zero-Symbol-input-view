@@ -136,7 +136,7 @@ class SymbolDrawerView @JvmOverloads constructor(
     private var settingsDialog: AlertDialog? = null
     internal val isSettingsDialogShowing: Boolean get() = settingsDialog?.isShowing == true
     private val indicator = SymbolGroupIndicator(context) { selectGroup(it, true) }.apply {
-        onSettingsClick = { openSettings() }
+        onSettingsClick = { if (isBuiltInFeatureVisible("builtin.settings")) openSettings() }
     }
     private val indicatorHost = FrameLayout(context).apply {
         addView(indicator, FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
@@ -356,12 +356,17 @@ class SymbolDrawerView @JvmOverloads constructor(
         customIndicatorComponent?.applySettings(value) ?: indicator.applySettings(value)
     }
 
+    /** Query runtime visibility for a built-in entry owned by this drawer session. */
+    fun isBuiltInFeatureVisible(featureId: String, defaultVisible: Boolean = true): Boolean =
+        extensions.isBuiltInVisible(featureId, defaultVisible)
+
     fun getSettings(): SymbolDrawerSettings = settings
 
     /** Refresh palette after the host changes its theme without recreating its Activity. */
     fun refreshHostTheme() {
         setBackgroundColor(com.zerostudio.idea.widget.editor.symbolinput.v2.ui.HostThemeColors.surface(context))
         indicatorHost.setBackgroundColor(com.zerostudio.idea.widget.editor.symbolinput.v2.ui.HostThemeColors.surface(context))
+        indicator.setSettingsButtonVisible(isBuiltInFeatureVisible("builtin.settings"))
         applyIndicatorSettings(settings)
         applySettings(settings)
     }
@@ -378,6 +383,7 @@ class SymbolDrawerView @JvmOverloads constructor(
         if (extensionObserver == null) {
             extensionObserver = extensions.observe(emitCurrent = false) { snapshot ->
                 post {
+                    indicator.setSettingsButtonVisible(snapshot.builtInVisibility["builtin.settings"] ?: true)
                     val selectedId = customIndicatorId ?: return@post
                     val updated = snapshot.indicators.firstOrNull { it.id == selectedId }
                     when {
@@ -428,7 +434,7 @@ class SymbolDrawerView @JvmOverloads constructor(
         val action = if (longPress) symbol.longAction else symbol.shortAction
         if (action != null) {
             if (action == SymbolAction.OpenManager) {
-                onOpenManagerListener?.invoke()
+                if (isBuiltInFeatureVisible("builtin.manager")) onOpenManagerListener?.invoke()
             } else {
                 when (settings.hapticMode) {
                     HapticMode.OFF -> Unit
