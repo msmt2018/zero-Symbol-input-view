@@ -85,6 +85,9 @@ data class SymbolDrawerSettings(
     val indicatorStyle: GroupIndicatorStyle = GroupIndicatorStyle.UNDERLINE,
     val showGroupTitles: Boolean = true,
     val showSymbolLabels: Boolean = true,
+    val rememberExpandedState: Boolean = true,
+    val showFullSymbolLabels: Boolean = false,
+    val symbolLabelTextSizeSp: Int = 18,
     val showActionHints: Boolean = false,
     val maxExpandedHeightDp: Int = 480,
     val animationDurationMs: Int = 200,
@@ -103,6 +106,7 @@ data class SymbolDrawerSettings(
     init {
         require(schemaVersion in 1..CURRENT_SCHEMA_VERSION)
         require(columns in 1..30)
+        require(symbolLabelTextSizeSp in 8..32)
         require(collapsedRows in 1..16)
         require(cellHeightDp in 6..128)
         require(cellHorizontalSpacingDp in -24..48)
@@ -130,6 +134,6 @@ data class SymbolDrawerSettings(
     )
 
     companion object {
-        const val CURRENT_SCHEMA_VERSION = 2
+        const val CURRENT_SCHEMA_VERSION = 3
     }
 }
