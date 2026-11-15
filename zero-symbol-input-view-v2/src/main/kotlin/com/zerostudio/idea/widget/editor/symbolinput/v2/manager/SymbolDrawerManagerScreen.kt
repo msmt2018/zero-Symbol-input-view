@@ -446,7 +446,7 @@ class SymbolDrawerManagerScreen(
             iconSize = dp(18)
             iconGravity = MaterialButton.ICON_GRAVITY_TEXT_START
             iconTint = android.content.res.ColorStateList.valueOf(onSurfaceColor())
-            setTextColor(HostThemeColors.onSurface(context))
+            setTextColor(onSurfaceColor())
             backgroundTintList = android.content.res.ColorStateList.valueOf(surfaceColor())
             strokeWidth = dp(1)
             strokeColor = android.content.res.ColorStateList.valueOf(outlineColor())
@@ -468,8 +468,8 @@ class SymbolDrawerManagerScreen(
             icon = context.getDrawable(android.R.drawable.ic_menu_more)
             iconSize = dp(18)
             iconGravity = MaterialButton.ICON_GRAVITY_TEXT_START
-            iconTint = android.content.res.ColorStateList.valueOf(HostThemeColors.onSurface(context))
-            setTextColor(HostThemeColors.onSurface(context))
+            iconTint = android.content.res.ColorStateList.valueOf(onSurfaceColor())
+            setTextColor(onSurfaceColor())
             backgroundTintList = android.content.res.ColorStateList.valueOf(surfaceColor())
             strokeWidth = dp(1)
             strokeColor = android.content.res.ColorStateList.valueOf(HostThemeColors.outline(context))
@@ -940,7 +940,7 @@ class SymbolDrawerManagerScreen(
         controls.addView(TextView(context).apply {
             text = "工具栏预览编辑"
             textSize = 13f
-            setTextColor(HostThemeColors.onSurface(context))
+            setTextColor(onSurfaceColor())
             setTypeface(typeface, android.graphics.Typeface.BOLD)
         }, LayoutParams(0, dp(36), 1f))
         controls.addView(actionButton("恢复") { restorePreviewEditMode() },
@@ -1716,7 +1716,7 @@ class SymbolDrawerManagerScreen(
             }
             val detail = TextView(ctx).apply {
                 textSize = 12f
-                setTextColor(HostThemeColors.secondaryText(ctx))
+                setTextColor(secondaryTextColor(ctx))
                 setPadding(0, dp(ctx, 4), 0, 0)
             }
             val textColumn = LinearLayout(ctx).apply {
@@ -1738,7 +1738,7 @@ class SymbolDrawerManagerScreen(
                     text = "⋮⋮"
                     textSize = 20f
                     gravity = android.view.Gravity.CENTER
-                    setTextColor(HostThemeColors.secondaryText(ctx))
+                    setTextColor(secondaryTextColor(ctx))
                     contentDescription = "拖动调整符号位置"
                     isClickable = true
                     isFocusable = true
@@ -1823,7 +1823,7 @@ class SymbolDrawerManagerScreen(
     private fun roundedSurface(color: Int, radiusDp: Int) = GradientDrawable().apply {
         setColor(color)
         cornerRadius = dp(radiusDp).toFloat()
-        setStroke(dp(1), HostThemeColors.outline(context))
+        setStroke(dp(1), outlineColor())
     }
     private fun surfaceColor() = surfaceColor()
     private fun primaryColor() = HostThemeColors.primary(context)
