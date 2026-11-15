@@ -124,9 +124,16 @@ jobs:
         run: ./gradlew :zero-symbol-input-view-v2:assembleDebugAndroidTest
 
   v2-library-instrumentation:
-    name: V2 Library Android 15 instrumentation tests
+    name: V2 Library Android ${{ matrix.api-level }} instrumentation tests
     runs-on: ubuntu-latest
     needs: v2-library-validation
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        # Cover minSdk, a representative modern release, and Android 15.
+        # Every run executes the full connectedDebugAndroidTest suite.
+        api-level: [21, 29, 35]
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v6
@@ -148,10 +155,10 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Run V2 instrumentation tests on Android 15
+      - name: Run complete V2 instrumentation suite on Android ${{ matrix.api-level }}
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 35
+          api-level: ${{ matrix.api-level }}
           target: google_apis
           arch: x86_64
           profile: pixel_2
@@ -164,7 +171,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: v2-instrumentation-diagnostics
+          name: v2-instrumentation-diagnostics-api-${{ matrix.api-level }}
           if-no-files-found: warn
           path: |
             zero-symbol-input-view-v2/build/reports/androidTests/**
