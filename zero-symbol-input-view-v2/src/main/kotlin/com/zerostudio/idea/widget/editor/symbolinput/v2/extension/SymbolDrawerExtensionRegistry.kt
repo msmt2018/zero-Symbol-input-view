@@ -255,6 +255,7 @@ interface SymbolDrawerLifecycleExtension {
     fun onSettingsChanged(settings: SymbolDrawerSettings) = Unit
     fun onGroupsChanged(groups: List<com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolGroup>) = Unit
     fun onGroupSelected(index: Int, group: com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolGroup?) = Unit
+    fun onExpansionChanged(fraction: Float, expanded: Boolean) = Unit
     fun onSymbolInvoked(item: SymbolItem, longPress: Boolean) = Unit
     fun onDetached(drawer: com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawerView) = Unit
 }
