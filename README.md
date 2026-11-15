@@ -343,75 +343,34 @@ dependencies {
 
 The complete Maven coordinate, Groovy DSL variant, publication workflow, and release-tag rules are documented in [the V2 module README](zero-symbol-input-view-v2/README.md#2-jitpack-remote-maven-import).
 
-### 7. Editor independence and extension APIs
+### 7. Editor-independent toolbar extension API
 
-V2 does not require Sora Editor or any editor-core object. Implement `SymbolActionHost` in your application and map its methods to your editor's own insert/replace/selection/cursor/clipboard/command APIs. Optionally implement `SymbolTextDocument` to reuse generic line, selection, cursor, and document editing commands. A Sora adapter belongs in the host application or a separate optional module, never in the V2 core artifact.
+The public toolbar API is backed by `SymbolDrawerToolbarControl`, an adapter over the real `SymbolDrawerView`. It does not require Sora Editor or another editor-core object. The host supplies a `SymbolToolbarActionHost` and coroutine scope; the toolbar exposes its own `SymbolToolbarExtensionRegistry` and `SymbolToolbarExtensionRuntime`.
 
-Each `SymbolDrawerView` exposes `drawer.extensions` for registering custom actions, group-indicator providers, settings tabs, settings rows, and theme providers. Built-in feature visibility can be overridden without deleting source code. See [the extension API reference](zero-symbol-input-view-v2/api-docs/12-extension-framework.md).
+The public symbol-data contract deliberately reuses the original V1 models:
 
-### 8. V1 / MT Manager compact JSON interchange
+- `com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolGroup`
+- `com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolItem`
 
-The manager exposes `importMtManagerJson(json)` and `exportMtManagerJson()` for the legacy compact group/item JSON schema (`n/d/a/b/c/d/e`). Files using that schema can be imported directly. Full V2 backups should use `importBundle` / `exportBundle`, which preserve V2-only typed actions and stable IDs. The legacy format cannot represent every V2 action; unsupported actions are rejected on legacy export rather than silently discarded. See [the detailed integration guide](zero-symbol-input-view-v2/README.md#10-mt-manager--v1-json-interchange).
+Settings use `SymbolDrawerSettings` directly. No parallel group, item, or toolbar-settings model is used. The adapter converts the submitted legacy data through the existing `LegacySymbolDataCodec` before handing it to the V2 drawer renderer. Numeric `shortAction` / `longAction` IDs and `shortText` / `longText` payloads are passed to the runtime unchanged.
 
----
-
-## Data Model and Actions
-
-### Group data
-
-`SymbolGroup` uses a stable string ID, while `SymbolEntry` uses a stable Long ID. Keep IDs stable when updating groups so selected-page restoration and list diffing remain reliable.
-
-### Typed actions
-
-Examples:
+Example:
 
 ```kotlin
-SymbolAction.InsertText("fun ")
-SymbolAction.ReplaceSelection("replacement")
-SymbolAction.SurroundSelection("(", ")")
-SymbolAction.MoveCursor(CursorTarget.LINE_END)
-SymbolAction.Delete(DeleteKind.BACKWARD)
-SymbolAction.TransformSelection(SelectionTransform.UPPERCASE)
-SymbolAction.Clipboard(ClipboardOperation.PASTE)
-SymbolAction.EditorCommand("editor.format", payload = null)
-SymbolAction.Composite(
-    listOf(
-        SymbolAction.InsertText("if ("),
-        SymbolAction.MoveCursor(CursorTarget.LEFT)
-    )
+val control = SymbolDrawerToolbarControl(
+    drawer = drawerView,
+    actionHost = appActionHost,
+    coroutineScope = lifecycleScope,
+    settingsRepository = settingsRepository
 )
+
+val registration = control.extensions.action(1201) {
+    // This is the original SymbolItem and its numeric action payload.
+    insert(item.display)
+}
 ```
 
-Before execution, `SymbolActionExecutor` validates the composite action tree. It reports explicit results for execution, unsupported actions, invalid input, cancellation, failure, and partial failure. Limits on nesting depth, action count, and text payload length protect against unbounded recursion and oversized payloads.
-
-### Registering extension actions
-
-`SymbolActionRegistry<C>` lets the host register handlers under stable namespaced IDs. Each registration returns an `AutoCloseable` that can unregister the handler when the editor/session lifecycle ends. The registry stores in-process function references only; persist action IDs and payloads, never lambdas.
-
----
-
-## Management, Settings, and Backup
-
-- Management commands are performed by `SymbolGroupManager` and committed as immutable snapshots.
-- Batch copy/move operations validate the requested changes and commit once, avoiding intermediate per-item writes.
-- Search, favorites, recent items, and filters are available in the manager UI.
-- Settings use a separate repository and can be applied to the live drawer with `applySettings()`.
-- Imported JSON is validated against the supported schema; untrusted JSON must never be treated as executable code.
-- If local group data is malformed, V2 preserves the original payload and error details to support recovery.
-
-## V1 Data Migration
-
-V2 includes a legacy migration adapter:
-
-- Reads recognized symbol data from the previous implementation and its SharedPreferences storage.
-- Maps legacy numeric action IDs and text payloads into V2 typed/compatibility action representations.
-- Retains legacy numeric IDs and payloads to avoid silently losing old action information.
-- Imports only when the V2 store is empty and migration conditions are met.
-- Stores new data independently, so the V2 runtime does not need to keep using V1 views or manager screens.
-
-After migration, the V2 repository is the source of truth. Avoid writing the same runtime state to both V1 and V2 stores.
-
----
+Click and long-press action pipelines can be registered independently against the exact legacy `SymbolItem` instance with `symbolItemActions(item, click = { ... }, longPress = { ... })`. These executable lambdas are runtime-only and are not serialized into a second JSON document. Use the existing group repository, `LegacySymbolDataCodec`, `SymbolDrawerSettingsRepository`, and `SymbolDrawerSettingsCodec` for persistence.
 
 ## Build and Test
 
