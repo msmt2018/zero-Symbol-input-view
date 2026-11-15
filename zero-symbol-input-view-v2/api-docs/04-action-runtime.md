@@ -291,3 +291,36 @@ interface SymbolTextDocument {
 - `duplicateLineInsertion(text, cursorOffset)`：计算复制当前行所需插入内容及位置。
 
 这些工具返回计算结果，不会自动写入 Editor。调用方需使用结果更新文档并设置选择区。完整宏语法以该文件实现为准；与 Kotlin 字符串模板转义无关。
+
+
+## SymbolTextDocumentActionHost
+
+`SymbolTextDocumentActionHost` 是 V2 提供的默认编辑器中立动作宿主。开发者实现 `SymbolTextDocument` 后，可以直接复用通用插入、选区、光标、删除、大小写转换和 GenericSymbolTextActions 命令，无需自己再实现完整的 `SymbolActionHost`。
+
+构造：
+
+```kotlin
+SymbolTextDocumentActionHost(
+    document: SymbolTextDocument,
+    clipboard: SymbolTextClipboard = ...,
+    openManagerAction: () -> Boolean = ...,
+    extensionAction: (String, String?) -> Boolean = ...
+)
+```
+
+- `document`：当前编辑器文档 Adapter。
+- `clipboard`：剪贴板能力注入。默认返回 false；实际剪贴板仍由宿主实现。
+- `openManagerAction`：打开宿主管理页的回调，默认返回 false。
+- `extensionAction`：未被扩展注册表接管时的扩展动作 fallback。
+
+方法映射：
+- `insertText`：解析 V1 兼容宏 `$S/$E/$T/$$)，替换当前选区并恢复插入/选区标记。
+- `replaceSelection`：替换当前选区并将光标置于插入文本末尾。
+- `surroundSelection`：用 prefix/suffix 包围选区，并保持内部文本为选中状态；空选区返回 false。
+- `moveCursor`：实现左右 Unicode code point 移动、上下行同列移动、行首/行尾和文档首尾。
+- `delete`：实现选区删除、向前/向后 code point 删除、当前行删除、删除到行首/行尾。
+- `transformSelection`：实现大写、小写和切换大小写。
+- `executeEditorCommand`：使用 `GenericSymbolTextActions.createRegistry()` 查找 `builtin` namespace 命令。
+- `performClipboard` / `openManager` / `executeExtension`：调用构造参数注入的宿主回调。
+
+该实现假定 `SymbolTextDocument` 遵守 UTF-16 offset、半开区间和至少一行文档约定。对空文档/无效行状态会拒绝无法安全执行的操作。剪贴板、Manager UI、编辑器专属命令仍归宿主所有。
