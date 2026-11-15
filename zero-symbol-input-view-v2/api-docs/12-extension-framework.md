@@ -352,3 +352,7 @@ object MyDrawerSettings : SymbolDrawerSettingExtension {
 
 主题提供器返回的 `SymbolDrawerTheme` 会沿真实 `SymbolDrawerView -> SymbolPageAdapter -> SymbolDrawerItemViewState` 路径传递。默认网格背景/文字和自定义 renderer 均可读取同一主题快照。主题变更会触发现有单元格重新绑定；扩展不需要自行观察一个平行主题仓库。
 
+
+### Extension failure diagnostics
+
+SymbolDrawerView.onExtensionErrorListener (also available through drawer.extensions.onExtensionErrorListener) receives an extension ID and its thrown error. Group-provider failures do not stop later providers from loading. Custom item renderer callbacks (accepts, createView, bindView, wantsLongPress, touch, click, long press and recycle) are isolated and reported through the same diagnostic sink. The host diagnostic callback is itself isolated; it must not be used as a control-flow mechanism.
