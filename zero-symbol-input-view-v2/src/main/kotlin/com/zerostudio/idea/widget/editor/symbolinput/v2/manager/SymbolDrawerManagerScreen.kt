@@ -56,6 +56,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.PopupMenu
+import android.widget.PopupWindow
 import android.widget.Spinner
 import android.widget.ScrollView
 import android.widget.TextView
@@ -369,10 +370,15 @@ class SymbolDrawerManagerScreen(
                 if (show) searchField.requestFocus() else searchField.text?.clear()
                 true
             }
-        menu.menu.add("筛选")
-        menu.menu.add("全部").setOnMenuItemClickListener { setActiveFilter(ManagerSymbolFilter.ALL); true }
-        menu.menu.add("收藏").setOnMenuItemClickListener { setActiveFilter(ManagerSymbolFilter.FAVORITES); true }
-        menu.menu.add("最近").setOnMenuItemClickListener { setActiveFilter(ManagerSymbolFilter.RECENT); true }
+        val filters = menu.menu.addSubMenu("筛选")
+        listOf(
+            ManagerSymbolFilter.ALL to "全部",
+            ManagerSymbolFilter.FAVORITES to "收藏",
+            ManagerSymbolFilter.RECENT to "最近"
+        ).forEach { (filter, label) ->
+            filters.add(if (activeFilter == filter) "✓ $label" else label)
+                .setOnMenuItemClickListener { setActiveFilter(filter); true }
+        }
         menu.show()
     }
 

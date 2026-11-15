@@ -29,13 +29,17 @@ object AdaptiveGridResolver {
         lockColumnCount: Boolean = false
     ): AdaptiveGridSpec {
         require(preferredColumns >= 1)
-        require(minimumCellWidthDp > 0f)
-        require(baseHorizontalSpacingDp in -24..48)
-        require(baseVerticalSpacingDp in -24..48)
+        require(minimumCellWidthDp.isFinite() && minimumCellWidthDp > 0f)
+        // Settings are validated at persistence boundaries, but DrawerConfig is
+        // also a public runtime input and may be supplied by older hosts. Clamp
+        // it here so a layout callback can never crash the UI thread because a
+        // host passed an out-of-range spacing value.
+        val safeHorizontalSpacing = baseHorizontalSpacingDp.coerceIn(-24, 48)
+        val safeVerticalSpacing = baseVerticalSpacingDp.coerceIn(-24, 48)
         if (!adaptive) return AdaptiveGridSpec(
             preferredColumns,
-            baseHorizontalSpacingDp,
-            baseVerticalSpacingDp
+            safeHorizontalSpacing,
+            safeVerticalSpacing
         )
 
         val spacingAdjustment = when (window.sizeClass) {
@@ -43,8 +47,8 @@ object AdaptiveGridResolver {
             WindowSizeClass.MEDIUM -> 1
             WindowSizeClass.EXPANDED -> 3
         }
-        val spacing = (baseHorizontalSpacingDp + spacingAdjustment).coerceIn(-24, 48)
-        val verticalSpacing = (baseVerticalSpacingDp + spacingAdjustment).coerceIn(-24, 48)
+        val spacing = (safeHorizontalSpacing + spacingAdjustment).coerceIn(-24, 48)
+        val verticalSpacing = (safeVerticalSpacing + spacingAdjustment).coerceIn(-24, 48)
         val effectiveSpacing = spacing.coerceAtLeast(0)
         val columns = if (lockColumnCount) preferredColumns else {
             (window.availableWidthDp / (minimumCellWidthDp + effectiveSpacing))

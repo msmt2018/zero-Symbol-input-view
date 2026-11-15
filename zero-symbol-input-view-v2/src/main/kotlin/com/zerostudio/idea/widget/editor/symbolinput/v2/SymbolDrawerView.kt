@@ -306,7 +306,11 @@ class SymbolDrawerView @JvmOverloads constructor(
         refreshHostTheme()
     }
 
-    private fun createPageAdapter() = SymbolPageAdapter(config, settings, { expansion >= 0.999f }) { symbol, longPress ->
+    private fun createPageAdapter() = SymbolPageAdapter(
+        config = config,
+        settings = settings,
+        canScrollGridVertically = { expansion >= 0.999f },
+        onSymbolAction = { symbol, longPress ->
         val action = if (longPress) symbol.longAction else symbol.shortAction
         if (action != null) {
             if (action == SymbolAction.OpenManager) {
