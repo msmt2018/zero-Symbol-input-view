@@ -213,4 +213,18 @@ class SymbolDrawerExtensionRegistryTest {
         assertTrue(registry.snapshot().groupProviders.isEmpty())
         assertTrue(registry.snapshot().lifecycle.isEmpty())
     }
+    @Test fun extensionErrorListenerIsolatedFromFaultyHostCallback() {
+        val registry = SymbolDrawerExtensionRegistry()
+        var reported = 0
+        registry.onExtensionErrorListener = { id, error ->
+            assertEquals("test.extension", id)
+            assertEquals("boom", error.message)
+            reported++
+        }
+        registry.reportError("test.extension", IllegalStateException("boom"))
+        assertEquals(1, reported)
+
+        registry.onExtensionErrorListener = { _, _ -> error("host diagnostic callback failure") }
+        registry.reportError("test.extension", IllegalStateException("isolated"))
+    }
 }
