@@ -68,11 +68,11 @@ val registry: SymbolDrawerExtensionRegistry = drawer.extensions
 
 返回不可变 Map 快照。注册表本身不负责跨进程持久化；宿主可保存该 Map，并在创建 Drawer 后恢复。
 
-### bindActionHost(host) / executeAction(action, host, cancellation)
+### SymbolDrawerView.bindActionHost(host) / executeAction(action, host, cancellation)
 
-`bindActionHost(host)` 返回注册表装饰后的 editor-neutral Host；不会保存或持有传入的宿主对象。适合需要继续调用原有 `SymbolActionExecutor` 的集成方式。
+这两个方法属于 `SymbolDrawerView`，不是注册表成员。`drawer.bindActionHost(host)` 返回 registry-backed editor-neutral Host；不会保存或持有传入的宿主对象。适合需要继续调用原有 `SymbolActionExecutor` 的集成方式。
 
-`executeAction(action, host, cancellation)` 是控件提供的完整便捷入口：它使用原有 `SymbolActionExecutor`，并自动将 Host 包装为当前 Drawer session 的 registry-backed Host。扩展 handler、V1 数字 ID handler 和宿主原有 fallback 因而处于同一条执行链中。宿主仍需在原有符号回调中决定何时调用此方法；控件不持有编辑器对象，也不会擅自替换 `onSymbolActionListener`。
+`drawer.executeAction(action, host, cancellation)` 是控件提供的完整便捷入口：它使用原有 `SymbolActionExecutor`，并自动将 Host 包装为当前 Drawer session 的 registry-backed Host。扩展 handler、V1 数字 ID handler 和宿主原有 fallback 因而处于同一条执行链中。宿主仍需在原有符号回调中决定何时调用此方法；控件不持有编辑器对象，也不会擅自替换 `onSymbolActionListener`。
 
 ```kotlin
 val result = drawer.executeAction(
@@ -81,7 +81,7 @@ val result = drawer.executeAction(
 )
 ```
 
-取消令牌可作为第三个参数传入。扩展 handler 返回 `false` 时视为该 handler 已处理并拒绝，不会再调用 fallback；没有注册 handler 时才回退原 Host。
+取消令牌可作为第三个参数传入。扩展 handler 返回 `false` 时视为已匹配但拒绝执行，不会再调用 fallback；没有注册 handler 时才回退原 Host。
 
 ### wrapActionHost(delegate)
 
@@ -177,7 +177,7 @@ fun interface SymbolActionHandler<C> {
 
 ### 设置 Tab ID 约定
 
-当前已接入的内置 ID：`builtin.settings`（隐藏内置指示器的设置按钮）和 `builtin.manager`（阻止内置打开管理器动作）。其它 ID 可由宿主定义，并由宿主自己的 UI 查询 `isBuiltInVisible`。建议宿主定义常量，例如：
+`SymbolDrawerSettingsTabExtension.id` 和 `SymbolDrawerSettingExtension.tabId` 是设置页面内部使用的 Tab 标识，应与目标设置容器中的 Tab ID 一致。它们与 `SymbolDrawerBuiltInFeatures` 的内置功能可见性 ID 属于不同命名空间，不能混用。设置扩展可以使用宿主自定义 ID；建议宿主定义常量，例如：
 
 - `appearance`
 - `layout`
@@ -235,7 +235,8 @@ val visible = drawer.isBuiltInFeatureVisible(SymbolDrawerBuiltInFeatures.SEARCH)
 ## 7. 生命周期与线程安全
 
 - 注册表内部集合操作使用同步保护。
-- List getter 返回快照，调用方可在 UI 线程消费。
+- `snapshot()` 和各类 List getter 返回按 `priority`、`id` 排序的快照；Kotlin `Map`/`List` 暴露为只读接口，但不是深层不可变对象，扩展对象本身仍由注册者负责线程安全。
+- `observe(emitCurrent = true)` 会在注册监听的调用线程同步发送初始快照；后续变更通知也在触发注册/注销/可见性修改的线程同步分发，不会自动切换到主线程。UI 观察者应自行 `post`/切换到主线程后更新 View。
 - View factory 和 action handler 由宿主在正确线程调用；注册表不会自动切换线程。
 - View / Activity / Editor 引用不应放进静态单例。
 - 注册句柄应与创建它的 Editor session 或 Fragment view 生命周期一致。
