@@ -345,9 +345,48 @@ The complete Maven coordinate, Groovy DSL variant, publication workflow, and rel
 
 ### 7. Extending the existing symbol drawer
 
-The extension API is implemented by the drawer's own `SymbolDrawerExtensionRegistry` and consumed directly by `SymbolDrawerView`, `SymbolGroupIndicator`, `SymbolPageAdapter`, and the existing settings screen. There is no second toolbar control, parallel view hierarchy, or independent toolbar persistence layer.
+All extension points are implemented by the existing `SymbolDrawerExtensionRegistry` and consumed by the real `SymbolDrawerView`, `SymbolPageAdapter`, group indicator and settings screen. No second toolbar View, parallel state model, or independent persistence layer is introduced.
 
-Public symbol data uses the original `model.legacy.SymbolGroup` / `SymbolItem` contract where legacy symbol records are exposed. Settings use `SymbolDrawerSettings`; runtime registrations are recreated by the host when a drawer session is created and are not serialized into a parallel document.
+The extension surface includes:
+
+- **Actions:** register handlers against the existing typed extension action IDs or original V1 numeric IDs via `registerLegacyAction`. Existing `SymbolItem.shortAction` / `longAction` and `shortText` / `longText` are not changed.
+- **Custom cells:** register `SymbolDrawerItemViewExtension`. The existing `SymbolPageAdapter` selects a renderer by `accepts`, calls `createView` / `bindView`, forwards touch/click/long-press callbacks, and calls `onViewRecycled`. The adapter retains ownership of gesture dispatch, accessibility actions, cell sizing, scrolling and recycling.
+- **Legacy group providers:** implement `SymbolDrawerLegacyGroupProvider` and load them with `SymbolDrawerView.reloadLegacyGroupsFromExtensions()`. Provider output uses the original `model.legacy.SymbolGroup` / `SymbolItem` types and passes through `LegacySymbolDataCodec`.
+- **Group indicators:** replace the built-in indicator while `ViewPager2` remains the sole owner of page selection.
+- **Settings:** contribute settings tabs or rows using the existing `SymbolDrawerSettingsScope`; the canonical `SymbolDrawerSettings` object is read and updated directly.
+- **Themes and built-in visibility:** register theme tokens and hide/show supported built-in entries without deleting their implementations.
+- **Lifecycle:** receive attach/detach, settings, group, selection and symbol-invocation callbacks through `SymbolDrawerLifecycleExtension`.
+- **Live registry observation:** observe immutable registry snapshots and close each registration handle to unregister it.
+
+Custom cell example:
+
+```kotlin
+val registration = drawer.extensions.registerItemView(
+    object : SymbolDrawerItemViewExtension {
+        override val id = "example.symbol-cell"
+        override val title = "Example symbol cell"
+
+        override fun accepts(item: SymbolItem): Boolean =
+            item.display.startsWith("my:")
+
+        override fun createView(
+            context: Context,
+            item: SymbolItem,
+            state: SymbolDrawerItemViewState
+        ): View = TextView(context)
+
+        override fun bindView(view: View, item: SymbolItem, state: SymbolDrawerItemViewState) {
+            (view as TextView).text = item.display
+            view.isEnabled = state.enabled
+        }
+    }
+)
+
+// Release the extension when its owning plugin/session is stopped.
+registration.close()
+```
+
+When a host supplies original V1 data, call `SymbolDrawerView.submitLegacyGroups(groups)`. The view converts it through the existing codec for rendering while retaining the original `SymbolItem` records for custom cell and lifecycle callbacks. Settings continue to use `SymbolDrawerSettings` and the existing settings repository.
 
 ## Build and Test
 
