@@ -5,6 +5,8 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionId
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolItem
 import org.junit.Assert.*
 import org.junit.Test
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 class SymbolDrawerExtensionRegistryTest {
     private class Host : SymbolActionHost {
@@ -300,4 +302,54 @@ class SymbolDrawerExtensionRegistryTest {
         registry.onExtensionErrorListener = { _, _ -> error("host diagnostic callback failure") }
         registry.reportError("test.extension", IllegalStateException("isolated"))
     }
+    @Test
+    fun concurrentMutationsNeverDeliverOlderSnapshotsAfterNewerOnes() {
+        val registry = SymbolDrawerExtensionRegistry()
+        val firstCallbackEntered = CountDownLatch(1)
+        val releaseFirstCallback = CountDownLatch(1)
+        val revisions = java.util.Collections.synchronizedList(mutableListOf<Long>())
+        val actionCounts = java.util.Collections.synchronizedList(mutableListOf<Int>())
+
+        registry.observe(emitCurrent = false) { snapshot ->
+            revisions += snapshot.revision
+            actionCounts += snapshot.actions.size
+            if (snapshot.actions.size == 1) {
+                firstCallbackEntered.countDown()
+                check(releaseFirstCallback.await(5, TimeUnit.SECONDS))
+            }
+        }
+
+        val firstMutation = Thread {
+            registry.registerAction(
+                SymbolDrawerActionExtension("concurrent.first", "First", handler = { _, _ -> true })
+            )
+        }
+        firstMutation.start()
+        assertTrue(firstCallbackEntered.await(5, TimeUnit.SECONDS))
+
+        val secondMutation = Thread {
+            registry.registerAction(
+                SymbolDrawerActionExtension("concurrent.second", "Second", handler = { _, _ -> true })
+            )
+        }
+        secondMutation.start()
+
+        // Wait until the second contribution is committed while its notification
+        // is still queued behind the first observer callback.
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5)
+        while (registry.snapshot().actions.size < 2 && System.nanoTime() < deadline) {
+            Thread.yield()
+        }
+        assertEquals(2, registry.snapshot().actions.size)
+        releaseFirstCallback.countDown()
+        firstMutation.join(5_000)
+        secondMutation.join(5_000)
+
+        assertFalse(firstMutation.isAlive)
+        assertFalse(secondMutation.isAlive)
+        assertEquals(2, actionCounts.last())
+        assertTrue(revisions.zipWithNext().all { (before, after) -> after > before })
+        assertTrue(actionCounts.zipWithNext().all { (before, after) -> after >= before })
+    }
+
 }
