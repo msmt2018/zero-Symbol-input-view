@@ -54,6 +54,7 @@ import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.PopupMenu
 import android.widget.PopupWindow
@@ -195,9 +196,15 @@ class SymbolDrawerManagerScreen(
     private var activeFilter = ManagerSymbolFilter.ALL
     private val emptyView = TextView(context)
     private var symbolList: RecyclerView? = null
+    /** Inline preview editor lives above the group tabs, never inside the symbol list. */
     private var previewPanel: LinearLayout? = null
+    private var previewContent: FrameLayout? = null
     private var previewPopup: PopupWindow? = null
+    private var dragPreviewPanel: LinearLayout? = null
     private var previewDrawer: SymbolDrawerView? = null
+    private var previewModeActive = false
+    private var previewEditSnapshot: List<SymbolGroup>? = null
+    private var previewEditSelectedGroupId: String? = null
     private var reorderTouchHelper: ItemTouchHelper? = null
     private val symbolAdapter = SymbolAdapter(
         onClick = { symbol -> editSymbol(symbol) },
@@ -345,6 +352,7 @@ class SymbolDrawerManagerScreen(
         }
         row.addView(menuButton, LayoutParams(LayoutParams.WRAP_CONTENT, dp(40)))
         addView(row, matchWrap())
+        buildDragPreviewPanel()
     }
 
     private fun showManagerMenu(anchor: View) {
@@ -352,6 +360,11 @@ class SymbolDrawerManagerScreen(
         menu.menu.add(if (batchMode) "退出批量选择" else "批量")
             .setOnMenuItemClickListener { setBatchMode(!batchMode); true }
         menu.menu.add("添加符号").setOnMenuItemClickListener { editSymbol(null); true }
+        menu.menu.add(if (previewModeActive) "退出预览编辑" else "预览编辑")
+            .setOnMenuItemClickListener {
+                if (previewModeActive) finishPreviewEditMode() else enterPreviewEditMode()
+                true
+            }
         menu.menu.add("添加分组").setOnMenuItemClickListener {
             promptGroupName("新建分组") { title ->
                 runCatching { selectedGroupId = manager.addGroup(title).id; refresh() }
@@ -573,7 +586,6 @@ class SymbolDrawerManagerScreen(
         if (embeddedInSettings) list.isNestedScrollingEnabled = false
         installSymbolReordering(list)
         buildBatchBar()
-        buildDragPreviewPanel()
     }
 
     private fun buildBatchBar() {
@@ -726,10 +738,100 @@ class SymbolDrawerManagerScreen(
     }
 
     private fun buildDragPreviewPanel() {
-        // The preview is displayed in a non-touchable PopupWindow. It never
-        // participates in the manager's measure/layout pass, so opening it
-        // cannot resize the RecyclerView or cancel ItemTouchHelper's gesture.
-        previewPanel = LinearLayout(context).apply {
+        val panel = LinearLayout(context).apply {
+            orientation = VERTICAL
+            visibility = View.GONE
+            setPadding(dp(8), dp(6), dp(8), dp(8))
+            background = roundedSurface(surfaceColor(), 14)
+        }
+        val controls = LinearLayout(context).apply {
+            orientation = HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+        }
+        controls.addView(TextView(context).apply {
+            text = "工具栏预览编辑"
+            textSize = 13f
+            setTextColor(HostThemeColors.onSurface(context))
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+        }, LayoutParams(0, dp(36), 1f))
+        controls.addView(actionButton("恢复") { restorePreviewEditMode() },
+            LayoutParams(LayoutParams.WRAP_CONTENT, dp(34)))
+        controls.addView(actionButton("完成") { finishPreviewEditMode() },
+            LayoutParams(LayoutParams.WRAP_CONTENT, dp(34)))
+        panel.addView(controls, LayoutParams(LayoutParams.MATCH_PARENT, dp(36)))
+        previewContent = FrameLayout(context).also {
+            panel.addView(it, LayoutParams(LayoutParams.MATCH_PARENT, dp(144)))
+        }
+        previewPanel = panel
+        // This is deliberately outside DrawerPageHost and RecyclerView. Toggling
+        // preview mode changes only the manager's available content height.
+        addView(panel, matchWrap())
+    }
+
+    private fun createPreviewDrawer(): SymbolDrawerView = SymbolDrawerView(context).apply {
+        setRepository(repository, reload = false)
+        submitGroups(manager.groups, preserveSelectedGroup = true)
+        manager.groups.indexOfFirst { it.id == selectedGroupId }
+            .takeIf { it >= 0 }?.let { selectGroup(it, false) }
+        onSymbolActionListener = null
+        onSymbolUsedListener = null
+        onOpenManagerListener = null
+        onOpenSettingsListener = null
+        onGroupChangedListener = null
+    }
+
+    private fun enterPreviewEditMode() {
+        if (previewModeActive) return
+        destroyDragPreview()
+        previewEditSnapshot = manager.groups.map { it.copy(symbols = it.symbols.toList()) }
+        previewEditSelectedGroupId = selectedGroupId
+        previewModeActive = true
+        previewPanel?.visibility = View.VISIBLE
+        val preview = createPreviewDrawer()
+        previewDrawer = preview
+        previewContent?.addView(
+            preview,
+            FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
+        )
+        preview.post { preview.setExpanded(true, false) }
+        requestLayout()
+    }
+
+    private fun restorePreviewEditMode() {
+        val snapshot = previewEditSnapshot ?: return
+        runCatching {
+            manager.replaceAll(snapshot.map { it.copy(symbols = it.symbols.toList()) })
+            selectedGroupId = previewEditSelectedGroupId
+            refresh()
+            updateDragPreview()
+            toast("已恢复进入预览编辑前的布局")
+        }.onFailure(::reportError)
+    }
+
+    private fun finishPreviewEditMode() {
+        if (!previewModeActive) return
+        previewModeActive = false
+        previewEditSnapshot = null
+        previewEditSelectedGroupId = null
+        previewPanel?.visibility = View.GONE
+        releasePreviewDrawer()
+        requestLayout()
+    }
+
+    private fun releasePreviewDrawer() {
+        val preview = previewDrawer ?: return
+        preview.onSymbolActionListener = null
+        preview.onSymbolUsedListener = null
+        preview.onOpenManagerListener = null
+        preview.onOpenSettingsListener = null
+        preview.onGroupChangedListener = null
+        (preview.parent as? ViewGroup)?.removeView(preview)
+        previewDrawer = null
+    }
+
+    private fun showDragPreview() {
+        if (previewModeActive || previewDrawer != null) return
+        val panel = LinearLayout(context).apply {
             orientation = VERTICAL
             setPadding(dp(8), dp(6), dp(8), dp(4))
             background = roundedSurface(surfaceColor(), 14)
@@ -739,26 +841,16 @@ class SymbolDrawerManagerScreen(
                 setTextColor(secondaryTextColor())
             }, LayoutParams(LayoutParams.MATCH_PARENT, dp(22)))
         }
-    }
-
-    private fun showDragPreview() {
-        val panel = previewPanel ?: return
-        if (previewDrawer != null) return
-        val preview = SymbolDrawerView(context).apply {
-            // The view reads the same persisted settings snapshot as the real
-            // toolbar on construction. Avoid a second asynchronous adapter swap.
-            setRepository(repository, reload = false)
-            submitGroups(manager.groups, preserveSelectedGroup = true)
-            manager.groups.indexOfFirst { it.id == selectedGroupId }
-                .takeIf { it >= 0 }?.let { selectGroup(it, false) }
-            onSymbolActionListener = null
-            onOpenManagerListener = null
-            onOpenSettingsListener = null
-            onGroupChangedListener = null
-        }
+        dragPreviewPanel = panel
+        val preview = createPreviewDrawer()
         previewDrawer = preview
         panel.addView(preview, LayoutParams(LayoutParams.MATCH_PARENT, dp(140)))
-        val popup = PopupWindow(panel, dp(320).coerceAtMost((resources.displayMetrics.widthPixels - dp(24)).coerceAtLeast(dp(180))), dp(174), false).apply {
+        val popup = PopupWindow(
+            panel,
+            dp(320).coerceAtMost((resources.displayMetrics.widthPixels - dp(24)).coerceAtLeast(dp(180))),
+            dp(174),
+            false
+        ).apply {
             isTouchable = false
             isFocusable = false
             isOutsideTouchable = false
@@ -778,15 +870,13 @@ class SymbolDrawerManagerScreen(
     }
 
     private fun destroyDragPreview() {
-        val preview = previewDrawer ?: return
-        preview.onSymbolActionListener = null
-        preview.onOpenManagerListener = null
-        preview.onOpenSettingsListener = null
-        preview.onGroupChangedListener = null
-        (preview.parent as? ViewGroup)?.removeView(preview)
-        previewDrawer = null
+        // A persistent inline preview belongs to preview-edit mode and must
+        // survive ItemTouchHelper.clearView after each reorder operation.
+        if (previewModeActive) return
+        releasePreviewDrawer()
         previewPopup?.dismiss()
         previewPopup = null
+        dragPreviewPanel = null
     }
 
     private fun buildUndoBar() {
