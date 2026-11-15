@@ -106,6 +106,8 @@ class SymbolDrawerSettingsScreen(
     private val content = LinearLayout(context).apply { orientation = VERTICAL }
     private var extensionObserver: AutoCloseable? = null
     private val extensionViewDisposers = mutableListOf<() -> Unit>()
+    private var extensionViewsDisposedOnDetach = false
+    private var detachedScrollY = 0
     private val documentPicker = JsonDocumentPicker(
         context,
         onImported = ::handleImportedJson,
@@ -160,6 +162,16 @@ class SymbolDrawerSettingsScreen(
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
+        if (extensionViewsDisposedOnDetach) {
+            extensionViewsDisposedOnDetach = false
+            val restoreScroll = detachedScrollY
+            post {
+                if (isAttachedToWindow) {
+                    render()
+                    activeScrollView?.post { activeScrollView?.scrollTo(0, restoreScroll) }
+                }
+            }
+        }
         if (extensionObserver == null) {
             extensionObserver = extensionRegistry?.observe(emitCurrent = false) {
                 post { if (isAttachedToWindow) render() }
@@ -168,9 +180,11 @@ class SymbolDrawerSettingsScreen(
     }
 
     override fun onDetachedFromWindow() {
+        detachedScrollY = activeScrollView?.scrollY ?: detachedScrollY
         extensionObserver?.close()
         extensionObserver = null
         disposeExtensionViews()
+        extensionViewsDisposedOnDetach = true
         super.onDetachedFromWindow()
     }
 
