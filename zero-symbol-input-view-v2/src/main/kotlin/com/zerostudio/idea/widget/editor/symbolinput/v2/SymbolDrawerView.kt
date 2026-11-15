@@ -186,17 +186,27 @@ class SymbolDrawerView @JvmOverloads constructor(
      * lightweight page adapter when grid geometry changes; group data is retained.
      */
     fun applySettings(value: SymbolDrawerSettings) {
+        val previousSettings = settings
+        val previousConfig = config
         settings = value.copy(themeMode = com.zerostudio.idea.widget.editor.symbolinput.v2.settings.ThemeMode.SYSTEM)
         config = settings.toDrawerConfig()
         setBackgroundColor(com.zerostudio.idea.widget.editor.symbolinput.v2.ui.HostThemeColors.surface(context))
         indicator.applySettings(settings)
         pager.offscreenPageLimit = if (settings.prefetchAdjacentGroups) settings.pageCacheLimit else 1
 
-        // Prepare the replacement adapter while the current adapter remains
-        // attached and interactive. Assigning a fresh ListAdapter immediately
-        // resets ViewPager2 to page zero; doing that before the new list is
-        // committed caused a visible jump back after a user swiped to another
-        // group. Swap only after the replacement has its complete data set.
+        // Most settings (haptics, animation, auto-collapse, cache policy) do
+        // not alter cell construction. Recreating ViewPager2's adapter for
+        // those changes caused unnecessary page teardown/rebind work and could
+        // make rapid settings adjustments appear frozen.
+        val adapterPresentationChanged =
+            previousSettings.showSymbolLabels != settings.showSymbolLabels ||
+            previousSettings.showActionHints != settings.showActionHints ||
+            previousSettings.longPressTimeoutMs != settings.longPressTimeoutMs
+        val gridGeometryChanged = previousConfig != config
+        if (!adapterPresentationChanged && !gridGeometryChanged) return
+
+        // Keep the current adapter attached until the replacement has a full
+        // data snapshot, then restore the selected group atomically.
         val replacement = createPageAdapter()
         val generation = ++adapterSwapGeneration
         replacement.submitList(groups.toList()) {
@@ -215,7 +225,7 @@ class SymbolDrawerView @JvmOverloads constructor(
 
             indicator.setSelectedIndex(restored)
             onGroupChangedListener?.invoke(restored, groups.getOrNull(restored))
-            recalculateGeometry()
+            if (gridGeometryChanged) recalculateGeometry()
         }
     }
 
