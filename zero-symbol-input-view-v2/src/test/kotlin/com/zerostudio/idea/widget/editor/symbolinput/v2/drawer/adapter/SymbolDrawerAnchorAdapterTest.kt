@@ -31,6 +31,23 @@ class SymbolDrawerAnchorAdapterTest {
     }
 
     @Test
+    fun collapsedAnchorUsesConfiguredRowsForEverySupportedLayout() {
+        listOf(1, 3, 4, 7, 16).forEach { rows ->
+            val config = DrawerConfig(columns = 5, collapsedRows = rows, cellHeightDp = 32)
+            val anchors = SymbolDrawerAnchorAdapter.resolve(
+                groups = listOf(group("many", 100)),
+                config = config,
+                density = 1f
+            )
+            assertEquals(
+                com.zerostudio.idea.widget.editor.symbolinput.v2.state.DrawerGeometry
+                    .gridHeightPx(rows, config, 1f),
+                anchors.collapsedHeightPx
+            )
+        }
+    }
+
+    @Test
     fun preservesLegacyHeightsAcrossDensityScaling() {
         val config = DrawerConfig(columns = 4, collapsedRows = 2, cellHeightDp = 30)
         val anchors = SymbolDrawerAnchorAdapter.resolve(
