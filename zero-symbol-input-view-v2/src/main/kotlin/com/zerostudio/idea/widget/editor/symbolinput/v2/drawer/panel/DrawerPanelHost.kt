@@ -98,14 +98,21 @@ class DrawerPanelHost @JvmOverloads constructor(
 
     fun measureContentHeight(maxWidthPx: Int, maxHeightPx: Int): Int {
         val view = contentView ?: return 0
-        // Measure the panel's natural content height rather than treating AT_MOST
-        // as a fill request. A plain View with minimumHeight reports the entire
-        // AT_MOST size from View.getDefaultSize(), which made a 96dp Peek panel
-        // look as tall as the drawer's maximum height and collapsed all anchors
-        // into one. The resolved height is still bounded by the available sheet.
+        // Measure container content under the sheet's bound so large lists do
+        // not trigger an unbounded child traversal. A plain leaf View is the
+        // exception: View.getDefaultSize() treats AT_MOST as fill and would make
+        // a 96dp minimum-height Peek view report the entire maximum sheet height.
+        val heightSpec = if (view is ViewGroup) {
+            View.MeasureSpec.makeMeasureSpec(
+                maxHeightPx.coerceAtLeast(0),
+                View.MeasureSpec.AT_MOST
+            )
+        } else {
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        }
         view.measure(
             View.MeasureSpec.makeMeasureSpec(maxWidthPx.coerceAtLeast(0), View.MeasureSpec.EXACTLY),
-            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+            heightSpec
         )
         return view.measuredHeight.coerceIn(0, maxHeightPx.coerceAtLeast(0))
     }
