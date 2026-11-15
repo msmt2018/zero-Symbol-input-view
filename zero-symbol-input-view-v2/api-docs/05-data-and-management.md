@@ -208,3 +208,18 @@ Manager Screen 的 `exportBundle()` / `importBundle(json)` 是面向 UI 的入�
 `SymbolDrawerManagerScreen.exportMtManagerJson(): String` 使用 `LegacySymbolDataCodec` 输出 V1 紧凑数组结构（分组 `n/d`，项目 `a/b/c/d/e`）。只有能由旧数字动作目录表示的动作可导出；V2-only Composite / Extension 等动作不能无损转换时会抛出异常，不会静默丢失。
 
 `importMtManagerJson(json: String)` 严格解码该旧格式，完整校验后替换分组，并提供与普通备份导入相同的撤销恢复。`importBundle(json)` 也能自动识别符合 V1 compact schema 的数组格式。此兼容性针对采用上述字段结构的 MT Manager/V1 导出文件；不符合该 schema 的其它 JSON 变体需要单独适配。
+
+
+### 实时工具栏绑定构造参数
+
+`SymbolDrawerManagerScreen` 可选参数名为 `liveDrawer`（不是 `drawer`）：
+
+```kotlin
+val manager = SymbolDrawerManagerScreen(
+    context = context,
+    repository = repository,
+    liveDrawer = toolbar
+)
+```
+
+传入后，管理器会在初始化及重新 attach 时绑定原工具栏实例；detach 时释放绑定句柄，避免管理页面销毁后继续持有工具栏。也可以不传入该参数，在宿主生命周期内显式调用 `bindToDrawer(toolbar)` 并关闭返回的 `AutoCloseable`。
