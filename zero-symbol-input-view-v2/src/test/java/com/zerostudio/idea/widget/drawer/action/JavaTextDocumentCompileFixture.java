@@ -25,6 +25,11 @@ final class JavaTextDocumentCompileFixture implements SymbolTextDocument {
     @Override public void setSelection(int start, int end) { cursor = end; }
 
     SymbolActionHost createHost() {
-        return new SymbolTextDocumentActionHost(this);
+        return new SymbolTextDocumentActionHost(
+            this,
+            (document, operation) -> false,
+            () -> false,
+            (extensionId, payload) -> false
+        );
     }
 }
