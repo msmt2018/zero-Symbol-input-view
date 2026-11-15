@@ -81,6 +81,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolGroupInd
 import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolGroupIndicatorState
 import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolGroupIndicatorExtension
 import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerTheme
+import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerBuiltInFeatures
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionHost
 import kotlin.math.roundToInt
 
@@ -143,7 +144,7 @@ class SymbolDrawerView @JvmOverloads constructor(
     private var settingsDialog: AlertDialog? = null
     internal val isSettingsDialogShowing: Boolean get() = settingsDialog?.isShowing == true
     private val indicator = SymbolGroupIndicator(context) { selectGroup(it, true) }.apply {
-        onSettingsClick = { if (isBuiltInFeatureVisible("builtin.settings")) openSettings() }
+        onSettingsClick = { if (isBuiltInFeatureVisible(SymbolDrawerBuiltInFeatures.SETTINGS)) openSettings() }
     }
     private val indicatorHost = FrameLayout(context).apply {
         addView(indicator, FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
@@ -189,7 +190,7 @@ class SymbolDrawerView @JvmOverloads constructor(
     )
 
     init {
-        indicator.setSettingsButtonVisible(isBuiltInFeatureVisible("builtin.settings"))
+        indicator.setSettingsButtonVisible(isBuiltInFeatureVisible(SymbolDrawerBuiltInFeatures.SETTINGS))
         clipChildren = false
         clipToPadding = false
         addView(indicatorHost, LayoutParams(LayoutParams.MATCH_PARENT, 0))
@@ -515,7 +516,7 @@ class SymbolDrawerView @JvmOverloads constructor(
      */
     fun setBuiltInFeatureVisible(featureId: String, visible: Boolean) {
         extensions.setBuiltInVisible(featureId, visible)
-        if (featureId == "builtin.settings") {
+        if (featureId == SymbolDrawerBuiltInFeatures.SETTINGS) {
             indicator.setSettingsButtonVisible(visible)
         }
     }
@@ -525,7 +526,7 @@ class SymbolDrawerView @JvmOverloads constructor(
     /** Refresh palette after the host changes its theme without recreating its Activity. */
     fun refreshHostTheme() {
         applyDrawerTheme()
-        indicator.setSettingsButtonVisible(isBuiltInFeatureVisible("builtin.settings"))
+        indicator.setSettingsButtonVisible(isBuiltInFeatureVisible(SymbolDrawerBuiltInFeatures.SETTINGS))
         applyIndicatorSettings(settings)
         applySettings(settings)
     }
@@ -540,7 +541,7 @@ class SymbolDrawerView @JvmOverloads constructor(
         // Catch changes made while this view was detached.
         val latest = settingsRepository.load().settings
         if (latest != settings) applySettings(latest)
-        indicator.setSettingsButtonVisible(isBuiltInFeatureVisible("builtin.settings"))
+        indicator.setSettingsButtonVisible(isBuiltInFeatureVisible(SymbolDrawerBuiltInFeatures.SETTINGS))
         activeThemeExtensionId?.let { themeId ->
             if (extensions.themes().none { it.id == themeId }) setThemeExtension(null)
             else applyDrawerTheme()
@@ -559,7 +560,7 @@ class SymbolDrawerView @JvmOverloads constructor(
                     if (!isAttachedToWindow) return@post
                     pageAdapter.refreshItemExtensions()
                     syncLifecycleExtensions(snapshot.lifecycle)
-                    indicator.setSettingsButtonVisible(snapshot.builtInVisibility["builtin.settings"] ?: true)
+                    indicator.setSettingsButtonVisible(snapshot.builtInVisibility[SymbolDrawerBuiltInFeatures.SETTINGS] ?: true)
                     activeThemeExtensionId?.let { themeId ->
                         val updatedTheme = snapshot.themes.firstOrNull { it.id == themeId }
                         when {
@@ -653,7 +654,7 @@ class SymbolDrawerView @JvmOverloads constructor(
         val action = if (longPress) symbol.longAction else symbol.shortAction
         if (action != null) {
             if (action == SymbolAction.OpenManager) {
-                if (isBuiltInFeatureVisible("builtin.manager")) onOpenManagerListener?.invoke()
+                if (isBuiltInFeatureVisible(SymbolDrawerBuiltInFeatures.MANAGER)) onOpenManagerListener?.invoke()
             } else {
                 when (settings.hapticMode) {
                     HapticMode.OFF -> Unit
