@@ -4,7 +4,4 @@
  */
 package com.zerostudio.idea.widget.drawer.action
 
-typealias SymbolTextDocumentActionHost = com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolTextDocumentActionHost
-typealias SymbolTextClipboard = com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolTextClipboard
 typealias GenericSymbolTextActions = com.zerostudio.idea.widget.editor.symbolinput.v2.action.GenericSymbolTextActions
-typealias SymbolAction = com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
