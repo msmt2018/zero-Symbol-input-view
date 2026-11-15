@@ -1,5 +1,5 @@
 /*
- * This file is part of ZeroStudio.
+ * This file is part of zero-Symbol-input-view-V2.
  *
  * Copyright (C) 2026 android_zero
  *
