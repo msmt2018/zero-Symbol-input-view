@@ -49,9 +49,26 @@ object SymbolTextEditing {
         var selectionEndOffset: Int? = null
         var index = 0
         while (index < template.length) {
-            if (template.startsWith("\$TAB", index)) {
-                output.append('\t')
-                index += 4
+            val longToken = when {
+                template.startsWith("\$TRIM", index) -> "\$TRIM"
+                template.startsWith("\$CAP", index) -> "\$CAP"
+                template.startsWith("\$LOW", index) -> "\$LOW"
+                template.startsWith("\$UP", index) -> "\$UP"
+                template.startsWith("\$REV", index) -> "\$REV"
+                template.startsWith("\$TAB", index) -> "\$TAB"
+                else -> null
+            }
+            if (longToken != null) {
+                val transformed = when (longToken) {
+                    "\$TRIM" -> selectedText.trim()
+                    "\$CAP" -> selectedText.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+                    "\$LOW" -> selectedText.lowercase()
+                    "\$UP" -> selectedText.uppercase()
+                    "\$REV" -> selectedText.reversed()
+                    else -> "\t"
+                }
+                output.append(transformed)
+                index += longToken.length
                 continue
             }
             if (template[index] != '$' || index + 1 >= template.length) {
@@ -77,6 +94,18 @@ object SymbolTextEditing {
                 }
                 'T' -> {
                     output.append(selectedText)
+                    index += 2
+                }
+                'U' -> {
+                    output.append(selectedText.uppercase())
+                    index += 2
+                }
+                'V' -> {
+                    output.append(selectedText.lowercase())
+                    index += 2
+                }
+                'R' -> {
+                    output.append(selectedText.reversed())
                     index += 2
                 }
                 'N' -> {
