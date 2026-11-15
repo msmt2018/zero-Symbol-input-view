@@ -272,18 +272,18 @@ class SymbolDrawerManagerScreen(
         drawer.onSymbolUsedListener = usageListener
         drawer.setRepository(repository, reload = false)
         drawer.submitGroups(manager.groups, preserveSelectedGroup = true)
-        val handle = AutoCloseable {
+        // Keep an idempotent owner handle so detaching this screen also detaches
+        // callbacks from the live toolbar. The returned handle remains caller-owned.
+        lateinit var ownerHandle: AutoCloseable
+        ownerHandle = AutoCloseable {
             if (onGroupsChanged === listener) onGroupsChanged = previousListener
             if (drawer.onSymbolUsedListener === usageListener) {
                 drawer.onSymbolUsedListener = previousUsageListener
             }
-            if (drawerBindingHandle === drawerHandleRef) drawerBindingHandle = null
+            if (drawerBindingHandle === ownerHandle) drawerBindingHandle = null
         }
-        // Keep an idempotent owner handle so detaching this screen also detaches
-        // callbacks from the live toolbar. The returned handle remains caller-owned.
-        val drawerHandleRef = AutoCloseable { handle.close() }
-        drawerBindingHandle = drawerHandleRef
-        return drawerHandleRef
+        drawerBindingHandle = ownerHandle
+        return ownerHandle
     }
 
     fun exportBundle(): String = SymbolGroupBundleCodec.encode(manager.groups)
