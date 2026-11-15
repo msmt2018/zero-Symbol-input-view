@@ -450,7 +450,15 @@ class DrawerContainer @JvmOverloads constructor(
                 currentConfig.presentationMode != DrawerPresentationMode.FULL_SCREEN) dp(48) else 0) +
             (if (title.text.isNullOrEmpty()) 0 else dp(44)) +
             (if (hasNavigationTabs && navigation.showInPeekPanel) dp(48) else 0)
-        val peekBodyMinimum = if (peekHost.content() != null) dp(48) else 0
+        // Measure Peek before resolving the collapsed anchor. A fixed 48dp
+        // reservation can clip real compact panels such as the mini player.
+        val contentWidth = width
+        val peekBodyHeight = if (contentWidth > 0 && peekHost.content() != null) {
+            peekHost.measureContentHeight(contentWidth, maxHeight)
+        } else {
+            0
+        }
+        val peekBodyMinimum = if (peekHost.content() != null) maxOf(dp(48), peekBodyHeight) else 0
         val minHeight = min(
             maxHeight,
             max(dp(currentConfig.style.dimensions.peekHeightDp),
@@ -458,10 +466,9 @@ class DrawerContainer @JvmOverloads constructor(
         )
         sheet.layoutParams = sheet.layoutParams.apply { this.height = maxHeight }
         // Use the measured container width for split-screen and embedded layouts.
-        val contentWidth = width
         if (contentWidth <= 0) return
         val bodyHeight = max(
-            peekHost.measureContentHeight(contentWidth, maxHeight),
+            peekBodyHeight,
             max(
                 expandedHost.measureContentHeight(contentWidth, maxHeight),
                 pageHost.measureCurrentContentHeight(contentWidth, maxHeight)

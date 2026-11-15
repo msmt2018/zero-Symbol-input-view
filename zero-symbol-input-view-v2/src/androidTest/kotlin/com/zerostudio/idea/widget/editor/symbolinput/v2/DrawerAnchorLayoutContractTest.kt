@@ -58,6 +58,35 @@ class DrawerAnchorLayoutContractTest {
         }
     }
 
+    @Test fun peekAnchorReservesTheMeasuredHeightOfItsContent() {
+        ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val drawer = attachedDrawer(activity)
+                drawer.setTitle("")
+                drawer.controller.setPages(emptyList())
+                drawer.controller.setExpandedContent(null)
+                drawer.controller.setDragHandleEnabled(true)
+                val density = activity.resources.displayMetrics.density
+                val peekBodyHeight = Math.round(96f * density)
+                drawer.setPeekContent(object : DrawerPanelContent {
+                    override fun createView(): View = View(activity).apply {
+                        minimumHeight = peekBodyHeight
+                    }
+                })
+                drawer.controller.setAnchorStrategy(DrawerAnchorStrategies.threeStage(0.5f, false))
+                drawer.refreshAnchors()
+
+                val peek = requireNotNull(drawer.controller.currentState())
+                    .anchors.first { it.id == "peek" }
+                val minimumVisibleHeight = peekBodyHeight + Math.round(48f * density)
+                assertTrue(
+                    "The collapsed anchor must reserve the complete measured peek panel below the drag handle",
+                    peek.heightPx >= minimumVisibleHeight
+                )
+            }
+        }
+    }
+
     @Test fun fullScreenPeekDoesNotReserveHeightForItsHiddenHandle() {
         ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
