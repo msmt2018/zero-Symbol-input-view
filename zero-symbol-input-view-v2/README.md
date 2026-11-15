@@ -2,7 +2,7 @@
 
 V2 is a parallel, independently packaged implementation of the integrated symbol drawer. It does not replace or write to the legacy library.
 
-## Include in this repository
+## API developer documentation\n\nThe complete V2 API reference is maintained in [`api-docs/`](api-docs/README.md). It documents public classes, interfaces, properties, methods, callback contracts, execution semantics, persistence, lifecycle, window adaptation and integration examples.\n\n## Include in this repository
 
 The root Gradle settings already include:
 
