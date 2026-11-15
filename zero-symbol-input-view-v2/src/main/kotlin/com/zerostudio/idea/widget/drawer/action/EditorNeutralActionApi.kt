@@ -11,3 +11,9 @@ typealias SymbolActionExecutor = com.zerostudio.idea.widget.editor.symbolinput.v
 typealias SymbolActionResult = com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionResult
 typealias SymbolActionCancellation = com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionCancellation
 typealias GenericSymbolTextActions = com.zerostudio.idea.widget.editor.symbolinput.v2.action.GenericSymbolTextActions
+
+/** Persistable action model and context-scoped runtime handler registry. */
+typealias SymbolAction = com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
+typealias SymbolActionId = com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionId
+typealias SymbolActionRegistry<C> = com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionRegistry<C>
+typealias SymbolActionHandler<C> = com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionHandler<C>
