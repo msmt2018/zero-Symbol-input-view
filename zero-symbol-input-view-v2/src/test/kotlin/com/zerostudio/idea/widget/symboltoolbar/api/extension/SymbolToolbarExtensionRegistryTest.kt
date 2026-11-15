@@ -9,7 +9,7 @@ class SymbolToolbarExtensionRegistryTest {
         override val title: String,
         override val priority: Int
     ) : SymbolToolbarGroupProvider {
-        override suspend fun loadGroups() = emptyList<com.zerostudio.idea.widget.symboltoolbar.api.model.SymbolToolbarGroup>()
+        override suspend fun loadGroups() = emptyList<com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolGroup>()
     }
 
     @Test
