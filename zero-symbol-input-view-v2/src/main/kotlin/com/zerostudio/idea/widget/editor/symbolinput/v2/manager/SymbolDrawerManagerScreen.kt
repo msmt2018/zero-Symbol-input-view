@@ -1394,7 +1394,7 @@ class SymbolDrawerManagerScreen(
                     "\$L   插入光标所在行的文本",
                     "\$W   插入光标所在单词",
                     "\$I   插入光标所在行的缩进"
-                ).joinToString("\\n")
+                ).joinToString("\n")
                 textSize = 12f
                 alpha = 0.7f
             }, matchWrap())
