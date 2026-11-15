@@ -1017,6 +1017,7 @@ class SymbolDrawerManagerScreen(
         }
         drawerBindingHandle?.close()
         drawerBindingHandle = null
+        if (previewModeActive) finishPreviewEditMode()
         destroyDragPreview()
         reorderTouchHelper?.attachToRecyclerView(null)
         reorderTouchHelper = null
