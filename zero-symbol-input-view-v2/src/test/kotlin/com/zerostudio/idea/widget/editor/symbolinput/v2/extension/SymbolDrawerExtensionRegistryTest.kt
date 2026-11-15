@@ -230,7 +230,13 @@ class SymbolDrawerExtensionRegistryTest {
             ) = Unit
         }
         assertEquals("test.state", extension.id)
-        // Existing extensions remain valid without overriding onStateChanged.
+        // All lifecycle/state hooks remain optional for existing third-party renderers.
+        val viewType: (android.view.View, SymbolItem) -> Unit = { view, item ->
+            extension.onViewAttachedToWindow(view, item)
+            extension.onViewDetachedFromWindow(view, item)
+            extension.onStateChanged(view, item, SymbolDrawerItemViewState(0, 0))
+        }
+        assertNotNull(viewType)
     }
     @Test fun extensionErrorListenerIsolatedFromFaultyHostCallback() {
         val registry = SymbolDrawerExtensionRegistry()
