@@ -75,6 +75,31 @@ class SymbolDrawerExtensionRegistry {
             actionHandlers.register(SymbolActionId.extension(extension.id), extension.handler)
         }
 
+    /**
+     * Registers a handler against the original V1 numeric action ID.
+     *
+     * Legacy SymbolItem.shortAction/longAction values are dispatched without
+     * translating them into a second string-based action schema. The payload
+     * is passed through unchanged from shortText/longText. This is the preferred
+     * extension point when a symbol is authored with the legacy SymbolData model.
+     */
+    fun registerLegacyAction(
+        actionId: Int,
+        handler: SymbolActionHandler<SymbolActionHost>
+    ): AutoCloseable {
+        require(actionId >= 0) { "Legacy action ID must be non-negative" }
+        val registration = actionHandlers.register(actionId, handler)
+        notifyChanged()
+        var closed = false
+        return AutoCloseable {
+            if (!closed) {
+                closed = true
+                registration.close()
+                notifyChanged()
+            }
+        }
+    }
+
     fun registerIndicator(extension: SymbolGroupIndicatorExtension): AutoCloseable =
         register(indicators, extension.id, extension)
 
