@@ -327,3 +327,28 @@ payload 从原有 `shortText` / `longText` 传递，不需要转换成新的字�
 
 每个注册方法都返回 `AutoCloseable`。句柄应绑定到宿主 Fragment 的 viewLifecycleOwner 或编辑器会话；View renderer 在注销后会由原页面适配器重新绑定，扩展自行释放其 View 持有的资源。不要在静态对象中持有 Activity、Drawer 或 View。
 
+## 10. 设置扩展视图与主题的生命周期
+
+设置扩展使用同一个 `SymbolDrawerSettings` 快照和设置仓库。通过 `SymbolDrawerSettingsScope.update` 修改设置时，仍由原设置页面校验、保存并通知宿主；扩展不应自行创建第二份设置持久化模型。
+
+`SymbolDrawerSettingsTabExtension` 与 `SymbolDrawerSettingExtension` 均提供可选的 `onViewDisposed(view)`。设置页面在重新渲染或从窗口分离时调用该方法。扩展应在其中释放自己创建的 View 所持有的监听器、协程、订阅和动画；该回调可能因页面重建而多次发生，每个 View 实例只会对应一次释放调用。
+
+```kotlin
+object MyDrawerSettings : SymbolDrawerSettingExtension {
+    override val id = "com.example.drawer.settings"
+    override val tabId = "appearance"
+    override val title = "自定义显示"
+
+    override fun createView(
+        context: Context,
+        scope: SymbolDrawerSettingsScope
+    ): View = createSettingsView(context, scope)
+
+    override fun onViewDisposed(view: View) {
+        // 解除该 View 注册的观察者并停止动画。
+    }
+}
+```
+
+主题提供器返回的 `SymbolDrawerTheme` 会沿真实 `SymbolDrawerView -> SymbolPageAdapter -> SymbolDrawerItemViewState` 路径传递。默认网格背景/文字和自定义 renderer 均可读取同一主题快照。主题变更会触发现有单元格重新绑定；扩展不需要自行观察一个平行主题仓库。
+
