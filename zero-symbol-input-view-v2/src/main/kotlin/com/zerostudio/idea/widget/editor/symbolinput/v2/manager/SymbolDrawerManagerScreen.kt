@@ -583,6 +583,9 @@ class SymbolDrawerManagerScreen(
     }
 
     private fun toggleFavorite(symbol: SymbolEntry) {
+        // Usage-state edits are newer user mutations; an older undo snapshot
+        // must not restore stale favorites over this change.
+        invalidateUndo()
         if (!favoriteIds.add(symbol.id)) favoriteIds.remove(symbol.id)
         persistUsageState()
         refreshSymbols()
@@ -598,6 +601,9 @@ class SymbolDrawerManagerScreen(
     }
 
     private fun markRecentlyUsed(symbol: SymbolEntry) {
+        // A later symbol dispatch changes durable usage state, so discard any
+        // earlier undo snapshot that captured an obsolete favorites/recent set.
+        invalidateUndo()
         recentIds.remove(symbol.id)
         recentIds.addFirst(symbol.id)
         while (recentIds.size > 30) recentIds.removeLast()

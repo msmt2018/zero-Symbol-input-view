@@ -31,6 +31,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.testing.DrawerTestHostAc
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.concurrent.CountDownLatch
@@ -168,6 +169,39 @@ class DrawerUiContractTest {
         }
     }
 
+
+    @Test fun laterUsageMutationsInvalidateOlderUndoSnapshots() {
+        ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val manager = SymbolDrawerManagerScreen(activity, Groups(sample()))
+                activity.content.addView(manager, FrameLayout.LayoutParams(-1, -1))
+
+                val showUndo = manager.javaClass.getDeclaredMethod(
+                    "showUndo",
+                    String::class.java,
+                    Function0::class.java
+                ).apply { isAccessible = true }
+                val pendingUndo = manager.javaClass.getDeclaredField("pendingUndo").apply {
+                    isAccessible = true
+                }
+                val noOpUndo: () -> Unit = {}
+
+                showUndo.invoke(manager, "测试撤销", noOpUndo)
+                assertNotNull(pendingUndo.get(manager))
+                manager.recordRecentlyUsed(2L)
+                assertNull("A later toolbar dispatch must invalidate the older undo snapshot", pendingUndo.get(manager))
+
+                showUndo.invoke(manager, "测试撤销", noOpUndo)
+                assertNotNull(pendingUndo.get(manager))
+                val toggleFavorite = manager.javaClass.getDeclaredMethod(
+                    "toggleFavorite",
+                    SymbolEntry::class.java
+                ).apply { isAccessible = true }
+                toggleFavorite.invoke(manager, sample().first().symbols.first())
+                assertNull("A later favorite edit must invalidate the older undo snapshot", pendingUndo.get(manager))
+            }
+        }
+    }
 
     @Test fun managerSearchEntryUsesMaterialButtonAndTogglesSearchField() {
         ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
