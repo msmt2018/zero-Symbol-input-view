@@ -146,3 +146,16 @@ The registry now exposes the data and change notifications needed by UI containe
 ## 7. Compatibility
 
 The old `com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolTextDocument` name remains as a Kotlin typealias to the new public contract. Existing V2 action model and symbol-input APIs remain under their current namespaces. V1 integer action dispatch and V1 source are not changed by this package facade.
+
+### Custom action picker integration
+
+The first built-in UI consumer is the symbol manager action picker. Pass the same drawer-session registry to the manager screen:
+
+```kotlin
+val manager = SymbolDrawerManagerScreen(
+    context = context,
+    extensionRegistry = drawer.extensions
+)
+```
+
+Registered actions are then listed as extension actions for both short-press and long-press slots. Selecting one stores `SymbolAction.Extension(extensionId, payload)`; execution still flows through `drawer.bindActionHost(host)`, so the registry handler is resolved at runtime. The manager screen does not own or clear the registry; the drawer/session owner controls registration lifetime.
