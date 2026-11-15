@@ -120,6 +120,8 @@ class SymbolDrawerView @JvmOverloads constructor(
     /** Optional dedicated settings entry callback; falls back to the manager callback for V1 hosts. */
     var onOpenSettingsListener: (() -> Unit)? = null
     var onGroupChangedListener: ((Int, SymbolGroup?) -> Unit)? = null
+    /** Receives isolated extension failures with the extension ID; host callbacks must not throw. */
+    var onExtensionErrorListener: ((extensionId: String, error: Throwable) -> Unit)? = null
 
     private val settingsRepository = SharedPreferencesSymbolDrawerSettingsRepository(context.applicationContext)
     private val settingsPreferences = context.applicationContext.getSharedPreferences(
@@ -634,7 +636,15 @@ class SymbolDrawerView @JvmOverloads constructor(
     ): List<com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolGroup> {
         val providers = extensions.groupProviders()
         if (providers.isEmpty()) return emptyList()
-        val supplied = providers.flatMap { provider -> provider.loadGroups() }
+        val supplied = buildList {
+            providers.forEach { provider ->
+                val result = runCatching { provider.loadGroups() }
+                result.onSuccess(::addAll).onFailure { error ->
+                    runCatching { onExtensionErrorListener?.invoke(provider.id, error) }
+                }
+            }
+        }
+        if (supplied.isEmpty()) return emptyList()
         submitLegacyGroups(supplied)
         if (persist) saveGroups()
         return supplied
