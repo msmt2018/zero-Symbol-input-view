@@ -96,6 +96,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.AdaptiveContent
 import com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawerView
 import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerActionExtension
 import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerExtensionRegistry
+import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerBuiltInFeatures
 import com.google.android.material.tabs.TabLayout
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerPage
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerPageHost
@@ -347,9 +348,9 @@ class SymbolDrawerManagerScreen(
             post {
                 if (!isAttachedToWindow) return@post
                 val visibility = snapshot.builtInVisibility
-                val searchVisible = visibility["builtin.search"] ?: true
-                val favoritesVisible = visibility["builtin.favorites"] ?: true
-                val recentVisible = visibility["builtin.recent"] ?: true
+                val searchVisible = visibility[SymbolDrawerBuiltInFeatures.SEARCH] ?: true
+                val favoritesVisible = visibility[SymbolDrawerBuiltInFeatures.FAVORITES] ?: true
+                val recentVisible = visibility[SymbolDrawerBuiltInFeatures.RECENT] ?: true
                 searchButton?.visibility = if (searchVisible) View.VISIBLE else View.GONE
                 if (!searchVisible) setSearchVisible(false)
 
@@ -487,10 +488,10 @@ class SymbolDrawerManagerScreen(
         val filters = menu.menu.addSubMenu("筛选")
         buildList {
             add(ManagerSymbolFilter.ALL to "全部")
-            if (isBuiltInFeatureVisible("builtin.favorites")) {
+            if (isBuiltInFeatureVisible(SymbolDrawerBuiltInFeatures.FAVORITES)) {
                 add(ManagerSymbolFilter.FAVORITES to "收藏")
             }
-            if (isBuiltInFeatureVisible("builtin.recent")) {
+            if (isBuiltInFeatureVisible(SymbolDrawerBuiltInFeatures.RECENT)) {
                 add(ManagerSymbolFilter.RECENT to "最近")
             }
         }.forEach { (filter, label) ->
