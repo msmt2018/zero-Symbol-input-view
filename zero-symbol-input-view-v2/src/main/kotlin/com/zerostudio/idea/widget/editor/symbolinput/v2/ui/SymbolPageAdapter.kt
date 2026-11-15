@@ -244,7 +244,7 @@ internal class SymbolPageAdapter(
                     if (width <= 1 || symbols.isEmpty()) return@post
                     val density = grid.resources.displayMetrics.density.coerceAtLeast(0.1f)
                     val paint = android.text.TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
-                        textSize = 6f * grid.resources.displayMetrics.scaledDensity
+                        textSize = settings.symbolLabelTextSizeSp * 0.75f * grid.resources.displayMetrics.scaledDensity
                     }
                     val longest = symbols.asSequence()
                         .filter { it.shortAction != SymbolAction.OpenManager && settings.showSymbolLabels }
@@ -252,7 +252,7 @@ internal class SymbolPageAdapter(
                         .maxOrNull() ?: 0f
                     val minimumCellWidth = maxOf(
                         settings.minimumTouchTargetDp * density,
-                        longest + 12f * density
+                        longest + 8f * density
                     )
                     val adaptiveColumns = (width / minimumCellWidth).toInt().coerceIn(1, config.columns)
                     val manager = grid.layoutManager as? GridLayoutManager ?: return@post
