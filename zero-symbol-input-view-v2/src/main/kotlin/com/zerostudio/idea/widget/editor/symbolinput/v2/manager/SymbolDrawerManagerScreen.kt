@@ -96,6 +96,8 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.Drawer
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerPageHost
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.panel.DrawerPanelContent
 
+private const val SETTINGS_PREFERENCE_KEY = "settings_json_v1"
+
 private class SymbolHolder(val root: LinearLayout, val title: TextView, val detail: TextView, val dragHandle: TextView) : RecyclerView.ViewHolder(root)
 
 private data class SymbolActionOption(
@@ -162,7 +164,20 @@ class SymbolDrawerManagerScreen(
     private val manager = SymbolGroupManager(repository.also {
         LegacySymbolDataMigration.importIfV2Empty(context, it)
     })
-    private val settings = SharedPreferencesSymbolDrawerSettingsRepository(context).load().settings
+    private val settingsRepository = SharedPreferencesSymbolDrawerSettingsRepository(context)
+    private var settings = settingsRepository.load().settings
+    private val settingsPreferences = context.applicationContext.getSharedPreferences(
+        "symbol_drawer_v2_settings",
+        Context.MODE_PRIVATE
+    )
+    private var settingsListenerRegistered = false
+    private val settingsPreferenceListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == SETTINGS_PREFERENCE_KEY) {
+            settings = settingsRepository.load().settings
+            refreshSymbols()
+            previewDrawer?.applySettings(settings)
+        }
+    }
     private val groupNavigationBar = LinearLayout(context)
     private val groupNavigationScroll = HorizontalScrollView(context)
     private val groupPageHost = DrawerPageHost(context)
@@ -876,9 +891,10 @@ class SymbolDrawerManagerScreen(
             container.addView(batchBar, matchWrap())
             container.addView(emptyView, matchWrap())
             val list = symbolList ?: return
-            val listHeight = if (embeddedInSettings) dp(320) else 0
-            val weight = if (embeddedInSettings) 0f else 1f
-            container.addView(list, LayoutParams(LayoutParams.MATCH_PARENT, listHeight, weight))
+            // The page host already owns the embedded height. Let the list
+            // consume only the remainder after the batch and empty-state rows,
+            // otherwise a second fixed 320dp height makes the page overflow.
+            container.addView(list, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
         }
 
         override fun onPanelHidden() {
@@ -899,12 +915,24 @@ class SymbolDrawerManagerScreen(
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
+        if (!settingsListenerRegistered) {
+            settingsPreferences.registerOnSharedPreferenceChangeListener(settingsPreferenceListener)
+            settingsListenerRegistered = true
+        }
+        // Settings may have changed while this manager was detached.
+        settings = settingsRepository.load().settings
+        refreshSymbols()
+        previewDrawer?.applySettings(settings)
         groupPageHost.setPanelVisible(true)
         if (reorderTouchHelper == null) symbolList?.let(::installSymbolReordering)
     }
 
     override fun onDetachedFromWindow() {
         groupPageHost.setPanelVisible(false)
+        if (settingsListenerRegistered) {
+            settingsPreferences.unregisterOnSharedPreferenceChangeListener(settingsPreferenceListener)
+            settingsListenerRegistered = false
+        }
         drawerBindingHandle?.close()
         drawerBindingHandle = null
         destroyDragPreview()
