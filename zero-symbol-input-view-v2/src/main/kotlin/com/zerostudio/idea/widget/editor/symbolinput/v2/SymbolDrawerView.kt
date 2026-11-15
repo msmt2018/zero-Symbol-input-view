@@ -324,7 +324,7 @@ class SymbolDrawerView @JvmOverloads constructor(
         val component = runCatching {
             extension.create(
                 context,
-                SymbolGroupIndicatorState(groups, pager.currentItem) { index -> selectGroup(index, true) }
+                SymbolGroupIndicatorState(legacyGroupsSnapshot(), pager.currentItem) { index -> selectGroup(index, true) }
             )
         }.getOrElse { return false }
         runCatching { customIndicatorComponent?.onDispose() }
@@ -336,7 +336,7 @@ class SymbolDrawerView @JvmOverloads constructor(
         customIndicatorId = extensionId
         activeCustomIndicatorExtension = extension
         customIndicatorComponent = component
-        component.submitGroups(groups)
+        component.submitGroups(legacyGroupsSnapshot())
         component.setSelectedIndex(pager.currentItem)
         component.applySettings(settings)
         component.applyTheme(activeTheme)
@@ -368,7 +368,7 @@ class SymbolDrawerView @JvmOverloads constructor(
     }
 
     private fun submitIndicatorGroups(value: List<SymbolGroup>) {
-        customIndicatorComponent?.submitGroups(value) ?: indicator.submitGroups(value)
+        customIndicatorComponent?.submitGroups(legacyGroupsSnapshot()) ?: indicator.submitGroups(value)
     }
 
     private fun applyIndicatorSettings(value: SymbolDrawerSettings) {
@@ -584,6 +584,9 @@ class SymbolDrawerView @JvmOverloads constructor(
             items = group.symbols.map(::resolveLegacyItem).toMutableList()
         )
     }
+
+    private fun legacyGroupsSnapshot(): List<com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolGroup> =
+        groups.indices.mapNotNull(::legacyGroupAt)
 
     /** Loads extension-provided legacy groups in deterministic priority/ID order. */
     suspend fun reloadLegacyGroupsFromExtensions(): List<com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolGroup> {
