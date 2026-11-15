@@ -152,6 +152,7 @@ class SymbolDrawerManagerScreen(
 ) : LinearLayout(context) {
 
     var onGroupsChanged: ((List<SymbolGroup>) -> Unit)? = null
+    private var drawerBindingHandle: AutoCloseable? = null
     var onExportBundle: ((String) -> Unit)? = null
     var onError: ((Throwable) -> Unit)? = null
 
@@ -254,6 +255,10 @@ class SymbolDrawerManagerScreen(
      * Close the returned handle when this manager surface is disposed.
      */
     fun bindToDrawer(drawer: SymbolDrawerView): AutoCloseable {
+        // A manager surface owns at most one live toolbar binding. Rebinding first
+        // restores the previous listeners so callbacks cannot accumulate.
+        drawerBindingHandle?.close()
+        drawerBindingHandle = null
         val previousListener = onGroupsChanged
         val previousUsageListener = drawer.onSymbolUsedListener
         val listener: (List<SymbolGroup>) -> Unit = { committedGroups ->
@@ -267,12 +272,18 @@ class SymbolDrawerManagerScreen(
         drawer.onSymbolUsedListener = usageListener
         drawer.setRepository(repository, reload = false)
         drawer.submitGroups(manager.groups, preserveSelectedGroup = true)
-        return AutoCloseable {
+        val handle = AutoCloseable {
             if (onGroupsChanged === listener) onGroupsChanged = previousListener
             if (drawer.onSymbolUsedListener === usageListener) {
                 drawer.onSymbolUsedListener = previousUsageListener
             }
+            if (drawerBindingHandle === drawerHandleRef) drawerBindingHandle = null
         }
+        // Keep an idempotent owner handle so detaching this screen also detaches
+        // callbacks from the live toolbar. The returned handle remains caller-owned.
+        val drawerHandleRef = AutoCloseable { handle.close() }
+        drawerBindingHandle = drawerHandleRef
+        return drawerHandleRef
     }
 
     fun exportBundle(): String = SymbolGroupBundleCodec.encode(manager.groups)
@@ -1304,6 +1315,8 @@ class SymbolDrawerManagerScreen(
     }
 
     override fun onDetachedFromWindow() {
+        drawerBindingHandle?.close()
+        drawerBindingHandle = null
         destroyDragPreview()
         reorderTouchHelper?.attachToRecyclerView(null)
         reorderTouchHelper = null
