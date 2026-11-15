@@ -179,7 +179,7 @@ fun interface SymbolActionHandler<C> {
 - `drawerBackground`，默认等于 surface。
 - `selectedCellBackground`，默认等于 primary。
 
-Theme provider 应尽量保持纯解析行为，不要在 resolve 中修改 Window、写入持久化数据或持有 Activity。宿主可将颜色 token 应用到其它表面；当前 `SymbolDrawerView.setThemeExtension` 已覆盖抽屉外壳和内置分组指示器，符号网格、Manager、Settings 的全量主题覆盖仍在后续接入。
+Theme provider 应尽量保持纯解析行为，不要在 resolve 中修改 Window、写入持久化数据或持有 Activity。当前 `SymbolDrawerView.setThemeExtension` 已将 token 传入原有 `SymbolPageAdapter`：网格 surface、原生符号文字和设置图标会在主题变化后实时刷新；自定义单元格通过 `SymbolDrawerItemViewState.theme` 收到同一快照。抽屉外壳、内置分组指示器和自定义分组指示器也使用该快照。Manager 和 Settings 的完整 token 覆盖尚未完成，仍使用宿主主题解析器。
 
 ## 6. 内置功能隐藏策略
 
