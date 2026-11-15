@@ -175,6 +175,10 @@ class SymbolDrawerManagerScreen(
         onDragHandle = { holder -> reorderTouchHelper?.startDrag(holder) }
     )
     private var selectedGroupId: String? = manager.groups.firstOrNull()?.id
+    private val selectedSymbolIds = linkedSetOf<Long>()
+    private var batchMode = false
+    private val batchBar = LinearLayout(context)
+    private val batchSummary = TextView(context)
     private val undoBar = LinearLayout(context)
     private val undoMessage = TextView(context)
     private val undoButton = Button(context)
@@ -274,6 +278,9 @@ class SymbolDrawerManagerScreen(
             setTextColor(HostThemeColors.onSurface(context))
             setTypeface(typeface, android.graphics.Typeface.BOLD)
         }, LinearLayout.LayoutParams(0, dp(44), 1f))
+        val batchButton = actionButton("批量") { }
+        batchButton.setOnClickListener { setBatchMode(!batchMode) }
+        row.addView(batchButton, LayoutParams(LayoutParams.WRAP_CONTENT, dp(40)))
         val addButton = actionButton("＋ 添加") { }
         addButton.setOnClickListener { showAddMenu(addButton) }
         row.addView(addButton, LayoutParams(LayoutParams.WRAP_CONTENT, dp(40)))
@@ -448,7 +455,105 @@ class SymbolDrawerManagerScreen(
             addView(list, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
         }
         installSymbolReordering(list)
+        buildBatchBar()
         buildDragPreviewPanel()
+    }
+
+    private fun buildBatchBar() {
+        batchBar.orientation = HORIZONTAL
+        batchBar.gravity = android.view.Gravity.CENTER_VERTICAL
+        batchBar.visibility = View.GONE
+        batchBar.setPadding(dp(4), dp(4), dp(4), dp(4))
+        batchSummary.setTextColor(HostThemeColors.secondaryText(context))
+        batchSummary.textSize = 12f
+        batchBar.addView(batchSummary, LayoutParams(0, dp(40), 1f))
+        batchBar.addView(actionButton("复制") { batchCopy() }, LayoutParams(LayoutParams.WRAP_CONTENT, dp(36)))
+        batchBar.addView(actionButton("移动") { batchMove() }, LayoutParams(LayoutParams.WRAP_CONTENT, dp(36)))
+        batchBar.addView(actionButton("删除") { batchDelete() }, LayoutParams(LayoutParams.WRAP_CONTENT, dp(36)))
+        addView(batchBar, indexOfChild(symbolList), matchWrap())
+    }
+
+    private fun setBatchMode(enabled: Boolean) {
+        batchMode = enabled
+        selectedSymbolIds.clear()
+        batchBar.visibility = if (enabled) View.VISIBLE else View.GONE
+        searchToggle.isEnabled = !enabled
+        updateBatchSummary()
+        symbolAdapter.notifyDataSetChanged()
+    }
+
+    private fun updateBatchSummary() {
+        batchSummary.text = "已选择 ${selectedSymbolIds.size} 项"
+    }
+
+    private fun toggleBatchSelection(symbol: SymbolEntry) {
+        if (!batchMode) return
+        if (!selectedSymbolIds.add(symbol.id)) selectedSymbolIds.remove(symbol.id)
+        updateBatchSummary()
+        symbolAdapter.notifyDataSetChanged()
+    }
+
+    private fun selectedBatch(): Pair<SymbolGroup, Set<Long>>? {
+        val group = currentGroup() ?: return null
+        val ids = selectedSymbolIds.toSet()
+        if (ids.isEmpty()) {
+            toast("请先选择符号")
+            return null
+        }
+        return group to ids
+    }
+
+    private fun batchDelete() {
+        val (group, ids) = selectedBatch() ?: return
+        val before = manager.groups.toList()
+        runCatching {
+            manager.removeSymbols(group.id, ids)
+            selectedSymbolIds.clear()
+            updateBatchSummary()
+            refresh()
+            showUndo("已删除 ${ids.size} 个符号") { manager.replaceAll(before) }
+        }.onFailure(::reportError)
+    }
+
+    private fun batchCopy() {
+        val (group, ids) = selectedBatch() ?: return
+        val targets = manager.groups.filter { it.id != group.id }
+        if (targets.isEmpty()) { toast("请先创建另一个分组"); return }
+        AlertDialog.Builder(context)
+            .setTitle("复制所选符号到")
+            .setItems(targets.map { it.title }.toTypedArray()) { _, which ->
+                val before = manager.groups.toList()
+                runCatching {
+                    val target = targets[which]
+                    manager.copySymbols(group.id, ids, target.id)
+                    selectedSymbolIds.clear()
+                    refresh()
+                    showUndo("已复制 ${ids.size} 个符号") { manager.replaceAll(before) }
+                }.onFailure(::reportError)
+            }
+            .setNegativeButton("取消", null)
+            .showAdaptiveDialog()
+    }
+
+    private fun batchMove() {
+        val (group, ids) = selectedBatch() ?: return
+        val targets = manager.groups.filter { it.id != group.id }
+        if (targets.isEmpty()) { toast("请先创建另一个分组"); return }
+        AlertDialog.Builder(context)
+            .setTitle("移动所选符号到")
+            .setItems(targets.map { it.title }.toTypedArray()) { _, which ->
+                val before = manager.groups.toList()
+                runCatching {
+                    val target = targets[which]
+                    manager.moveSymbolsToGroup(group.id, ids, target.id)
+                    selectedGroupId = target.id
+                    selectedSymbolIds.clear()
+                    refresh()
+                    showUndo("已移动 ${ids.size} 个符号") { manager.replaceAll(before) }
+                }.onFailure(::reportError)
+            }
+            .setNegativeButton("取消", null)
+            .showAdaptiveDialog()
     }
 
     /**
@@ -620,6 +725,8 @@ class SymbolDrawerManagerScreen(
         }
         symbolAdapter.submitList(symbols)
         emptyView.visibility = if (symbols.isEmpty()) View.VISIBLE else View.GONE
+        selectedSymbolIds.retainAll(group?.symbols?.mapTo(mutableSetOf()) { it.id }.orEmpty())
+        updateBatchSummary()
     }
 
     private fun currentGroup(): SymbolGroup? =
@@ -1051,8 +1158,16 @@ class SymbolDrawerManagerScreen(
             val longName = symbol.legacyLongActionId?.let(::actionName) ?: symbol.longAction?.javaClass?.simpleName ?: "无"
             holder.detail.text = "短按  $shortName    ·    长按  $longName"
             holder.root.contentDescription = "${symbol.label}，短按$shortName，长按$longName"
-            holder.root.setOnClickListener { onClick(symbol) }
-            holder.root.setOnLongClickListener { onLongClick(symbol, holder.root); true }
+            val selected = symbol.id in selectedSymbolIds
+            holder.root.alpha = if (batchMode && selected) 0.72f else 1f
+            holder.root.setOnClickListener {
+                if (batchMode) toggleBatchSelection(symbol) else onClick(symbol)
+            }
+            holder.root.setOnLongClickListener {
+                if (batchMode) toggleBatchSelection(symbol) else onLongClick(symbol, holder.root)
+                true
+            }
+            holder.dragHandle.visibility = if (batchMode) View.GONE else View.VISIBLE
             holder.dragHandle.isEnabled = true
             holder.dragHandle.alpha = if (holder.bindingAdapterPosition == RecyclerView.NO_POSITION) 0.45f else 1f
             holder.dragHandle.setOnTouchListener { _, event ->
