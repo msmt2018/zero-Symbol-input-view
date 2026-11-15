@@ -437,7 +437,7 @@ rebinder.register("my.plugin.insert") { arguments ->
 }
 ```
 
-SymbolToolbarDocumentStore 是存储边界，宿主可接 SharedPreferences、DataStore 或 Room；当前提供 InMemory 实现用于测试。JSON 文档包含 schema/version，导入会检查版本和 toolbarId。自动保存由宿主在配置/动作声明提交时调用 save，或通过 observe 接入自己的状态流；不应在每次手指移动等高频事件上写盘。
+SymbolToolbarDocumentStore 是存储边界；已提供 SharedPreferencesSymbolToolbarDocumentStore（使用 applicationContext、同步提交并检查写入结果）和 InMemory 实现用于测试，宿主也可替换为 DataStore 或 Room。JSON 文档包含 schema/version，导入会检查版本和 toolbarId。自动保存由宿主在配置/动作声明提交时调用 save，或通过 observe 接入自己的状态流；不应在每次手指移动等高频事件上写盘。
 
 **重要限制：** 这些持久化与重绑定 API 已提供，但旧版 SymbolDrawerView 还没有全部切换到此文档模型，也尚未完成真实控件自动保存/恢复闭环。控件接入时必须保留原 V1 数字动作兼容、shortAction/longAction 回退和现有交互，不得把可执行 lambda 直接序列化。
 ### 8. V1 / MT 管理器紧凑 JSON 互通
