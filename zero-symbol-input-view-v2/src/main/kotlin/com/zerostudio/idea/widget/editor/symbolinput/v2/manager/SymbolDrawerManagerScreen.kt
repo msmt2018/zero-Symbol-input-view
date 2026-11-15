@@ -487,10 +487,7 @@ class SymbolDrawerManagerScreen(
         menu.menu.add("添加符号").setOnMenuItemClickListener { editSymbol(null); true }
         menu.menu.add(if (previewModeActive) "退出预览编辑" else "预览编辑")
             .setOnMenuItemClickListener {
-                themeObserver?.close()
-        themeObserver = null
-        drawerTheme = null
-        if (previewModeActive) finishPreviewEditMode() else enterPreviewEditMode()
+                if (previewModeActive) finishPreviewEditMode() else enterPreviewEditMode()
                 true
             }
         menu.menu.add("添加分组").setOnMenuItemClickListener {
@@ -525,7 +522,7 @@ class SymbolDrawerManagerScreen(
         groupTabs.tabMode = TabLayout.MODE_SCROLLABLE
         groupTabs.isInlineLabel = true
         groupTabs.setSelectedTabIndicatorColor(primaryColor())
-        groupTabs.setTabTextColors(secondaryTextColor(), HostThemeColors.primary(context))
+        groupTabs.setTabTextColors(secondaryTextColor(), primaryColor())
         groupTabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab) {
                 val id = tab.tag as? String ?: return
@@ -1237,6 +1234,9 @@ class SymbolDrawerManagerScreen(
         drawerBindingHandle = null
         builtInVisibilityObserver?.close()
         builtInVisibilityObserver = null
+        themeObserver?.close()
+        themeObserver = null
+        drawerTheme = null
         if (previewModeActive) finishPreviewEditMode()
         destroyDragPreview()
         // A detached manager must not retain an in-flight gesture snapshot that
@@ -1825,8 +1825,10 @@ class SymbolDrawerManagerScreen(
         cornerRadius = dp(radiusDp).toFloat()
         setStroke(dp(1), outlineColor())
     }
-    private fun surfaceColor() = surfaceColor()
-    private fun primaryColor() = HostThemeColors.primary(context)
-    private fun secondaryTextColor() = HostThemeColors.secondaryText(context)
+    private fun surfaceColor() = drawerTheme?.surface ?: HostThemeColors.surface(context)
+    private fun onSurfaceColor() = drawerTheme?.onSurface ?: HostThemeColors.onSurface(context)
+    private fun primaryColor() = drawerTheme?.primary ?: HostThemeColors.primary(context)
+    private fun secondaryTextColor() = drawerTheme?.secondaryText ?: HostThemeColors.secondaryText(context)
+    private fun outlineColor() = drawerTheme?.outline ?: HostThemeColors.outline(context)
 
 }
