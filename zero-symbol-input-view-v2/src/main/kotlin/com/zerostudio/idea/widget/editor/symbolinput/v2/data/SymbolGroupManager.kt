@@ -58,7 +58,8 @@ class SymbolGroupManager(
     private val newId: () -> String = { UUID.randomUUID().toString() },
     private val newSymbolId: () -> Long = { UUID.randomUUID().mostSignificantBits }
 ) {
-    var groups: List<SymbolGroup> = repository.loadGroups()
+    // Detach the manager snapshot from repositories that reuse a mutable list instance.
+    var groups: List<SymbolGroup> = repository.loadGroups().toList()
         private set
 
     init {

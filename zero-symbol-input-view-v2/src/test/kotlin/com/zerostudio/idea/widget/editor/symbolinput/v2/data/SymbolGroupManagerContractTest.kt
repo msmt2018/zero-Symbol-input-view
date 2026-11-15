@@ -67,6 +67,24 @@ class SymbolGroupManagerContractTest {
     }
 
 
+
+    @Test fun initialSnapshotIsDetachedFromMutableRepositoryList() {
+        val repositoryData = mutableListOf(SymbolGroup("a", "A", listOf(symbol(1))))
+        val repo = object : SymbolGroupRepository {
+            override fun loadGroups(): List<SymbolGroup> = repositoryData
+            override fun saveGroups(groups: List<SymbolGroup>) {
+                repositoryData.clear()
+                repositoryData.addAll(groups)
+            }
+        }
+
+        val manager = SymbolGroupManager(repo)
+        repositoryData.clear()
+
+        assertEquals(listOf("a"), manager.groups.map { it.id })
+        assertEquals(listOf(1L), manager.groups.single().symbols.map { it.id })
+    }
+
     @Test fun reloadRejectsInvalidExternalSnapshotWithoutReplacingCurrentState() {
         val first = symbol(1, "first")
         val initial = listOf(SymbolGroup("a", "A", listOf(first)))
