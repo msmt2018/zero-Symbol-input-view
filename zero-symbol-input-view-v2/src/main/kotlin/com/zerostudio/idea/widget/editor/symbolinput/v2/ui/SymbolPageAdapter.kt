@@ -230,6 +230,14 @@ internal class SymbolPageAdapter(
         holder.bind(position, getItem(position).symbols)
     }
 
+    override fun onBindViewHolder(holder: PageHolder, position: Int, payloads: MutableList<Any>) {
+        if (payloads.contains(ITEM_EXTENSION_PAYLOAD)) {
+            holder.refreshItemExtensions()
+        } else {
+            onBindViewHolder(holder, position)
+        }
+    }
+
     override fun onViewRecycled(holder: PageHolder) {
         holder.clear()
     }
@@ -279,6 +287,9 @@ internal class SymbolPageAdapter(
                 if (manager.spanCount != columns) manager.spanCount = columns
             }
         }
+        fun refreshItemExtensions() {
+            symbolsAdapter.refreshItemExtensions()
+        }
         fun clear() = symbolsAdapter.submitList(emptyList())
     }
 
@@ -291,6 +302,9 @@ internal class SymbolPageAdapter(
         private val legacyItemResolver: (SymbolEntry) -> SymbolItem
     ) : ListAdapter<SymbolEntry, SymbolHolder>(SYMBOL_DIFF) {
         var groupIndex: Int = -1
+        fun refreshItemExtensions() {
+            if (itemCount > 0) notifyItemRangeChanged(0, itemCount)
+        }
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SymbolHolder {
             val container = android.widget.FrameLayout(parent.context)
             val label = TextView(parent.context).apply {
