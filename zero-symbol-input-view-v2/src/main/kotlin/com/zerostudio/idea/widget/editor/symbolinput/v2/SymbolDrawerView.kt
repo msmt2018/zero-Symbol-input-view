@@ -586,13 +586,31 @@ class SymbolDrawerView @JvmOverloads constructor(
 
     /** Exact legacy record when submitted from the legacy API; safe V1 projection otherwise. */
     private fun resolveLegacyItem(entry: SymbolEntry): SymbolItem =
-        legacyItemsBySymbolId[entry.id]?.copy() ?: SymbolItem(
-            shortAction = entry.legacyShortActionId ?: 0,
-            display = entry.label,
-            shortText = entry.legacyShortText,
-            longAction = entry.legacyLongActionId,
-            longText = entry.legacyLongText
-        )
+        legacyItemsBySymbolId[entry.id]?.copy() ?: runCatching {
+            // Reuse the established V1 codec to project representable typed V2
+            // actions into the exact compact legacy SymbolItem contract.
+            val projection = SymbolGroup(
+                id = "legacy-api-projection",
+                title = "legacy-api-projection",
+                symbols = listOf(entry)
+            )
+            val json = LegacySymbolDataCodec.encode(listOf(projection))
+            val groups = com.google.gson.Gson().fromJson(
+                json,
+                Array<com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolGroup>::class.java
+            )
+            groups.single().items.single()
+        }.getOrElse {
+            // New V2-only action types have no V1 representation. Preserve the
+            // original V1 metadata if present and expose the label unchanged.
+            SymbolItem(
+                shortAction = entry.legacyShortActionId ?: 0,
+                display = entry.label,
+                shortText = entry.legacyShortText,
+                longAction = entry.legacyLongActionId,
+                longText = entry.legacyLongText
+            )
+        }
 
     private fun legacyGroupAt(index: Int): com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolGroup? {
         val group = groups.getOrNull(index) ?: return null
