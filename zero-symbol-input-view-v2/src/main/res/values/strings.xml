@@ -348,4 +348,5 @@
     <string name="legacy_action_label_31">Paste</string>
     <string name="legacy_action_label_32">Undo</string>
     <string name="legacy_action_label_33">Redo</string>
+    <string name="symbol_drawer_023">Triangle pointer</string>
 </resources>
