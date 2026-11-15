@@ -5,6 +5,8 @@
  */
 package com.zerostudio.idea.widget.editor.symbolinput.v2.action
 
+import com.zerostudio.idea.widget.drawer.action.SymbolTextDocument as PublicSymbolTextDocument
+
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.ClipboardOperation
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.CursorTarget
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.DeleteKind
@@ -12,19 +14,19 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SelectionTransform
 
 /** Optional host bridge for clipboard operations on an editor-neutral document. */
 fun interface SymbolTextClipboard {
-    fun perform(document: SymbolTextDocument, operation: ClipboardOperation): Boolean
+    fun perform(document: PublicSymbolTextDocument, operation: ClipboardOperation): Boolean
 }
 
 /**
- * Default SymbolActionHost implementation backed only by SymbolTextDocument.
+ * Default SymbolActionHost implementation backed only by PublicSymbolTextDocument.
  *
- * An editor adapter implements SymbolTextDocument once; this class supplies
+ * An editor adapter implements PublicSymbolTextDocument once; this class supplies
  * common insert/selection/cursor/delete/transform/editor-command behavior without
  * importing any editor-core types. Clipboard and manager navigation are
  * intentionally injected because they belong to the host application.
  */
 class SymbolTextDocumentActionHost(
-    private val document: SymbolTextDocument,
+    private val document: PublicSymbolTextDocument,
     private val clipboard: SymbolTextClipboard = SymbolTextClipboard { _, _ -> false },
     private val openManagerAction: () -> Boolean = { false },
     private val extensionAction: (String, String?) -> Boolean = { _, _ -> false }
