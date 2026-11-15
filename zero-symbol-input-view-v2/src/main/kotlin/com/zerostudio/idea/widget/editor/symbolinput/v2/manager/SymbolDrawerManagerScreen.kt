@@ -60,6 +60,7 @@ import android.widget.Spinner
 import android.widget.ScrollView
 import android.widget.TextView
 import com.google.android.material.tabs.TabLayout
+import com.google.android.material.button.MaterialButton
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.util.TypedValue
@@ -160,7 +161,7 @@ class SymbolDrawerManagerScreen(
     private val settings = SharedPreferencesSymbolDrawerSettingsRepository(context).load().settings
     private val groupTabs = TabLayout(context)
     private val searchField = EditText(context)
-    private val searchToggle = Button(context)
+    private val searchToggle = MaterialButton(context)
     private val searchContainer = LinearLayout(context)
     private var rebuildingTabs = false
     private val emptyView = TextView(context)
@@ -276,16 +277,30 @@ class SymbolDrawerManagerScreen(
         val addButton = actionButton("＋ 添加") { }
         addButton.setOnClickListener { showAddMenu(addButton) }
         row.addView(addButton, LayoutParams(LayoutParams.WRAP_CONTENT, dp(40)))
-        searchToggle.text = "⌕"
-        searchToggle.textSize = 22f
-        searchToggle.minWidth = dp(40)
-        searchToggle.setPadding(dp(8), 0, dp(8), 0)
-        searchToggle.setOnClickListener {
-            val show = searchContainer.visibility != View.VISIBLE
-            searchContainer.visibility = if (show) View.VISIBLE else View.GONE
-            if (!show) searchField.text?.clear() else searchField.requestFocus()
+        searchToggle.apply {
+            text = "搜索"
+            isAllCaps = false
+            textSize = 13f
+            minWidth = dp(84)
+            minHeight = dp(40)
+            insetTop = 0
+            insetBottom = 0
+            cornerRadius = dp(12)
+            icon = context.getDrawable(android.R.drawable.ic_menu_search)
+            iconSize = dp(18)
+            iconPadding = dp(5)
+            iconGravity = MaterialButton.ICON_GRAVITY_TEXT_START
+            iconTint = android.content.res.ColorStateList.valueOf(HostThemeColors.onSurface(context))
+            contentDescription = "打开符号搜索"
+            setOnClickListener {
+                val show = searchContainer.visibility != View.VISIBLE
+                searchContainer.visibility = if (show) View.VISIBLE else View.GONE
+                text = if (show) "收起" else "搜索"
+                contentDescription = if (show) "收起符号搜索" else "打开符号搜索"
+                if (!show) searchField.text?.clear() else searchField.requestFocus()
+            }
         }
-        row.addView(searchToggle, LayoutParams(dp(44), dp(40)))
+        row.addView(searchToggle, LayoutParams(LayoutParams.WRAP_CONTENT, dp(40)))
         addView(row, matchWrap())
     }
 
