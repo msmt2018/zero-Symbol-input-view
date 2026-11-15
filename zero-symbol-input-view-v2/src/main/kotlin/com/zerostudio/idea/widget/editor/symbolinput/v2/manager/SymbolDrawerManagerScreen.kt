@@ -1044,6 +1044,10 @@ class SymbolDrawerManagerScreen(
         drawerBindingHandle = null
         if (previewModeActive) finishPreviewEditMode()
         destroyDragPreview()
+        // A detached manager must not retain an in-flight gesture snapshot that
+        // could be mistaken for a later drag after the view is reattached.
+        reorderGestureSnapshot = null
+        reorderGestureGroupId = null
         reorderTouchHelper?.attachToRecyclerView(null)
         reorderTouchHelper = null
         super.onDetachedFromWindow()
