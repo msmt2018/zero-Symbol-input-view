@@ -10,6 +10,39 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class DrawerInteractionControllerTest {
+    @Test fun symbolDrawerUsesPersistedCollapsedRowSettingAndRetainsGroupPaging() {
+        ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val drawer = SymbolDrawerView(activity)
+                val configuredRows = 4
+                val settings = com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings(
+                    columns = 5,
+                    collapsedRows = configuredRows
+                )
+                drawer.applySettings(settings)
+                val width = (360f * activity.resources.displayMetrics.density).toInt()
+                drawer.measure(
+                    android.view.View.MeasureSpec.makeMeasureSpec(width, android.view.View.MeasureSpec.EXACTLY),
+                    android.view.View.MeasureSpec.makeMeasureSpec(0, android.view.View.MeasureSpec.UNSPECIFIED)
+                )
+                val expectedHeight = com.zerostudio.idea.widget.editor.symbolinput.v2.state.DrawerGeometry
+                    .collapsedHeightPx(settings.toDrawerConfig(), activity.resources.displayMetrics.density)
+                assertEquals(expectedHeight, drawer.measuredHeight)
+
+                val groups = listOf(
+                    com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup("first", "First", emptyList()),
+                    com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup("second", "Second", emptyList()),
+                    com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup("third", "Third", emptyList())
+                )
+                drawer.submitGroups(groups)
+                drawer.selectGroup(1, false)
+                assertEquals(1, drawer.currentGroupIndex)
+                drawer.selectGroup(2, false)
+                assertEquals(2, drawer.currentGroupIndex)
+            }
+        }
+    }
+
     @Test fun continuousDragUsesFeatureSuppliedBoundsAndReportsIntermediateHeights() {
         ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
