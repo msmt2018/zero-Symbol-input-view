@@ -75,12 +75,8 @@ class SymbolTextDocumentActionHost(
         val lineStart = document.lineStartOffset(line).coerceIn(0, length)
         val lineEnd = document.lineEndOffset(line).coerceIn(lineStart, length)
         val targetOffset = when (target) {
-            CursorTarget.LEFT -> SymbolTextEditing.codePointDeletionRange(
-                document.textBetween(0, length), cursor, backwards = true
-            )?.start ?: cursor
-            CursorTarget.RIGHT -> SymbolTextEditing.codePointDeletionRange(
-                document.textBetween(0, length), cursor, backwards = false
-            )?.end ?: cursor
+            CursorTarget.LEFT -> adjacentCodePointRange(cursor, backwards = true)?.start ?: cursor
+            CursorTarget.RIGHT -> adjacentCodePointRange(cursor, backwards = false)?.end ?: cursor
             CursorTarget.LINE_START -> lineStart
             CursorTarget.LINE_END -> lineEnd
             CursorTarget.DOCUMENT_START -> 0
@@ -106,12 +102,8 @@ class SymbolTextDocumentActionHost(
         val cursor = document.cursorOffset.coerceIn(0, length)
         val range = when {
             selectionStart != selectionEnd -> SymbolTextRange(selectionStart, selectionEnd)
-            kind == DeleteKind.BACKWARD -> SymbolTextEditing.codePointDeletionRange(
-                document.textBetween(0, length), cursor, backwards = true
-            )
-            kind == DeleteKind.FORWARD -> SymbolTextEditing.codePointDeletionRange(
-                document.textBetween(0, length), cursor, backwards = false
-            )
+            kind == DeleteKind.BACKWARD -> adjacentCodePointRange(cursor, backwards = true)
+            kind == DeleteKind.FORWARD -> adjacentCodePointRange(cursor, backwards = false)
             else -> {
                 val line = document.lineForOffset(cursor).coerceIn(0, document.lineCount - 1)
                 val start = document.lineStartOffset(line).coerceIn(0, length)
@@ -161,6 +153,28 @@ class SymbolTextDocumentActionHost(
         if (!document.replace(start, end, transformed)) return false
         document.setSelection(start, start + transformed.length)
         return true
+    }
+
+    /**
+     * Reads at most two UTF-16 code units around the caret. Cursor movement and
+     * backspace/delete therefore remain O(1) and never materialize the document.
+     */
+    private fun adjacentCodePointRange(cursorOffset: Int, backwards: Boolean): SymbolTextRange? {
+        val cursor = cursorOffset.coerceIn(0, document.textLength)
+        if (backwards) {
+            if (cursor == 0) return null
+            var start = cursor - 1
+            if (Character.isLowSurrogate(document.charAt(start)) &&
+                start > 0 && Character.isHighSurrogate(document.charAt(start - 1))
+            ) start--
+            return SymbolTextRange(start, cursor)
+        }
+        if (cursor >= document.textLength) return null
+        var end = cursor + 1
+        if (Character.isHighSurrogate(document.charAt(cursor)) &&
+            end < document.textLength && Character.isLowSurrogate(document.charAt(end))
+        ) end++
+        return SymbolTextRange(cursor, end)
     }
 
     override fun executeEditorCommand(commandId: String, payload: String?): Boolean =
