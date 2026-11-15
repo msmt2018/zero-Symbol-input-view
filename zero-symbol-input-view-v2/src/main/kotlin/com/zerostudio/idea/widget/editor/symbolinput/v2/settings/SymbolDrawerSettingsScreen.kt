@@ -219,7 +219,7 @@ class SymbolDrawerSettingsScreen(
                 addSeek("纵向间距 (dp)", current.cellVerticalSpacingDp, -24, 48) { update { copy(cellVerticalSpacingDp = it) } }
                 addSeek("分组栏高度 (dp)", current.indicatorHeightDp, 0, 96) { update { copy(indicatorHeightDp = it) } }
                 addSeek("最大展开高度 (dp)", current.maxExpandedHeightDp, 80, 1800) { update { copy(maxExpandedHeightDp = it) } }
-                addSeek("最小触摸目标 (dp)", current.minimumTouchTargetDp, 20, 112)) { update { copy(minimumTouchTargetDp = it) } }
+                addSeek("最小触摸目标 (dp)", current.minimumTouchTargetDp, 20, 112) { update { copy(minimumTouchTargetDp = it) } }
             },
             "平板模式" to {
                 section("底部工具栏与平板适配")
