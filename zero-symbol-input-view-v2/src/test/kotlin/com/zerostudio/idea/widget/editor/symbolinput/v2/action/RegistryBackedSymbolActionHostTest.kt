@@ -109,7 +109,7 @@ class RegistryBackedSymbolActionHostTest {
             RegistryBackedSymbolActionHost(delegate, registry)
         )
 
-        assertEquals(SymbolActionResult.Executed, result)
+        assertEquals(com.zerostudio.idea.widget.drawer.action.SymbolActionResult.Executed, result)
         assertEquals(listOf("handler:from-executor"), calls)
         assertTrue(delegate.fallbackCalls.isEmpty())
     }
@@ -129,7 +129,7 @@ class RegistryBackedSymbolActionHostTest {
             RegistryBackedSymbolActionHost(delegate, registry)
         )
 
-        assertEquals(SymbolActionResult.Unsupported(SymbolAction.Extension(
+        assertEquals(com.zerostudio.idea.widget.drawer.action.SymbolActionResult.Unsupported(SymbolAction.Extension(
             "legacy.action.947",
             "legacy-payload"
         )), result)

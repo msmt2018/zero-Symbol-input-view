@@ -87,7 +87,7 @@ class SymbolActionExecutorTest {
             )),
             host
         )
-        assertEquals(SymbolActionResult.Executed, result)
+        assertEquals(com.zerostudio.idea.widget.drawer.action.SymbolActionResult.Executed, result)
         assertEquals(
             listOf("clipboard:COPY", "clipboard:CUT", "clipboard:PASTE"),
             host.calls
@@ -99,7 +99,7 @@ class SymbolActionExecutorTest {
         val result = SymbolActionExecutor().execute(
             SymbolAction.Composite(listOf(SymbolAction.InsertText("a"), SymbolAction.InsertText("b"))), host
         )
-        assertEquals(SymbolActionResult.Executed, result)
+        assertEquals(com.zerostudio.idea.widget.drawer.action.SymbolActionResult.Executed, result)
         assertEquals(listOf("insert:a", "insert:b"), host.calls)
     }
 
@@ -107,14 +107,14 @@ class SymbolActionExecutorTest {
     @Test fun extensionActionsAcceptNamespacedContextIdentifiers() {
         val host = RecordingHost()
         val action = SymbolAction.Extension("com.example/editor:paste", "text")
-        assertEquals(SymbolActionResult.Executed, SymbolActionExecutor().execute(action, host))
+        assertEquals(com.zerostudio.idea.widget.drawer.action.SymbolActionResult.Executed, SymbolActionExecutor().execute(action, host))
         assertEquals("com.example/editor:paste", host.lastExtensionId)
         assertEquals("text", host.lastExtensionPayload)
     }
 
     @Test fun rejectsInvalidCommandIds() {
         val result = SymbolActionExecutor().execute(SymbolAction.EditorCommand("../unsafe"), RecordingHost())
-        assertTrue(result is SymbolActionResult.Invalid)
+        assertTrue(result is com.zerostudio.idea.widget.drawer.action.SymbolActionResult.Invalid)
     }
 
     @Test fun validatesCompositeBeforeExecutingAnyStep() {
@@ -125,7 +125,7 @@ class SymbolActionExecutorTest {
                 SymbolAction.EditorCommand("../invalid")
             )), host
         )
-        assertTrue(result is SymbolActionResult.Invalid)
+        assertTrue(result is com.zerostudio.idea.widget.drawer.action.SymbolActionResult.Invalid)
         assertTrue(host.calls.isEmpty())
     }
 
@@ -133,7 +133,7 @@ class SymbolActionExecutorTest {
         val result = SymbolActionExecutor(maxTextLength = 3).execute(
             SymbolAction.EditorCommand("editor.custom", "four"), RecordingHost()
         )
-        assertTrue(result is SymbolActionResult.Invalid)
+        assertTrue(result is com.zerostudio.idea.widget.drawer.action.SymbolActionResult.Invalid)
     }
 
     @Test fun reportsPartialCompositeFailure() {
@@ -150,8 +150,8 @@ class SymbolActionExecutorTest {
                 SymbolAction.InsertText("never")
             )), host
         )
-        assertTrue(result is com.zerostudio.idea.widget.drawer.action.SymbolActionResult.PartialFailure)
-        assertEquals(1, (result as com.zerostudio.idea.widget.drawer.action.SymbolActionResult.PartialFailure).completedActions)
+        assertTrue(result is com.zerostudio.idea.widget.drawer.action.com.zerostudio.idea.widget.drawer.action.SymbolActionResult.PartialFailure)
+        assertEquals(1, (result as com.zerostudio.idea.widget.drawer.action.com.zerostudio.idea.widget.drawer.action.SymbolActionResult.PartialFailure).completedActions)
         assertEquals(listOf("ok", "bad"), host.calls)
     }
 }

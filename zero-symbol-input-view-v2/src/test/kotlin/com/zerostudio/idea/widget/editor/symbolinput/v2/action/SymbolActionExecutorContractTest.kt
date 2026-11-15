@@ -53,7 +53,7 @@ class SymbolActionExecutorContractTest {
         )
         cases.forEach { (action, expected) ->
             val host = Host()
-            assertEquals(expected, SymbolActionResult.Executed, executor.execute(action, host))
+            assertEquals(expected, com.zerostudio.idea.widget.drawer.action.SymbolActionResult.Executed, executor.execute(action, host))
             assertEquals(listOf(expected), host.calls)
         }
     }
@@ -69,7 +69,7 @@ class SymbolActionExecutorContractTest {
         )
         actions.forEach { action ->
             val host = Host().apply { supported = false }
-            assertEquals(SymbolActionResult.Unsupported(action), executor.execute(action, host))
+            assertEquals(com.zerostudio.idea.widget.drawer.action.SymbolActionResult.Unsupported(action), executor.execute(action, host))
             assertEquals(1, host.calls.size)
         }
     }
@@ -77,8 +77,8 @@ class SymbolActionExecutorContractTest {
     @Test fun convertsHostExceptionsIntoFailedResults() {
         val error = IllegalStateException("host unavailable")
         val result = executor.execute(SymbolAction.OpenManager, Host().apply { thrown = error })
-        assertTrue(result is SymbolActionResult.Failed)
-        assertSame(error, (result as SymbolActionResult.Failed).cause)
+        assertTrue(result is com.zerostudio.idea.widget.drawer.action.SymbolActionResult.Failed)
+        assertSame(error, (result as com.zerostudio.idea.widget.drawer.action.SymbolActionResult.Failed).cause)
     }
 
     @Test fun reportsFailureWithoutPartialWrapperWhenFirstCompositeActionFails() {
@@ -87,7 +87,7 @@ class SymbolActionExecutorContractTest {
             SymbolAction.Composite(listOf(SymbolAction.InsertText("first"), SymbolAction.InsertText("second"))),
             host
         )
-        assertEquals(SymbolActionResult.Unsupported(SymbolAction.InsertText("first")), result)
+        assertEquals(com.zerostudio.idea.widget.drawer.action.SymbolActionResult.Unsupported(SymbolAction.InsertText("first")), result)
         assertEquals(listOf("insert:first"), host.calls)
     }
 
@@ -98,16 +98,16 @@ class SymbolActionExecutorContractTest {
             SymbolAction.Composite(listOf(SymbolAction.ReplaceSelection("b"), SymbolAction.OpenManager)),
             SymbolAction.Extension("plugin.done")
         ))
-        assertEquals(SymbolActionResult.Executed, executor.execute(action, host))
+        assertEquals(com.zerostudio.idea.widget.drawer.action.SymbolActionResult.Executed, executor.execute(action, host))
         assertEquals(listOf("insert:a", "replace:b", "manager", "extension:plugin.done:null"), host.calls)
     }
 
     @Test fun rejectsEmptyCompositeAndActionCountOverflowBeforeHostCalls() {
         val host = Host()
-        assertTrue(executor.execute(SymbolAction.Composite(emptyList()), host) is SymbolActionResult.Invalid)
+        assertTrue(executor.execute(SymbolAction.Composite(emptyList()), host) is com.zerostudio.idea.widget.drawer.action.SymbolActionResult.Invalid)
         assertTrue(SymbolActionExecutor(maxCompositeActions = 1).execute(
             SymbolAction.Composite(listOf(SymbolAction.OpenManager, SymbolAction.OpenManager)), host
-        ) is SymbolActionResult.Invalid)
+        ) is com.zerostudio.idea.widget.drawer.action.SymbolActionResult.Invalid)
         assertTrue(host.calls.isEmpty())
     }
 
@@ -115,15 +115,15 @@ class SymbolActionExecutorContractTest {
         var action: SymbolAction = SymbolAction.OpenManager
         repeat(4) { action = SymbolAction.Composite(listOf(action)) }
         val host = Host()
-        assertTrue(SymbolActionExecutor(maxNestingDepth = 2).execute(action, host) is SymbolActionResult.Invalid)
+        assertTrue(SymbolActionExecutor(maxNestingDepth = 2).execute(action, host) is com.zerostudio.idea.widget.drawer.action.SymbolActionResult.Invalid)
         assertTrue(host.calls.isEmpty())
     }
 
     @Test fun rejectsInvalidExtensionIdsAndCommandIds() {
         val host = Host()
         listOf("", "../x", "has space", "-bad").forEach { id ->
-            assertTrue(executor.execute(SymbolAction.EditorCommand(id), host) is SymbolActionResult.Invalid)
-            assertTrue(executor.execute(SymbolAction.Extension(id), host) is SymbolActionResult.Invalid)
+            assertTrue(executor.execute(SymbolAction.EditorCommand(id), host) is com.zerostudio.idea.widget.drawer.action.SymbolActionResult.Invalid)
+            assertTrue(executor.execute(SymbolAction.Extension(id), host) is com.zerostudio.idea.widget.drawer.action.SymbolActionResult.Invalid)
         }
         assertTrue(host.calls.isEmpty())
     }
@@ -131,10 +131,10 @@ class SymbolActionExecutorContractTest {
     @Test fun acceptsMaximumConfiguredTextLengthAndRejectsOneCharacterOver() {
         val host = Host()
         val bounded = SymbolActionExecutor(maxTextLength = 4)
-        assertEquals(SymbolActionResult.Executed, bounded.execute(SymbolAction.InsertText("1234"), host))
-        assertTrue(bounded.execute(SymbolAction.InsertText("12345"), host) is SymbolActionResult.Invalid)
-        assertTrue(bounded.execute(SymbolAction.ReplaceSelection("12345"), host) is SymbolActionResult.Invalid)
-        assertTrue(bounded.execute(SymbolAction.SurroundSelection("12", "345"), host) is SymbolActionResult.Invalid)
+        assertEquals(com.zerostudio.idea.widget.drawer.action.SymbolActionResult.Executed, bounded.execute(SymbolAction.InsertText("1234"), host))
+        assertTrue(bounded.execute(SymbolAction.InsertText("12345"), host) is com.zerostudio.idea.widget.drawer.action.SymbolActionResult.Invalid)
+        assertTrue(bounded.execute(SymbolAction.ReplaceSelection("12345"), host) is com.zerostudio.idea.widget.drawer.action.SymbolActionResult.Invalid)
+        assertTrue(bounded.execute(SymbolAction.SurroundSelection("12", "345"), host) is com.zerostudio.idea.widget.drawer.action.SymbolActionResult.Invalid)
         assertEquals(1, host.calls.size)
     }
 
@@ -155,7 +155,7 @@ class SymbolActionExecutorContractTest {
         ))
         val host = Host()
         val result = SymbolActionExecutor(maxTotalActions = 3).execute(action, host)
-        assertTrue(result is SymbolActionResult.Invalid)
+        assertTrue(result is com.zerostudio.idea.widget.drawer.action.SymbolActionResult.Invalid)
         assertTrue(host.calls.isEmpty())
     }
 
@@ -176,7 +176,7 @@ class SymbolActionExecutorContractTest {
 
         val result = SymbolActionExecutor(maxTotalActions = 4).execute(action, host)
 
-        assertTrue(result is SymbolActionResult.PartialFailure)
+        assertTrue(result is com.zerostudio.idea.widget.drawer.action.SymbolActionResult.PartialFailure)
         assertEquals(listOf("insert:trigger", "insert:nested"), host.calls)
     }
 
@@ -195,7 +195,7 @@ class SymbolActionExecutorContractTest {
         val host = Host()
         val limitedExecutor = SymbolActionExecutor(maxTextLength = 7)
         val action = SymbolAction.SurroundSelection("1234", "5678")
-        assertTrue(limitedExecutor.execute(action, host) is SymbolActionResult.Invalid)
+        assertTrue(limitedExecutor.execute(action, host) is com.zerostudio.idea.widget.drawer.action.SymbolActionResult.Invalid)
         assertTrue(host.calls.isEmpty())
 
         // Each field is individually below the codec limit, but their combined
@@ -213,7 +213,7 @@ class SymbolActionExecutorContractTest {
     @Test fun cancellationBeforeExecutionPreventsHostCalls() {
         val host = Host()
         val result = executor.execute(SymbolAction.OpenManager, host, SymbolActionCancellation { true })
-        assertEquals(SymbolActionResult.Cancelled(0), result)
+        assertEquals(com.zerostudio.idea.widget.drawer.action.SymbolActionResult.Cancelled(0), result)
         assertTrue(host.calls.isEmpty())
     }
 
@@ -237,7 +237,7 @@ class SymbolActionExecutorContractTest {
             cancelAfterFirst,
             token
         )
-        assertEquals(SymbolActionResult.Cancelled(1), result)
+        assertEquals(com.zerostudio.idea.widget.drawer.action.SymbolActionResult.Cancelled(1), result)
         assertEquals(listOf("insert:first"), host.calls)
     }
 

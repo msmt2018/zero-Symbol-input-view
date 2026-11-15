@@ -1,6 +1,6 @@
 package com.zerostudio.idea.widget.drawer.extension
 
-import com.zerostudio.idea.widget.drawer.action.SymbolAction
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
 import com.zerostudio.idea.widget.drawer.action.SymbolActionId
 import com.zerostudio.idea.widget.drawer.action.SymbolActionRegistry
 import com.zerostudio.idea.widget.drawer.action.SymbolActionHandler
