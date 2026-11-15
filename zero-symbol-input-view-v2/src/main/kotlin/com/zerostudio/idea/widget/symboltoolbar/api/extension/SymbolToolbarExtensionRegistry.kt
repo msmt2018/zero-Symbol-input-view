@@ -82,7 +82,7 @@ class SymbolToolbarExtensionRegistry {
         target: ConcurrentHashMap<String, T>, extension: T
     ): AutoCloseable = register(target, extension.id, extension)
 
-    private fun <T : Any> register(target: ConcurrentHashMap<String, T>, id: String, value: T): AutoCloseable {
+    private fun <K : Any, T : Any> register(target: ConcurrentHashMap<K, T>, id: K, value: T): AutoCloseable {
         require(id.matches(EXTENSION_ID)) { "Invalid extension ID: $id" }
         check(target.putIfAbsent(id, value) == null) { "Extension already registered: $id" }
         publishChange()
