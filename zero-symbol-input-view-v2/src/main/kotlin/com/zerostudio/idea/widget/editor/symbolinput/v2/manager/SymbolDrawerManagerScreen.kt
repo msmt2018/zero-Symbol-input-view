@@ -313,8 +313,9 @@ class SymbolDrawerManagerScreen(
         themeObserver?.close()
         drawerTheme = drawer.themeSnapshot
         themeObserver = drawer.observeTheme(emitCurrent = false) { theme ->
-            drawerTheme = theme
-            post { if (isAttachedToWindow) refresh() }
+            post {
+                if (isAttachedToWindow) applyDrawerTheme(theme)
+            }
         }
         val listener: (List<SymbolGroup>) -> Unit = { committedGroups ->
             // The visible toolbar is the primary consumer. An unrelated observer
@@ -346,6 +347,16 @@ class SymbolDrawerManagerScreen(
         drawerBindingHandle = ownerHandle
         observeBuiltInVisibility(drawer.extensions)
         return ownerHandle
+    }
+
+    /** Reapply live palette tokens without running a data refresh or invalidating undo. */
+    private fun applyDrawerTheme(theme: SymbolDrawerTheme?) {
+        drawerTheme = theme
+        background = roundedSurface(surfaceColor(), 18)
+        groupTabs.setSelectedTabIndicatorColor(primaryColor())
+        groupTabs.setTabTextColors(secondaryTextColor(), primaryColor())
+        searchField.background = roundedSurface(surfaceColor(), 14)
+        refreshSymbols()
     }
 
     /**
