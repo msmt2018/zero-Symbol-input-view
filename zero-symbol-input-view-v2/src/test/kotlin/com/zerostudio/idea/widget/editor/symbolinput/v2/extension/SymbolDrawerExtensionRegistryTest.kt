@@ -111,6 +111,20 @@ class SymbolDrawerExtensionRegistryTest {
         assertEquals(countAfterClose, revisions.size)
     }
 
+    @Test
+    fun throwingInitialObserverDoesNotBreakRegistryRegistration() {
+        val registry = SymbolDrawerExtensionRegistry()
+        registry.observe(emitCurrent = true) {
+            error("observer failure")
+        }
+        val handle = registry.registerAction(
+            SymbolDrawerActionExtension("safe.observer", "Safe", handler = { _, _ -> true })
+        )
+        assertEquals(1, registry.snapshot().actions.size)
+        handle.close()
+        assertTrue(registry.snapshot().actions.isEmpty())
+    }
+
     @Test fun snapshotContainsBuiltInVisibilityAndAllContributionTypes() {
         val registry = SymbolDrawerExtensionRegistry()
         registry.setBuiltInVisible("builtin.manager", false)
