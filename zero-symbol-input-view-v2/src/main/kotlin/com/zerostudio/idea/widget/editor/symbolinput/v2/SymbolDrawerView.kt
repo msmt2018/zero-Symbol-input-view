@@ -57,6 +57,7 @@ import android.view.ViewGroup
 import android.view.HapticFeedbackConstants
 import android.widget.FrameLayout
 import androidx.viewpager2.widget.ViewPager2
+import com.zerostudio.idea.widget.editor.symbolinput.v2.R
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.LegacySymbolDataMigration
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SharedPreferencesSymbolGroupRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.LegacySymbolDataCodec
@@ -248,7 +249,7 @@ class SymbolDrawerView @JvmOverloads constructor(
         if (hasPersistedSettings) config = settings.toDrawerConfig()
         LegacySymbolDataMigration.importIfV2Empty(context, repository)
         if (repository.loadGroups().isEmpty()) {
-            repository.saveGroups(com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolDrawerDefaults.createGroups())
+            repository.saveGroups(com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolDrawerDefaults.createGroups(context))
         }
         pager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
@@ -358,9 +359,9 @@ class SymbolDrawerView @JvmOverloads constructor(
         }
         settingsDialog?.dismiss()
         settingsDialog = AlertDialog.Builder(context)
-            .setTitle("符号抽屉设置")
+            .setTitle(context.getString(R.string.symbol_drawer_194))
             .setView(screen)
-            .setPositiveButton("完成", null)
+            .setPositiveButton(context.getString(R.string.symbol_drawer_044), null)
             .create()
             .also { it.show() }
     }

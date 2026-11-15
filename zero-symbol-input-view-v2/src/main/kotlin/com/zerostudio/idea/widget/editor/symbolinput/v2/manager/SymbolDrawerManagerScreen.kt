@@ -253,7 +253,7 @@ class SymbolDrawerManagerScreen(
         setPadding(dp(12), dp(12), dp(12), dp(12))
         background = roundedSurface(surfaceColor(), 18)
         if (manager.groups.isEmpty()) {
-            manager.replaceAll(SymbolDrawerDefaults.createGroups())
+            manager.replaceAll(SymbolDrawerDefaults.createGroups(context))
         }
         buildHeader()
         buildGroupControls()
@@ -1378,7 +1378,7 @@ class SymbolDrawerManagerScreen(
         val legacyOptions = LegacySymbolActionCatalog.values.mapIndexed { index, id ->
             SymbolActionOption("[V1] " + LegacySymbolActionCatalog.labels[index], legacyId = id)
         }
-        val builtinOptions = BuiltinSymbolActionCatalog.options.map { option ->
+        val builtinOptions = BuiltinSymbolActionCatalog.options(context).map { option ->
             SymbolActionOption("[V2] " + option.label, builtin = option)
         }
         val extensionOptions = extensionRegistry?.actions().orEmpty().map { extension ->

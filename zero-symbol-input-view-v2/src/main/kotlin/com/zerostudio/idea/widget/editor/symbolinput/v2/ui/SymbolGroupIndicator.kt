@@ -59,6 +59,7 @@ import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.util.TypedValue
 import androidx.interpolator.view.animation.FastOutSlowInInterpolator
+import com.zerostudio.idea.widget.editor.symbolinput.v2.R
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.GroupIndicatorStyle
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
@@ -82,7 +83,7 @@ internal class SymbolGroupIndicator(
         val target = dp(48)
         minimumWidth = target
         minimumHeight = target
-        contentDescription = "符号设置"
+        contentDescription = context.getString(R.string.symbol_drawer_accessibility_settings)
         isClickable = true
         isFocusable = true
         scaleType = android.widget.ImageView.ScaleType.CENTER_INSIDE
@@ -165,7 +166,7 @@ private class IndicatorRenderer(
     init {
         isClickable = true
         isFocusable = true
-        contentDescription = "符号分组分页指示器"
+        contentDescription = context.getString(R.string.symbol_drawer_accessibility_group_indicator)
     }
     fun submitGroups(value: List<SymbolGroup>) {
         groups = value.toList()
@@ -193,7 +194,7 @@ private class IndicatorRenderer(
             animation = 1f
             invalidate()
         }
-        contentDescription = "第 ${selected + 1} 组，共 ${groups.size} 组"
+        contentDescription = context.getString(R.string.symbol_drawer_accessibility_group_position, selected + 1, groups.size)
     }
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)

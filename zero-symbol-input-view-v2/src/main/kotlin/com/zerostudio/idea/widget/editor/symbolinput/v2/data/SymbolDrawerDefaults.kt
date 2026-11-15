@@ -48,6 +48,8 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.data
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.CursorTarget
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
+import android.content.Context
+import com.zerostudio.idea.widget.editor.symbolinput.v2.R
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 
 /**
@@ -58,8 +60,8 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
  * long-press insertion, and the manager entry remains a dedicated V2 action.
  */
 object SymbolDrawerDefaults {
-    fun createGroups(): List<SymbolGroup> = listOf(
-        SymbolGroup("commonlyUsed", "常用", listOf(
+    fun createGroups(context: Context): List<SymbolGroup> = listOf(
+        SymbolGroup("commonlyUsed", context.getString(R.string.symbol_drawer_default_group_common), listOf(
             entry(1, "←", SymbolAction.MoveCursor(CursorTarget.LEFT),
                 SymbolAction.MoveCursor(CursorTarget.LINE_START)),
             entry(2, "↑", SymbolAction.MoveCursor(CursorTarget.UP),
