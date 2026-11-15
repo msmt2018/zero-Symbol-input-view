@@ -27,6 +27,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSet
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettingsScreen
 import com.zerostudio.idea.widget.editor.symbolinput.v2.testing.DrawerTestHostActivity
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.concurrent.CountDownLatch
@@ -249,6 +250,48 @@ class DrawerUiContractTest {
             assertTrue("Restored symbol drawer state did not commit", restored.await(5, TimeUnit.SECONDS))
             assertEquals(1, restoredGroupIndex)
             assertTrue(restoredExpanded)
+        }
+    }
+
+    @Test fun collapsedToolbarLocksItsFirstTwoRowsUntilDrawerExpansion() {
+        ActivityScenario.launch(DrawerTestHostActivity::class.java).use { scenario ->
+            val committed = CountDownLatch(1)
+            var collapsedCanScroll = true
+            var expandedCanScroll = false
+            val checked = CountDownLatch(1)
+            scenario.onActivity { activity ->
+                val drawer = SymbolDrawerView(activity)
+                activity.content.addView(drawer, FrameLayout.LayoutParams(-1, -1))
+                val symbols = (1L..200L).map { id ->
+                    SymbolEntry(id, "s$id", SymbolAction.InsertText("s$id"))
+                }
+                drawer.submitGroups(listOf(SymbolGroup("many", "Many", symbols))) {
+                    val width = (420f * activity.resources.displayMetrics.density).toInt()
+                    val height = (480f * activity.resources.displayMetrics.density).toInt()
+                    fun layoutDrawer() {
+                        drawer.measure(
+                            View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                            View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
+                        )
+                        drawer.layout(0, 0, width, drawer.measuredHeight)
+                    }
+                    drawer.setExpanded(false, false)
+                    layoutDrawer()
+                    val grid = find(drawer) {
+                        it is RecyclerView && it.layoutManager is GridLayoutManager
+                    } as RecyclerView
+                    collapsedCanScroll = grid.canScrollVertically(1)
+                    drawer.setExpanded(true, false)
+                    layoutDrawer()
+                    grid.post {
+                        expandedCanScroll = grid.canScrollVertically(1)
+                        checked.countDown()
+                    }
+                }
+            }
+            assertTrue("The expanded grid did not finish layout", checked.await(5, TimeUnit.SECONDS))
+            assertFalse("Collapsed toolbar must keep its configured first two rows fixed", collapsedCanScroll)
+            assertTrue("The expanded grid must allow scrolling when content exceeds its viewport", expandedCanScroll)
         }
     }
 
