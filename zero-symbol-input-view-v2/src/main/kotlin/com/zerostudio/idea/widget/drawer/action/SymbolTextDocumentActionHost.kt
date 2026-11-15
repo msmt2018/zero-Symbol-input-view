@@ -19,15 +19,15 @@ fun interface SymbolTextClipboard {
 }
 
 /**
- * Default SymbolActionHost implementation backed only by PublicSymbolTextDocument.
+ * Default SymbolActionHost implementation backed only by SymbolTextDocument.
  *
- * An editor adapter implements PublicSymbolTextDocument once; this class supplies
+ * An editor adapter implements SymbolTextDocument once; this class supplies
  * common insert/selection/cursor/delete/transform/editor-command behavior without
  * importing any editor-core types. Clipboard and manager navigation are
  * intentionally injected because they belong to the host application.
  */
 class SymbolTextDocumentActionHost(
-    private val document: PublicSymbolTextDocument,
+    private val document: SymbolTextDocument,
     private val clipboard: SymbolTextClipboard = SymbolTextClipboard { _, _ -> false },
     private val openManagerAction: () -> Boolean = { false },
     private val extensionAction: (String, String?) -> Boolean = { _, _ -> false }
@@ -158,7 +158,7 @@ class SymbolTextDocumentActionHost(
                     DeleteKind.CURRENT_LINE -> {
                         val deleteEnd = if (line < document.lineCount - 1) {
                             document.lineStartOffset(line + 1).coerceIn(end, length)
-                        } else if (line > 0) end else end
+                        } else end
                         val previousSeparatorLength = if (line > 0 && start >= 2 &&
                             document.textBetween(start - 2, start) == "\r\n"
                         ) 2 else 1
