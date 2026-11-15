@@ -59,7 +59,6 @@ import android.widget.PopupMenu
 import android.widget.Spinner
 import android.widget.ScrollView
 import android.widget.TextView
-import com.google.android.material.tabs.TabLayout
 import com.google.android.material.button.MaterialButton
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
@@ -92,6 +91,10 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SharedPreferenc
 import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowAdaptiveInfo
 import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.AdaptiveContentLayoutResolver
 import com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawerView
+import android.widget.HorizontalScrollView
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerPage
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerPageHost
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.panel.DrawerPanelContent
 
 private class SymbolHolder(val root: LinearLayout, val title: TextView, val detail: TextView, val dragHandle: TextView) : RecyclerView.ViewHolder(root)
 
@@ -160,7 +163,10 @@ class SymbolDrawerManagerScreen(
         LegacySymbolDataMigration.importIfV2Empty(context, it)
     })
     private val settings = SharedPreferencesSymbolDrawerSettingsRepository(context).load().settings
-    private val groupTabs = TabLayout(context)
+    private val groupNavigationBar = LinearLayout(context)
+    private val groupNavigationScroll = HorizontalScrollView(context)
+    private val groupPageHost = DrawerPageHost(context)
+    private val groupPageContents = LinkedHashMap<String, GroupPageContent>()
     private val searchField = EditText(context)
     private val searchToggle = MaterialButton(context)
     private val searchContainer = LinearLayout(context)
@@ -174,7 +180,7 @@ class SymbolDrawerManagerScreen(
             .take(30).forEach(::addLast)
     }
     private var activeFilter = ManagerSymbolFilter.ALL
-    private var rebuildingTabs = false
+")
     private val emptyView = TextView(context)
     private var symbolList: RecyclerView? = null
     private var previewPanel: LinearLayout? = null
@@ -210,6 +216,11 @@ class SymbolDrawerManagerScreen(
         buildSearch()
         buildFilterBar()
         buildSymbolList()
+        addView(
+            groupPageHost,
+            if (embeddedInSettings) LayoutParams(LayoutParams.MATCH_PARENT, dp(320))
+            else LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f)
+        )
         buildUndoBar()
         refresh()
     }
@@ -229,11 +240,11 @@ class SymbolDrawerManagerScreen(
         (symbolList?.layoutManager as? GridLayoutManager)?.let { grid ->
             if (grid.spanCount != spec.cardColumns) grid.spanCount = spec.cardColumns
         }
-        groupTabs.layoutParams?.let { params ->
+        groupNavigationScroll.layoutParams?.let { params ->
             val targetHeight = dp(if (spec.cardColumns > 1) 52 else 48)
             if (params.height != targetHeight) {
                 params.height = targetHeight
-                groupTabs.layoutParams = params
+                groupNavigationScroll.layoutParams = params
             }
         }
     }
@@ -341,20 +352,22 @@ class SymbolDrawerManagerScreen(
     }
 
     private fun buildGroupControls() {
-        groupTabs.tabMode = TabLayout.MODE_SCROLLABLE
-        groupTabs.tabGravity = TabLayout.GRAVITY_START
-        groupTabs.setTabTextColors(secondaryTextColor(), primaryColor())
-        groupTabs.setSelectedTabIndicatorColor(primaryColor())
-        groupTabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
-            override fun onTabSelected(tab: TabLayout.Tab) {
-                if (rebuildingTabs) return
-                selectedGroupId = manager.groups.getOrNull(tab.position)?.id
-                refreshSymbols()
+        groupNavigationBar.orientation = HORIZONTAL
+        groupNavigationBar.gravity = android.view.Gravity.CENTER_VERTICAL
+        groupNavigationScroll.isHorizontalScrollBarEnabled = false
+        groupNavigationScroll.addView(groupNavigationBar, ViewGroup.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT
+        ))
+        groupPageHost.navigationController.addListener { snapshot, _ ->
+            snapshot.selectedPageId?.removePrefix(GROUP_PAGE_PREFIX)?.let { id ->
+                if (selectedGroupId != id) {
+                    selectedGroupId = id
+                    refreshSymbols()
+                }
             }
-            override fun onTabUnselected(tab: TabLayout.Tab) = Unit
-            override fun onTabReselected(tab: TabLayout.Tab) = Unit
-        })
-        addView(groupTabs, LayoutParams(LayoutParams.MATCH_PARENT, dp(48)))
+            updateGroupNavigationButtons()
+        }
+        addView(groupNavigationScroll, LayoutParams(LayoutParams.MATCH_PARENT, dp(48)))
     }
 
     private fun showAddMenu(anchor: View) {
@@ -378,7 +391,7 @@ class SymbolDrawerManagerScreen(
         val group = manager.groups.firstOrNull { it.id == groupId } ?: return
         selectedGroupId = group.id
         val index = manager.groups.indexOfFirst { it.id == group.id }
-        groupTabs.getTabAt(index)?.select()
+        groupPageHost.selectPage(groupPageId(group.id))
         PopupMenu(context, anchor).apply {
             menu.add("左移").apply { isEnabled = index > 0 }
                 .setOnMenuItemClickListener { moveGroup(group.id, -1); true }
@@ -422,7 +435,7 @@ class SymbolDrawerManagerScreen(
         if (index >= 0 && target in manager.groups.indices) {
             manager.moveGroup(index, target)
             refresh()
-            groupTabs.getTabAt(target)?.select()
+            groupPageHost.selectPage(groupPageId(groupId))
         }
     }
 
@@ -530,7 +543,6 @@ class SymbolDrawerManagerScreen(
         emptyView.setTextColor(secondaryTextColor())
         emptyView.alpha = 0.75f
         emptyView.setPadding(dp(8), dp(16), dp(8), dp(16))
-        addView(emptyView, matchWrap())
         val list = RecyclerView(context).apply {
             layoutManager = GridLayoutManager(context, 1)
             adapter = symbolAdapter
@@ -538,12 +550,7 @@ class SymbolDrawerManagerScreen(
             overScrollMode = RecyclerView.OVER_SCROLL_NEVER
         }
         symbolList = list
-        if (embeddedInSettings) {
-            list.isNestedScrollingEnabled = false
-            addView(list, LayoutParams(LayoutParams.MATCH_PARENT, dp(320)))
-        } else {
-            addView(list, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
-        }
+        if (embeddedInSettings) list.isNestedScrollingEnabled = false
         installSymbolReordering(list)
         buildBatchBar()
         buildDragPreviewPanel()
@@ -560,7 +567,6 @@ class SymbolDrawerManagerScreen(
         batchBar.addView(actionButton("复制") { batchCopy() }, LayoutParams(LayoutParams.WRAP_CONTENT, dp(36)))
         batchBar.addView(actionButton("移动") { batchMove() }, LayoutParams(LayoutParams.WRAP_CONTENT, dp(36)))
         batchBar.addView(actionButton("删除") { batchDelete() }, LayoutParams(LayoutParams.WRAP_CONTENT, dp(36)))
-        addView(batchBar, indexOfChild(symbolList), matchWrap())
     }
 
     private fun setBatchMode(enabled: Boolean) {
@@ -780,24 +786,95 @@ class SymbolDrawerManagerScreen(
         val groups = manager.groups
         val selectedIndex = groups.indexOfFirst { it.id == selectedGroupId }.takeIf { it >= 0 } ?: 0
         selectedGroupId = groups.getOrNull(selectedIndex)?.id
-        rebuildingTabs = true
-        groupTabs.removeAllTabs()
-        groups.forEachIndexed { index, group ->
-            val tab = groupTabs.newTab().setText(group.title)
-            groupTabs.addTab(tab, index == selectedIndex)
-            tab.view.setOnLongClickListener {
-                showGroupTabMenu(it, group.id)
-                true
-            }
+        val activeIds = groups.mapTo(mutableSetOf()) { it.id }
+        groupPageContents.keys.retainAll(activeIds)
+        val pages = groups.map { group ->
+            val content = groupPageContents.getOrPut(group.id) { GroupPageContent(group.id) }
+            DrawerPage(groupPageId(group.id), group.title, content)
         }
-        rebuildingTabs = false
-        if (groups.isNotEmpty() && groupTabs.selectedTabPosition != selectedIndex) {
-            groupTabs.getTabAt(selectedIndex)?.select()
-        }
+        groupPageHost.setPages(pages, preserveSelection = true)
+        if (selectedGroupId != null) groupPageHost.selectPage(groupPageId(selectedGroupId!!))
+        updateGroupNavigationButtons()
         searchField.isEnabled = groups.isNotEmpty()
         searchToggle.isEnabled = groups.isNotEmpty()
         refreshSymbols()
         onGroupsChanged?.invoke(groups)
+    }
+
+    private fun groupPageId(groupId: String) = GROUP_PAGE_PREFIX + groupId
+
+    private fun updateGroupNavigationButtons() {
+        groupNavigationBar.removeAllViews()
+        manager.groups.forEach { group ->
+            val selected = group.id == selectedGroupId
+            val button = actionButton(group.title) {
+                groupPageHost.selectPage(groupPageId(group.id))
+            }.apply {
+                isSelected = selected
+                alpha = if (selected) 1f else 0.62f
+                setOnLongClickListener {
+                    showGroupTabMenu(it, group.id)
+                    true
+                }
+            }
+            groupNavigationBar.addView(button, LayoutParams(
+                LayoutParams.WRAP_CONTENT, dp(40)
+            ).apply { marginEnd = dp(6) })
+        }
+    }
+
+    private inner class GroupPageContent(
+        private val groupId: String
+    ) : DrawerPanelContent {
+        private var page: LinearLayout? = null
+
+        override fun createView(): View = LinearLayout(context).apply {
+            orientation = VERTICAL
+            page = this
+        }
+
+        override fun onPanelVisible() {
+            selectedGroupId = groupId
+            refreshSymbols()
+            val container = page ?: return
+            detachManagerContent()
+            container.addView(batchBar, matchWrap())
+            container.addView(emptyView, matchWrap())
+            val list = symbolList ?: return
+            val listHeight = if (embeddedInSettings) dp(320) else 0
+            val weight = if (embeddedInSettings) 0f else 1f
+            container.addView(list, LayoutParams(LayoutParams.MATCH_PARENT, listHeight, weight))
+        }
+
+        override fun onPanelHidden() {
+            detachManagerContent()
+        }
+
+        override fun onPanelDetached() {
+            detachManagerContent()
+            page = null
+        }
+
+        private fun detachManagerContent() {
+            (batchBar.parent as? ViewGroup)?.removeView(batchBar)
+            (emptyView.parent as? ViewGroup)?.removeView(emptyView)
+            (symbolList?.parent as? ViewGroup)?.removeView(symbolList)
+        }
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        groupPageHost.setPanelVisible(true)
+    }
+
+    override fun onDetachedFromWindow() {
+        groupPageHost.setPanelVisible(false)
+        drawerBindingHandle?.close()
+        drawerBindingHandle = null
+        destroyDragPreview()
+        reorderTouchHelper?.attachToRecyclerView(null)
+        reorderTouchHelper = null
+        super.onDetachedFromWindow()
     }
 
     private fun refreshSymbols() {
@@ -1206,6 +1283,10 @@ class SymbolDrawerManagerScreen(
     private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
 
     private enum class ManagerSymbolFilter { ALL, FAVORITES, RECENT }
+
+    private companion object {
+        const val GROUP_PAGE_PREFIX = "symbol-group:"
+    }
 
     private class SymbolAdapter(
         private val onClick: (SymbolEntry) -> Unit,
