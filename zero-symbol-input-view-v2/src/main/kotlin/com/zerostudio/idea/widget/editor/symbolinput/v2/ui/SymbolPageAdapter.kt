@@ -159,7 +159,7 @@ internal class SymbolPageAdapter(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
-            setBackgroundColor(HostThemeColors.surface(context))
+            setBackgroundColor(themeProvider()?.surface ?: HostThemeColors.surface(context))
             val adaptiveGridLayout = object : GridLayoutManager(context, config.columns) {
                 override fun canScrollVertically(): Boolean = canScrollGridVertically()
             }
