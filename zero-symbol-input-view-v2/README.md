@@ -724,3 +724,8 @@ The document contract also provides line/column conversion, selection access, op
 `SymbolDrawerExtensionRegistry.observe { snapshot -> ... }` provides lifecycle-managed change notifications. `snapshot()` returns immutable sorted contribution lists for actions, indicators, settings tabs/items, themes and built-in visibility overrides. Close the returned observer handle when the owning screen/view is disposed.
 
 The observer API enables host UI surfaces to render contributions dynamically. In the current V2 implementation, custom actions are consumed by the manager action picker when it receives the same registry; custom indicators are consumed by the SymbolDrawerView indicator slot; settings tabs/items are consumed by SymbolDrawerSettingsScreen when it receives the same registry; item renderers are consumed by the existing SymbolPageAdapter. Theme application is connected to the drawer shell, page adapter and indicator surfaces described in the extension API reference. These are concrete consumer paths, not a promise that every screen color or every future built-in feature is already theme-aware.
+
+## API documentation / API 文档
+
+- [English API documentation](api-docs/en/README.md)
+- [简体中文 API documentation](api-docs/README.md)
