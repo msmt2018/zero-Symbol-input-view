@@ -297,9 +297,20 @@ class SymbolDrawerView @JvmOverloads constructor(
         if (latest != settings) applySettings(latest)
         interactionController.onAttached()
         recalculateGeometry()
+        if (settings.rememberExpandedState) {
+            val remembered = settingsPreferences.getBoolean(EXPANSION_STATE_KEY, false)
+            post { animateTo(if (remembered) 1f else 0f, animated = false) }
+        } else {
+            settingsPreferences.edit().remove(EXPANSION_STATE_KEY).apply()
+        }
     }
 
     override fun onDetachedFromWindow() {
+        if (settings.rememberExpandedState) {
+            settingsPreferences.edit()
+                .putBoolean(EXPANSION_STATE_KEY, expansion >= 0.5f)
+                .apply()
+        }
         if (settingsListenerRegistered) {
             settingsPreferences.unregisterOnSharedPreferenceChangeListener(settingsPreferenceListener)
             settingsListenerRegistered = false
@@ -396,25 +407,6 @@ class SymbolDrawerView @JvmOverloads constructor(
         if (settings.rememberExpandedState) {
             settingsPreferences.edit().putBoolean(EXPANSION_STATE_KEY, expanded).apply()
         }
-    }
-
-    override fun onAttachedToWindow() {
-        super.onAttachedToWindow()
-        if (settings.rememberExpandedState) {
-            val remembered = settingsPreferences.getBoolean(EXPANSION_STATE_KEY, false)
-            post { animateTo(if (remembered) 1f else 0f, animated = false) }
-        } else {
-            settingsPreferences.edit().remove(EXPANSION_STATE_KEY).apply()
-        }
-    }
-
-    override fun onDetachedFromWindow() {
-        if (settings.rememberExpandedState) {
-            settingsPreferences.edit()
-                .putBoolean(EXPANSION_STATE_KEY, expansion >= 0.5f)
-                .apply()
-        }
-        super.onDetachedFromWindow()
     }
 
     fun onHostResume() {
