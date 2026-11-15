@@ -75,11 +75,11 @@ class SymbolTextDocumentActionHostTest {
     }
 
     @Test fun middleLineInsertionUsesCrLfSeparator() {
-        val document = Document("first\\r\\nlast")
+        val document = Document("first\r\nlast")
         document.setSelection(2, 2)
         val host = SymbolTextDocumentActionHost(document)
         assertTrue(host.insertText("\$N"))
-        assertEquals("fi\\r\\nrst\\r\\nlast", document.value)
+        assertEquals("fi\r\nrst\r\nlast", document.value)
     }
 
     @Test fun finalLineInsertionPreservesPreviousCrLfSeparator() {
