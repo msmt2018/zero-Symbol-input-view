@@ -45,6 +45,8 @@
 
 package com.zerostudio.idea.widget.editor.symbolinput.v2.manager
 
+import com.zerostudio.idea.widget.editor.symbolinput.v2.R
+
 import android.content.Context
 import android.text.Editable
 import android.text.TextWatcher
@@ -227,6 +229,7 @@ class SymbolDrawerManagerScreen(
     private var reorderWorkingGroupId: String? = null
     private var reorderWorkingSymbols: MutableList<SymbolEntry>? = null
     private val symbolAdapter = SymbolAdapter(
+        context = context,
         onClick = { symbol -> editSymbol(symbol) },
         themeProvider = { drawerTheme },
         onLongClick = { symbol, anchor -> showSymbolMenu(symbol, anchor) },
@@ -424,7 +427,7 @@ class SymbolDrawerManagerScreen(
         manager.replaceAll(imported)
         selectedGroupId = imported.firstOrNull()?.id
         refresh()
-        showUndo("已导入旧版/MT 管理器符号 JSON") {
+        showUndo(context.getString(R.string.symbol_drawer_096)) {
             manager.replaceAll(previous)
             restoreUsageState(previousUsage)
             selectedGroupId = previousSelection
@@ -439,7 +442,7 @@ class SymbolDrawerManagerScreen(
         manager.replaceAll(imported)
         selectedGroupId = imported.firstOrNull()?.id
         refresh()
-        showUndo("已导入符号抽屉备份") {
+        showUndo(context.getString(R.string.symbol_drawer_097)) {
             manager.replaceAll(previous)
             restoreUsageState(previousUsage)
             selectedGroupId = previousSelection
@@ -449,8 +452,8 @@ class SymbolDrawerManagerScreen(
     private fun buildHeader() {
         val row = horizontalRow().apply { gravity = android.view.Gravity.END or android.view.Gravity.CENTER_VERTICAL }
         val searchButton = MaterialButton(context).apply {
-            text = "搜索"
-            contentDescription = "搜索符号"
+            text = context.getString(R.string.symbol_drawer_132)
+            contentDescription = context.getString(R.string.symbol_drawer_134)
             tag = "symbol_manager_search_button"
             isAllCaps = false
             textSize = 13f
@@ -474,7 +477,7 @@ class SymbolDrawerManagerScreen(
         this.searchButton = searchButton
         row.addView(searchButton, LayoutParams(LayoutParams.WRAP_CONTENT, dp(40)))
         val menuButton = MaterialButton(context).apply {
-            text = "更多"
+            text = context.getString(R.string.symbol_drawer_156)
             isAllCaps = false
             textSize = 13f
             minWidth = dp(64)
@@ -499,29 +502,29 @@ class SymbolDrawerManagerScreen(
 
     private fun showManagerMenu(anchor: View) {
         val menu = PopupMenu(context, anchor, android.view.Gravity.END)
-        menu.menu.add(if (batchMode) "退出批量选择" else "批量")
+        menu.menu.add(if (batchMode) context.getString(R.string.symbol_drawer_220) else context.getString(R.string.symbol_drawer_128))
             .setOnMenuItemClickListener { setBatchMode(!batchMode); true }
-        menu.menu.add("添加符号").setOnMenuItemClickListener { editSymbol(null); true }
-        menu.menu.add(if (previewModeActive) "退出预览编辑" else "预览编辑")
+        menu.menu.add(context.getString(R.string.symbol_drawer_173)).setOnMenuItemClickListener { editSymbol(null); true }
+        menu.menu.add(if (previewModeActive) context.getString(R.string.symbol_drawer_221) else context.getString(R.string.symbol_drawer_229))
             .setOnMenuItemClickListener {
                 if (previewModeActive) finishPreviewEditMode() else enterPreviewEditMode()
                 true
             }
-        menu.menu.add("添加分组").setOnMenuItemClickListener {
-            promptGroupName("新建分组") { title ->
+        menu.menu.add(context.getString(R.string.symbol_drawer_172)).setOnMenuItemClickListener {
+            promptGroupName(context.getString(R.string.symbol_drawer_147)) { title ->
                 runCatching { selectedGroupId = manager.addGroup(title).id; refresh() }
                     .onFailure(::reportError)
             }
             true
         }
-        val filters = menu.menu.addSubMenu("筛选")
+        val filters = menu.menu.addSubMenu(context.getString(R.string.symbol_drawer_191))
         buildList {
-            add(ManagerSymbolFilter.ALL to "全部")
+            add(ManagerSymbolFilter.ALL to context.getString(R.string.symbol_drawer_035))
             if (isBuiltInFeatureVisible(SymbolDrawerBuiltInFeatures.FAVORITES)) {
-                add(ManagerSymbolFilter.FAVORITES to "收藏")
+                add(ManagerSymbolFilter.FAVORITES to context.getString(R.string.symbol_drawer_138))
             }
             if (isBuiltInFeatureVisible(SymbolDrawerBuiltInFeatures.RECENT)) {
-                add(ManagerSymbolFilter.RECENT to "最近")
+                add(ManagerSymbolFilter.RECENT to context.getString(R.string.symbol_drawer_159))
             }
         }.forEach { (filter, label) ->
             filters.add(if (activeFilter == filter) "✓ $label" else label)
@@ -566,36 +569,36 @@ class SymbolDrawerManagerScreen(
         val index = manager.groups.indexOfFirst { it.id == group.id }
         groupPageHost.selectPage(groupPageId(group.id))
         PopupMenu(context, anchor).apply {
-            menu.add("左移").apply { isEnabled = index > 0 }
+            menu.add(context.getString(R.string.symbol_drawer_087)).apply { isEnabled = index > 0 }
                 .setOnMenuItemClickListener { moveGroup(group.id, -1); true }
-            menu.add("右移").apply { isEnabled = index >= 0 && index < manager.groups.lastIndex }
+            menu.add(context.getString(R.string.symbol_drawer_061)).apply { isEnabled = index >= 0 && index < manager.groups.lastIndex }
                 .setOnMenuItemClickListener { moveGroup(group.id, 1); true }
-            menu.add("添加").setOnMenuItemClickListener { showAddGroupDialog(); true }
-            menu.add("复制整个分组").setOnMenuItemClickListener {
+            menu.add(context.getString(R.string.symbol_drawer_171)).setOnMenuItemClickListener { showAddGroupDialog(); true }
+            menu.add(context.getString(R.string.symbol_drawer_071)).setOnMenuItemClickListener {
                 runCatching {
                     val duplicate = manager.duplicateGroup(group.id, index + 1)
                     selectedGroupId = duplicate.id
                     refresh()
-                    toast("已复制分组“${duplicate.title}”")
+                    toast(context.getString(R.string.symbol_drawer_094, duplicate.title))
                 }.onFailure(::reportError)
                 true
             }
-            menu.add("复制到…").apply { isEnabled = manager.groups.size > 1 }
+            menu.add(context.getString(R.string.symbol_drawer_068)).apply { isEnabled = manager.groups.size > 1 }
                 .setOnMenuItemClickListener { promptCopyGroupTo(group.id); true }
-            menu.add("重命名").setOnMenuItemClickListener {
-                promptGroupName("重命名“${group.title}”", group.title) {
+            menu.add(context.getString(R.string.symbol_drawer_222)).setOnMenuItemClickListener {
+                promptGroupName(context.getString(R.string.symbol_drawer_223, group.title), group.title) {
                     manager.renameGroup(group.id, it)
                     refresh()
                 }
                 true
             }
-            menu.add("删除").setOnMenuItemClickListener { confirmDeleteGroup(group.id); true }
+            menu.add(context.getString(R.string.symbol_drawer_044)).setOnMenuItemClickListener { confirmDeleteGroup(group.id); true }
             show()
         }
     }
 
     private fun showAddGroupDialog() {
-        promptGroupName("新建分组") {
+        promptGroupName(context.getString(R.string.symbol_drawer_147)) {
             val created = manager.addGroup(it)
             selectedGroupId = created.id
             refresh()
@@ -617,7 +620,7 @@ class SymbolDrawerManagerScreen(
         val targets = manager.groups.filter { it.id != sourceGroupId }
         if (targets.isEmpty()) return
         AlertDialog.Builder(context)
-            .setTitle("复制“${source.title}”中的符号到…")
+            .setTitle(context.getString(R.string.symbol_drawer_067, source.title))
             .setItems(targets.map { it.title }.toTypedArray()) { _, which ->
                 runCatching {
                     val target = targets[which]
@@ -625,17 +628,17 @@ class SymbolDrawerManagerScreen(
                     if (ids.isNotEmpty()) manager.copySymbols(source.id, ids, target.id)
                     selectedGroupId = target.id
                     refresh()
-                    toast("已复制到“${target.title}”")
+                    toast(context.getString(R.string.symbol_drawer_095, target.title))
                 }.onFailure(::reportError)
             }
-            .setNegativeButton("取消", null)
+            .setNegativeButton(context.getString(R.string.symbol_drawer_057), null)
             .showAdaptiveDialog()
     }
 
     private fun setSearchVisible(show: Boolean) {
         searchContainer.visibility = if (show) View.VISIBLE else View.GONE
-        searchButton?.text = if (show) "收起" else "搜索"
-        searchButton?.contentDescription = if (show) "收起搜索" else "搜索符号"
+        searchButton?.text = if (show) context.getString(R.string.symbol_drawer_139) else context.getString(R.string.symbol_drawer_132)
+        searchButton?.contentDescription = if (show) context.getString(R.string.symbol_drawer_140) else context.getString(R.string.symbol_drawer_134)
         if (show) {
             searchField.requestFocus()
         } else {
@@ -648,7 +651,7 @@ class SymbolDrawerManagerScreen(
         searchContainer.tag = "symbol_manager_search_container"
         searchContainer.orientation = VERTICAL
         searchContainer.visibility = View.GONE
-        searchField.hint = "搜索符号名称或动作"
+        searchField.hint = context.getString(R.string.symbol_drawer_135)
         searchField.setSingleLine(true)
         searchField.textSize = 14f
         searchField.setPadding(dp(14), dp(10), dp(14), dp(10))
@@ -706,7 +709,7 @@ class SymbolDrawerManagerScreen(
         if (!favoriteIds.add(symbol.id)) favoriteIds.remove(symbol.id)
         persistUsageState()
         refreshSymbols()
-        toast(if (symbol.id in favoriteIds) "已加入收藏" else "已取消收藏")
+        toast(if (symbol.id in favoriteIds) context.getString(R.string.symbol_drawer_091) else context.getString(R.string.symbol_drawer_092))
     }
 
     /** Records a real toolbar dispatch; unknown/stale IDs are ignored safely. */
@@ -729,7 +732,7 @@ class SymbolDrawerManagerScreen(
     }
 
     private fun buildSymbolList() {
-        emptyView.text = "当前分组暂无符号，点击“添加”并选择“新建符号”"
+        emptyView.text = context.getString(R.string.symbol_drawer_115)
         emptyView.textSize = 13f
         emptyView.setTextColor(secondaryTextColor())
         emptyView.alpha = 0.75f
@@ -754,9 +757,9 @@ class SymbolDrawerManagerScreen(
         batchSummary.setTextColor(HostThemeColors.secondaryText(context))
         batchSummary.textSize = 12f
         batchBar.addView(batchSummary, LayoutParams(0, dp(40), 1f))
-        batchBar.addView(actionButton("复制") { batchCopy() }, LayoutParams(LayoutParams.WRAP_CONTENT, dp(36)))
-        batchBar.addView(actionButton("移动") { batchMove() }, LayoutParams(LayoutParams.WRAP_CONTENT, dp(36)))
-        batchBar.addView(actionButton("删除") { batchDelete() }, LayoutParams(LayoutParams.WRAP_CONTENT, dp(36)))
+        batchBar.addView(actionButton(context.getString(R.string.symbol_drawer_066)) { batchCopy() }, LayoutParams(LayoutParams.WRAP_CONTENT, dp(36)))
+        batchBar.addView(actionButton(context.getString(R.string.symbol_drawer_181)) { batchMove() }, LayoutParams(LayoutParams.WRAP_CONTENT, dp(36)))
+        batchBar.addView(actionButton(context.getString(R.string.symbol_drawer_044)) { batchDelete() }, LayoutParams(LayoutParams.WRAP_CONTENT, dp(36)))
     }
 
     private fun setBatchMode(enabled: Boolean) {
@@ -768,7 +771,7 @@ class SymbolDrawerManagerScreen(
     }
 
     private fun updateBatchSummary() {
-        batchSummary.text = "已选择 ${selectedSymbolIds.size} 项"
+        batchSummary.text = context.getString(R.string.symbol_drawer_102, selectedSymbolIds.size)
     }
 
     private fun toggleBatchSelection(symbol: SymbolEntry) {
@@ -782,7 +785,7 @@ class SymbolDrawerManagerScreen(
         val group = currentGroup() ?: return null
         val ids = selectedSymbolIds.toSet()
         if (ids.isEmpty()) {
-            toast("请先选择符号")
+            toast(context.getString(R.string.symbol_drawer_214))
             return null
         }
         return group to ids
@@ -798,7 +801,7 @@ class SymbolDrawerManagerScreen(
             selectedSymbolIds.clear()
             updateBatchSummary()
             refresh()
-            showUndo("已删除 ${ids.size} 个符号") {
+            showUndo(context.getString(R.string.symbol_drawer_088, ids.size)) {
                 manager.replaceAll(before)
                 restoreUsageState(previousUsage)
             }
@@ -808,9 +811,9 @@ class SymbolDrawerManagerScreen(
     private fun batchCopy() {
         val (group, ids) = selectedBatch() ?: return
         val targets = manager.groups.filter { it.id != group.id }
-        if (targets.isEmpty()) { toast("请先创建另一个分组"); return }
+        if (targets.isEmpty()) { toast(context.getString(R.string.symbol_drawer_213)); return }
         AlertDialog.Builder(context)
-            .setTitle("复制所选符号到")
+            .setTitle(context.getString(R.string.symbol_drawer_070))
             .setItems(targets.map { it.title }.toTypedArray()) { _, which ->
                 val before = manager.groups.toList()
                 runCatching {
@@ -818,19 +821,19 @@ class SymbolDrawerManagerScreen(
                     manager.copySymbols(group.id, ids, target.id)
                     selectedSymbolIds.clear()
                     refresh()
-                    showUndo("已复制 ${ids.size} 个符号") { manager.replaceAll(before) }
+                    showUndo(context.getString(R.string.symbol_drawer_093, ids.size)) { manager.replaceAll(before) }
                 }.onFailure(::reportError)
             }
-            .setNegativeButton("取消", null)
+            .setNegativeButton(context.getString(R.string.symbol_drawer_057), null)
             .showAdaptiveDialog()
     }
 
     private fun batchMove() {
         val (group, ids) = selectedBatch() ?: return
         val targets = manager.groups.filter { it.id != group.id }
-        if (targets.isEmpty()) { toast("请先创建另一个分组"); return }
+        if (targets.isEmpty()) { toast(context.getString(R.string.symbol_drawer_213)); return }
         AlertDialog.Builder(context)
-            .setTitle("移动所选符号到")
+            .setTitle(context.getString(R.string.symbol_drawer_183))
             .setItems(targets.map { it.title }.toTypedArray()) { _, which ->
                 val before = manager.groups.toList()
                 runCatching {
@@ -839,10 +842,10 @@ class SymbolDrawerManagerScreen(
                     selectedGroupId = target.id
                     selectedSymbolIds.clear()
                     refresh()
-                    showUndo("已移动 ${ids.size} 个符号") { manager.replaceAll(before) }
+                    showUndo(context.getString(R.string.symbol_drawer_100, ids.size)) { manager.replaceAll(before) }
                 }.onFailure(::reportError)
             }
-            .setNegativeButton("取消", null)
+            .setNegativeButton(context.getString(R.string.symbol_drawer_057), null)
             .showAdaptiveDialog()
     }
 
@@ -923,7 +926,7 @@ class SymbolDrawerManagerScreen(
                     }
                     refresh()
                     if (before != null && before != manager.groups) {
-                        showUndo("已调整符号顺序") {
+                        showUndo(context.getString(R.string.symbol_drawer_101)) {
                             manager.replaceAll(before.map { it.copy(symbols = it.symbols.toList()) })
                             selectedGroupId = previousGroupId
                         }
@@ -952,14 +955,14 @@ class SymbolDrawerManagerScreen(
             gravity = android.view.Gravity.CENTER_VERTICAL
         }
         controls.addView(TextView(context).apply {
-            text = "工具栏预览编辑"
+            text = context.getString(R.string.symbol_drawer_085)
             textSize = 13f
             setTextColor(onSurfaceColor())
             setTypeface(typeface, android.graphics.Typeface.BOLD)
         }, LayoutParams(0, dp(36), 1f))
-        controls.addView(actionButton("恢复") { restorePreviewEditMode() },
+        controls.addView(actionButton(context.getString(R.string.symbol_drawer_120)) { restorePreviewEditMode() },
             LayoutParams(LayoutParams.WRAP_CONTENT, dp(34)))
-        controls.addView(actionButton("完成") { finishPreviewEditMode() },
+        controls.addView(actionButton(context.getString(R.string.symbol_drawer_075)) { finishPreviewEditMode() },
             LayoutParams(LayoutParams.WRAP_CONTENT, dp(34)))
         panel.addView(controls, LayoutParams(LayoutParams.MATCH_PARENT, dp(36)))
         previewContent = FrameLayout(context).also {
@@ -1006,7 +1009,7 @@ class SymbolDrawerManagerScreen(
             manager.replaceAll(snapshot.map { it.copy(symbols = it.symbols.toList()) })
             selectedGroupId = previewEditSelectedGroupId
             refresh()
-            toast("已恢复进入预览编辑前的布局")
+            toast(context.getString(R.string.symbol_drawer_098))
         }.onFailure(::reportError)
     }
 
@@ -1038,7 +1041,7 @@ class SymbolDrawerManagerScreen(
             setPadding(dp(8), dp(6), dp(8), dp(4))
             background = roundedSurface(surfaceColor(), 14)
             addView(TextView(context).apply {
-                text = "实时工具栏预览 · 拖动结束自动关闭"
+                text = context.getString(R.string.symbol_drawer_076)
                 textSize = 11f
                 setTextColor(secondaryTextColor())
             }, LayoutParams(LayoutParams.MATCH_PARENT, dp(22)))
@@ -1110,7 +1113,7 @@ class SymbolDrawerManagerScreen(
         undoBar.visibility = View.GONE
         undoMessage.textSize = 13f
         undoBar.addView(undoMessage, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
-        undoButton.text = "撤销"
+        undoButton.text = context.getString(R.string.symbol_drawer_136)
         undoButton.setOnClickListener {
             val restore = pendingUndo ?: return@setOnClickListener
             pendingUndo = null
@@ -1310,10 +1313,10 @@ class SymbolDrawerManagerScreen(
     private fun confirmDeleteGroup(groupId: String) {
         val group = manager.groups.firstOrNull { it.id == groupId } ?: return
         AlertDialog.Builder(context)
-            .setTitle("删除分组")
-            .setMessage("删除“${group.title}”及其中全部符号？删除后可使用页面底部的“撤销”恢复。")
-            .setNegativeButton("取消", null)
-            .setPositiveButton("删除") { _, _ ->
+            .setTitle(context.getString(R.string.symbol_drawer_046))
+            .setMessage(context.getString(R.string.symbol_drawer_045, group.title))
+            .setNegativeButton(context.getString(R.string.symbol_drawer_057), null)
+            .setPositiveButton(context.getString(R.string.symbol_drawer_044)) { _, _ ->
                 val previous = manager.groups.toList()
                 val previousUsage = snapshotUsageState()
                 val previousSelection = selectedGroupId
@@ -1322,7 +1325,7 @@ class SymbolDrawerManagerScreen(
                     pruneUsageState()
                     selectedGroupId = manager.groups.firstOrNull()?.id
                     refresh()
-                    showUndo("已删除分组“${group.title}”") {
+                    showUndo(context.getString(R.string.symbol_drawer_089, group.title)) {
                         manager.replaceAll(previous)
                         restoreUsageState(previousUsage)
                         selectedGroupId = previousSelection
@@ -1336,16 +1339,16 @@ class SymbolDrawerManagerScreen(
         val input = EditText(context).apply {
             setSingleLine(true)
             setText(initial)
-            hint = "分组名称"
+            hint = context.getString(R.string.symbol_drawer_039)
         }
         AlertDialog.Builder(context)
             .setTitle(title)
             .setView(input)
-            .setNegativeButton("取消", null)
-            .setPositiveButton("确定") { _, _ ->
+            .setNegativeButton(context.getString(R.string.symbol_drawer_057), null)
+            .setPositiveButton(context.getString(R.string.symbol_drawer_178)) { _, _ ->
                 val value = input.text.toString().trim()
                 if (value.isNotEmpty()) runCatching { done(value) }.onFailure(::reportError)
-                else toast("分组名称不能为空")
+                else toast(context.getString(R.string.symbol_drawer_040))
             }
             .showAdaptiveDialog()
     }
@@ -1353,7 +1356,7 @@ class SymbolDrawerManagerScreen(
     private fun editSymbol(existing: SymbolEntry?) {
         val group = currentGroup() ?: return
         val label = EditText(context).apply {
-            hint = "显示文本"
+            hint = context.getString(R.string.symbol_drawer_154)
             setSingleLine(true)
             setText(existing?.label.orEmpty())
         }
@@ -1379,10 +1382,10 @@ class SymbolDrawerManagerScreen(
             SymbolActionOption("[V2] " + option.label, builtin = option)
         }
         val extensionOptions = extensionRegistry?.actions().orEmpty().map { extension ->
-            SymbolActionOption("[扩展] " + extension.title, extension = extension)
+            SymbolActionOption(context.getString(R.string.symbol_drawer_004) + extension.title, extension = extension)
         }
         val shortOptions = buildList {
-            if (preserveShortAction) add(SymbolActionOption("保留当前动作", keepCurrent = true))
+            if (preserveShortAction) add(SymbolActionOption(context.getString(R.string.symbol_drawer_034), keepCurrent = true))
             addAll(legacyOptions)
             addAll(builtinOptions)
             addAll(extensionOptions)
@@ -1391,8 +1394,8 @@ class SymbolDrawerManagerScreen(
         val shortIndex = if (preserveShortAction) 0 else (shortLegacyIndex ?: 0) + shortOffset
 
         val longOptions = buildList {
-            if (preserveLongAction) add(SymbolActionOption("保留当前 V2 动作", keepCurrent = true))
-            add(SymbolActionOption("无长按动作", none = true))
+            if (preserveLongAction) add(SymbolActionOption(context.getString(R.string.symbol_drawer_033), keepCurrent = true))
+            add(SymbolActionOption(context.getString(R.string.symbol_drawer_151), none = true))
             addAll(legacyOptions)
             addAll(builtinOptions)
             addAll(extensionOptions)
@@ -1422,7 +1425,7 @@ class SymbolDrawerManagerScreen(
         }
         val shortText = EditText(context).apply {
             hint = shortOptions.getOrNull(shortIndex)?.payloadHint
-                ?: "动作参数文本（插入文本/替换行等动作使用）"
+                ?: context.getString(R.string.symbol_drawer_050)
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
             minLines = 2
             setText(
@@ -1434,7 +1437,7 @@ class SymbolDrawerManagerScreen(
         }
         val longText = EditText(context).apply {
             hint = longOptions.getOrNull(longIndex)?.payloadHint
-                ?: "动作参数文本（插入文本/替换行等动作使用）"
+                ?: context.getString(R.string.symbol_drawer_050)
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
             minLines = 2
             setText(
@@ -1464,32 +1467,32 @@ class SymbolDrawerManagerScreen(
             orientation = VERTICAL
             setPadding(dp(20), dp(8), dp(20), 0)
             addView(label, matchWrap())
-            addView(TextView(context).apply { text = "短按动作" }, matchWrap())
+            addView(TextView(context).apply { text = context.getString(R.string.symbol_drawer_177) }, matchWrap())
             addView(shortAction, matchWrap())
             addView(shortText, matchWrap())
-            addView(TextView(context).apply { text = "长按动作（可选）" }, matchWrap())
+            addView(TextView(context).apply { text = context.getString(R.string.symbol_drawer_224) }, matchWrap())
             addView(longAction, matchWrap())
             addView(longText, matchWrap())
             addView(TextView(context).apply {
                 text = listOf(
-                    "\$\$  输出字面量 \$",
-                    "\$S   设置选区起始位置",
-                    "\$E   设置选区结束位置",
-                    "\$T   插入当前选中文本",
-                    "\$C   设置光标位置（与选区标记分开使用）",
-                    "\$N   插入当前文档的换行符",
-                    "\$TAB 插入一个制表符",
-                    "\$L   插入光标所在行的文本",
-                    "\$W   插入光标所在单词",
-                    "\$I   插入光标所在行的缩进",
-                    "\$U   将当前选中文本转换为大写",
-                    "\$V   将当前选中文本转换为小写",
-                    "\$R   反转当前选中文本",
-                    "\$UP  将当前选中文本转换为大写（长指令）",
-                    "\$LOW 将当前选中文本转换为小写（长指令）",
-                    "\$CAP 将当前选中文本首字母大写",
-                    "\$TRIM 删除当前选中文本首尾空白",
-                    "\$REV 反转当前选中文本（长指令）"
+                    context.getString(R.string.symbol_drawer_022),
+                    context.getString(R.string.symbol_drawer_014, S),
+                    context.getString(R.string.symbol_drawer_007, E),
+                    context.getString(R.string.symbol_drawer_015, T),
+                    context.getString(R.string.symbol_drawer_005, C),
+                    context.getString(R.string.symbol_drawer_011, N),
+                    context.getString(R.string.symbol_drawer_016, TAB),
+                    context.getString(R.string.symbol_drawer_009, L),
+                    context.getString(R.string.symbol_drawer_021, W),
+                    context.getString(R.string.symbol_drawer_008, I),
+                    context.getString(R.string.symbol_drawer_018, U),
+                    context.getString(R.string.symbol_drawer_020, V),
+                    context.getString(R.string.symbol_drawer_012, R),
+                    context.getString(R.string.symbol_drawer_019, UP),
+                    context.getString(R.string.symbol_drawer_010, LOW),
+                    context.getString(R.string.symbol_drawer_006, CAP),
+                    context.getString(R.string.symbol_drawer_017, TRIM),
+                    context.getString(R.string.symbol_drawer_013, REV)
                 ).joinToString("\n")
                 textSize = 12f
                 alpha = 0.7f
@@ -1508,15 +1511,15 @@ class SymbolDrawerManagerScreen(
             ))
         }
         AlertDialog.Builder(context)
-            .setTitle(if (existing == null) "新建符号" else "编辑符号")
+            .setTitle(if (existing == null) context.getString(R.string.symbol_drawer_148) else context.getString(R.string.symbol_drawer_201))
             .setView(formScroll)
-            .setNegativeButton("取消", null)
-            .setPositiveButton("保存") { _, _ ->
+            .setNegativeButton(context.getString(R.string.symbol_drawer_057), null)
+            .setPositiveButton(context.getString(R.string.symbol_drawer_032)) { _, _ ->
                 runCatching {
                     val display = label.text.toString()
-                    require(display.isNotEmpty()) { "符号显示文本不能为空" }
+                    require(display.isNotEmpty()) { context.getString(R.string.symbol_drawer_187) }
                     val shortOption = shortOptions.getOrNull(shortAction.selectedItemPosition)
-                        ?: error("请选择有效的短按动作")
+                        ?: error(context.getString(R.string.symbol_drawer_215))
                     val keepShort = shortOption.keepCurrent
                     val shortId = if (keepShort) existing?.legacyShortActionId else shortOption.legacyId
                     val shortPayload = if (shortOption.hasPayload) {
@@ -1539,7 +1542,7 @@ class SymbolDrawerManagerScreen(
                     }
 
                     val longOption = longOptions.getOrNull(longAction.selectedItemPosition)
-                        ?: error("请选择有效的长按动作")
+                        ?: error(context.getString(R.string.symbol_drawer_216))
                     val keepLong = longOption.keepCurrent
                     val longId = if (keepLong) existing?.legacyLongActionId else longOption.legacyId
                     val longPayload = if (longOption.hasPayload) {
@@ -1583,22 +1586,22 @@ class SymbolDrawerManagerScreen(
 
     private fun showSymbolMenu(symbol: SymbolEntry, anchor: View) {
         val menu = PopupMenu(context, anchor)
-        menu.menu.add(if (symbol.id in favoriteIds) "取消收藏" else "加入收藏")
+        menu.menu.add(if (symbol.id in favoriteIds) context.getString(R.string.symbol_drawer_058) else context.getString(R.string.symbol_drawer_048))
             .setOnMenuItemClickListener { toggleFavorite(symbol); true }
-        menu.menu.add("标记为最近使用").setOnMenuItemClickListener {
+        menu.menu.add(context.getString(R.string.symbol_drawer_162)).setOnMenuItemClickListener {
             markRecentlyUsed(symbol)
             refreshSymbols()
             true
         }
-        menu.menu.add("编辑").setOnMenuItemClickListener { editSymbol(symbol); true }
-        menu.menu.add("复制到本分组").setOnMenuItemClickListener {
+        menu.menu.add(context.getString(R.string.symbol_drawer_200)).setOnMenuItemClickListener { editSymbol(symbol); true }
+        menu.menu.add(context.getString(R.string.symbol_drawer_069)).setOnMenuItemClickListener {
             currentGroup()?.let { manager.copySymbol(it.id, symbol.id, it.id); refresh() }
             true
         }
-        menu.menu.add("移动到分组").setOnMenuItemClickListener { promptMoveSymbol(symbol); true }
-        menu.menu.add("上移").setOnMenuItemClickListener { moveSymbol(symbol, -1); true }
-        menu.menu.add("下移").setOnMenuItemClickListener { moveSymbol(symbol, 1); true }
-        menu.menu.add("删除").setOnMenuItemClickListener {
+        menu.menu.add(context.getString(R.string.symbol_drawer_182)).setOnMenuItemClickListener { promptMoveSymbol(symbol); true }
+        menu.menu.add(context.getString(R.string.symbol_drawer_024)).setOnMenuItemClickListener { moveSymbol(symbol, -1); true }
+        menu.menu.add(context.getString(R.string.symbol_drawer_025)).setOnMenuItemClickListener { moveSymbol(symbol, 1); true }
+        menu.menu.add(context.getString(R.string.symbol_drawer_044)).setOnMenuItemClickListener {
             confirmDeleteSymbol(symbol)
             true
         }
@@ -1608,10 +1611,10 @@ class SymbolDrawerManagerScreen(
     private fun confirmDeleteSymbol(symbol: SymbolEntry) {
         val group = currentGroup() ?: return
         AlertDialog.Builder(context)
-            .setTitle("删除符号")
-            .setMessage("确定删除“${symbol.label}”吗？")
-            .setNegativeButton("取消", null)
-            .setPositiveButton("删除") { _, _ ->
+            .setTitle(context.getString(R.string.symbol_drawer_047))
+            .setMessage(context.getString(R.string.symbol_drawer_179, symbol.label))
+            .setNegativeButton(context.getString(R.string.symbol_drawer_057), null)
+            .setPositiveButton(context.getString(R.string.symbol_drawer_044)) { _, _ ->
                 val previous = manager.groups.toList()
                 val previousUsage = snapshotUsageState()
                 val previousSelection = selectedGroupId
@@ -1619,7 +1622,7 @@ class SymbolDrawerManagerScreen(
                     manager.removeSymbol(group.id, symbol.id)
                     pruneUsageState()
                     refresh()
-                    showUndo("已删除符号“${symbol.label}”") {
+                    showUndo(context.getString(R.string.symbol_drawer_090, symbol.label)) {
                         manager.replaceAll(previous)
                         restoreUsageState(previousUsage)
                         selectedGroupId = previousSelection
@@ -1643,16 +1646,16 @@ class SymbolDrawerManagerScreen(
         val source = currentGroup() ?: return
         val targets = manager.groups.filter { it.id != source.id }
         if (targets.isEmpty()) {
-            toast("没有其他可移动到的分组")
+            toast(context.getString(R.string.symbol_drawer_167))
             return
         }
         AlertDialog.Builder(context)
-            .setTitle("移动到分组")
+            .setTitle(context.getString(R.string.symbol_drawer_182))
             .setItems(targets.map { it.title }.toTypedArray()) { _, which ->
                 runCatching { manager.moveSymbolToGroup(source.id, symbol.id, targets[which].id); refresh() }
                     .onFailure(::reportError)
             }
-            .setNegativeButton("取消", null)
+            .setNegativeButton(context.getString(R.string.symbol_drawer_057), null)
             .showAdaptiveDialog()
     }
 
@@ -1704,7 +1707,7 @@ class SymbolDrawerManagerScreen(
     private fun toast(message: String) = Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
     private fun reportError(error: Throwable) {
         onError?.invoke(error)
-        toast(error.message ?: "操作失败")
+        toast(error.message ?: context.getString(R.string.symbol_drawer_137))
     }
 
     private fun matchWrap() = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
@@ -1717,6 +1720,7 @@ class SymbolDrawerManagerScreen(
     }
 
     private class SymbolAdapter(
+        private val context: Context,
         private val onClick: (SymbolEntry) -> Unit,
         private val onLongClick: (SymbolEntry, View) -> Unit,
         private val onDragHandle: (RecyclerView.ViewHolder) -> Unit,
@@ -1761,7 +1765,7 @@ class SymbolDrawerManagerScreen(
                     textSize = 20f
                     gravity = android.view.Gravity.CENTER
                     setTextColor(themeProvider()?.secondaryText ?: HostThemeColors.secondaryText(ctx))
-                    contentDescription = "拖动调整符号位置"
+                    contentDescription = context.getString(R.string.symbol_drawer_130)
                     isClickable = true
                     isFocusable = true
                 }
@@ -1780,9 +1784,9 @@ class SymbolDrawerManagerScreen(
             val symbol = getItem(position)
             holder.title.text = if (symbol.icon.isNullOrEmpty()) symbol.label else "${symbol.icon}  ${symbol.label}"
             val shortName = symbol.legacyShortActionId?.let(::actionName) ?: symbol.shortAction.javaClass.simpleName
-            val longName = symbol.legacyLongActionId?.let(::actionName) ?: symbol.longAction?.javaClass?.simpleName ?: "无"
-            holder.detail.text = "短按  $shortName    ·    长按  $longName"
-            holder.root.contentDescription = "${symbol.label}，短按$shortName，长按$longName"
+            val longName = symbol.legacyLongActionId?.let(::actionName) ?: symbol.longAction?.javaClass?.simpleName ?: context.getString(R.string.symbol_drawer_150)
+            holder.detail.text = context.getString(R.string.symbol_drawer_176, shortName, longName)
+            holder.root.contentDescription = context.getString(R.string.symbol_drawer_001, symbol.label, shortName, longName)
             val theme = themeProvider()
             val itemContext = holder.root.context
             holder.root.background = roundedSurface(itemContext, theme?.surface ?: HostThemeColors.surface(itemContext), dp(itemContext, 12))
@@ -1837,9 +1841,9 @@ class SymbolDrawerManagerScreen(
                 override fun areContentsTheSame(old: SymbolEntry, new: SymbolEntry) = old == new
             }
             private fun dp(context: Context, value: Int) = (value * context.resources.displayMetrics.density).toInt()
-            private fun actionName(id: Int): String {
+            private fun actionName(context: Context, id: Int): String {
                 val index = LegacySymbolActionCatalog.values.indexOf(id)
-                return LegacySymbolActionCatalog.labels.getOrNull(index) ?: "动作 $id"
+                return LegacySymbolActionCatalog.labels.getOrNull(index) ?: context.getString(R.string.symbol_drawer_049, id)
             }
         }
 

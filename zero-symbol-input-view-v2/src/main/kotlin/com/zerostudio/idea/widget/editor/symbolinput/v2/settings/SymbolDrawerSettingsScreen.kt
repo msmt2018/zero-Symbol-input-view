@@ -45,6 +45,8 @@
 
 package com.zerostudio.idea.widget.editor.symbolinput.v2.settings
 
+import com.zerostudio.idea.widget.editor.symbolinput.v2.R
+
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -116,7 +118,7 @@ class SymbolDrawerSettingsScreen(
     private val documentPicker = JsonDocumentPicker(
         context,
         onImported = ::handleImportedJson,
-        onError = { onError?.invoke(it); toast("文件处理失败：${it.message ?: "未知错误"}") }
+        onError = { onError?.invoke(it); toast(context.getString(R.string.symbol_drawer_file_error, it.message ?: "Unknown error")) }
     )
 
     init {
@@ -236,7 +238,7 @@ class SymbolDrawerSettingsScreen(
                 extensionRegistry?.reportError(extensionId, error)
                 safeDispose()
                 page.addView(TextView(context).apply {
-                    text = "扩展视图挂载失败：" + extensionId
+                    text = context.getString(R.string.symbol_drawer_124) + extensionId
                     setTextColor(android.graphics.Color.RED)
                 }, matchWrap())
             }
@@ -262,13 +264,13 @@ class SymbolDrawerSettingsScreen(
             setPadding(spaceDp(18), spaceDp(16), spaceDp(18), spaceDp(16))
             background = surfaceBackground(surfaceColor(), 0.10f, 22)
             addView(TextView(context).apply {
-                text = "符号抽屉设置"
+                text = context.getString(R.string.symbol_drawer_185)
                 textSize = textSp(23f)
                 setTextColor(primaryColor())
                 setTypeface(typeface, Typeface.BOLD)
             }, matchWrap())
             addView(TextView(context).apply {
-                text = "按类别管理外观、布局、交互、性能与数据"
+                text = context.getString(R.string.symbol_drawer_131)
                 textSize = textSp(13f)
                 setTextColor(onSurfaceColor())
                 alpha = 0.72f
@@ -292,90 +294,90 @@ class SymbolDrawerSettingsScreen(
         content.addView(pageHost, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
 
         val builders: List<Pair<String, () -> Unit>> = listOf(
-            "外观" to {
-                section("主题与显示")
-                addChoice("主题模式", listOf(ThemeMode.SYSTEM), ThemeMode.SYSTEM) {
+            context.getString(R.string.symbol_drawer_074) to {
+                section(context.getString(R.string.symbol_drawer_026))
+                addChoice(context.getString(R.string.symbol_drawer_027), listOf(ThemeMode.SYSTEM), ThemeMode.SYSTEM) {
                     update { copy(themeMode = ThemeMode.SYSTEM) }
                 }
-                addChoice("分组指示器样式", GroupIndicatorStyle.values().toList(), current.indicatorStyle) {
+                addChoice(context.getString(R.string.symbol_drawer_041), GroupIndicatorStyle.values().toList(), current.indicatorStyle) {
                     update { copy(indicatorStyle = it) }
                 }
-                addSwitch("显示分组名称", current.showGroupTitles) { update { copy(showGroupTitles = it) } }
-                addSwitch("显示符号标签", current.showSymbolLabels) { update { copy(showSymbolLabels = it) } }
-                addSwitch("符号完整显示", current.showFullSymbolLabels) { update { copy(showFullSymbolLabels = it) } }
-                addHint("开启后符号标题保持单行完整显示；网格会按最长标题自动减少每行列数，长标题会自动缩小字号。")
-                addSeek("符号文本字号 (sp)", current.symbolLabelTextSizeSp, 8, 32) { update { copy(symbolLabelTextSizeSp = it) } }
-                addSwitch("显示动作提示", current.showActionHints) { update { copy(showActionHints = it) } }
+                addSwitch(context.getString(R.string.symbol_drawer_152), current.showGroupTitles) { update { copy(showGroupTitles = it) } }
+                addSwitch(context.getString(R.string.symbol_drawer_155), current.showSymbolLabels) { update { copy(showSymbolLabels = it) } }
+                addSwitch(context.getString(R.string.symbol_drawer_184), current.showFullSymbolLabels) { update { copy(showFullSymbolLabels = it) } }
+                addHint(context.getString(R.string.symbol_drawer_108))
+                addSeek(context.getString(R.string.symbol_drawer_186), current.symbolLabelTextSizeSp, 8, 32) { update { copy(symbolLabelTextSizeSp = it) } }
+                addSwitch(context.getString(R.string.symbol_drawer_153), current.showActionHints) { update { copy(showActionHints = it) } }
             },
-            "布局" to {
-                section("尺寸与间距")
-                addSeek("每行列数", current.columns, 1, 30) { update { copy(columns = it) } }
-                addSeek("折叠时显示行数", current.collapsedRows, 1, 16) { update { copy(collapsedRows = it) } }
-                addSeek("单元格高度 (dp)", current.cellHeightDp, 6, 128) { update { copy(cellHeightDp = it) } }
-                addSeek("横向间距 (dp)", current.cellHorizontalSpacingDp, -24, 48) { update { copy(cellHorizontalSpacingDp = it) } }
-                addSeek("纵向间距 (dp)", current.cellVerticalSpacingDp, -24, 48) { update { copy(cellVerticalSpacingDp = it) } }
-                addSeek("分组栏高度 (dp)", current.indicatorHeightDp, 0, 96) { update { copy(indicatorHeightDp = it) } }
-                addSeek("最大展开高度 (dp)", current.maxExpandedHeightDp, 80, 1800) { update { copy(maxExpandedHeightDp = it) } }
-                addSeek("最小触摸目标 (dp)", current.minimumTouchTargetDp, 20, 112) { update { copy(minimumTouchTargetDp = it) } }
+            context.getString(R.string.symbol_drawer_103) to {
+                section(context.getString(R.string.symbol_drawer_082))
+                addSeek(context.getString(R.string.symbol_drawer_166), current.columns, 1, 30) { update { copy(columns = it) } }
+                addSeek(context.getString(R.string.symbol_drawer_129), current.collapsedRows, 1, 16) { update { copy(collapsedRows = it) } }
+                addSeek(context.getString(R.string.symbol_drawer_054), current.cellHeightDp, 6, 128) { update { copy(cellHeightDp = it) } }
+                addSeek(context.getString(R.string.symbol_drawer_163), current.cellHorizontalSpacingDp, -24, 48) { update { copy(cellHorizontalSpacingDp = it) } }
+                addSeek(context.getString(R.string.symbol_drawer_198), current.cellVerticalSpacingDp, -24, 48) { update { copy(cellVerticalSpacingDp = it) } }
+                addSeek(context.getString(R.string.symbol_drawer_042), current.indicatorHeightDp, 0, 96) { update { copy(indicatorHeightDp = it) } }
+                addSeek(context.getString(R.string.symbol_drawer_157), current.maxExpandedHeightDp, 80, 1800) { update { copy(maxExpandedHeightDp = it) } }
+                addSeek(context.getString(R.string.symbol_drawer_158), current.minimumTouchTargetDp, 20, 112) { update { copy(minimumTouchTargetDp = it) } }
             },
-            "平板模式" to {
-                section("底部工具栏与平板适配")
+            context.getString(R.string.symbol_drawer_104) to {
+                section(context.getString(R.string.symbol_drawer_106))
                 addHint(
-                    "工具栏始终固定在屏幕底部。平板、分屏、折叠屏和窗口尺寸变化时，" +
-                        "仅自适应内部控件尺寸、网格与间距；不改变抽屉高度、手势、锚点或展开比例。"
+                    context.getString(R.string.symbol_drawer_084) +
+                        context.getString(R.string.symbol_drawer_029)
                 )
             },
-            "交互" to {
-                section("手势与动作")
-                addSeek("长按触发时间 (ms)", current.longPressTimeoutMs, 250, 1000) { update { copy(longPressTimeoutMs = it) } }
-                addSeek("展开甩动阈值 (dp/s)", current.flingVelocityDpPerSecond, 100, 6000) { update { copy(flingVelocityDpPerSecond = it) } }
-                addSwitch("执行动作后自动收起", current.autoCollapseAfterAction) { update { copy(autoCollapseAfterAction = it) } }
-                addSwitch("记忆展开状态", current.rememberExpandedState) { update { copy(rememberExpandedState = it) } }
-                addHint("开启后会记住抽屉最后一次展开或收起状态；关闭后每次进入均使用默认收起状态。")
-                section("动画与触觉")
-                addSeek("动画时长 (ms)", current.animationDurationMs, 0, 1200) { update { copy(animationDurationMs = it) } }
-                addSwitch("减少动态效果", current.reduceMotion) { update { copy(reduceMotion = it) } }
-                addChoice("触觉反馈", HapticMode.values().toList(), current.hapticMode) { update { copy(hapticMode = it) } }
+            context.getString(R.string.symbol_drawer_028) to {
+                section(context.getString(R.string.symbol_drawer_122))
+                addSeek(context.getString(R.string.symbol_drawer_225), current.longPressTimeoutMs, 250, 1000) { update { copy(longPressTimeoutMs = it) } }
+                addSeek(context.getString(R.string.symbol_drawer_083), current.flingVelocityDpPerSecond, 100, 6000) { update { copy(flingVelocityDpPerSecond = it) } }
+                addSwitch(context.getString(R.string.symbol_drawer_123), current.autoCollapseAfterAction) { update { copy(autoCollapseAfterAction = it) } }
+                addSwitch(context.getString(R.string.symbol_drawer_208), current.rememberExpandedState) { update { copy(rememberExpandedState = it) } }
+                addHint(context.getString(R.string.symbol_drawer_107))
+                section(context.getString(R.string.symbol_drawer_051))
+                addSeek(context.getString(R.string.symbol_drawer_052), current.animationDurationMs, 0, 1200) { update { copy(animationDurationMs = it) } }
+                addSwitch(context.getString(R.string.symbol_drawer_037), current.reduceMotion) { update { copy(reduceMotion = it) } }
+                addChoice(context.getString(R.string.symbol_drawer_207), HapticMode.values().toList(), current.hapticMode) { update { copy(hapticMode = it) } }
             },
-            "性能与搜索" to {
-                section("性能")
-                addSeek("页面缓存数量", current.pageCacheLimit, 1, 9) { update { copy(pageCacheLimit = it) } }
-                addSwitch("预加载相邻分组", current.prefetchAdjacentGroups) { update { copy(prefetchAdjacentGroups = it) } }
-                section("搜索")
-                addSwitch("搜索时包含动作内容", current.searchIncludesActionPayload) {
+            context.getString(R.string.symbol_drawer_119) to {
+                section(context.getString(R.string.symbol_drawer_118))
+                addSeek(context.getString(R.string.symbol_drawer_227), current.pageCacheLimit, 1, 9) { update { copy(pageCacheLimit = it) } }
+                addSwitch(context.getString(R.string.symbol_drawer_228), current.prefetchAdjacentGroups) { update { copy(prefetchAdjacentGroups = it) } }
+                section(context.getString(R.string.symbol_drawer_132))
+                addSwitch(context.getString(R.string.symbol_drawer_133), current.searchIncludesActionPayload) {
                     update { copy(searchIncludesActionPayload = it) }
                 }
             },
-            "数据管理" to {
+            context.getString(R.string.symbol_drawer_144) to {
                 addDataManagementCard(
-                    "设置备份",
-                    "备份当前外观、布局、交互与性能选项；导入设置不会修改符号分组。",
+                    context.getString(R.string.symbol_drawer_209),
+                    context.getString(R.string.symbol_drawer_065),
                     listOf(
-                        "复制设置 JSON" to ::copySettingsBackup,
-                        "导出设置文件" to ::exportSettingsFile,
-                        "粘贴导入设置" to ::promptImportSettings,
-                        "从文件导入设置" to { pendingImport = ImportKind.SETTINGS; documentPicker.openJson() }
+                        context.getString(R.string.symbol_drawer_073) to ::copySettingsBackup,
+                        context.getString(R.string.symbol_drawer_081) to ::exportSettingsFile,
+                        context.getString(R.string.symbol_drawer_195) to ::promptImportSettings,
+                        context.getString(R.string.symbol_drawer_031) to { pendingImport = ImportKind.SETTINGS; documentPicker.openJson() }
                     )
                 )
                 addDataManagementCard(
-                    "符号组备份",
-                    "包含分组、符号内容及其短按/长按动作。导入会替换当前全部符号组。",
+                    context.getString(R.string.symbol_drawer_189),
+                    context.getString(R.string.symbol_drawer_053),
                     listOf(
-                        "复制符号组 JSON" to ::copyGroupsBackup,
-                        "导出符号组文件" to ::exportGroupsFile,
-                        "粘贴导入符号组" to ::promptImportGroups,
-                        "从文件导入符号组" to { pendingImport = ImportKind.GROUPS; documentPicker.openJson() }
+                        context.getString(R.string.symbol_drawer_072) to ::copyGroupsBackup,
+                        context.getString(R.string.symbol_drawer_080) to ::exportGroupsFile,
+                        context.getString(R.string.symbol_drawer_194) to ::promptImportGroups,
+                        context.getString(R.string.symbol_drawer_030) to { pendingImport = ImportKind.GROUPS; documentPicker.openJson() }
                     )
                 )
                 addDataSafetyNotice()
-                activePage?.addView(actionButton("恢复默认设置") {
+                activePage?.addView(actionButton(context.getString(R.string.symbol_drawer_121)) {
                     runCatching {
                         val defaults = SymbolDrawerSettings()
                         repository.save(defaults)
                         current = defaults
                         render()
                         onSettingsChanged?.invoke(current)
-                        toast("设置已恢复默认并保存")
+                        toast(context.getString(R.string.symbol_drawer_212))
                     }.onFailure(::reportFailure)
                 }, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, dp(50)).apply {
                     topMargin = spaceDp(14)
@@ -420,7 +422,7 @@ class SymbolDrawerSettingsScreen(
                         .onFailure { error ->
                             extensionRegistry?.reportError(extension.id, error)
                             page.addView(TextView(context).apply {
-                                text = "扩展设置加载失败：${extension.title}（${error.message ?: "未知错误"}）"
+                                text = context.getString(R.string.symbol_drawer_ext_settings_error, extension.title, error.message ?: "Unknown error")
                                 setTextColor(android.graphics.Color.RED)
                             }, matchWrap())
                         }
@@ -449,7 +451,7 @@ class SymbolDrawerSettingsScreen(
                 .onFailure { error ->
                     extensionRegistry?.reportError(extension.id, error)
                     page.addView(TextView(context).apply {
-                        text = "扩展页面加载失败：${extension.title}（${error.message ?: "未知错误"}）"
+                        text = context.getString(R.string.symbol_drawer_ext_page_error, extension.title, error.message ?: "Unknown error")
                         setTextColor(android.graphics.Color.RED)
                     }, matchWrap())
                 }
@@ -461,7 +463,7 @@ class SymbolDrawerSettingsScreen(
                             addExtensionView(page, view, setting.id) { setting.onViewDisposed(view) }
                         }
                         .onFailure { error -> page.addView(TextView(context).apply {
-                            text = "扩展设置加载失败：${setting.title}（${error.message ?: "未知错误"}）"
+                            text = context.getString(R.string.symbol_drawer_setting_error, setting.title, error.message ?: "Unknown error")
                             setTextColor(android.graphics.Color.RED)
                         }, matchWrap()) }
                 }
@@ -487,7 +489,7 @@ class SymbolDrawerSettingsScreen(
      */
     private fun addDataSafetyNotice() {
         val page = activePage ?: return
-        val notice = "数据安全提示：两类备份相互独立。导入前会校验 JSON 结构、字段类型、动作编号和数据范围；建议在覆盖数据前先导出备份。"
+        val notice = context.getString(R.string.symbol_drawer_143)
         val tag = "zero.symbol.drawer.data-safety-notice"
         val existing = mutableListOf<View>()
         fun collect(parent: ViewGroup) {
@@ -627,52 +629,52 @@ class SymbolDrawerSettingsScreen(
             android.R.layout.simple_spinner_dropdown_item,
             values.map { value ->
                 when (value) {
-                    ThemeMode.SYSTEM -> "跟随宿主 Activity"
-                    LargeScreenLayoutMode.AUTO -> "自动适配大屏"
-                    LargeScreenLayoutMode.BOTTOM -> "固定底部"
-                    LargeScreenLayoutMode.SIDE -> "固定侧边"
-                    SideDockEdge.LEFT -> "左侧"
-                    SideDockEdge.RIGHT -> "右侧"
-                    GroupIndicatorStyle.TEXT, GroupIndicatorStyle.TEXT_TABS -> "文字标签页（Tab）"
-                    GroupIndicatorStyle.PILL -> "胶囊滑块（Pill）"
-                    GroupIndicatorStyle.DOTS -> "分页圆点（Dots）"
-                    GroupIndicatorStyle.UNDERLINE -> "底部下划线"
-                    GroupIndicatorStyle.GOOEY_METABALL -> "液态粘连（Metaball）"
-                    GroupIndicatorStyle.ELASTIC_WORM -> "弹性蠕虫（Worm）"
-                    GroupIndicatorStyle.SPRING_BLOB -> "弹簧形变（Blob）"
-                    GroupIndicatorStyle.LIQUID_MERGE -> "液滴融合（Liquid）"
-                    GroupIndicatorStyle.VERNIER_TICKS -> "精密游标刻度"
-                    GroupIndicatorStyle.MECHANICAL_RULER -> "机械刻度尺"
-                    GroupIndicatorStyle.WHEEL_ROLLER -> "3D 滚轮"
-                    GroupIndicatorStyle.CAMERA_DIAL -> "相机刻度盘"
-                    GroupIndicatorStyle.RADIAL_RING -> "环形进度"
-                    GroupIndicatorStyle.RADAR_SWEEP -> "雷达扫描"
-                    GroupIndicatorStyle.HUD_ARC -> "HUD 弧形仪表"
-                    GroupIndicatorStyle.ORBIT_DOTS -> "轨道圆点"
-                    GroupIndicatorStyle.ELASTIC_WAVE -> "弹性波浪"
-                    GroupIndicatorStyle.SINE_WAVE -> "正弦波轨迹"
-                    GroupIndicatorStyle.BOUNCE_TRACK -> "弹跳轨迹"
-                    GroupIndicatorStyle.SPRING_SLIDER -> "弹簧滑轨"
-                    GroupIndicatorStyle.MORPHING_BAR -> "形变进度条"
-                    GroupIndicatorStyle.SEGMENTED_TRACK -> "分段轨道"
-                    GroupIndicatorStyle.PROGRESS_LINE -> "连续进度线"
-                    GroupIndicatorStyle.DOUBLE_TRACK -> "双层轨道"
-                    GroupIndicatorStyle.MINIMAL_DASHES -> "极简短刻线"
-                    GroupIndicatorStyle.SQUARE_TICKS -> "方形刻度"
-                    GroupIndicatorStyle.DIAMOND_MARKERS -> "菱形节点"
-                    GroupIndicatorStyle.TRIANGLE_POINTER -> "三角指针"
-                    GroupIndicatorStyle.HEXAGON_NODES -> "六边形节点"
-                    GroupIndicatorStyle.GLOWING_NODES -> "发光节点"
-                    GroupIndicatorStyle.PULSE_DOTS -> "脉冲圆点"
-                    GroupIndicatorStyle.STACKED_CARDS -> "叠层卡片"
-                    GroupIndicatorStyle.MINI_PREVIEW -> "微缩页面预览"
-                    GroupIndicatorStyle.THUMBNAIL_STRIP -> "缩略图带"
-                    GroupIndicatorStyle.NUMBER_BADGES -> "数字徽标"
-                    GroupIndicatorStyle.VERTICAL_RAIL -> "垂直导轨"
-                    GroupIndicatorStyle.ARC_NODES -> "弧形节点"
-                    GroupIndicatorStyle.FLUID_TRAIL -> "流体轨迹"
-                    GroupIndicatorStyle.DIGITAL_COUNTER -> "数字计数器"
-                    GroupIndicatorStyle.STEPPER -> "步骤指示器"
+                    ThemeMode.SYSTEM -> context.getString(R.string.symbol_drawer_217)
+                    LargeScreenLayoutMode.AUTO -> context.getString(R.string.symbol_drawer_205)
+                    LargeScreenLayoutMode.BOTTOM -> context.getString(R.string.symbol_drawer_063)
+                    LargeScreenLayoutMode.SIDE -> context.getString(R.string.symbol_drawer_062)
+                    SideDockEdge.LEFT -> context.getString(R.string.symbol_drawer_086)
+                    SideDockEdge.RIGHT -> context.getString(R.string.symbol_drawer_060)
+                    GroupIndicatorStyle.TEXT, GroupIndicatorStyle.TEXT_TABS -> context.getString(R.string.symbol_drawer_146)
+                    GroupIndicatorStyle.PILL -> context.getString(R.string.symbol_drawer_203)
+                    GroupIndicatorStyle.DOTS -> context.getString(R.string.symbol_drawer_043)
+                    GroupIndicatorStyle.UNDERLINE -> context.getString(R.string.symbol_drawer_105)
+                    GroupIndicatorStyle.GOOEY_METABALL -> context.getString(R.string.symbol_drawer_169)
+                    GroupIndicatorStyle.ELASTIC_WORM -> context.getString(R.string.symbol_drawer_111)
+                    GroupIndicatorStyle.SPRING_BLOB -> context.getString(R.string.symbol_drawer_112)
+                    GroupIndicatorStyle.LIQUID_MERGE -> context.getString(R.string.symbol_drawer_170)
+                    GroupIndicatorStyle.VERNIER_TICKS -> context.getString(R.string.symbol_drawer_197)
+                    GroupIndicatorStyle.MECHANICAL_RULER -> context.getString(R.string.symbol_drawer_160)
+                    GroupIndicatorStyle.WHEEL_ROLLER -> context.getString(R.string.symbol_drawer_002)
+                    GroupIndicatorStyle.CAMERA_DIAL -> context.getString(R.string.symbol_drawer_175)
+                    GroupIndicatorStyle.RADIAL_RING -> context.getString(R.string.symbol_drawer_174)
+                    GroupIndicatorStyle.RADAR_SWEEP -> context.getString(R.string.symbol_drawer_226)
+                    GroupIndicatorStyle.HUD_ARC -> context.getString(R.string.symbol_drawer_003)
+                    GroupIndicatorStyle.ORBIT_DOTS -> context.getString(R.string.symbol_drawer_218)
+                    GroupIndicatorStyle.ELASTIC_WAVE -> context.getString(R.string.symbol_drawer_110)
+                    GroupIndicatorStyle.SINE_WAVE -> context.getString(R.string.symbol_drawer_164)
+                    GroupIndicatorStyle.BOUNCE_TRACK -> context.getString(R.string.symbol_drawer_114)
+                    GroupIndicatorStyle.SPRING_SLIDER -> context.getString(R.string.symbol_drawer_113)
+                    GroupIndicatorStyle.MORPHING_BAR -> context.getString(R.string.symbol_drawer_116)
+                    GroupIndicatorStyle.SEGMENTED_TRACK -> context.getString(R.string.symbol_drawer_038)
+                    GroupIndicatorStyle.PROGRESS_LINE -> context.getString(R.string.symbol_drawer_219)
+                    GroupIndicatorStyle.DOUBLE_TRACK -> context.getString(R.string.symbol_drawer_055)
+                    GroupIndicatorStyle.MINIMAL_DASHES -> context.getString(R.string.symbol_drawer_161)
+                    GroupIndicatorStyle.SQUARE_TICKS -> context.getString(R.string.symbol_drawer_149)
+                    GroupIndicatorStyle.DIAMOND_MARKERS -> context.getString(R.string.symbol_drawer_206)
+                    GroupIndicatorStyle.TRIANGLE_POINTER -> context.getString(R.string.symbol_drawer_023)
+                    GroupIndicatorStyle.HEXAGON_NODES -> context.getString(R.string.symbol_drawer_036)
+                    GroupIndicatorStyle.GLOWING_NODES -> context.getString(R.string.symbol_drawer_056)
+                    GroupIndicatorStyle.PULSE_DOTS -> context.getString(R.string.symbol_drawer_204)
+                    GroupIndicatorStyle.STACKED_CARDS -> context.getString(R.string.symbol_drawer_059)
+                    GroupIndicatorStyle.MINI_PREVIEW -> context.getString(R.string.symbol_drawer_117)
+                    GroupIndicatorStyle.THUMBNAIL_STRIP -> context.getString(R.string.symbol_drawer_202)
+                    GroupIndicatorStyle.NUMBER_BADGES -> context.getString(R.string.symbol_drawer_141)
+                    GroupIndicatorStyle.VERTICAL_RAIL -> context.getString(R.string.symbol_drawer_064)
+                    GroupIndicatorStyle.ARC_NODES -> context.getString(R.string.symbol_drawer_109)
+                    GroupIndicatorStyle.FLUID_TRAIL -> context.getString(R.string.symbol_drawer_168)
+                    GroupIndicatorStyle.DIGITAL_COUNTER -> context.getString(R.string.symbol_drawer_142)
+                    GroupIndicatorStyle.STEPPER -> context.getString(R.string.symbol_drawer_165)
                     else -> value.name.lowercase().replace('_', ' ')
                 }
             }
@@ -728,7 +730,7 @@ class SymbolDrawerSettingsScreen(
     }
 
     private fun copySettingsBackup() = copyJson(
-        "Zero Symbol Drawer settings", SymbolDrawerSettingsCodec.encode(current), "设置备份 JSON 已复制"
+        "Zero Symbol Drawer settings", SymbolDrawerSettingsCodec.encode(current), context.getString(R.string.symbol_drawer_210)
     )
 
     private fun exportSettingsFile() = documentPicker.saveJson(
@@ -736,7 +738,7 @@ class SymbolDrawerSettingsScreen(
     )
 
     private fun copyGroupsBackup() = copyJson(
-        "Zero Symbol Drawer groups", SymbolGroupBundleCodec.encode(groupRepository.loadGroups()), "符号组 JSON 已复制"
+        "Zero Symbol Drawer groups", SymbolGroupBundleCodec.encode(groupRepository.loadGroups()), context.getString(R.string.symbol_drawer_188)
     )
 
     private fun exportGroupsFile() = documentPicker.saveJson(
@@ -750,20 +752,20 @@ class SymbolDrawerSettingsScreen(
     }
 
     private fun promptImportSettings() {
-        promptJson("导入设置备份", "粘贴设置 JSON。导入成功后会覆盖当前设置。") { json ->
+        promptJson(context.getString(R.string.symbol_drawer_079), context.getString(R.string.symbol_drawer_196)) { json ->
             importSettings(json)
         }
     }
 
     private fun promptImportGroups() {
-        promptJson("导入符号组", "粘贴 V1 符号组 JSON。导入成功后会替换全部分组。") { json ->
+        promptJson(context.getString(R.string.symbol_drawer_078), context.getString(R.string.symbol_drawer_193)) { json ->
             confirmGroupImport(json)
         }
     }
 
     private fun promptJson(title: String, message: String, imported: (String) -> Unit) {
         val input = EditText(context).apply {
-            hint = "粘贴 JSON"
+            hint = context.getString(R.string.symbol_drawer_192)
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
             minLines = 6
             gravity = Gravity.TOP
@@ -772,8 +774,8 @@ class SymbolDrawerSettingsScreen(
             .setTitle(title)
             .setMessage(message)
             .setView(input)
-            .setNegativeButton("取消", null)
-            .setPositiveButton("继续") { _, _ ->
+            .setNegativeButton(context.getString(R.string.symbol_drawer_057), null)
+            .setPositiveButton(context.getString(R.string.symbol_drawer_199)) { _, _ ->
                 runCatching { imported(input.text.toString()) }.onFailure(::reportFailure)
             }
             .showAdaptiveDialog()
@@ -792,7 +794,7 @@ class SymbolDrawerSettingsScreen(
         current = next.copy(themeMode = ThemeMode.SYSTEM)
         render()
         onSettingsChanged?.invoke(current)
-        toast("设置备份已校验并导入")
+        toast(context.getString(R.string.symbol_drawer_211))
     }
 
     private fun confirmGroupImport(json: String) {
@@ -800,14 +802,14 @@ class SymbolDrawerSettingsScreen(
         // reach the repository and cannot partially overwrite the current data.
         val imported = SymbolGroupBundleCodec.decode(json)
         AlertDialog.Builder(context)
-            .setTitle("确认替换符号组")
-            .setMessage("已校验 ${imported.size} 个分组。确定替换当前全部符号组吗？")
-            .setNegativeButton("取消", null)
-            .setPositiveButton("导入") { _, _ ->
+            .setTitle(context.getString(R.string.symbol_drawer_180))
+            .setMessage(context.getString(R.string.symbol_drawer_099, imported.size))
+            .setNegativeButton(context.getString(R.string.symbol_drawer_057), null)
+            .setPositiveButton(context.getString(R.string.symbol_drawer_077)) { _, _ ->
                 runCatching {
                     groupRepository.saveGroups(imported)
                     onGroupsChanged?.invoke(imported)
-                    toast("符号组已导入")
+                    toast(context.getString(R.string.symbol_drawer_190))
                 }.onFailure(::reportFailure)
             }
             .showAdaptiveDialog()
@@ -852,7 +854,7 @@ class SymbolDrawerSettingsScreen(
 
     private fun reportFailure(error: Throwable) {
         onError?.invoke(error)
-        toast(error.message ?: "操作失败")
+        toast(error.message ?: context.getString(R.string.symbol_drawer_137))
     }
 
     private fun toast(message: String) = Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
