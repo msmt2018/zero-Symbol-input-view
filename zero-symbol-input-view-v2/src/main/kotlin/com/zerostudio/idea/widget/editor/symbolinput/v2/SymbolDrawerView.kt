@@ -86,6 +86,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionHost
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionExecutor
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionCancellation
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionResult
+import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.math.roundToInt
 
 /**
@@ -176,6 +177,29 @@ class SymbolDrawerView @JvmOverloads constructor(
     private var activeThemeExtensionId: String? = null
     private var activeThemeExtension: com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerThemeExtension? = null
     private var activeTheme: SymbolDrawerTheme? = null
+    private val themeObservers = CopyOnWriteArrayList<(SymbolDrawerTheme?) -> Unit>()
+
+    /** Current custom theme tokens; null means the host/system palette is active. */
+    val themeSnapshot: SymbolDrawerTheme? get() = activeTheme
+
+    /** Observe resolved theme changes; closing the returned handle releases the observer. */
+    fun observeTheme(
+        emitCurrent: Boolean = true,
+        observer: (SymbolDrawerTheme?) -> Unit
+    ): AutoCloseable {
+        themeObservers += observer
+        if (emitCurrent) {
+            runCatching { observer(activeTheme) }
+                .onFailure { extensions.reportError("drawer.theme.observer", it) }
+        }
+        var closed = false
+        return AutoCloseable {
+            if (!closed) {
+                closed = true
+                themeObservers.remove(observer)
+            }
+        }
+    }
     private var extensionObserver: AutoCloseable? = null
     private val attachedLifecycleExtensions = LinkedHashMap<String, com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerLifecycleExtension>()
     private val pager = ViewPager2(context).apply {
@@ -322,7 +346,8 @@ class SymbolDrawerView @JvmOverloads constructor(
             context,
             settingsRepository,
             repository,
-            extensionRegistry = extensions
+            extensionRegistry = extensions,
+            liveDrawer = this
         ).apply {
             onSettingsChanged = { applySettings(it) }
             onGroupsChanged = {
@@ -522,6 +547,10 @@ class SymbolDrawerView @JvmOverloads constructor(
         // Rebind existing custom cells so their state receives the new theme
         // without replacing the page adapter or disturbing the current page.
         pageAdapter.refreshItemExtensions()
+        themeObservers.forEach { observer ->
+            runCatching { observer(theme) }
+                .onFailure { extensions.reportError("drawer.theme.observer", it) }
+        }
     }
 
     /** Query runtime visibility for a built-in entry owned by this drawer session. */

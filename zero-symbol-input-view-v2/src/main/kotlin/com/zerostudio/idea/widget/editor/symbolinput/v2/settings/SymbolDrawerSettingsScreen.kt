@@ -76,6 +76,8 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowAdaptiveI
 import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.AdaptiveContentLayoutResolver
 import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerExtensionRegistry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerSettingsScope
+import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerTheme
+import com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawerView
 
 /**
  * Settings-only surface. Symbol-group editing stays in the dedicated manager
@@ -88,7 +90,9 @@ class SymbolDrawerSettingsScreen(
     private val groupRepository: SymbolGroupRepository =
         SharedPreferencesSymbolGroupRepository(context),
     /** Optional session registry for app-contributed settings tabs and rows. */
-    private val extensionRegistry: SymbolDrawerExtensionRegistry? = null
+    private val extensionRegistry: SymbolDrawerExtensionRegistry? = null,
+    /** Optional live drawer source for shared theme tokens and notifications. */
+    private val liveDrawer: SymbolDrawerView? = null
 ) : LinearLayout(context) {
 
     var onSettingsChanged: ((SymbolDrawerSettings) -> Unit)? = null
@@ -105,6 +109,8 @@ class SymbolDrawerSettingsScreen(
     private var spacingReflowInProgress = false
     private val content = LinearLayout(context).apply { orientation = VERTICAL }
     private var extensionObserver: AutoCloseable? = null
+    private var themeObserver: AutoCloseable? = null
+    private var drawerTheme: SymbolDrawerTheme? = null
     private val extensionViewDisposers = mutableListOf<() -> Unit>()
     private var extensionViewsDisposedOnDetach = false
     private var detachedScrollY = 0
@@ -172,6 +178,13 @@ class SymbolDrawerSettingsScreen(
                 }
             }
         }
+        if (themeObserver == null) {
+            drawerTheme = liveDrawer?.themeSnapshot
+            themeObserver = liveDrawer?.observeTheme(emitCurrent = false) { theme ->
+                drawerTheme = theme
+                post { if (isAttachedToWindow) render() }
+            }
+        }
         if (extensionObserver == null) {
             extensionObserver = extensionRegistry?.observe(emitCurrent = false) {
                 post { if (isAttachedToWindow) render() }
@@ -183,6 +196,8 @@ class SymbolDrawerSettingsScreen(
         detachedScrollY = activeScrollView?.scrollY ?: detachedScrollY
         extensionObserver?.close()
         extensionObserver = null
+        themeObserver?.close()
+        themeObserver = null
         disposeExtensionViews()
         extensionViewsDisposedOnDetach = true
         super.onDetachedFromWindow()
@@ -831,9 +846,10 @@ class SymbolDrawerSettingsScreen(
 
     private fun toast(message: String) = Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
 
-    private fun surfaceColor() = HostThemeColors.surface(context)
-    private fun onSurfaceColor() = HostThemeColors.onSurface(context)
-    private fun primaryColor() = HostThemeColors.primary(context)
+    private fun surfaceColor() = drawerTheme?.surface ?: HostThemeColors.surface(context)
+    private fun onSurfaceColor() = drawerTheme?.onSurface ?: HostThemeColors.onSurface(context)
+    private fun primaryColor() = drawerTheme?.primary ?: HostThemeColors.primary(context)
+    private fun outlineColor() = drawerTheme?.outline ?: HostThemeColors.outline(context)
 
     private fun surfaceBackground(fill: Int, strokeAlpha: Float, radius: Int) = GradientDrawable().apply {
         setColor(fill)

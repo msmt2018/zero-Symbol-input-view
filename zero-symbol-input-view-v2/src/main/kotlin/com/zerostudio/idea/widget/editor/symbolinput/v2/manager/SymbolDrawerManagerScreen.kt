@@ -82,6 +82,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.data.LegacySymbolDataMig
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolDrawerDefaults
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.HostThemeColors
+import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerTheme
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.LegacySymbolAction
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.LegacySymbolActionAdapter
@@ -170,6 +171,8 @@ class SymbolDrawerManagerScreen(
     var onGroupsChanged: ((List<SymbolGroup>) -> Unit)? = null
     private var drawerBindingHandle: AutoCloseable? = null
     private var builtInVisibilityObserver: AutoCloseable? = null
+    private var themeObserver: AutoCloseable? = null
+    private var drawerTheme: SymbolDrawerTheme? = null
     var onExportBundle: ((String) -> Unit)? = null
     var onError: ((Throwable) -> Unit)? = null
 
@@ -307,6 +310,12 @@ class SymbolDrawerManagerScreen(
         drawerBindingHandle = null
         val previousListener = onGroupsChanged
         val previousUsageListener = drawer.onSymbolUsedListener
+        themeObserver?.close()
+        drawerTheme = drawer.themeSnapshot
+        themeObserver = drawer.observeTheme(emitCurrent = false) { theme ->
+            drawerTheme = theme
+            post { if (isAttachedToWindow) refresh() }
+        }
         val listener: (List<SymbolGroup>) -> Unit = { committedGroups ->
             // The visible toolbar is the primary consumer. An unrelated observer
             // must never prevent the actual drawer from receiving imported data.
@@ -329,6 +338,9 @@ class SymbolDrawerManagerScreen(
             }
             builtInVisibilityObserver?.close()
             builtInVisibilityObserver = null
+            themeObserver?.close()
+            themeObserver = null
+            drawerTheme = null
             if (drawerBindingHandle === ownerHandle) drawerBindingHandle = null
         }
         drawerBindingHandle = ownerHandle
@@ -433,11 +445,11 @@ class SymbolDrawerManagerScreen(
             icon = context.getDrawable(android.R.drawable.ic_menu_search)
             iconSize = dp(18)
             iconGravity = MaterialButton.ICON_GRAVITY_TEXT_START
-            iconTint = android.content.res.ColorStateList.valueOf(HostThemeColors.onSurface(context))
+            iconTint = android.content.res.ColorStateList.valueOf(onSurfaceColor())
             setTextColor(HostThemeColors.onSurface(context))
             backgroundTintList = android.content.res.ColorStateList.valueOf(surfaceColor())
             strokeWidth = dp(1)
-            strokeColor = android.content.res.ColorStateList.valueOf(HostThemeColors.outline(context))
+            strokeColor = android.content.res.ColorStateList.valueOf(outlineColor())
             setOnClickListener {
                 setSearchVisible(searchContainer.visibility != View.VISIBLE)
             }
@@ -475,7 +487,10 @@ class SymbolDrawerManagerScreen(
         menu.menu.add("添加符号").setOnMenuItemClickListener { editSymbol(null); true }
         menu.menu.add(if (previewModeActive) "退出预览编辑" else "预览编辑")
             .setOnMenuItemClickListener {
-                if (previewModeActive) finishPreviewEditMode() else enterPreviewEditMode()
+                themeObserver?.close()
+        themeObserver = null
+        drawerTheme = null
+        if (previewModeActive) finishPreviewEditMode() else enterPreviewEditMode()
                 true
             }
         menu.menu.add("添加分组").setOnMenuItemClickListener {
@@ -509,8 +524,8 @@ class SymbolDrawerManagerScreen(
     private fun buildGroupControls() {
         groupTabs.tabMode = TabLayout.MODE_SCROLLABLE
         groupTabs.isInlineLabel = true
-        groupTabs.setSelectedTabIndicatorColor(HostThemeColors.primary(context))
-        groupTabs.setTabTextColors(HostThemeColors.secondaryText(context), HostThemeColors.primary(context))
+        groupTabs.setSelectedTabIndicatorColor(primaryColor())
+        groupTabs.setTabTextColors(secondaryTextColor(), HostThemeColors.primary(context))
         groupTabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab) {
                 val id = tab.tag as? String ?: return
@@ -1696,7 +1711,7 @@ class SymbolDrawerManagerScreen(
             val ctx = parent.context
             val title = TextView(ctx).apply {
                 textSize = 15f
-                setTextColor(HostThemeColors.onSurface(ctx))
+                setTextColor(onSurfaceColor())
                 setTypeface(typeface, android.graphics.Typeface.BOLD)
             }
             val detail = TextView(ctx).apply {
@@ -1810,7 +1825,7 @@ class SymbolDrawerManagerScreen(
         cornerRadius = dp(radiusDp).toFloat()
         setStroke(dp(1), HostThemeColors.outline(context))
     }
-    private fun surfaceColor() = HostThemeColors.surface(context)
+    private fun surfaceColor() = surfaceColor()
     private fun primaryColor() = HostThemeColors.primary(context)
     private fun secondaryTextColor() = HostThemeColors.secondaryText(context)
 
