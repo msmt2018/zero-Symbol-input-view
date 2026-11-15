@@ -235,10 +235,11 @@ val visible = drawer.isBuiltInFeatureVisible(SymbolDrawerBuiltInFeatures.SEARCH)
 - 注册表内部集合操作使用同步保护。
 - `snapshot()` 和各类 List getter 返回按 `priority`、`id` 排序的快照；Kotlin `Map`/`List` 暴露为只读接口，但不是深层不可变对象，扩展对象本身仍由注册者负责线程安全。
 - `observe(emitCurrent = true)` 会在注册监听的调用线程同步发送初始快照；后续变更通知也在触发注册/注销/可见性修改的线程同步分发，不会自动切换到主线程。UI 观察者应自行 `post`/切换到主线程后更新 View。
-- View factory 和 action handler 由宿主在正确线程调用；注册表不会自动切换线程。
+- 注册表会隔离观察者抛出的异常，避免阻断注册/注销和其它观察者；当前实现不会把这类 observer 异常转发给 `onExtensionErrorListener`。需要诊断 observer 的宿主应在自己的回调内部记录异常。
+- View factory 和 action handler 由宿主在正确线程调用；注册表不会自动切换线程。`SymbolActionExecutor` 同步调用 Host/handler，捕获 `Exception` 并返回 `SymbolActionResult.Failed`；`Error` 等 JVM 致命错误不会被转换，仍会向外传播。
 - View / Activity / Editor 引用不应放进静态单例。
 - 注册句柄应与创建它的 Editor session 或 Fragment view 生命周期一致。
-- 注册表清空后，旧句柄 close 是安全的；但清空后不应继续使用旧 session。
+- 注册表清空后，旧句柄 `close()` 是安全的；但清空后不应继续使用旧 session。`clear()` 会清除当前所有贡献和 action handler，并发出的变更通知会让已 attach 的 Drawer/设置页刷新。
 - 注册的 ID 是持久化引用，不是可执行代码。进程重启后必须重新注册相同 ID 的 handler/provider。
 
 ## 8. 当前集成边界

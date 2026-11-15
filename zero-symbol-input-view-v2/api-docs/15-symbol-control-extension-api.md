@@ -325,7 +325,7 @@ val showSearch = drawer.isBuiltInFeatureVisible(
 
 `snapshot()` 返回当前贡献快照，`revision()` 可用于缓存失效/比较，`observe(emitCurrent, listener)` 注册变更监听并返回关闭句柄。快照包含动作、指示器、设置 Tab/行、主题和内置可见性覆盖。
 
-注册表是同步保护的运行时集合，但 View factory、action handler 和 UI 更新必须遵循宿主线程要求。不要在回调中做阻塞 I/O。
+注册表是同步保护的运行时集合，但 View factory、action handler 和 UI 更新必须遵循宿主线程要求。不要在回调中做阻塞 I/O。观察者异常会被注册表隔离，但不会通过 `onExtensionErrorListener` 上报；请在自己的 observer 中记录诊断信息。动作执行同步运行于调用线程，Host 抛出的 `Exception` 会成为 `SymbolActionResult.Failed`，JVM `Error` 不会被吞掉。
 
 ## 13. 错误语义
 
@@ -338,6 +338,7 @@ val showSearch = drawer.isBuiltInFeatureVisible(
 | renderer create/bind 失败 | 隔离错误并回退原生 cell |
 | indicator ID 不存在/创建失败 | 返回 false，保留当前内置指示器 |
 | indicator 回调抛异常 | 报告扩展错误并回退内置指示器 |
+| registry observer 抛异常 | 隔离异常，不中断其它观察者；由 observer 自行记录，不进入扩展错误监听器 |
 | 扩展注销 | 关闭句柄；原控件刷新/重新绑定其真实消费者 |
 | Activity/Fragment View 销毁 | 释放注册句柄、observer、listener 和 View 资源 |
 
