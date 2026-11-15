@@ -21,7 +21,7 @@ V2 是独立实现，与旧版库并行存在。V2 默认存储使用独立 Shar
 | [07 — 通用 Drawer 框架](07-universal-drawer.md) | DrawerContainer、Controller、Anchor、状态和呈现模式 |
 | [08 — 页面、面板与样式](08-navigation-panels-style.md) | 页面导航、面板生命周期、主题、样式和预设 |
 | [09 — 自适应窗口 API](09-adaptive-window.md) | WindowAdaptiveInfo、布局解析、网格和侧边停靠 |
-| [10 — 类型索引与兼容性](10-api-index-compatibility.md) | 类型总表、边界条件、兼容策略、排错清单 |
+| [10 — 类型索引与兼容性](10-api-index-compatibility.md) | 类型总表、边界条件、兼容策略、排错清单 |\n| [11 — 手势与内置文本动作](11-interaction-and-builtins.md) | DrawerInteractionController、文本命令目录和完整 command ID |
 
 ## 模块坐标
 
