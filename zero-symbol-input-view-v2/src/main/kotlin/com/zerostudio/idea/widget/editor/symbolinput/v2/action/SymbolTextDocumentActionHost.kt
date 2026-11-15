@@ -39,13 +39,50 @@ class SymbolTextDocumentActionHost(
         val start = minOf(document.selectionStart, document.selectionEnd).coerceIn(0, document.textLength)
         val end = maxOf(document.selectionStart, document.selectionEnd).coerceIn(start, document.textLength)
         val selected = document.textBetween(start, end)
-        val expansion = SymbolTextEditing.expandMacro(template, selected)
+        val cursor = document.cursorOffset.coerceIn(0, document.textLength)
+        val line = document.lineForOffset(cursor).coerceIn(0, document.lineCount - 1)
+        val lineText = document.lineText(line)
+        val lineStart = document.lineStartOffset(line).coerceIn(0, document.textLength)
+        val lineEnd = document.lineEndOffset(line).coerceIn(lineStart, document.textLength)
+        val separator = when {
+            lineEnd >= document.textLength -> "\\n"
+            document.charAt(lineEnd) == '\\r' && lineEnd + 1 < document.textLength &&
+                document.charAt(lineEnd + 1) == '\\n' -> "\\r\\n"
+            document.charAt(lineEnd) == '\\r' -> "\\r"
+            document.charAt(lineEnd) == '\\n' -> "\\n"
+            else -> "\\n"
+        }
+        val word = currentWordAtCursor(cursor)
+        val indent = lineText.takeWhile { it == ' ' || it == '\\t' }
+        val expansion = SymbolTextEditing.expandMacro(
+            template = template,
+            selectedText = selected,
+            currentLineText = lineText,
+            currentWordText = word,
+            lineSeparator = separator,
+            currentIndent = indent
+        )
         if (!document.replace(start, end, expansion.text)) return false
         document.setSelection(
             start + expansion.insertionOffset,
             start + expansion.selectionEndOffset
         )
         return true
+    }
+
+    private fun currentWordAtCursor(cursorOffset: Int): String {
+        if (document.textLength == 0) return ""
+        var pivot = cursorOffset.coerceIn(0, document.textLength)
+        fun isWord(offset: Int): Boolean =
+            offset in 0 until document.textLength &&
+                (document.charAt(offset).isLetterOrDigit() || document.charAt(offset) == '_')
+        if (!isWord(pivot) && isWord(pivot - 1)) pivot--
+        if (!isWord(pivot)) return ""
+        var start = pivot
+        var end = pivot + 1
+        while (start > 0 && isWord(start - 1)) start--
+        while (end < document.textLength && isWord(end)) end++
+        return document.textBetween(start, end)
     }
 
     override fun replaceSelection(text: String): Boolean {
