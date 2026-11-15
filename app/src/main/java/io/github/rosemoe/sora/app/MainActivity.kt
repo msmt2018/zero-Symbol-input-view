@@ -1220,17 +1220,20 @@ class MainActivity : AppCompatActivity() {
 
     private fun showSymbolDrawerManager(drawer: SymbolDrawerView) {
         val manager = SymbolDrawerManagerScreen(this).apply {
-            onGroupsChanged = { groups -> drawer.submitGroups(groups) }
             onError = { error ->
                 Toast.makeText(this@MainActivity, "符号管理失败：${error.message}", Toast.LENGTH_LONG).show()
             }
         }
+        // Use the V2 manager-to-drawer binding as the single live update path.
+        // It synchronizes committed repository snapshots immediately and also
+        // connects the toolbar's usage callback to the manager's recent list.
+        val drawerBinding = manager.bindToDrawer(drawer)
         MaterialAlertDialogBuilder(this)
             .setTitle("符号管理")
             .setView(manager)
             .setPositiveButton("关闭", null)
             .setNeutralButton("设置") { _, _ -> showSymbolDrawerSettings(drawer) }
-            .setOnDismissListener { drawer.reloadGroups() }
+            .setOnDismissListener { drawerBinding.close() }
             .show()
     }
 
