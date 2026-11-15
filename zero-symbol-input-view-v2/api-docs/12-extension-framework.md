@@ -68,6 +68,21 @@ val registry: SymbolDrawerExtensionRegistry = drawer.extensions
 
 返回不可变 Map 快照。注册表本身不负责跨进程持久化；宿主可保存该 Map，并在创建 Drawer 后恢复。
 
+### bindActionHost(host) / executeAction(action, host, cancellation)
+
+`bindActionHost(host)` 返回注册表装饰后的 editor-neutral Host；不会保存或持有传入的宿主对象。适合需要继续调用原有 `SymbolActionExecutor` 的集成方式。
+
+`executeAction(action, host, cancellation)` 是控件提供的完整便捷入口：它使用原有 `SymbolActionExecutor`，并自动将 Host 包装为当前 Drawer session 的 registry-backed Host。扩展 handler、V1 数字 ID handler 和宿主原有 fallback 因而处于同一条执行链中。宿主仍需在原有符号回调中决定何时调用此方法；控件不持有编辑器对象，也不会擅自替换 `onSymbolActionListener`。
+
+```kotlin
+val result = drawer.executeAction(
+    SymbolAction.Extension("com.example.format", payload),
+    editorNeutralHost
+)
+```
+
+取消令牌可作为第三个参数传入。扩展 handler 返回 `false` 时视为该 handler 已处理并拒绝，不会再调用 fallback；没有注册 handler 时才回退原 Host。
+
 ### wrapActionHost(delegate)
 
 返回 `RegistryBackedSymbolActionHost` 装饰器。对 `SymbolAction.Extension`：
