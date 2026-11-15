@@ -48,6 +48,7 @@ class DrawerInteractionController(
     val isDragging: Boolean get() = dragging
     val isAnimating: Boolean get() = animator?.isRunning == true
     val isGestureAxisLocked: Boolean get() = gestureAxis != AXIS_UNDECIDED
+    val isHorizontalGestureLocked: Boolean get() = gestureAxis == AXIS_HORIZONTAL
 
     /** Updates feature-owned geometry without changing the current expansion fraction. */
     fun setBounds(
