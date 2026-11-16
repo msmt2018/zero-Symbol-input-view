@@ -1,0 +1,56 @@
+/*
+ * This file is part of zero-Symbol-input-view-V2 Compose.
+ * Copyright (C) 2026 android_zero
+ * SPDX-License-Identifier: AGPL-3.0-only AND GPL-3.0-only AND Apache-2.0
+ * Author: android_zero · https://github.com/msmt2018
+ */
+
+package com.zerostudio.idea.widget.editor.symbolinput.v2.compose
+
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.assertExists
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.unit.dp
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
+import org.junit.Rule
+import org.junit.Test
+
+class SymbolDrawerComposeUiTest {
+    @get:Rule
+    val composeRule = createComposeRule()
+
+    @Test
+    fun rendersSymbolLabelsUsingCompose() {
+        composeRule.setContent {
+            MaterialTheme {
+                Box(Modifier.fillMaxWidth().height(240.dp)) {
+                    SymbolDrawer(
+                        groups = listOf(
+                            SymbolGroup(
+                                id = "common",
+                                title = "Common",
+                                symbols = listOf(
+                                    SymbolEntry(
+                                        id = 1L,
+                                        label = "lambda",
+                                        shortAction = SymbolAction.InsertText("->")
+                                    )
+                                )
+                            )
+                        ),
+                        state = rememberSymbolDrawerState(),
+                        onSymbolClick = {}
+                    )
+                }
+            }
+        }
+        composeRule.onNodeWithText("lambda").assertExists()
+    }
+}
