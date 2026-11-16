@@ -33,8 +33,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.ScrollableTabRow
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -254,27 +252,17 @@ fun SymbolDrawer(
                                     modifier = Modifier.fillMaxWidth()
                                 )
                             } else {
-                                ScrollableTabRow(
-                                    selectedTabIndex = pagerState.currentPage.coerceIn(0, contentGroups.lastIndex),
-                                    edgePadding = 8.dp,
-                                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                                    contentColor = MaterialTheme.colorScheme.onSurface
-                                ) {
-                                    contentGroups.forEachIndexed { index, group ->
-                                        Tab(
-                                            selected = pagerState.currentPage == index,
-                                            onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
-                                            text = {
-                                                Text(
-                                                    text = group.title,
-                                                    maxLines = 1,
-                                                    softWrap = false,
-                                                    overflow = TextOverflow.Clip
-                                                )
-                                            }
-                                        )
-                                    }
-                                }
+                                BuiltInGroupIndicator(
+                                    groups = contentGroups,
+                                    selectedIndex = pagerState.currentPage,
+                                    settings = settings,
+                                    onSelect = { index ->
+                                        if (index in contentGroups.indices) {
+                                            scope.launch { pagerState.animateScrollToPage(index) }
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
                             }
                         }
                     }
