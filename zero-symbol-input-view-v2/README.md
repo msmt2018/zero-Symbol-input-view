@@ -165,6 +165,13 @@ bottomToolbars.post {
 
 `MainActivity` 是启动/权限页面，不应在该页面创建编辑器符号控件。Fragment/Activity 生命周期结束时应解除动作回调和扩展注册句柄。
 
+## xedit-app 实际接入和完整 API import
+
+本仓库提供针对 `msmt2018/xedit-app` main 分支的真实接入记录，包含依赖、布局、`EditorActivity`、`HighlightTextView` 插入适配、类型 import 和能力边界：
+
+- [xedit-app 4.1-v2 实际接入指南](api-docs/18-xedit-app-integration.md)
+
+注意 xedit-app 的 `MainActivity` 是启动/权限页面，真正的编辑器位于 `EditorActivity`。
 ## 3. 布局绑定控件
 
 ### 3.1 XML
