@@ -62,7 +62,7 @@ class SymbolDrawerState internal constructor(
     }
 
     companion object {
-        val Saver: Saver<SymbolDrawerState, List<Any>> = listSaver<SymbolDrawerState, Any>(
+        val Saver: Saver<SymbolDrawerState, Any> = listSaver<SymbolDrawerState, Any>(
             save = { listOf(it.targetExpanded, it.selectedGroupId.orEmpty()) },
             restore = {
                 SymbolDrawerState(

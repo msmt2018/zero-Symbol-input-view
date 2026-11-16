@@ -85,7 +85,7 @@ class DrawerState internal constructor(initialFraction: Float, initialPageId: St
     }
 
     companion object {
-        val Saver: Saver<DrawerState, List<Any>> = listSaver<DrawerState, Any>(
+        val Saver: Saver<DrawerState, Any> = listSaver<DrawerState, Any>(
             save = { listOf(it.fraction.value, it.selectedPageId.orEmpty()) },
             restore = {
                 DrawerState(
