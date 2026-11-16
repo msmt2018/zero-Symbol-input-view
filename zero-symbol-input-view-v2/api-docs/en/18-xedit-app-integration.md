@@ -18,6 +18,8 @@ implementation("com.github.msmt2018:zero-Symbol-input-view:4.1-v2")
 
 The root `settings.gradle.kts` already configures JitPack under `dependencyResolutionManagement.repositories` and uses `FAIL_ON_PROJECT_REPOS`. Do not add a second repository declaration to the app module.
 
+This is the repository-level aggregate artifact coordinate. JitPack uses a different coordinate form for individual modules; this integration follows the requested root coordinate and `4.1-v2` tag. See the [JitPack multi-module guide](https://docs.jitpack.io/building/#multi-module-projects).
+
 ## 3. Layout
 
 Keep the existing shortcut RecyclerView and place it with the V2 view in a vertical bottom container:
