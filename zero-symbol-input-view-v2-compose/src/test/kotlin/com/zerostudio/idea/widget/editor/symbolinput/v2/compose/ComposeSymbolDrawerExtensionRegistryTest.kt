@@ -123,6 +123,24 @@ class ComposeSymbolDrawerExtensionRegistryTest {
         handle.close()
     }
 
+    @Test
+    fun initialRevisionUsesSerializedQueueWhenObserverMutatesRegistry() {
+        val registry = ComposeSymbolDrawerExtensionRegistry()
+        registry.registerAction(action("test.existing"))
+        val revisions = mutableListOf<Long>()
+
+        val handle = registry.observe(emitCurrent = true) { revision ->
+            revisions += revision
+            if (revision == 1L) {
+                registry.registerAction(action("test.added.during.initial"))
+            }
+        }
+
+        assertEquals(listOf(1L, 2L), revisions)
+        assertEquals(2, registry.snapshot().actions.size)
+        handle.close()
+    }
+
     private fun action(id: String) = ComposeSymbolDrawerActionExtension(
         id = id,
         title = id,
