@@ -16,7 +16,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import java.util.IdentityHashMap
-import java.util.concurrent.atomic.AtomicBoolean
 import androidx.compose.material3.ColorScheme
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
@@ -140,7 +139,18 @@ class ComposeSymbolDrawerExtensionRegistry {
     // older notification can otherwise arrive after a newer one and roll UI state back.
     private val notificationLock = Any()
     private class ObserverEntry(val callback: (Long) -> Unit) {
-        val active = AtomicBoolean(true)
+        private var active = true
+
+        /** Serialize callback start with close so no callback can begin after close returns. */
+        fun dispatch(revision: Long) {
+            synchronized(this) {
+                if (active) callback(revision)
+            }
+        }
+
+        fun close() {
+            synchronized(this) { active = false }
+        }
     }
     private data class ObserverNotification(
         val revision: Long,
@@ -243,7 +253,7 @@ class ComposeSymbolDrawerExtensionRegistry {
         return AutoCloseable {
             // Invalidate queued snapshots as well as removing the observer from
             // future snapshots. Closing must prevent callbacks not yet started.
-            entry.active.set(false)
+            entry.close()
             synchronized(lock) { observers -= entry }
         }
     }
@@ -276,9 +286,7 @@ class ComposeSymbolDrawerExtensionRegistry {
                 } else pendingNotifications.removeFirst()
             } ?: break
             event.listeners.forEach { observer ->
-                if (observer.active.get()) {
-                    runCatching { observer.callback(event.revision) }
-                }
+                runCatching { observer.dispatch(event.revision) }
             }
         }
     }
