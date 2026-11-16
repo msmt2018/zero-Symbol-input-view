@@ -88,7 +88,7 @@ fun SymbolDrawer(
     val providerGroupsState = remember(registeredExtensions.groupProviders) {
         mutableStateOf<List<SymbolGroup>?>(null)
     }
-    LaunchedEffect(registeredExtensions.groupProviders) {
+    LaunchedEffect(groups, registeredExtensions.groupProviders) {
         val merged = LinkedHashMap<String, SymbolGroup>()
         // Explicit host data remains authoritative; providers fill missing IDs.
         groups.forEach { merged[it.id] = it }
@@ -160,6 +160,7 @@ fun SymbolDrawer(
         else if (pagerState.currentPage >= contentGroups.size && contentGroups.isNotEmpty()) pagerState.scrollToPage(contentGroups.lastIndex)
     }
 
+    MaterialTheme(colorScheme = resolvedColorScheme) {
     Surface(
         modifier = modifier,
         color = MaterialTheme.colorScheme.surfaceContainer,
@@ -255,7 +256,7 @@ fun SymbolDrawer(
                     HorizontalPager(
                         state = pagerState,
                         modifier = Modifier.fillMaxWidth().height(gridHeight),
-                        key = { page -> groups.getOrNull(page)?.id ?: "empty-$page" }
+                        key = { page -> contentGroups.getOrNull(page)?.id ?: "empty-$page" }
                     ) { page ->
                         val group = contentGroups.getOrNull(page)
                         if (group != null) {
@@ -298,6 +299,7 @@ fun SymbolDrawer(
                 }
             }
         }
+    }
     }
 }
 
