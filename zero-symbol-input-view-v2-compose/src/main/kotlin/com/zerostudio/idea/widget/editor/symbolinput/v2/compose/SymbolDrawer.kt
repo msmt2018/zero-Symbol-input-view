@@ -48,6 +48,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
@@ -62,6 +64,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.ThemeMode
+import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.HapticMode
 import kotlinx.coroutines.launch
 
 /**
@@ -87,6 +90,7 @@ fun SymbolDrawer(
     onOpenSettings: () -> Unit = {}
 ) {
     val scope = rememberCoroutineScope()
+    val hapticFeedback = LocalHapticFeedback.current
     val registeredExtensions = extensionRegistry?.let { rememberComposeSymbolDrawerExtensions(it) } ?: extensions
     val density = LocalDensity.current
     val providerGroupsState = remember(registeredExtensions.groupProviders) {
@@ -158,6 +162,13 @@ fun SymbolDrawer(
     }
 
     fun invokeSymbol(symbol: SymbolEntry, longPress: Boolean) {
+        val shouldHaptic = settings.hapticMode == HapticMode.ALL ||
+            (settings.hapticMode == HapticMode.SELECTION && !longPress)
+        if (shouldHaptic) {
+            hapticFeedback.performHapticFeedback(
+                if (longPress) HapticFeedbackType.LongPress else HapticFeedbackType.TextHandleMove
+            )
+        }
         val action = if (longPress) symbol.longAction ?: symbol.shortAction else symbol.shortAction
         val handled = registeredExtensions.actions.any { extension ->
             runCatching { extension.handler.onAction(action, symbol) }.getOrDefault(false)
