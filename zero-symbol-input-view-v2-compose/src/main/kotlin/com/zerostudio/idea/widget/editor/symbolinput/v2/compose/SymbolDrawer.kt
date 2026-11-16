@@ -324,8 +324,10 @@ fun SymbolDrawer(
                         )
                         if (consumedY != 0f && rangePx > 0f) {
                             scope.launch {
-                                if (detentState != null) detentState.dragBy(-consumedY / rangePx)
-                                else state.dragBy(-consumedY / rangePx)
+                                drawerMutationMutex.withLock {
+                                    if (detentState != null) detentState.dragBy(-consumedY / rangePx)
+                                    else state.dragBy(-consumedY / rangePx)
+                                }
                             }
                         }
                         return Offset(0f, consumedY)
@@ -400,7 +402,8 @@ fun SymbolDrawer(
                                             } else {
                                                 state.settle(
                                                     velocityFraction = velocity / range,
-                                                    animationDurationMillis = animationDuration
+                                                    animationDurationMillis = animationDuration,
+                                                    velocityThreshold = velocityThreshold
                                                 )
                                             }
                                         }
