@@ -15,10 +15,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 
@@ -76,7 +78,7 @@ class SymbolDrawerComposeUiTest {
         }
         composeRule.onNodeWithText("lambda").assertIsDisplayed()
         composeRule.onNodeWithText("Edit").performClick()
-        composeRule.runOnIdle { assert(editedSymbolId == 42L) }
+        composeRule.runOnIdle { assertEquals(42L, editedSymbolId) }
     }
 
 }
