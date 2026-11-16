@@ -46,6 +46,8 @@ dependencies {
 }
 ```
 
+This is the repository-level aggregate artifact for the multi-module project. It is not the standalone V2 submodule coordinate. JitPack uses distinct coordinate forms for aggregate and individual module artifacts; see its [multi-module project guide](https://docs.jitpack.io/building/#multi-module-projects).
+
 ## Choose an entry point
 
 - Embed the symbol toolbar: `SymbolDrawerView`.
