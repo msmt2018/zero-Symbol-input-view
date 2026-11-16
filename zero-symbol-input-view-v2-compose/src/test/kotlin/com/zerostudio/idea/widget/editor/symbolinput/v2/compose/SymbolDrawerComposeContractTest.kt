@@ -64,6 +64,20 @@ class SymbolDrawerComposeContractTest {
         assertEquals(0f, state.expansionFraction, 0f)
     }
 
+
+    @Test
+    fun zeroDurationExpandAndCollapseDoNotRequireAnimationFrameClock() = runBlocking {
+        val state = SymbolDrawerState(initiallyExpanded = false, selectedGroupId = null)
+
+        state.expand(animationDurationMillis = 0)
+        assertTrue(state.isExpanded)
+        assertEquals(1f, state.expansionFraction, 0f)
+
+        state.collapse(animationDurationMillis = 0)
+        assertFalse(state.isExpanded)
+        assertEquals(0f, state.expansionFraction, 0f)
+    }
+
     @Test
     fun windowWidthBreakpointsFollowMaterialAdaptiveWidths() {
         assertEquals(SymbolDrawerWindowWidthClass.COMPACT, resolveSymbolDrawerWindowWidthClass(599.dp))

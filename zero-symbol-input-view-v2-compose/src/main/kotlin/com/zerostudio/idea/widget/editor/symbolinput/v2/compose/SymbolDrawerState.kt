@@ -37,12 +37,16 @@ class SymbolDrawerState internal constructor(
 
     suspend fun expand(animationDurationMillis: Int = 220) {
         targetExpanded = true
-        expansion.animateTo(1f, tween(animationDurationMillis.coerceAtLeast(0)))
+        val duration = animationDurationMillis.coerceAtLeast(0)
+        if (duration == 0) expansion.snapTo(1f)
+        else expansion.animateTo(1f, tween(duration))
     }
 
     suspend fun collapse(animationDurationMillis: Int = 220) {
         targetExpanded = false
-        expansion.animateTo(0f, tween(animationDurationMillis.coerceAtLeast(0)))
+        val duration = animationDurationMillis.coerceAtLeast(0)
+        if (duration == 0) expansion.snapTo(0f)
+        else expansion.animateTo(0f, tween(duration))
     }
 
     internal suspend fun dragBy(deltaFraction: Float) {
