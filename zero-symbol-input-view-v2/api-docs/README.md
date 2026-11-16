@@ -77,6 +77,8 @@ dependencies {
 }
 ```
 
+当前 xedit-app 接入使用仓库级聚合坐标 `com.github.msmt2018:zero-Symbol-input-view:4.1-v2`。这是多模块仓库根 artifact，不是 `zero-symbol-input-view-v2` 子模块的单独 artifact 坐标。JitPack 对根聚合 artifact 与模块 artifact 的坐标规则不同，参见 [JitPack 多模块项目说明](https://docs.jitpack.io/building/#multi-module-projects)。
+
 不要把尚未发布的分支名当成 Maven 版本。
 
 ## 按任务选择 API
