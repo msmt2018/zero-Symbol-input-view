@@ -91,4 +91,9 @@
     <string name="compose_setting_auto_collapse">Collapse after action</string>
     <string name="compose_setting_prefetch_groups">Preload adjacent groups</string>
     <string name="compose_setting_search_payload">Include action payloads in search</string>
+    <string name="compose_setting_theme">Theme</string>
+    <string name="compose_setting_indicator_style">Group indicator style</string>
+    <string name="compose_setting_haptics">Haptic feedback</string>
+    <string name="compose_setting_large_screen_layout">Large-screen layout</string>
+    <string name="compose_setting_side_dock_edge">Side dock edge</string>
 </resources>
