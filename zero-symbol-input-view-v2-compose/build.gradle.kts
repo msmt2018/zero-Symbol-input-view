@@ -1,84 +1,59 @@
 /*
- * This file is part of ZeroStudio.
- *
+ * This file is part of zero-Symbol-input-view-V2 Compose.
  * Copyright (C) 2026 android_zero
- *
  * SPDX-License-Identifier: AGPL-3.0-only AND GPL-3.0-only AND Apache-2.0
- *
- * License Information:
- *
- * This file is distributed under the following licenses, which apply
- * cumulatively to the same work:
- *
- * 1. GNU Affero General Public License v3.0 only (AGPL-3.0-only):
- *    Grants the rights to use, study, modify, and redistribute this work.
- *    When a modified version is used to provide network services to users,
- *    the corresponding source code must be made available under the
- *    applicable AGPL terms.
- *
- * 2. GNU General Public License v3.0 only (GPL-3.0-only):
- *    Grants the rights to use, study, modify, and redistribute this work.
- *    Distribution of covered binaries requires compliance with the source
- *    code, license notice, attribution, and other applicable GPL terms.
- *
- * 3. Apache License 2.0 (Apache-2.0):
- *    Grants copyright and applicable patent rights to use, modify, and
- *    distribute this work, subject to its license conditions, including
- *    preservation of notices, inclusion of the license, and marking changes.
- *
- * The SPDX operator "AND" means that all listed license terms apply
- * cumulatively. It does not mean that recipients may choose only one
- * of the listed licenses.
- *
- * You must comply with the applicable terms of all three licenses.
- * This notice is a summary and does not replace the full license texts.
- *
- * Full license texts:
- * - GNU AGPL v3.0: https://www.gnu.org/licenses/agpl-3.0.html
- * - GNU GPL v3.0:  https://www.gnu.org/licenses/gpl-3.0.html
- * - Apache 2.0:    https://www.apache.org/licenses/LICENSE-2.0
- *
- * Author: android_zero
- * GitHub: https://github.com/msmt2018
- * WeChat: android_zero
+ * Author: android_zero · https://github.com/msmt2018
  */
 
 import org.gradle.api.publish.maven.MavenPublication
 
 plugins {
     id("com.android.library")
+    id("org.jetbrains.kotlin.plugin.compose")
     id("maven-publish")
 }
 
 android {
-    namespace = "com.zerostudio.idea.widget.editor.symbolinput.v2"
-
+    namespace = "com.zerostudio.idea.widget.editor.symbolinput.v2.compose"
     defaultConfig {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        consumerProguardFiles("consumer-rules.pro")
+    }
+    buildFeatures { compose = true }
+    publishing {
+        singleVariant("release") { withSourcesJar() }
     }
 }
 
 dependencies {
+    // Existing V2 domain, persistence, JSON, action and extension contracts are
+    // retained as the migration baseline while their UI adapters are replaced.
     implementation(libs.androidx.core.ktx)
-    implementation("androidx.activity:activity-ktx:1.9.3")
     implementation(libs.kotlin.stdlib)
+    implementation("androidx.activity:activity-ktx:1.9.3")
     implementation("androidx.recyclerview:recyclerview:1.4.0")
     implementation("androidx.viewpager2:viewpager2:1.1.0")
     implementation(libs.material)
     implementation(libs.gson)
     api(libs.androidx.annotation)
+
+    val composeBom = platform("androidx.compose:compose-bom:2025.12.01")
+    implementation(composeBom)
+    api("androidx.compose.runtime:runtime")
+    api("androidx.compose.ui:ui")
+    api("androidx.compose.foundation:foundation")
+    api("androidx.compose.material3:material3")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.9.4")
+    debugImplementation("androidx.compose.ui:ui-tooling")
+
     testImplementation(libs.junit)
     androidTestImplementation("androidx.test:runner:1.6.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test:core:1.6.1")
-}
-
-android {
-    publishing {
-        singleVariant("release") {
-            withSourcesJar()
-        }
-    }
+    androidTestImplementation(composeBom)
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
 
 afterEvaluate {
@@ -87,30 +62,20 @@ afterEvaluate {
             register<MavenPublication>("release") {
                 from(components["release"])
                 groupId = "com.github.msmt2018.zero-Symbol-input-view"
-                artifactId = "zero-symbol-input-view-v2"
+                artifactId = "zero-symbol-input-view-v2-compose"
                 version = providers.environmentVariable("VERSION")
-                    .orElse(project.version.toString())
-                    .get()
-
+                    .orElse(project.version.toString()).get()
                 pom {
-                    name.set("Zero Symbol Input View V2")
-                    description.set(
-                        "An independently packaged Android symbol drawer and input toolbar library."
-                    )
+                    name.set("Zero Symbol Input View V2 Compose")
+                    description.set("Jetpack Compose and Material 3 symbol drawer and input toolbar library.")
                     url.set("https://github.com/msmt2018/zero-Symbol-input-view")
-
                     licenses {
                         license {
-                            name.set(
-                                "AGPL-3.0-only AND GPL-3.0-only AND Apache-2.0"
-                            )
-                            url.set(
-                                "https://github.com/msmt2018/zero-Symbol-input-view"
-                            )
+                            name.set("AGPL-3.0-only AND GPL-3.0-only AND Apache-2.0")
+                            url.set("https://github.com/msmt2018/zero-Symbol-input-view")
                             distribution.set("repo")
                         }
                     }
-
                     developers {
                         developer {
                             id.set("msmt2018")
@@ -118,15 +83,10 @@ afterEvaluate {
                             url.set("https://github.com/msmt2018")
                         }
                     }
-
                     scm {
                         url.set("https://github.com/msmt2018/zero-Symbol-input-view")
-                        connection.set(
-                            "scm:git:git://github.com/msmt2018/zero-Symbol-input-view.git"
-                        )
-                        developerConnection.set(
-                            "scm:git:ssh://git@github.com/msmt2018/zero-Symbol-input-view.git"
-                        )
+                        connection.set("scm:git:git://github.com/msmt2018/zero-Symbol-input-view.git")
+                        developerConnection.set("scm:git:ssh://git@github.com/msmt2018/zero-Symbol-input-view.git")
                     }
                 }
             }
