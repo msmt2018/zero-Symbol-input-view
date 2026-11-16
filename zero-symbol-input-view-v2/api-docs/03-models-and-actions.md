@@ -2,6 +2,19 @@
 
 模型包：`com.zerostudio.idea.widget.editor.symbolinput.v2.model`
 
+完整 import：
+
+```kotlin
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.DrawerConfig
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.CursorTarget
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.DeleteKind
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SelectionTransform
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.ClipboardOperation
+```
+
 ## 1. 设计原则
 
 模型层描述“符号是什么”和“触发时想做什么”，不直接操作 Android Editor。所有数据模型均以 Kotlin data class/sealed interface 表达，适合构造不可变快照、比较差异和 JSON 持久化。
