@@ -55,6 +55,7 @@ class SymbolDrawerComposeUiTest {
         }
         composeRule.onNodeWithText("lambda").assertIsDisplayed()
     }
+
     @Test
     fun managerRendersSymbolsAndDispatchesEditCommands() {
         var editedSymbolId: Long? = null
@@ -81,7 +82,7 @@ class SymbolDrawerComposeUiTest {
         composeRule.runOnIdle { assertEquals(42L, editedSymbolId) }
     }
 
-}\n    @Test
+    @Test
     fun drawerUsesTheSuppliedMultiDetentStateForInitialPresentation() {
         val detentState = SymbolDrawerDetentState(
             initialDetentId = SymbolDrawerDetent.HalfExpanded.id,
@@ -119,5 +120,4 @@ class SymbolDrawerComposeUiTest {
             assertEquals("common", detentState.selectedGroupId)
         }
     }
-
-
+}

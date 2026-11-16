@@ -82,4 +82,25 @@ class SymbolDrawerComposeContractTest {
         assertEquals(SymbolAction.InsertText("->"), entry.shortAction)
         assertEquals(SymbolAction.ReplaceSelection("=>"), entry.longAction)
     }
+    @Test
+    fun nestedScrollExpandsBeforeChildAndConsumesOnlyAvailableRange() {
+        assertEquals(-80f, drawerNestedPreScrollConsumption(-120f, 0.2f, 100f), 0f)
+        assertEquals(0f, drawerNestedPreScrollConsumption(-20f, 1f, 100f), 0f)
+        assertEquals(0f, drawerNestedPreScrollConsumption(40f, 0.2f, 100f), 0f)
+    }
+
+    @Test
+    fun nestedScrollCollapsesOnlyUnconsumedDownwardDistance() {
+        assertEquals(30f, drawerNestedPostScrollConsumption(80f, 0.3f, 100f), 0f)
+        assertEquals(0f, drawerNestedPostScrollConsumption(40f, 0f, 100f), 0f)
+        assertEquals(0f, drawerNestedPostScrollConsumption(-20f, 0.5f, 100f), 0f)
+    }
+
+    @Test
+    fun nestedScrollRejectsInvalidMeasurements() {
+        assertEquals(0f, drawerNestedPreScrollConsumption(Float.NaN, 0.5f, 100f), 0f)
+        assertEquals(0f, drawerNestedPostScrollConsumption(20f, 0.5f, 0f), 0f)
+    }
+
+
 }

@@ -46,6 +46,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -54,6 +58,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.zerostudio.idea.widget.editor.symbolinput.v2.R
@@ -92,6 +97,37 @@ internal fun drawerFlingVelocityThreshold(
 /** Reduced-motion mode disables settling animation without disabling dragging. */
 internal fun drawerAnimationDurationMs(settings: SymbolDrawerSettings): Int =
     if (settings.reduceMotion) 0 else settings.animationDurationMs
+
+/**
+ * Pixel consumption helpers for the drawer's nested-scroll contract.
+ * Upward pre-scroll expands the drawer; downward post-scroll collapses it only
+ * after the child scrollable has reached its own boundary.
+ */
+internal fun drawerNestedPreScrollConsumption(
+    availableY: Float,
+    expansionFraction: Float,
+    rangePx: Float
+): Float {
+    if (!availableY.isFinite() || !expansionFraction.isFinite() ||
+        !rangePx.isFinite() || rangePx <= 0f || availableY >= 0f
+    ) return 0f
+    val fraction = expansionFraction.coerceIn(0f, 1f)
+    val expandablePx = (1f - fraction) * rangePx
+    return -minOf(-availableY, expandablePx)
+}
+
+internal fun drawerNestedPostScrollConsumption(
+    availableY: Float,
+    expansionFraction: Float,
+    rangePx: Float
+): Float {
+    if (!availableY.isFinite() || !expansionFraction.isFinite() ||
+        !rangePx.isFinite() || rangePx <= 0f || availableY <= 0f
+    ) return 0f
+    val fraction = expansionFraction.coerceIn(0f, 1f)
+    val collapsiblePx = fraction * rangePx
+    return minOf(availableY, collapsiblePx)
+}
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -247,8 +283,84 @@ fun SymbolDrawer(
             val totalHeight = effectiveCollapsedHeight + dragRange * expansionFraction
             val visibleIndicatorHeight = indicatorHeight * expansionFraction
             val gridHeight = (totalHeight - effectiveHandleHeight - visibleIndicatorHeight).coerceAtLeast(0.dp)
+            val rangePx = with(density) { dragRange.toPx() }
+            val latestExpansionFraction by rememberUpdatedState(expansionFraction)
+            val nestedScrollConnection = remember(detentState, state, rangePx) {
+                object : NestedScrollConnection {
+                    override fun onPreScroll(
+                        available: Offset,
+                        source: NestedScrollSource
+                    ): Offset {
+                        val consumedY = drawerNestedPreScrollConsumption(
+                            availableY = available.y,
+                            expansionFraction = latestExpansionFraction,
+                            rangePx = rangePx
+                        )
+                        if (consumedY != 0f && rangePx > 0f) {
+                            scope.launch {
+                                if (detentState != null) detentState.dragBy(-consumedY / rangePx)
+                                else state.dragBy(-consumedY / rangePx)
+                            }
+                        }
+                        return Offset(0f, consumedY)
+                    }
 
-            Column(Modifier.requiredHeight(totalHeight)) {
+                    override fun onPostScroll(
+                        consumed: Offset,
+                        available: Offset,
+                        source: NestedScrollSource
+                    ): Offset {
+                        val consumedY = drawerNestedPostScrollConsumption(
+                            availableY = available.y,
+                            expansionFraction = latestExpansionFraction,
+                            rangePx = rangePx
+                        )
+                        if (consumedY != 0f && rangePx > 0f) {
+                            scope.launch {
+                                if (detentState != null) detentState.dragBy(-consumedY / rangePx)
+                                else state.dragBy(-consumedY / rangePx)
+                            }
+                        }
+                        return Offset(0f, consumedY)
+                    }
+
+                    override suspend fun onPostFling(
+                        consumed: Velocity,
+                        available: Velocity
+                    ): Velocity {
+                        val fraction = latestExpansionFraction.coerceIn(0f, 1f)
+                        val canSettle = (available.y < 0f && fraction < 1f) ||
+                            (available.y > 0f && fraction > 0f)
+                        if (!canSettle || rangePx <= 0f) return Velocity.Zero
+
+                        val rangeDp = with(density) { rangePx.toDp().value }
+                        val velocityThreshold = drawerFlingVelocityThreshold(settings, rangeDp)
+                        val duration = drawerAnimationDurationMs(settings)
+                        scope.launch {
+                            if (detentState != null) {
+                                detentState.settle(
+                                    velocityFraction = -available.y / rangePx,
+                                    velocityThreshold = velocityThreshold,
+                                    animationDurationMillis = duration
+                                )
+                            } else {
+                                state.settle(
+                                    velocityFraction = available.y / rangePx,
+                                    animationDurationMillis = duration,
+                                    velocityThreshold = velocityThreshold
+                                )
+                            }
+                        }
+                        return Velocity(0f, available.y)
+                    }
+                }
+            }
+
+            Column(
+                Modifier
+                    .requiredHeight(totalHeight)
+                    .nestedScroll(nestedScrollConnection)
+            ) {
                 Box(Modifier.fillMaxWidth().height(effectiveHandleHeight)) {
                     Box(
                         Modifier
