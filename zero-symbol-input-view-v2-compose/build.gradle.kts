@@ -79,16 +79,16 @@ val verifyComposeUiBoundary by tasks.registering {
 
     doLast {
         val forbiddenImports = listOf(
-            Regex("""^\\s*import\\s+android\\.view\\."""),
-            Regex("""^\\s*import\\s+android\\.widget\\."""),
-            Regex("""^\\s*import\\s+android\\.graphics\\."""),
-            Regex("""^\\s*import\\s+androidx\\.recyclerview\\."""),
-            Regex("""^\\s*import\\s+androidx\\.viewpager2\\."""),
-            Regex("""^\\s*import\\s+com\\.google\\.android\\.material\\.""")
+            Regex("""^\s*import\s+android\.view\."""),
+            Regex("""^\s*import\s+android\.widget\."""),
+            Regex("""^\s*import\s+android\.graphics\."""),
+            Regex("""^\s*import\s+androidx\.recyclerview\."""),
+            Regex("""^\s*import\s+androidx\.viewpager2\."""),
+            Regex("""^\s*import\s+com\.google\.android\.material\.""")
         )
         val forbiddenCalls = listOf(
-            Regex("""\\bAndroidView\\s*\\("""),
-            Regex("""\\bAndroidViewBinding\\s*\\(""")
+            Regex("""\bAndroidView\s*\("""),
+            Regex("""\bAndroidViewBinding\s*\(""")
         )
 
         val violations = composeUiRoots
