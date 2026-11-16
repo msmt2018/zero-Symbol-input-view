@@ -71,6 +71,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSet
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.ThemeMode
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.HapticMode
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -293,6 +294,21 @@ fun SymbolDrawer(
             val nestedScrollCoordinator = remember(detentState, state) {
                 DrawerNestedScrollCoordinator(expansionFraction, rangePx)
             }
+            // One worker mirrors projected deltas into state; pointer events never spawn an unbounded job queue.
+            val mutationDrainJob = remember(nestedScrollCoordinator) { arrayOfNulls<Job>(1) }
+            fun enqueueDrawerMutation(deltaFraction: Float) {
+                if (nestedScrollCoordinator.enqueueMutation(deltaFraction)) {
+                    mutationDrainJob[0] = scope.launch {
+                        while (true) {
+                            val nextDelta = nestedScrollCoordinator.takePendingMutation() ?: break
+                            drawerMutationMutex.withLock {
+                                if (detentState != null) detentState.dragBy(nextDelta)
+                                else state.dragBy(nextDelta)
+                            }
+                        }
+                    }
+                }
+            }
             // Keep normalized projection across viewport/range changes, including
             // while accepted deltas are waiting to be applied to Animatable.
             SideEffect { nestedScrollCoordinator.updateRange(rangePx) }
@@ -303,14 +319,7 @@ fun SymbolDrawer(
                         source: NestedScrollSource
                     ): Offset {
                         val consumption = nestedScrollCoordinator.consumePreScroll(available.y)
-                        if (consumption.deltaFraction != 0f) {
-                            scope.launch {
-                                drawerMutationMutex.withLock {
-                                    if (detentState != null) detentState.dragBy(consumption.deltaFraction)
-                                    else state.dragBy(consumption.deltaFraction)
-                                }
-                            }
-                        }
+                        enqueueDrawerMutation(consumption.deltaFraction)
                         return Offset(0f, consumption.consumedY)
                     }
 
@@ -320,14 +329,7 @@ fun SymbolDrawer(
                         source: NestedScrollSource
                     ): Offset {
                         val consumption = nestedScrollCoordinator.consumePostScroll(available.y)
-                        if (consumption.deltaFraction != 0f) {
-                            scope.launch {
-                                drawerMutationMutex.withLock {
-                                    if (detentState != null) detentState.dragBy(consumption.deltaFraction)
-                                    else state.dragBy(consumption.deltaFraction)
-                                }
-                            }
-                        }
+                        enqueueDrawerMutation(consumption.deltaFraction)
                         return Offset(0f, consumption.consumedY)
                     }
 
@@ -343,6 +345,7 @@ fun SymbolDrawer(
                         val rangeDp = with(density) { rangePx.toDp().value }
                         val velocityThreshold = drawerFlingVelocityThreshold(settings, rangeDp)
                         val duration = drawerAnimationDurationMs(settings)
+                        mutationDrainJob[0]?.join()
                         drawerMutationMutex.withLock {
                             if (detentState != null) {
                                 detentState.settle(
@@ -379,14 +382,7 @@ fun SymbolDrawer(
                                 orientation = Orientation.Vertical,
                                 state = rememberDraggableState { delta ->
                                     val deltaFraction = nestedScrollCoordinator.consumeDragDelta(delta)
-                                    if (deltaFraction != 0f) {
-                                        scope.launch {
-                                            drawerMutationMutex.withLock {
-                                                if (detentState != null) detentState.dragBy(deltaFraction)
-                                                else state.dragBy(deltaFraction)
-                                            }
-                                        }
-                                    }
+                                    enqueueDrawerMutation(deltaFraction)
                                 },
                                 onDragStopped = { velocity ->
                                     val range = with(density) { dragRange.toPx().coerceAtLeast(1f) }
@@ -394,6 +390,7 @@ fun SymbolDrawer(
                                     val velocityThreshold = drawerFlingVelocityThreshold(settings, rangeDp)
                                     val animationDuration = drawerAnimationDurationMs(settings)
                                     scope.launch {
+                                        mutationDrainJob[0]?.join()
                                         drawerMutationMutex.withLock {
                                             if (detentState != null) {
                                                 detentState.settle(
