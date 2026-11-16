@@ -111,6 +111,18 @@ class ComposeSymbolDrawerExtensionRegistryTest {
         assertEquals(listOf(1L, 2L), observedBySecondListener)
     }
 
+    @Test
+    fun observeCanEmitCurrentRevisionImmediately() {
+        val registry = ComposeSymbolDrawerExtensionRegistry()
+        registry.registerAction(action("test.existing"))
+        val revisions = mutableListOf<Long>()
+
+        val handle = registry.observe(emitCurrent = true) { revisions += it }
+
+        assertEquals(listOf(1L), revisions)
+        handle.close()
+    }
+
     private fun action(id: String) = ComposeSymbolDrawerActionExtension(
         id = id,
         title = id,
