@@ -123,7 +123,7 @@ dependencies {
 }
 ```
 
-将 `<published-tag>` 替换为已经创建且 JitPack 构建及 artifact 验证成功的 Git Tag（例如 `vX.Y.Z`）。版本号使用完整 Tag 名称，包含开头的 `v`；不要把尚未发布的分支名当作正式依赖版本。公开 artifact 不需要 Maven 账号、密码或 GitHub Token。完整坐标以及远程/本地接入说明见 [V2 模块接入指南](zero-symbol-input-view-v2/README.md#2-jitpack-远程-maven-导入)。
+将 `4.1-v2` 替换为已经创建且 JitPack 构建及 artifact 验证成功的 Git Tag（例如 `vX.Y.Z`）。版本号使用完整 Tag 名称，包含开头的 `v`；不要把尚未发布的分支名当作正式依赖版本。公开 artifact 不需要 Maven 账号、密码或 GitHub Token。完整坐标以及远程/本地接入说明见 [V2 模块接入指南](zero-symbol-input-view-v2/README.md#2-jitpack-远程-maven-导入)。
 
 ## 扩展 API 开发
 
