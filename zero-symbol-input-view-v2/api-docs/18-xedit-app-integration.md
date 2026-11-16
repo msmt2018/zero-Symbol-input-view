@@ -32,6 +32,8 @@ dependencies {
 
 根目录 `settings.gradle.kts` 已经通过 `dependencyResolutionManagement.repositories` 配置 JitPack，并启用 `FAIL_ON_PROJECT_REPOS`。不要在 app 模块再次声明仓库。
 
+该坐标是 JitPack 的仓库级聚合 artifact。多模块项目的根坐标与单独模块坐标不同；这里按你指定的 `4.1-v2` 根项目坐标接入。参见 [JitPack 多模块项目说明](https://docs.jitpack.io/building/#multi-module-projects)。
+
 ## 3. 实际布局
 
 在 `app/src/main/res/layout/activity_editor.xml` 的编辑器内容区域，把原有快捷键 RecyclerView 与 V2 控件放在同一个底部纵向容器。旧快捷键功能继续保留：
