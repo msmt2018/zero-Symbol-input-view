@@ -45,8 +45,6 @@
 
 package com.zerostudio.idea.widget.editor.symbolinput.v2.settings
 
-import android.content.Context
-import android.content.SharedPreferences
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser

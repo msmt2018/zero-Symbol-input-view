@@ -128,6 +128,94 @@ tasks.named("check") {
     dependsOn(verifyComposeUiBoundary)
 }
 
+/**
+ * Whole-artifact migration inventory. This is intentionally informational while
+ * legacy View sources are being replaced; it is not wired into check yet.
+ * Once the inventory is empty, verifyComposeArtifactBoundary can become a check gate.
+ */
+val auditComposeMigration by tasks.registering {
+    group = "verification"
+    description = "Reports remaining Android View UI source references and View-only dependencies."
+
+    val sourceRoots = listOf(
+        layout.projectDirectory.dir("src/main/kotlin").asFile,
+        layout.projectDirectory.dir("src/main/java").asFile
+    )
+    val forbiddenImports = listOf(
+        Regex("""^\\s*import\\s+android\\.view\\."""),
+        Regex("""^\\s*import\\s+android\\.widget\\."""),
+        Regex("""^\\s*import\\s+android\\.graphics\\."""),
+        Regex("""^\\s*import\\s+androidx\\.recyclerview\\."""),
+        Regex("""^\\s*import\\s+androidx\\.viewpager2\\."""),
+        Regex("""^\\s*import\\s+com\\.google\\.android\\.material\\.""")
+    )
+    val forbiddenReferences = listOf(
+        Regex("""\\bAndroidViewBinding?\\s*\\("""),
+        Regex("""\\b(SymbolDrawerView|ViewGroup|MotionEvent|RecyclerView|ViewPager2)\\b""")
+    )
+    val viewOnlyDependencies = listOf(
+        "androidx.recyclerview:recyclerview",
+        "androidx.viewpager2:viewpager2",
+        "com.google.android.material:material"
+    )
+
+    doLast {
+        val sourceFiles = sourceRoots.filter { it.exists() }
+            .flatMap { root -> root.walkTopDown().filter { it.isFile && it.extension in setOf("kt", "java") }.toList() }
+        val violations = sourceFiles.flatMap { source ->
+            source.readLines().mapIndexedNotNull { index, line ->
+                val trimmed = line.trimStart()
+                val comment = trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed.startsWith("/*")
+                if (!comment && (forbiddenImports.any { it.containsMatchIn(line) } ||
+                        forbiddenReferences.any { it.containsMatchIn(line) })) {
+                    "${source.relativeTo(projectDir)}:${index + 1}: ${line.trim()}"
+                } else null
+            }
+        }
+        val dependencyViolations = viewOnlyDependencies.filter { dependency ->
+            Regex("""["']""" + Regex.escape(dependency) + """(?::[^"']*)?["']""")
+                .containsMatchIn(file("build.gradle.kts").readText())
+        }
+        logger.lifecycle("Compose migration audit: ${sourceFiles.size} main source files scanned")
+        logger.lifecycle("Remaining View UI source findings: ${violations.size}")
+        violations.forEach { logger.lifecycle("  - $it") }
+        logger.lifecycle("Remaining View-only dependency declarations: ${dependencyViolations.size}")
+        dependencyViolations.forEach { logger.lifecycle("  - $it") }
+        if (violations.isEmpty() && dependencyViolations.isEmpty()) {
+            logger.lifecycle("Compose source/dependency boundary is clean.")
+        }
+    }
+}
+
+/** Strict gate, intentionally not attached to check until all migration phases finish. */
+val verifyComposeArtifactBoundary by tasks.registering {
+    group = "verification"
+    description = "Fails while any View UI source or View-only dependency remains."
+    dependsOn(auditComposeMigration)
+    doLast {
+        val sourceRoots = listOf(
+            layout.projectDirectory.dir("src/main/kotlin").asFile,
+            layout.projectDirectory.dir("src/main/java").asFile
+        )
+        val files = sourceRoots.filter { it.exists() }
+            .flatMap { root -> root.walkTopDown().filter { it.isFile && it.extension in setOf("kt", "java") }.toList() }
+        val forbidden = Regex("""^\\s*import\\s+(android\\.view\\.|android\\.widget\\.|android\\.graphics\\.|androidx\\.recyclerview\\.|androidx\\.viewpager2\\.|com\\.google\\.android\\.material\\.)""")
+        val violations = files.flatMap { file ->
+            file.readLines().mapIndexedNotNull { index, line ->
+                if (forbidden.containsMatchIn(line)) "${file.relativeTo(projectDir)}:${index + 1}: $line" else null
+            }
+        }
+        val dependencies = listOf(
+            "androidx.recyclerview:recyclerview",
+            "androidx.viewpager2:viewpager2",
+            "com.google.android.material:material"
+        ).filter { it in file("build.gradle.kts").readText() }
+        check(violations.isEmpty() && dependencies.isEmpty()) {
+            "Compose artifact boundary is not clean. Run auditComposeMigration for the complete inventory."
+        }
+    }
+}
+
 afterEvaluate {
     publishing {
         publications {
