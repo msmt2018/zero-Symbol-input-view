@@ -46,6 +46,14 @@ dependencies {
 
 Groovy DSL 可使用 `maven { url 'https://jitpack.io' }`。若启用了 `FAIL_ON_PROJECT_REPOS`，必须在 settings 文件配置仓库。请使用已发布且 JitPack 构建成功的 Git Tag；分支源码快照不代表已发布。
 
+## xedit-app 实际接入参考
+
+xedit-app 的 Manifest 启动入口 `x.code.app.activity.MainActivity` 是权限/启动页面；实际编辑器位于 `x.code.app.activity.EditorActivity`，编辑器实例为 `binding.editor`（`HighlightTextView`）。因此应将 `SymbolDrawerView` 添加到 `activity_editor.xml`，而不是启动页布局。
+
+xedit-app 已有的文本插入调用为 `binding.editor.insert(text)`。动作回调通过 `drawer.executeAction(action, host)` 执行，宿主的 `SymbolActionHost.insertText(template)` 调用该插入方法并返回 true。当前未映射的选区、光标、删除、剪贴板和自定义命令能力必须返回 false，待对应编辑器 API 验证后再开放。
+
+底部布局应把旧 `shortcut_key_view` 和 `symbol_drawer` 放进同一个纵向容器，并用容器总高度更新编辑器底部边距，避免控件覆盖编辑器内容。
+
 ## 3. 布局中放置组件
 
 ```xml
