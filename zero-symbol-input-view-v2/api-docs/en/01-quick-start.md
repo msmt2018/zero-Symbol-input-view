@@ -26,7 +26,7 @@ dependencyResolutionManagement {
 
 // app/build.gradle.kts
 dependencies {
-    implementation("com.github.msmt2018.zero-Symbol-input-view:zero-symbol-input-view-v2:<published-tag>")
+    implementation("com.github.msmt2018:zero-Symbol-input-view:4.1-v2")
 }
 ```
 Use an existing Git tag whose JitPack build succeeded. A branch name is not a release.
