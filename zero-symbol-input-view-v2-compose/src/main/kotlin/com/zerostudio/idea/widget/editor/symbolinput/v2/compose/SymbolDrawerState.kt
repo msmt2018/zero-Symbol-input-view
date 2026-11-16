@@ -10,7 +10,9 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.compose
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.listSaver
 
