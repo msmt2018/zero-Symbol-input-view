@@ -142,16 +142,16 @@ val auditComposeMigration by tasks.registering {
         layout.projectDirectory.dir("src/main/java").asFile
     )
     val forbiddenImports = listOf(
-        Regex("""^\\s*import\\s+android\\.view\\."""),
-        Regex("""^\\s*import\\s+android\\.widget\\."""),
-        Regex("""^\\s*import\\s+android\\.graphics\\."""),
-        Regex("""^\\s*import\\s+androidx\\.recyclerview\\."""),
-        Regex("""^\\s*import\\s+androidx\\.viewpager2\\."""),
-        Regex("""^\\s*import\\s+com\\.google\\.android\\.material\\.""")
+        Regex("""^\s*import\s+android\.view\."""),
+        Regex("""^\s*import\s+android\.widget\."""),
+        Regex("""^\s*import\s+android\.graphics\."""),
+        Regex("""^\s*import\s+androidx\.recyclerview\."""),
+        Regex("""^\s*import\s+androidx\.viewpager2\."""),
+        Regex("""^\s*import\s+com\.google\.android\.material\.""")
     )
     val forbiddenReferences = listOf(
-        Regex("""\\bAndroidViewBinding?\\s*\\("""),
-        Regex("""\\b(SymbolDrawerView|ViewGroup|MotionEvent|RecyclerView|ViewPager2)\\b""")
+        Regex("""\bAndroidView(?:Binding)?\s*\("""),
+        Regex("""\b(SymbolDrawerView|ViewGroup|MotionEvent|RecyclerView|ViewPager2)\b""")
     )
     val viewOnlyDependencies = listOf(
         "androidx.recyclerview:recyclerview",
@@ -199,7 +199,7 @@ val verifyComposeArtifactBoundary by tasks.registering {
         )
         val files = sourceRoots.filter { it.exists() }
             .flatMap { root -> root.walkTopDown().filter { it.isFile && it.extension in setOf("kt", "java") }.toList() }
-        val forbidden = Regex("""^\\s*import\\s+(android\\.view\\.|android\\.widget\\.|android\\.graphics\\.|androidx\\.recyclerview\\.|androidx\\.viewpager2\\.|com\\.google\\.android\\.material\\.)""")
+        val forbidden = Regex("""^\s*import\s+(android\.view\.|android\.widget\.|android\.graphics\.|androidx\.recyclerview\.|androidx\.viewpager2\.|com\.google\.android\.material\.)""")
         val violations = files.flatMap { file ->
             file.readLines().mapIndexedNotNull { index, line ->
                 if (forbidden.containsMatchIn(line)) "${file.relativeTo(projectDir)}:${index + 1}: $line" else null
