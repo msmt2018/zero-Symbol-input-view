@@ -23,6 +23,8 @@ internal class DrawerNestedScrollCoordinator(
 ) {
     private var projectedFraction = initialFraction.requireFraction()
     private var rangePx = rangePx.requireRange()
+    private var pendingMutationDelta = 0f
+    private var mutationDrainScheduled = false
 
     @Synchronized
     fun consumePreScroll(availableY: Float): Consumption {
@@ -54,6 +56,34 @@ internal class DrawerNestedScrollCoordinator(
         projectedFraction = (previous - deltaY / rangePx).coerceIn(0f, 1f)
         return projectedFraction - previous
     }
+
+    /**
+     * Coalesces accepted state mutations. Returns true only when the caller
+     * must start the single drain worker. The projected position is advanced
+     * synchronously by consume methods; this queue only mirrors those deltas
+     * into the Animatable-backed state.
+     */
+    @Synchronized
+    fun enqueueMutation(deltaFraction: Float): Boolean {
+        if (!deltaFraction.isFinite() || deltaFraction == 0f) return false
+        pendingMutationDelta += deltaFraction
+        if (mutationDrainScheduled) return false
+        mutationDrainScheduled = true
+        return true
+    }
+
+    /** Returns the coalesced delta, or null and releases the drain lease. */
+    @Synchronized
+    fun takePendingMutation(): Float? {
+        if (pendingMutationDelta == 0f) {
+            mutationDrainScheduled = false
+            return null
+        }
+        return pendingMutationDelta.also { pendingMutationDelta = 0f }
+    }
+
+    @Synchronized
+    fun hasPendingMutation(): Boolean = pendingMutationDelta != 0f || mutationDrainScheduled
 
     /** Update pixel geometry without changing the normalized expansion position. */
     @Synchronized
