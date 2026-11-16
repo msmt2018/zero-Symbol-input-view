@@ -107,4 +107,10 @@
     <string name="compose_choice_side">Side</string>
     <string name="compose_choice_left">Left</string>
     <string name="compose_choice_right">Right</string>
+    <string name="compose_action_composite">Composite action</string>
+    <string name="compose_action_move_up">Up</string>
+    <string name="compose_action_move_down">Down</string>
+    <string name="compose_action_remove">Remove</string>
+    <string name="compose_composite_children">Child actions: %1$d</string>
+    <string name="compose_composite_add_action">Add child action</string>
 </resources>
