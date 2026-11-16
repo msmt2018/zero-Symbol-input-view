@@ -170,3 +170,25 @@ The Compose module is a separately consumable artifact. Public APIs may expose C
 - Replaced the obsolete View-based architecture diagram with the target Compose architecture and added this phase-by-phase migration plan.
 
 **Not yet verified:** the Gradle build, unit tests, instrumentation tests and CI for these commits. The latest workflow runs were pending at the time of this log. The old View UI classes, legacy manager/settings screens, old extension registry and View-only dependencies are still present and remain scheduled for replacement in later phases.
+
+### Migration audit refresh — 2026-11-16 (HEAD `7bee64d9c248ef6df7fa23afbdeeddabbc456d3a`)
+
+- Current Compose module inventory: **215 tracked files**; **159 Kotlin files** across source sets: **94 main**, **53 unit-test**, **12 androidTest**. These are inventory counts, not a completion percentage.
+- The native Compose implementation is present as a working foundation (drawer/pager/grid, Compose indicator, manager/settings Compose screens and routes, Compose extension registry, and generic Compose drawer surface), but the artifact is **not yet a clean Compose-only library**.
+- Confirmed legacy View implementation files still tracked under this module include:
+  - `SymbolDrawerView.kt`
+  - `ui/SymbolGroupIndicator.kt`
+  - `ui/SymbolPageAdapter.kt`
+  - `manager/SymbolDrawerManagerScreen.kt`
+  - `settings/SymbolDrawerSettingsScreen.kt`
+  - `extension/SymbolDrawerExtensionRegistry.kt`
+  - `drawer/DrawerContainer.kt`
+  - `settings/JsonDocumentPicker.kt`
+  - `adaptive/AdaptiveWindowObserver.kt`
+- Both old View-bound manager/settings screens coexist with separate Compose manager/settings implementations. They must not be confused as already migrated.
+- `build.gradle.kts` still directly declares RecyclerView, ViewPager2 and Material Components for Views. `activity-ktx` is also present and must be reviewed against the final Compose host integration before dependency cleanup.
+- The module-scoped audit task remains informational; the strict whole-artifact boundary task is not yet wired into `check`. Therefore no full source/dependency boundary pass has been established.
+- Instrumentation source set still contains legacy drawer/controller/theme host tests alongside Compose UI tests. These need classification and replacement, not wholesale deletion.
+- Recent behavior hardening: zero-duration transitions now use `Animatable.snapTo` in both `SymbolDrawerDetentState` and `SymbolDrawerState`, with a regression test for instant expand/collapse.
+- Latest commit: `7bee64d9c248ef6df7fa23afbdeeddabbc456d3a`. CI run **43822112940** was pending at audit time; build/test status is not yet known.
+- The sibling `zero-symbol-input-view-v2` remains outside all changes. All commits in this workstream remain scoped to this Compose module.
