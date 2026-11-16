@@ -19,6 +19,20 @@ class SymbolDrawerPagerPolicyTest {
     }
 
     @Test
+    fun flingThresholdScalesWithAvailableExpansionRange() {
+        val settings = SymbolDrawerSettings(flingVelocityDpPerSecond = 900)
+
+        assertEquals(9f, drawerFlingVelocityThreshold(settings, 100f), 0.001f)
+        assertEquals(4.5f, drawerFlingVelocityThreshold(settings, 200f), 0.001f)
+    }
+
+    @Test
+    fun reducedMotionDisablesSettleAnimationOnly() {
+        assertEquals(0, drawerAnimationDurationMs(SymbolDrawerSettings(reduceMotion = true)))
+        assertEquals(200, drawerAnimationDurationMs(SymbolDrawerSettings(animationDurationMs = 200)))
+    }
+
+    @Test
     fun cacheBudgetControlsSymmetricAdjacentPageComposition() {
         assertEquals(0, pageBeyondViewportCount(SymbolDrawerSettings(pageCacheLimit = 1)))
         assertEquals(1, pageBeyondViewportCount(SymbolDrawerSettings(pageCacheLimit = 3)))
