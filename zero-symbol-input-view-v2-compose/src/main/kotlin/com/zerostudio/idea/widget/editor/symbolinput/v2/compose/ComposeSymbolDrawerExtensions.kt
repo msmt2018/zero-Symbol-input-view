@@ -138,7 +138,11 @@ class ComposeSymbolDrawerExtensionRegistry {
     // Mutations may race after releasing `lock`; without ordered delivery, a slower
     // older notification can otherwise arrive after a newer one and roll UI state back.
     private val notificationLock = Any()
-    private val pendingNotifications = java.util.ArrayDeque<Long>()
+    private data class ObserverNotification(
+        val revision: Long,
+        val listeners: List<(Long) -> Unit>
+    )
+    private val pendingNotifications = java.util.ArrayDeque<ObserverNotification>()
     private var dispatchingNotifications = false
     private val actions = LinkedHashMap<String, ComposeSymbolDrawerActionExtension>()
     private val renderers = LinkedHashMap<String, SymbolDrawerItemRenderer>()
@@ -207,48 +211,63 @@ class ComposeSymbolDrawerExtensionRegistry {
     }
 
     /**
-     * Observe registry revisions. When [emitCurrent] is true, the listener is
-     * synchronously called once with the current revision before this method
-     * returns; subsequent mutations are delivered through the serialized queue.
+     * Observe registry revisions. [emitCurrent] queues the current revision in
+     * the same serialized delivery stream as later mutations, avoiding a direct
+     * callback racing or overtaking an in-flight observer notification.
      */
     fun observe(
         emitCurrent: Boolean = false,
         listener: (Long) -> Unit
     ): AutoCloseable {
-        val currentRevision = synchronized(lock) {
-            observers += listener
-            revision
+        val shouldDispatch = synchronized(notificationLock) {
+            val currentRevision = synchronized(lock) {
+                observers += listener
+                revision
+            }
+            if (emitCurrent) {
+                pendingNotifications.addLast(
+                    ObserverNotification(currentRevision, listOf(listener))
+                )
+            }
+            if (emitCurrent && !dispatchingNotifications) {
+                dispatchingNotifications = true
+                true
+            } else false
         }
-        if (emitCurrent) runCatching { listener(currentRevision) }
+        if (shouldDispatch) drainNotifications()
         return AutoCloseable { synchronized(lock) { observers -= listener } }
     }
 
     private fun notifyObservers() {
         val shouldDispatch = synchronized(notificationLock) {
-            // Read the current revision after acquiring the dispatch lock. Concurrent
-            // mutations can therefore coalesce to the newest revision, never roll back.
-            pendingNotifications.addLast(synchronized(lock) { revision })
+            val event = synchronized(lock) {
+                ObserverNotification(revision, observers.toList())
+            }
+            pendingNotifications.addLast(event)
             if (dispatchingNotifications) false else {
                 dispatchingNotifications = true
                 true
             }
         }
-        if (!shouldDispatch) return
+        if (shouldDispatch) drainNotifications()
+    }
 
-        // Drain instead of recursively invoking observers. An observer may register
-        // another extension; its notification is queued until every observer has
-        // received the current revision.
+    /**
+     * Drain a FIFO of immutable listener snapshots. Callbacks execute outside
+     * both locks, so listeners can safely register/unregister extensions or
+     * observers without deadlocking or recursively reordering notifications.
+     */
+    private fun drainNotifications() {
         while (true) {
             val event = synchronized(notificationLock) {
                 if (pendingNotifications.isEmpty()) {
                     dispatchingNotifications = false
                     null
-                } else {
-                    val nextRevision = pendingNotifications.removeFirst()
-                    nextRevision to synchronized(lock) { observers.toList() }
-                }
+                } else pendingNotifications.removeFirst()
             } ?: break
-            event.second.forEach { listener -> runCatching { listener(event.first) } }
+            event.listeners.forEach { listener ->
+                runCatching { listener(event.revision) }
+            }
         }
     }
 
