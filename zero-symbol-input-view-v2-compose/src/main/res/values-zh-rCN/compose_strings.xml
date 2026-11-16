@@ -77,4 +77,18 @@
     <string name="compose_bulk_copy_target">将所选符号复制到</string>
     <string name="compose_bulk_move_target">将所选符号移动到</string>
     <string name="compose_bulk_no_target">请先创建另一个分组，再复制或移动符号。</string>
+    <string name="compose_setting_horizontal_spacing">单元格水平间距</string>
+    <string name="compose_setting_vertical_spacing">单元格垂直间距</string>
+    <string name="compose_setting_indicator_height">分组指示器高度</string>
+    <string name="compose_setting_label_size">符号标题文字大小</string>
+    <string name="compose_setting_animation_duration">动画时长</string>
+    <string name="compose_setting_fling_velocity">抽屉惯性滑动速度</string>
+    <string name="compose_setting_long_press_timeout">长按触发时间</string>
+    <string name="compose_setting_page_cache">缓存分组页面数</string>
+    <string name="compose_setting_touch_target">最小触摸目标尺寸</string>
+    <string name="compose_setting_group_titles">显示分组标题</string>
+    <string name="compose_setting_action_hints">显示动作提示</string>
+    <string name="compose_setting_auto_collapse">执行动作后自动收起</string>
+    <string name="compose_setting_prefetch_groups">预加载相邻分组</string>
+    <string name="compose_setting_search_payload">搜索时包含动作参数</string>
 </resources>
