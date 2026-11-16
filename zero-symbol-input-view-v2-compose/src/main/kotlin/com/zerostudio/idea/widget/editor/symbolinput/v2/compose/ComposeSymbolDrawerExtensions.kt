@@ -138,6 +138,8 @@ class ComposeSymbolDrawerExtensionRegistry {
     // Mutations may race after releasing `lock`; without ordered delivery, a slower
     // older notification can otherwise arrive after a newer one and roll UI state back.
     private val notificationLock = Any()
+    private val pendingNotifications = java.util.ArrayDeque<Long>()
+    private var dispatchingNotifications = false
     private val actions = LinkedHashMap<String, ComposeSymbolDrawerActionExtension>()
     private val renderers = LinkedHashMap<String, SymbolDrawerItemRenderer>()
     private val indicators = LinkedHashMap<String, SymbolDrawerGroupIndicator>()
@@ -209,9 +211,33 @@ class ComposeSymbolDrawerExtensionRegistry {
         return AutoCloseable { synchronized(lock) { observers -= listener } }
     }
 
-    private fun notifyObservers() = synchronized(notificationLock) {
-        val event = synchronized(lock) { revision to observers.toList() }
-        event.second.forEach { listener -> runCatching { listener(event.first) } }
+    private fun notifyObservers() {
+        val shouldDispatch = synchronized(notificationLock) {
+            // Read the current revision after acquiring the dispatch lock. Concurrent
+            // mutations can therefore coalesce to the newest revision, never roll back.
+            pendingNotifications.addLast(synchronized(lock) { revision })
+            if (dispatchingNotifications) false else {
+                dispatchingNotifications = true
+                true
+            }
+        }
+        if (!shouldDispatch) return
+
+        // Drain instead of recursively invoking observers. An observer may register
+        // another extension; its notification is queued until every observer has
+        // received the current revision.
+        while (true) {
+            val event = synchronized(notificationLock) {
+                if (pendingNotifications.isEmpty()) {
+                    dispatchingNotifications = false
+                    null
+                } else {
+                    val nextRevision = pendingNotifications.removeFirst()
+                    nextRevision to synchronized(lock) { observers.toList() }
+                }
+            } ?: break
+            event.second.forEach { listener -> runCatching { listener(event.first) } }
+        }
     }
 
     fun clear() {
