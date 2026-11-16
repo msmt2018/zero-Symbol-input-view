@@ -66,6 +66,7 @@
     <string name="compose_group_not_found">所选分组已不存在</string>
     <string name="compose_bulk_selected">已选择 %1$d 项</string>
     <string name="compose_bulk_select_item">选择</string>
+    <string name="compose_bulk_select_all">全选</string>
     <string name="compose_bulk_selected_item">已选择</string>
     <string name="compose_bulk_delete">批量删除</string>
     <string name="compose_bulk_copy">复制到分组</string>

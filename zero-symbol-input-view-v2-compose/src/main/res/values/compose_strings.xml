@@ -66,6 +66,7 @@
     <string name="compose_group_not_found">The selected group no longer exists</string>
     <string name="compose_bulk_selected">%1$d selected</string>
     <string name="compose_bulk_select_item">Select</string>
+    <string name="compose_bulk_select_all">Select all</string>
     <string name="compose_bulk_selected_item">Selected</string>
     <string name="compose_bulk_delete">Delete selected</string>
     <string name="compose_bulk_copy">Copy to group</string>
