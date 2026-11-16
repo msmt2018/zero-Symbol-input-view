@@ -97,7 +97,7 @@ internal fun drawerAnimationDurationMs(settings: SymbolDrawerSettings): Int =
 @Composable
 fun SymbolDrawer(
     groups: List<SymbolGroup>,
-    state: SymbolDrawerState,
+    state: SymbolDrawerState = remember { SymbolDrawerState(false, null) },
     modifier: Modifier = Modifier,
     settings: SymbolDrawerSettings = SymbolDrawerSettings(),
     maxHeight: Dp = settings.maxExpandedHeightDp.dp,
