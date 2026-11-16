@@ -12,6 +12,23 @@ com.zerostudio.idea.widget.editor.symbolinput.v2
 
 主要类型位于子包 `model`、`action`、`data`、`settings`、`drawer` 和 `adaptive`。
 
+### 最小集成所需的完整 import
+
+```kotlin
+import com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawerView
+import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionHost
+import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionResult
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.ClipboardOperation
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.CursorTarget
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.DeleteKind
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SelectionTransform
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
+```
+
+`CursorTarget`、`DeleteKind`、`SelectionTransform` 和 `ClipboardOperation` 属于 `model` 包；不要从 `action` 包导入这些类型。
+
 ## 2. Gradle 依赖
 
 ### 同仓库集成
