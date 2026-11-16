@@ -41,4 +41,18 @@
     <string name="compose_create_backup_failed">无法创建备份文件</string>
     <string name="compose_write_backup_failed">无法写入备份文件</string>
     <string name="compose_symbol_icon">图标／资源标识</string>
+
+    <string name="compose_action_insert_text">插入文本</string>
+    <string name="compose_action_replace_selection">替换选区</string>
+    <string name="compose_action_surround_selection">包围选区</string>
+    <string name="compose_action_editor_command">编辑器命令</string>
+    <string name="compose_action_extension">扩展动作</string>
+    <string name="compose_action_move_cursor">移动光标</string>
+    <string name="compose_action_delete">删除</string>
+    <string name="compose_action_transform">转换选区</string>
+    <string name="compose_action_clipboard">剪贴板</string>
+    <string name="compose_action_open_manager">打开管理页</string>
+    <string name="compose_hint_surround">输入前缀|后缀</string>
+    <string name="compose_hint_editor_command">已注册命令 ID，可选追加 |参数</string>
+    <string name="compose_hint_extension">扩展 ID，可选追加 |参数</string>
 </resources>

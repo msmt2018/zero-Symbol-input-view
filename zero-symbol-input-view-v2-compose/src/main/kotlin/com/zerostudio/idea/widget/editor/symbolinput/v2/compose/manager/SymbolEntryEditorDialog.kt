@@ -33,6 +33,20 @@ private enum class ActionKind {
 }
 private val actionKinds = ActionKind.values()
 
+@Composable
+private fun ActionKind.localizedName(): String = stringResource(when (this) {
+    ActionKind.INSERT_TEXT -> R.string.compose_action_insert_text
+    ActionKind.REPLACE_SELECTION -> R.string.compose_action_replace_selection
+    ActionKind.SURROUND_SELECTION -> R.string.compose_action_surround_selection
+    ActionKind.EDITOR_COMMAND -> R.string.compose_action_editor_command
+    ActionKind.EXTENSION -> R.string.compose_action_extension
+    ActionKind.MOVE_CURSOR -> R.string.compose_action_move_cursor
+    ActionKind.DELETE -> R.string.compose_action_delete
+    ActionKind.TRANSFORM_SELECTION -> R.string.compose_action_transform
+    ActionKind.CLIPBOARD -> R.string.compose_action_clipboard
+    ActionKind.OPEN_MANAGER -> R.string.compose_action_open_manager
+})
+
 private fun ActionKind.toAction(value: String): SymbolAction = when (this) {
     ActionKind.INSERT_TEXT -> SymbolAction.InsertText(value)
     ActionKind.REPLACE_SELECTION -> SymbolAction.ReplaceSelection(value)
@@ -96,10 +110,10 @@ internal fun SymbolEntryEditorDialog(
                 OutlinedTextField(value = icon, onValueChange = { icon = it },
                     modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.compose_symbol_icon)) })
                 Text(stringResource(R.string.compose_short_action), style = MaterialTheme.typography.titleSmall)
-                OutlinedButton(onClick = { shortMenu = true }) { Text(shortKind.name) }
+                OutlinedButton(onClick = { shortMenu = true }) { Text(shortKind.localizedName()) }
                 DropdownMenu(expanded = shortMenu, onDismissRequest = { shortMenu = false }) {
                     actionKinds.forEach { kind ->
-                        DropdownMenuItem(text = { Text(kind.name) }, onClick = {
+                        DropdownMenuItem(text = { Text(kind.localizedName()) }, onClick = {
                             shortKind = kind; shortValue = ""; shortModified = true; shortMenu = false
                         })
                     }
@@ -115,10 +129,10 @@ internal fun SymbolEntryEditorDialog(
                 }
                 if (longEnabled) {
                     Text(stringResource(R.string.compose_long_action), style = MaterialTheme.typography.titleSmall)
-                    OutlinedButton(onClick = { longMenu = true }) { Text(longKind.name) }
+                    OutlinedButton(onClick = { longMenu = true }) { Text(longKind.localizedName()) }
                     DropdownMenu(expanded = longMenu, onDismissRequest = { longMenu = false }) {
                         actionKinds.forEach { kind ->
-                            DropdownMenuItem(text = { Text(kind.name) }, onClick = {
+                            DropdownMenuItem(text = { Text(kind.localizedName()) }, onClick = {
                                 longKind = kind; longValue = ""; longModified = true; longMenu = false
                             })
                         }
@@ -147,10 +161,11 @@ internal fun SymbolEntryEditorDialog(
     )
 }
 
+@Composable
 private fun ActionKind.hint(): String = when (this) {
-    ActionKind.SURROUND_SELECTION -> "prefix|suffix"
-    ActionKind.EDITOR_COMMAND -> "commandId|payload"
-    ActionKind.EXTENSION -> "extensionId|payload"
+    ActionKind.SURROUND_SELECTION -> stringResource(R.string.compose_hint_surround)
+    ActionKind.EDITOR_COMMAND -> stringResource(R.string.compose_hint_editor_command)
+    ActionKind.EXTENSION -> stringResource(R.string.compose_hint_extension)
     ActionKind.MOVE_CURSOR -> CursorTarget.values().joinToString()
     ActionKind.DELETE -> DeleteKind.values().joinToString()
     ActionKind.TRANSFORM_SELECTION -> SelectionTransform.values().joinToString()
