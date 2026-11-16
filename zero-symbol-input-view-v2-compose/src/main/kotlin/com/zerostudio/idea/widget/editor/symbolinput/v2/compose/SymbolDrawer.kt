@@ -38,6 +38,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -83,11 +85,29 @@ fun SymbolDrawer(
     val scope = rememberCoroutineScope()
     val registeredExtensions = extensionRegistry?.let { rememberComposeSymbolDrawerExtensions(it) } ?: extensions
     val density = LocalDensity.current
+    val providerGroupsState = remember(registeredExtensions.groupProviders) {
+        mutableStateOf<List<SymbolGroup>?>(null)
+    }
+    LaunchedEffect(registeredExtensions.groupProviders) {
+        val merged = LinkedHashMap<String, SymbolGroup>()
+        // Explicit host data remains authoritative; providers fill missing IDs.
+        groups.forEach { merged[it.id] = it }
+        registeredExtensions.groupProviders.forEach { provider ->
+            runCatching { provider.loadGroups() }.getOrNull()?.forEach { group ->
+                merged.putIfAbsent(group.id, group)
+            }
+        }
+        providerGroupsState.value = merged.values.toList()
+    }
+    val contentGroups = providerGroupsState.value ?: groups
+    val resolvedColorScheme = registeredExtensions.themes.firstNotNullOfOrNull { extension ->
+        runCatching { extension.resolve().colorScheme }.getOrNull()
+    } ?: MaterialTheme.colorScheme
     val pagerState = rememberPagerState(
-        initialPage = groups.indexOfFirst { it.id == state.selectedGroupId }.coerceAtLeast(0),
-        pageCount = { groups.size.coerceAtLeast(1) }
+        initialPage = contentGroups.indexOfFirst { it.id == state.selectedGroupId }.coerceAtLeast(0),
+        pageCount = { contentGroups.size.coerceAtLeast(1) }
     )
-    val selectedGroup = groups.getOrNull(pagerState.currentPage)
+    val selectedGroup = contentGroups.getOrNull(pagerState.currentPage)
     val lifecycleExtensions = registeredExtensions.lifecycle
 
     DisposableEffect(lifecycleExtensions) {
@@ -104,9 +124,9 @@ fun SymbolDrawer(
             runCatching { extension.onSettingsChanged(settings) }
         }
     }
-    LaunchedEffect(groups, lifecycleExtensions) {
+    LaunchedEffect(contentGroups, lifecycleExtensions) {
         lifecycleExtensions.forEach { extension ->
-            runCatching { extension.onGroupsChanged(groups) }
+            runCatching { extension.onGroupsChanged(contentGroups) }
         }
     }
     LaunchedEffect(selectedGroup?.id, pagerState.currentPage, lifecycleExtensions) {
@@ -134,10 +154,10 @@ fun SymbolDrawer(
             runCatching { extension.onSymbolInvoked(symbol, longPress) }
         }
     }
-    LaunchedEffect(groups.map { it.id }) {
-        val retained = groups.indexOfFirst { it.id == state.selectedGroupId }
+    LaunchedEffect(contentGroups.map { it.id }) {
+        val retained = contentGroups.indexOfFirst { it.id == state.selectedGroupId }
         if (retained >= 0 && retained != pagerState.currentPage) pagerState.scrollToPage(retained)
-        else if (pagerState.currentPage >= groups.size && groups.isNotEmpty()) pagerState.scrollToPage(groups.lastIndex)
+        else if (pagerState.currentPage >= contentGroups.size && contentGroups.isNotEmpty()) pagerState.scrollToPage(contentGroups.lastIndex)
     }
 
     Surface(
@@ -193,7 +213,7 @@ fun SymbolDrawer(
                     }
                 }
 
-                if (groups.isNotEmpty()) {
+                if (contentGroups.isNotEmpty()) {
                     Box(Modifier.fillMaxWidth().height(visibleIndicatorHeight)) {
                         if (state.expansionFraction > 0.01f) {
                             val customIndicator = registeredExtensions.groupIndicators
@@ -201,19 +221,19 @@ fun SymbolDrawer(
                                 .firstOrNull()
                             if (customIndicator != null) {
                                 customIndicator.Content(
-                                    groups = groups,
+                                    groups = contentGroups,
                                     selectedIndex = pagerState.currentPage,
                                     onSelect = { index -> scope.launch { pagerState.animateScrollToPage(index) } },
                                     modifier = Modifier.fillMaxWidth()
                                 )
                             } else {
                                 ScrollableTabRow(
-                                    selectedTabIndex = pagerState.currentPage.coerceIn(0, groups.lastIndex),
+                                    selectedTabIndex = pagerState.currentPage.coerceIn(0, contentGroups.lastIndex),
                                     edgePadding = 8.dp,
                                     containerColor = MaterialTheme.colorScheme.surfaceContainer,
                                     contentColor = MaterialTheme.colorScheme.onSurface
                                 ) {
-                                    groups.forEachIndexed { index, group ->
+                                    contentGroups.forEachIndexed { index, group ->
                                         Tab(
                                             selected = pagerState.currentPage == index,
                                             onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
@@ -237,7 +257,7 @@ fun SymbolDrawer(
                         modifier = Modifier.fillMaxWidth().height(gridHeight),
                         key = { page -> groups.getOrNull(page)?.id ?: "empty-$page" }
                     ) { page ->
-                        val group = groups.getOrNull(page)
+                        val group = contentGroups.getOrNull(page)
                         if (group != null) {
                             LazyVerticalGrid(
                                 columns = GridCells.Fixed(settings.columns),
