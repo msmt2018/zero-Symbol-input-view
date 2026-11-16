@@ -51,11 +51,14 @@ class SymbolDrawerState internal constructor(
     internal suspend fun settle(
         velocityFraction: Float = 0f,
         animationDurationMillis: Int = 220,
-        threshold: Float = 0.5f
+        threshold: Float = 0.5f,
+        velocityThreshold: Float = 0.8f
     ) {
+        require(threshold in 0f..1f)
+        require(velocityThreshold >= 0f && velocityThreshold.isFinite())
         val expand = when {
-            velocityFraction < -0.8f -> true
-            velocityFraction > 0.8f -> false
+            velocityFraction < -velocityThreshold -> true
+            velocityFraction > velocityThreshold -> false
             else -> expansion.value >= threshold
         }
         if (expand) expand(animationDurationMillis) else collapse(animationDurationMillis)
