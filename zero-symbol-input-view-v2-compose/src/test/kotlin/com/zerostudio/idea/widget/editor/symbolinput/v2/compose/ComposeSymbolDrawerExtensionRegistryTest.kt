@@ -95,6 +95,22 @@ class ComposeSymbolDrawerExtensionRegistryTest {
         assertEquals(listOf(1L, 2L), revisions.toList())
     }
 
+
+    @Test
+    fun reentrantRegistrationDoesNotDeliverOlderRevisionAfterNewerRevision() {
+        val registry = ComposeSymbolDrawerExtensionRegistry()
+        val observedBySecondListener = mutableListOf<Long>()
+
+        registry.observe { revision ->
+            if (revision == 1L) registry.registerAction(action("test.reentrant"))
+        }
+        registry.observe { revision -> observedBySecondListener += revision }
+
+        registry.registerAction(action("test.initial"))
+
+        assertEquals(listOf(1L, 2L), observedBySecondListener)
+    }
+
     private fun action(id: String) = ComposeSymbolDrawerActionExtension(
         id = id,
         title = id,
