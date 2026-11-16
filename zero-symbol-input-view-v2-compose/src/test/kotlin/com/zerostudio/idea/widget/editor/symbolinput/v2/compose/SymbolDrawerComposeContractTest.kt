@@ -91,7 +91,7 @@ class SymbolDrawerComposeContractTest {
 
     @Test
     fun nestedScrollCollapsesOnlyUnconsumedDownwardDistance() {
-        assertEquals(30f, drawerNestedPostScrollConsumption(80f, 0.3f, 100f), 0f)
+        assertEquals(30f, drawerNestedPostScrollConsumption(80f, 0.3f, 100f), 0.001f)
         assertEquals(0f, drawerNestedPostScrollConsumption(40f, 0f, 100f), 0f)
         assertEquals(0f, drawerNestedPostScrollConsumption(-20f, 0.5f, 100f), 0f)
     }

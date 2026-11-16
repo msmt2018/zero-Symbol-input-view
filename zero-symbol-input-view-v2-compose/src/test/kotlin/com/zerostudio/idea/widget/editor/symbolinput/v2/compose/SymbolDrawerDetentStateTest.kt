@@ -135,7 +135,7 @@ class SymbolDrawerDetentStateTest {
     }
 
     @Test
-    fun rejectsNonFiniteDragAndVelocity() = runBlocking {
+    fun rejectsNonFiniteDragAndVelocity(): Unit = runBlocking {
         val state = SymbolDrawerDetentState()
         assertThrows(IllegalArgumentException::class.java) {
             runBlocking { state.dragBy(Float.NaN) }
