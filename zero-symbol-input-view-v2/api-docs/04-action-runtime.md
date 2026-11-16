@@ -1,6 +1,19 @@
 # 04 — 动作注册、执行与文本编辑 API
 
-包：`com.zerostudio.idea.widget.editor.symbolinput.v2.action`
+动作 API facade 包：`com.zerostudio.idea.widget.editor.symbolinput.v2.action`
+
+完整 import（注意动作参数模型位于 `model` 包）：
+
+```kotlin
+import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionHost
+import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionExecutor
+import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionResult
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.CursorTarget
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.DeleteKind
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SelectionTransform
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.ClipboardOperation
+```
 
 ## 1. 运行模型
 
