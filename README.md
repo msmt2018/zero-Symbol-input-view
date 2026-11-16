@@ -118,7 +118,7 @@ Then add the V2 SDK dependency to your app module's `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("com.github.msmt2018.zero-Symbol-input-view:zero-symbol-input-view-v2:<published-tag>")
+    implementation("com.github.msmt2018:zero-Symbol-input-view:4.1-v2")
 }
 ```
 
