@@ -134,6 +134,10 @@ data class ComposeSymbolDrawerExtensions(
  */
 class ComposeSymbolDrawerExtensionRegistry {
     private val lock = Any()
+    // Serialize observer delivery and capture the revision only after entering this lock.
+    // Mutations may race after releasing `lock`; without ordered delivery, a slower
+    // older notification can otherwise arrive after a newer one and roll UI state back.
+    private val notificationLock = Any()
     private val actions = LinkedHashMap<String, ComposeSymbolDrawerActionExtension>()
     private val renderers = LinkedHashMap<String, SymbolDrawerItemRenderer>()
     private val indicators = LinkedHashMap<String, SymbolDrawerGroupIndicator>()
@@ -205,9 +209,9 @@ class ComposeSymbolDrawerExtensionRegistry {
         return AutoCloseable { synchronized(lock) { observers -= listener } }
     }
 
-    private fun notifyObservers() {
+    private fun notifyObservers() = synchronized(notificationLock) {
         val event = synchronized(lock) { revision to observers.toList() }
-        event.second.forEach { runCatching { it(event.first) } }
+        event.second.forEach { listener -> runCatching { listener(event.first) } }
     }
 
     fun clear() {
