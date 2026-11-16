@@ -97,7 +97,7 @@ private fun ActionKind.create(value: String = defaultValue()): SymbolAction = wh
     ActionKind.TRANSFORM_SELECTION -> SymbolAction.TransformSelection(SelectionTransform.valueOf(value))
     ActionKind.CLIPBOARD -> SymbolAction.Clipboard(ClipboardOperation.valueOf(value))
     ActionKind.OPEN_MANAGER -> SymbolAction.OpenManager
-    ActionKind.COMPOSITE -> SymbolAction.Composite(emptyList())
+    ActionKind.COMPOSITE -> SymbolAction.Composite(listOf(SymbolAction.InsertText("")))
 }
 
 private fun ActionKind.defaultValue(): String = when (this) {
@@ -148,7 +148,7 @@ private fun SymbolActionEditor(
                     Text(kind.localizedName())
                 }
                 DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                    actionKinds.forEach { candidate ->
+                    actionKinds.filterNot { it == ActionKind.COMPOSITE && depth >= 8 }.forEach { candidate ->
                         DropdownMenuItem(
                             text = { Text(candidate.localizedName()) },
                             onClick = {
@@ -195,11 +195,11 @@ private fun SymbolActionEditor(
                                     it[index] = updated
                                 }))
                             },
-                            onRemove = {
+                            onRemove = if (action.actions.size > 1) ({
                                 onChange(action.copy(actions = action.actions.toMutableList().also {
                                     it.removeAt(index)
                                 }))
-                            },
+                            }) else null,
                             onMoveUp = if (index > 0) ({
                                 onChange(action.copy(actions = action.actions.toMutableList().also {
                                     val item = it.removeAt(index); it.add(index - 1, item)
@@ -214,11 +214,13 @@ private fun SymbolActionEditor(
                     }
                 }
                 var addMenu by remember(action) { mutableStateOf(false) }
-                OutlinedButton(onClick = { addMenu = true }) {
-                    Text(stringResource(R.string.compose_composite_add_action))
+                if (action.actions.size < 64 && depth < 8) {
+                    OutlinedButton(onClick = { addMenu = true }) {
+                        Text(stringResource(R.string.compose_composite_add_action))
+                    }
                 }
                 DropdownMenu(expanded = addMenu, onDismissRequest = { addMenu = false }) {
-                    actionKinds.forEach { candidate ->
+                    actionKinds.filterNot { it == ActionKind.COMPOSITE && depth >= 7 }.forEach { candidate ->
                         DropdownMenuItem(
                             text = { Text(candidate.localizedName()) },
                             onClick = {
