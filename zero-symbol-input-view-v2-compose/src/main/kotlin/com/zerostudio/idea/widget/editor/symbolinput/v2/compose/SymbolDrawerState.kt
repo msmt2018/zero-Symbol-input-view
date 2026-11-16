@@ -48,13 +48,17 @@ class SymbolDrawerState internal constructor(
         expansion.snapTo((expansion.value + deltaFraction).coerceIn(0f, 1f))
     }
 
-    internal suspend fun settle(velocityFraction: Float = 0f, threshold: Float = 0.5f) {
+    internal suspend fun settle(
+        velocityFraction: Float = 0f,
+        animationDurationMillis: Int = 220,
+        threshold: Float = 0.5f
+    ) {
         val expand = when {
             velocityFraction < -0.8f -> true
             velocityFraction > 0.8f -> false
             else -> expansion.value >= threshold
         }
-        if (expand) expand() else collapse()
+        if (expand) expand(animationDurationMillis) else collapse(animationDurationMillis)
     }
 
     companion object {
