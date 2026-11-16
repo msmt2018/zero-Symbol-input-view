@@ -215,8 +215,8 @@ fun SymbolDrawer(
             runCatching { extension.onSymbolInvoked(symbol, longPress) }
         }
     }
-    LaunchedEffect(contentGroups.map { it.id }) {
-        val retained = contentGroups.indexOfFirst { it.id == state.selectedGroupId }
+    LaunchedEffect(contentGroups.map { it.id }, selectedGroupId) {
+        val retained = contentGroups.indexOfFirst { it.id == selectedGroupId }
         if (retained >= 0 && retained != pagerState.currentPage) pagerState.scrollToPage(retained)
         else if (pagerState.currentPage >= contentGroups.size && contentGroups.isNotEmpty()) pagerState.scrollToPage(contentGroups.lastIndex)
     }
@@ -264,7 +264,7 @@ fun SymbolDrawer(
                                     }
                                 },
                                 onDragStopped = { velocity ->
-                                    val range = with(density) { (expandedHeight - collapsedHeight).toPx().coerceAtLeast(1f) }
+                                    val range = with(density) { dragRange.toPx().coerceAtLeast(1f) }
                                     val rangeDp = with(density) { range.toDp().value }
                                     val velocityThreshold = drawerFlingVelocityThreshold(settings, rangeDp)
                                     val animationDuration = drawerAnimationDurationMs(settings)
