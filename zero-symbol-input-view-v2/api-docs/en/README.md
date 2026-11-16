@@ -3,6 +3,7 @@
 English documentation for Android/Kotlin integrators and extension developers. These pages describe the public contract and known implementation boundaries of the current V2 source.
 
 ## Documentation map
+| [18 — xedit-app 4.1-v2 integration](18-xedit-app-integration.md) | Verified host activity, editor adapter, imports and integration boundaries | Integrating the sample host |
 
 | Page | Topic |
 |---|---|
