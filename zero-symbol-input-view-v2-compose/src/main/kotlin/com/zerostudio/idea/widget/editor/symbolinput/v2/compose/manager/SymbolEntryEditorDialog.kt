@@ -169,10 +169,37 @@ private fun SymbolActionEditor(
                 }
             }
 
-            if (action !is SymbolAction.Composite && action != SymbolAction.OpenManager) {
+            val enumOptions = when (action) {
+                is SymbolAction.MoveCursor -> CursorTarget.values().map { it.name }
+                is SymbolAction.Delete -> DeleteKind.values().map { it.name }
+                is SymbolAction.TransformSelection -> SelectionTransform.values().map { it.name }
+                is SymbolAction.Clipboard -> ClipboardOperation.values().map { it.name }
+                else -> null
+            }
+            if (enumOptions != null) {
+                var enumMenu by remember(action) { mutableStateOf(false) }
+                OutlinedButton(onClick = { enumMenu = true }) {
+                    Text(action.valueText())
+                }
+                DropdownMenu(expanded = enumMenu, onDismissRequest = { enumMenu = false }) {
+                    enumOptions.forEach { option ->
+                        DropdownMenuItem(
+                            text = { Text(option) },
+                            onClick = {
+                                runCatching { kind.create(option) }.onSuccess(onChange)
+                                enumMenu = false
+                            }
+                        )
+                    }
+                }
+            } else if (action !is SymbolAction.Composite && action != SymbolAction.OpenManager) {
+                var draftValue by remember(action) { mutableStateOf(action.valueText()) }
                 OutlinedTextField(
-                    value = action.valueText(),
-                    onValueChange = { value -> runCatching { kind.create(value) }.onSuccess(onChange) },
+                    value = draftValue,
+                    onValueChange = { value ->
+                        draftValue = value
+                        runCatching { kind.create(value) }.onSuccess(onChange)
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     label = { Text(stringResource(R.string.compose_action_value)) },
                     supportingText = { Text(kind.hint()) },
