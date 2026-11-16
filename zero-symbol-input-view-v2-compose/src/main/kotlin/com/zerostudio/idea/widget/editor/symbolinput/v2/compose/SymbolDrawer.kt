@@ -42,6 +42,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -106,7 +107,8 @@ fun SymbolDrawer(
     onSymbolLongClick: (SymbolEntry) -> Unit = {},
     onGroupChanged: (Int, SymbolGroup?) -> Unit = { _, _ -> },
     onOpenManager: () -> Unit = {},
-    onOpenSettings: () -> Unit = {}
+    onOpenSettings: () -> Unit = {},
+    detentState: SymbolDrawerDetentState? = null
 ) {
     val scope = rememberCoroutineScope()
     val hapticFeedback = LocalHapticFeedback.current
@@ -151,11 +153,13 @@ fun SymbolDrawer(
         runCatching { extension.resolve().colorScheme }.getOrNull()
     } ?: modeColorScheme
     val pagerState = rememberPagerState(
-        initialPage = contentGroups.indexOfFirst { it.id == state.selectedGroupId }.coerceAtLeast(0),
+        initialPage = contentGroups.indexOfFirst { it.id == selectedGroupId }.coerceAtLeast(0),
         pageCount = { contentGroups.size.coerceAtLeast(1) }
     )
     val selectedGroup = contentGroups.getOrNull(pagerState.currentPage)
     val lifecycleExtensions = registeredExtensions.lifecycle
+    val expansionFraction = detentState?.expansionFraction ?: state.expansionFraction
+    val selectedGroupId = detentState?.selectedGroupId ?: state.selectedGroupId
 
     DisposableEffect(lifecycleExtensions) {
         lifecycleExtensions.forEach { extension -> runCatching { extension.onAttached() } }
@@ -177,15 +181,18 @@ fun SymbolDrawer(
         }
     }
     LaunchedEffect(selectedGroup?.id, pagerState.currentPage, lifecycleExtensions) {
-        selectedGroup?.let { state.selectGroup(it.id) }
+        selectedGroup?.let {
+            state.selectGroup(it.id)
+            detentState?.selectGroup(it.id)
+        }
         onGroupChanged(pagerState.currentPage, selectedGroup)
         lifecycleExtensions.forEach { extension ->
             runCatching { extension.onGroupSelected(pagerState.currentPage, selectedGroup) }
         }
     }
-    LaunchedEffect(state.expansionFraction, lifecycleExtensions) {
+    LaunchedEffect(expansionFraction, lifecycleExtensions) {
         lifecycleExtensions.forEach { extension ->
-            runCatching { extension.onExpansionChanged(state.expansionFraction) }
+            runCatching { extension.onExpansionChanged(expansionFraction) }
         }
     }
 
@@ -246,7 +253,10 @@ fun SymbolDrawer(
                                 orientation = Orientation.Vertical,
                                 state = rememberDraggableState { delta ->
                                     val range = with(density) { (expandedHeight - collapsedHeight).toPx().coerceAtLeast(1f) }
-                                    scope.launch { state.dragBy(-delta / range) }
+                                    scope.launch {
+                                        if (detentState != null) detentState.dragBy(-delta / range)
+                                        else state.dragBy(-delta / range)
+                                    }
                                 },
                                 onDragStopped = { velocity ->
                                     val range = with(density) { (expandedHeight - collapsedHeight).toPx().coerceAtLeast(1f) }
@@ -279,7 +289,7 @@ fun SymbolDrawer(
 
                 if (contentGroups.isNotEmpty()) {
                     Box(Modifier.fillMaxWidth().height(visibleIndicatorHeight)) {
-                        if (state.expansionFraction > 0.01f) {
+                        if (expansionFraction > 0.01f) {
                             // Registry snapshots are already priority/ID ordered.
                             val customIndicator = registeredExtensions.groupIndicators.firstOrNull()
                             if (customIndicator != null) {
@@ -391,4 +401,24 @@ private fun SymbolCell(
             )
         }
     }
+}
+
+/**
+ * Remembers a saveable multi-anchor drawer state. Keep detent IDs stable when
+ * changing anchor fractions so restoration can resolve the intended position.
+ */
+@Composable
+fun rememberSymbolDrawerDetentState(
+    detents: List<SymbolDrawerDetent> = SymbolDrawerDetent.Defaults,
+    initialDetentId: String = SymbolDrawerDetent.Collapsed.id,
+    selectedGroupId: String? = null
+): SymbolDrawerDetentState = rememberSaveable(
+    detents,
+    saver = SymbolDrawerDetentState.saver(detents)
+) {
+    SymbolDrawerDetentState(
+        detents = detents,
+        initialDetentId = initialDetentId,
+        selectedGroupId = selectedGroupId
+    )
 }
