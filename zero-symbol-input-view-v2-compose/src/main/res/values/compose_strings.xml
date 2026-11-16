@@ -96,4 +96,15 @@
     <string name="compose_setting_haptics">Haptic feedback</string>
     <string name="compose_setting_large_screen_layout">Large-screen layout</string>
     <string name="compose_setting_side_dock_edge">Side dock edge</string>
+    <string name="compose_choice_system">System</string>
+    <string name="compose_choice_light">Light</string>
+    <string name="compose_choice_dark">Dark</string>
+    <string name="compose_choice_off">Off</string>
+    <string name="compose_choice_selection">Selection only</string>
+    <string name="compose_choice_all">All interactions</string>
+    <string name="compose_choice_auto">Automatic</string>
+    <string name="compose_choice_bottom">Bottom</string>
+    <string name="compose_choice_side">Side</string>
+    <string name="compose_choice_left">Left</string>
+    <string name="compose_choice_right">Right</string>
 </resources>
