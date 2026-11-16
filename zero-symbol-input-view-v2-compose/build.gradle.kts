@@ -57,6 +57,77 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
 
+/**
+ * Keep the migrated UI packages strictly Compose-native while legacy View
+ * implementation files are still being extracted from this migration baseline.
+ *
+ * This is intentionally a package-scoped guard: it does not pretend that the
+ * entire artifact is already free of transitional View sources.
+ */
+val verifyComposeUiBoundary by tasks.registering {
+    group = "verification"
+    description = "Rejects Android View and View-based Material UI APIs in Compose UI packages."
+
+    val composeUiRoots = listOf(
+        layout.projectDirectory.dir(
+            "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/compose"
+        ).asFile,
+        layout.projectDirectory.dir(
+            "src/main/kotlin/com/zerostudio/idea/widget/drawer/compose"
+        ).asFile
+    )
+
+    doLast {
+        val forbiddenImports = listOf(
+            Regex("""^\\s*import\\s+android\\.view\\."""),
+            Regex("""^\\s*import\\s+android\\.widget\\."""),
+            Regex("""^\\s*import\\s+android\\.graphics\\."""),
+            Regex("""^\\s*import\\s+androidx\\.recyclerview\\."""),
+            Regex("""^\\s*import\\s+androidx\\.viewpager2\\."""),
+            Regex("""^\\s*import\\s+com\\.google\\.android\\.material\\.""")
+        )
+        val forbiddenCalls = listOf(
+            Regex("""\\bAndroidView\\s*\\("""),
+            Regex("""\\bAndroidViewBinding\\s*\\(""")
+        )
+
+        val violations = composeUiRoots
+            .filter { it.exists() }
+            .flatMap { root ->
+                root.walkTopDown()
+                    .filter { it.isFile && it.extension == "kt" }
+                    .flatMap { source ->
+                        source.readLines().mapIndexedNotNull { index, line ->
+                            val trimmed = line.trimStart()
+                            val isComment = trimmed.startsWith("//") ||
+                                trimmed.startsWith("*") ||
+                                trimmed.startsWith("/*")
+                            val forbidden = !isComment && (
+                                forbiddenImports.any { it.containsMatchIn(line) } ||
+                                    forbiddenCalls.any { it.containsMatchIn(line) }
+                                )
+                            if (forbidden) {
+                                "${source.relativeTo(projectDir)}:${index + 1}: $line"
+                            } else null
+                        }
+                    }
+                    .toList()
+            }
+
+        check(violations.isEmpty()) {
+            buildString {
+                appendLine("Compose UI boundary violation(s) detected:")
+                violations.forEach { appendLine(" - $it") }
+                appendLine("Use Jetpack Compose UI/Foundation/Material3 APIs instead of Android View widgets.")
+            }
+        }
+    }
+}
+
+tasks.named("check") {
+    dependsOn(verifyComposeUiBoundary)
+}
+
 afterEvaluate {
     publishing {
         publications {
@@ -79,7 +150,7 @@ afterEvaluate {
                     }
                     developers {
                         developer {
-                            id.set("msmt2018")
+                            id.set("msmt2017")
                             name.set("android_zero")
                             url.set("https://github.com/msmt2018")
                         }
