@@ -63,6 +63,28 @@ class SymbolDrawerManagerState internal constructor(
     fun moveSymbol(groupId: String, fromIndex: Int, toIndex: Int): Boolean =
         command { manager.moveSymbol(groupId, fromIndex, toIndex) }
 
+    /** Atomically delete a selected set of symbols with one repository write. */
+    fun removeSymbols(groupId: String, symbolIds: Set<Long>): Int? =
+        commandResult { manager.removeSymbols(groupId, symbolIds) }
+
+    /** Atomically copy selected symbols, assigning fresh stable IDs. */
+    fun copySymbols(sourceGroupId: String, symbolIds: Set<Long>, targetGroupId: String): List<SymbolEntry>? =
+        commandResult { manager.copySymbols(sourceGroupId, symbolIds, targetGroupId) }
+
+    /** Atomically move selected symbols while preserving IDs when collision-free. */
+    fun moveSymbolsToGroup(sourceGroupId: String, symbolIds: Set<Long>, targetGroupId: String): Boolean =
+        command { manager.moveSymbolsToGroup(sourceGroupId, symbolIds, targetGroupId) }
+
+    fun copySymbol(sourceGroupId: String, symbolId: Long, targetGroupId: String): SymbolEntry? =
+        commandResult { manager.copySymbol(sourceGroupId, symbolId, targetGroupId) }
+
+    fun moveSymbolToGroup(sourceGroupId: String, symbolId: Long, targetGroupId: String): Boolean =
+        command { manager.moveSymbolToGroup(sourceGroupId, symbolId, targetGroupId) }
+
+    /** Reorders a complete group by stable IDs in one validated transaction. */
+    fun reorderSymbols(groupId: String, orderedIds: List<Long>): Boolean =
+        command { manager.reorderSymbols(groupId, orderedIds) }
+
     /** Import is validated completely before the manager commits one snapshot. */
     fun importJson(json: String): Boolean =
         command { manager.replaceAll(SymbolGroupBundleCodec.decode(json)) }

@@ -58,6 +58,40 @@ class SymbolDrawerManagerStateTest {
     }
 
     @Test
+    fun batchCopyMoveRemoveAndStableReorderUseSingleStateFacade() {
+        val source = SymbolGroup(
+            "source", "Source",
+            listOf(
+                SymbolEntry(10L, "alpha", SymbolAction.InsertText("a")),
+                SymbolEntry(11L, "beta", SymbolAction.InsertText("b"))
+            )
+        )
+        val target = SymbolGroup("target", "Target", emptyList())
+        val repository = InMemoryRepository(listOf(source, target))
+        val state = SymbolDrawerManagerState(
+            com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupManager(repository)
+        )
+
+        val copies = state.copySymbols("source", setOf(10L, 11L), "target")
+        assertEquals(2, copies?.size)
+        assertEquals(listOf(10L, 11L), state.groups.first().symbols.map { it.id })
+        assertEquals(2, state.groups.last().symbols.size)
+        assertTrue(state.groups.last().symbols.none { it.id == 10L || it.id == 11L })
+
+        assertTrue(state.moveSymbolsToGroup("source", setOf(10L), "target"))
+        assertEquals(listOf(11L), state.groups.first().symbols.map { it.id })
+        assertEquals(3, state.groups.last().symbols.size)
+
+        val targetIds = state.groups.last().symbols.map { it.id }
+        assertTrue(state.reorderSymbols("target", targetIds.reversed()))
+        assertEquals(targetIds.reversed(), state.groups.last().symbols.map { it.id })
+
+        assertEquals(2, state.removeSymbols("target", copies!!.map { it.id }.toSet()))
+        assertEquals(1, state.groups.last().symbols.size)
+        assertEquals(state.groups, repository.groups)
+    }
+
+    @Test
     fun invalidImportKeepsLastGoodSnapshotAndReportsError() {
         val repository = InMemoryRepository(
             listOf(SymbolGroup("existing", "Existing", emptyList()))
