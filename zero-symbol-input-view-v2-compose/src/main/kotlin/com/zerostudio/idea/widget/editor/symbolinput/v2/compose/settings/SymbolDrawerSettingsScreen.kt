@@ -132,6 +132,112 @@ fun SymbolDrawerSettingsScreen(
                     )
                 }
                 item {
+                    SettingSlider(
+                        title = stringResource(R.string.compose_setting_horizontal_spacing),
+                        value = settings.cellHorizontalSpacingDp.toFloat(),
+                        range = -24f..48f,
+                        valueLabel = "${settings.cellHorizontalSpacingDp} dp",
+                        onValueChange = { onSettingsChange(settings.copy(cellHorizontalSpacingDp = it.toInt().coerceIn(-24, 48))) }
+                    )
+                }
+                item {
+                    SettingSlider(
+                        title = stringResource(R.string.compose_setting_vertical_spacing),
+                        value = settings.cellVerticalSpacingDp.toFloat(),
+                        range = -24f..48f,
+                        valueLabel = "${settings.cellVerticalSpacingDp} dp",
+                        onValueChange = { onSettingsChange(settings.copy(cellVerticalSpacingDp = it.toInt().coerceIn(-24, 48))) }
+                    )
+                }
+                item {
+                    SettingSlider(
+                        title = stringResource(R.string.compose_setting_indicator_height),
+                        value = settings.indicatorHeightDp.toFloat(),
+                        range = 0f..96f,
+                        valueLabel = "${settings.indicatorHeightDp} dp",
+                        onValueChange = { onSettingsChange(settings.copy(indicatorHeightDp = it.toInt().coerceIn(0, 96))) }
+                    )
+                }
+                item {
+                    SettingSlider(
+                        title = stringResource(R.string.compose_setting_label_size),
+                        value = settings.symbolLabelTextSizeSp.toFloat(),
+                        range = 8f..32f,
+                        valueLabel = "${settings.symbolLabelTextSizeSp} sp",
+                        onValueChange = { onSettingsChange(settings.copy(symbolLabelTextSizeSp = it.toInt().coerceIn(8, 32))) }
+                    )
+                }
+                item {
+                    SettingSlider(
+                        title = stringResource(R.string.compose_setting_animation_duration),
+                        value = settings.animationDurationMs.toFloat(),
+                        range = 0f..1200f,
+                        valueLabel = "${settings.animationDurationMs} ms",
+                        onValueChange = { onSettingsChange(settings.copy(animationDurationMs = it.toInt().coerceIn(0, 1200))) }
+                    )
+                }
+                item {
+                    SettingSlider(
+                        title = stringResource(R.string.compose_setting_fling_velocity),
+                        value = settings.flingVelocityDpPerSecond.toFloat(),
+                        range = 100f..6000f,
+                        valueLabel = "${settings.flingVelocityDpPerSecond}",
+                        onValueChange = { onSettingsChange(settings.copy(flingVelocityDpPerSecond = it.toInt().coerceIn(100, 6000))) }
+                    )
+                }
+                item {
+                    SettingSlider(
+                        title = stringResource(R.string.compose_setting_long_press_timeout),
+                        value = settings.longPressTimeoutMs.toFloat(),
+                        range = 250f..1000f,
+                        valueLabel = "${settings.longPressTimeoutMs} ms",
+                        onValueChange = { onSettingsChange(settings.copy(longPressTimeoutMs = it.toInt().coerceIn(250, 1000))) }
+                    )
+                }
+                item {
+                    SettingSlider(
+                        title = stringResource(R.string.compose_setting_page_cache),
+                        value = settings.pageCacheLimit.toFloat(),
+                        range = 1f..9f,
+                        valueLabel = settings.pageCacheLimit.toString(),
+                        onValueChange = { onSettingsChange(settings.copy(pageCacheLimit = it.toInt().coerceIn(1, 9))) }
+                    )
+                }
+                item {
+                    SettingSlider(
+                        title = stringResource(R.string.compose_setting_touch_target),
+                        value = settings.minimumTouchTargetDp.toFloat(),
+                        range = 20f..112f,
+                        valueLabel = "${settings.minimumTouchTargetDp} dp",
+                        onValueChange = { onSettingsChange(settings.copy(minimumTouchTargetDp = it.toInt().coerceIn(20, 112))) }
+                    )
+                }
+                item {
+                    SettingSwitch(stringResource(R.string.compose_setting_group_titles), settings.showGroupTitles) {
+                        onSettingsChange(settings.copy(showGroupTitles = it))
+                    }
+                }
+                item {
+                    SettingSwitch(stringResource(R.string.compose_setting_action_hints), settings.showActionHints) {
+                        onSettingsChange(settings.copy(showActionHints = it))
+                    }
+                }
+                item {
+                    SettingSwitch(stringResource(R.string.compose_setting_auto_collapse), settings.autoCollapseAfterAction) {
+                        onSettingsChange(settings.copy(autoCollapseAfterAction = it))
+                    }
+                }
+                item {
+                    SettingSwitch(stringResource(R.string.compose_setting_prefetch_groups), settings.prefetchAdjacentGroups) {
+                        onSettingsChange(settings.copy(prefetchAdjacentGroups = it))
+                    }
+                }
+                item {
+                    SettingSwitch(stringResource(R.string.compose_setting_search_payload), settings.searchIncludesActionPayload) {
+                        onSettingsChange(settings.copy(searchIncludesActionPayload = it))
+                    }
+                }
+                item {
                     SettingSwitch(stringResource(R.string.compose_setting_remember_expansion), settings.rememberExpandedState) {
                         onSettingsChange(settings.copy(rememberExpandedState = it))
                     }
