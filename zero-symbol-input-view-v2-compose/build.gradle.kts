@@ -138,9 +138,10 @@ val auditComposeMigration by tasks.registering {
     description = "Reports remaining Android View UI source references and View-only dependencies."
 
     val sourceRoots = listOf(
-        layout.projectDirectory.dir("src/main/kotlin").asFile,
-        layout.projectDirectory.dir("src/main/java").asFile
-    )
+        "src/main/kotlin", "src/main/java",
+        "src/test/kotlin", "src/test/java",
+        "src/androidTest/kotlin", "src/androidTest/java"
+    ).map { layout.projectDirectory.dir(it).asFile }
     val forbiddenImports = listOf(
         Regex("""^\s*import\s+android\.view\."""),
         Regex("""^\s*import\s+android\.widget\."""),
@@ -194,15 +195,21 @@ val verifyComposeArtifactBoundary by tasks.registering {
     dependsOn(auditComposeMigration)
     doLast {
         val sourceRoots = listOf(
-            layout.projectDirectory.dir("src/main/kotlin").asFile,
-            layout.projectDirectory.dir("src/main/java").asFile
-        )
+            "src/main/kotlin", "src/main/java",
+        "src/test/kotlin", "src/test/java",
+        "src/androidTest/kotlin", "src/androidTest/java"
+        ).map { layout.projectDirectory.dir(it).asFile }
         val files = sourceRoots.filter { it.exists() }
             .flatMap { root -> root.walkTopDown().filter { it.isFile && it.extension in setOf("kt", "java") }.toList() }
-        val forbidden = Regex("""^\s*import\s+(android\.view\.|android\.widget\.|android\.graphics\.|androidx\.recyclerview\.|androidx\.viewpager2\.|com\.google\.android\.material\.)""")
+        val forbiddenImports = Regex("""^\\s*import\\s+(android\\.view\\.|android\\.widget\\.|android\\.graphics\\.|androidx\\.recyclerview\\.|androidx\\.viewpager2\\.|com\\.google\\.android\\.material\\.)""")
+        val forbiddenReferences = Regex("""\\b(AndroidView(?:Binding)?|SymbolDrawerView|ViewGroup|MotionEvent|RecyclerView|ViewPager2)\\b""")
         val violations = files.flatMap { file ->
             file.readLines().mapIndexedNotNull { index, line ->
-                if (forbidden.containsMatchIn(line)) "${file.relativeTo(projectDir)}:${index + 1}: $line" else null
+                val trimmed = line.trimStart()
+                val comment = trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed.startsWith("/*")
+                if (!comment && (forbiddenImports.containsMatchIn(line) || forbiddenReferences.containsMatchIn(line))) {
+                    "${file.relativeTo(projectDir)}:${index + 1}: $line"
+                } else null
             }
         }
         val dependencies = listOf(
