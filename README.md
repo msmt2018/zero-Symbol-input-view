@@ -122,7 +122,7 @@ dependencies {
 }
 ```
 
-Replace `4.1-v2` with a Git tag whose JitPack build and artifacts have been verified (for example, `vX.Y.Z`). The version is the tag name, including its leading `v`; do not use an unpublished branch name as a release version. The public artifact requires no Maven credentials or GitHub token. The exact coordinates and full remote/local integration instructions are documented in the [V2 module guide](zero-symbol-input-view-v2/README.md#2-jitpack-remote-maven-import).
+Replace `4.1-v2` with a Git tag whose JitPack build and artifacts have been verified (for example, `vX.Y.Z`). The version is the tag name, including its leading `v`; do not use an unpublished branch name as a release version. The coordinate above is the **JitPack repository-level aggregate artifact** for this multi-module repository. JitPack's root coordinate (`com.github.User:Repo:Tag`) represents the aggregate build; module-only artifacts use the separate `com.github.User.Repo:Module:Tag` form. See the [JitPack multi-module publishing guide](https://docs.jitpack.io/building/#multi-module-projects). The public artifact requires no Maven credentials or GitHub token. The exact coordinates and full remote/local integration instructions are documented in the [V2 module guide](zero-symbol-input-view-v2/README.md#2-jitpack-remote-maven-import).
 
 ## Extension API
 
