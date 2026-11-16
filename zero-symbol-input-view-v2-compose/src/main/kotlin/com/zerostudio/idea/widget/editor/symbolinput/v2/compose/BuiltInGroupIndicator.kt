@@ -6,6 +6,7 @@
 package com.zerostudio.idea.widget.editor.symbolinput.v2.compose
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.*
