@@ -61,12 +61,12 @@ class DrawerNestedScrollCoordinatorTest {
     fun pendingMutationsCoalesceIntoSingleDrainLease() {
         val coordinator = DrawerNestedScrollCoordinator(0.2f, 100f)
 
-        assertEquals(true, coordinator.enqueueMutation(0.3f))
-        assertEquals(false, coordinator.enqueueMutation(0.2f))
-        assertEquals(false, coordinator.enqueueMutation(-0.1f))
+        assertEquals(1L, coordinator.enqueueMutation(0.3f))
+        assertEquals(null, coordinator.enqueueMutation(0.2f))
+        assertEquals(null, coordinator.enqueueMutation(-0.1f))
         assertEquals(true, coordinator.hasPendingMutation())
-        assertEquals(0.4f, coordinator.takePendingMutation()!!, 0.0001f)
-        assertEquals(null, coordinator.takePendingMutation())
+        assertEquals(0.4f, coordinator.takePendingMutation(1L)!!, 0.0001f)
+        assertEquals(null, coordinator.takePendingMutation(1L))
         assertEquals(false, coordinator.hasPendingMutation())
     }
 
@@ -74,13 +74,41 @@ class DrawerNestedScrollCoordinatorTest {
     fun enqueueAfterDrainLeaseReleaseStartsANewWorker() {
         val coordinator = DrawerNestedScrollCoordinator(0f, 100f)
 
-        assertEquals(true, coordinator.enqueueMutation(0.1f))
-        assertEquals(0.1f, coordinator.takePendingMutation()!!, 0.0001f)
-        assertEquals(null, coordinator.takePendingMutation())
+        assertEquals(1L, coordinator.enqueueMutation(0.1f))
+        assertEquals(0.1f, coordinator.takePendingMutation(1L)!!, 0.0001f)
+        assertEquals(null, coordinator.takePendingMutation(1L))
 
-        assertEquals(true, coordinator.enqueueMutation(0.2f))
-        assertEquals(0.2f, coordinator.takePendingMutation()!!, 0.0001f)
-        assertEquals(null, coordinator.takePendingMutation())
+        assertEquals(2L, coordinator.enqueueMutation(0.2f))
+        assertEquals(0.2f, coordinator.takePendingMutation(2L)!!, 0.0001f)
+        assertEquals(null, coordinator.takePendingMutation(2L))
     }
 
 }
+
+    @Test
+    fun cancelledWorkerCanReleaseLeaseAndPendingWorkCanRestart() {
+        val coordinator = DrawerNestedScrollCoordinator(0f, 100f)
+
+        val cancelledLease = coordinator.enqueueMutation(0.25f)!!
+        assertEquals(true, coordinator.hasPendingMutation())
+        assertEquals(true, coordinator.releaseMutationDrain(cancelledLease))
+
+        val replacementLease = coordinator.enqueueMutation(0.1f)!!
+        assertEquals(0.35f, coordinator.takePendingMutation(replacementLease)!!, 0.0001f)
+        assertEquals(null, coordinator.takePendingMutation(replacementLease))
+    }
+
+    @Test
+    fun staleWorkerCannotReleaseNewerDrainLease() {
+        val coordinator = DrawerNestedScrollCoordinator(0f, 100f)
+
+        val firstLease = coordinator.enqueueMutation(0.1f)!!
+        assertEquals(0.1f, coordinator.takePendingMutation(firstLease)!!, 0.0001f)
+        assertEquals(null, coordinator.takePendingMutation(firstLease))
+
+        val secondLease = coordinator.enqueueMutation(0.2f)!!
+        assertEquals(false, coordinator.releaseMutationDrain(firstLease))
+        assertEquals(true, coordinator.hasPendingMutation())
+        assertEquals(0.2f, coordinator.takePendingMutation(secondLease)!!, 0.0001f)
+        assertEquals(null, coordinator.takePendingMutation(secondLease))
+    }

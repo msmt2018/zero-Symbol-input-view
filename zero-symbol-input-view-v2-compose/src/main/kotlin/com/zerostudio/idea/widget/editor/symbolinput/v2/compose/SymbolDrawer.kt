@@ -297,15 +297,21 @@ fun SymbolDrawer(
             // One worker mirrors projected deltas into state; pointer events never spawn an unbounded job queue.
             val mutationDrainJob = remember(nestedScrollCoordinator) { arrayOfNulls<Job>(1) }
             fun enqueueDrawerMutation(deltaFraction: Float) {
-                if (nestedScrollCoordinator.enqueueMutation(deltaFraction)) {
-                    mutationDrainJob[0] = scope.launch {
+                val leaseId = nestedScrollCoordinator.enqueueMutation(deltaFraction) ?: return
+                mutationDrainJob[0] = scope.launch {
+                    try {
                         while (true) {
-                            val nextDelta = nestedScrollCoordinator.takePendingMutation() ?: break
+                            val nextDelta = nestedScrollCoordinator.takePendingMutation(leaseId) ?: break
                             drawerMutationMutex.withLock {
                                 if (detentState != null) detentState.dragBy(nextDelta)
                                 else state.dragBy(nextDelta)
                             }
                         }
+                    } finally {
+                        // Cancellation/failure must not strand the coordinator's
+                        // lease. The generation check prevents an old worker from
+                        // releasing a lease acquired by a newer worker.
+                        nestedScrollCoordinator.releaseMutationDrain(leaseId)
                     }
                 }
             }

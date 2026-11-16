@@ -24,7 +24,8 @@ internal class DrawerNestedScrollCoordinator(
     private var projectedFraction = initialFraction.requireFraction()
     private var rangePx = rangePx.requireRange()
     private var pendingMutationDelta = 0f
-    private var mutationDrainScheduled = false
+    private var nextMutationDrainId = 0L
+    private var activeMutationDrainId: Long? = null
 
     @Synchronized
     fun consumePreScroll(availableY: Float): Consumption {
@@ -64,26 +65,43 @@ internal class DrawerNestedScrollCoordinator(
      * into the Animatable-backed state.
      */
     @Synchronized
-    fun enqueueMutation(deltaFraction: Float): Boolean {
-        if (!deltaFraction.isFinite() || deltaFraction == 0f) return false
+    fun enqueueMutation(deltaFraction: Float): Long? {
+        if (!deltaFraction.isFinite() || deltaFraction == 0f) return null
         pendingMutationDelta += deltaFraction
-        if (mutationDrainScheduled) return false
-        mutationDrainScheduled = true
-        return true
+        activeMutationDrainId?.let { return null }
+        val leaseId = ++nextMutationDrainId
+        activeMutationDrainId = leaseId
+        return leaseId
     }
 
-    /** Returns the coalesced delta, or null and releases the drain lease. */
+    /**
+     * Returns the coalesced delta for [leaseId]. A stale worker cannot drain a
+     * newer worker's queue. Returning null atomically releases an empty lease.
+     */
     @Synchronized
-    fun takePendingMutation(): Float? {
+    fun takePendingMutation(leaseId: Long): Float? {
+        if (activeMutationDrainId != leaseId) return null
         if (pendingMutationDelta == 0f) {
-            mutationDrainScheduled = false
+            activeMutationDrainId = null
             return null
         }
         return pendingMutationDelta.also { pendingMutationDelta = 0f }
     }
 
+    /**
+     * Releases a worker lease after cancellation or failure. The ID check is
+     * essential: a late completion from an old worker must not unlock a newer
+     * worker that has already acquired the drain.
+     */
     @Synchronized
-    fun hasPendingMutation(): Boolean = pendingMutationDelta != 0f || mutationDrainScheduled
+    fun releaseMutationDrain(leaseId: Long): Boolean {
+        if (activeMutationDrainId != leaseId) return false
+        activeMutationDrainId = null
+        return true
+    }
+
+    @Synchronized
+    fun hasPendingMutation(): Boolean = pendingMutationDelta != 0f || activeMutationDrainId != null
 
     /** Update pixel geometry without changing the normalized expansion position. */
     @Synchronized
