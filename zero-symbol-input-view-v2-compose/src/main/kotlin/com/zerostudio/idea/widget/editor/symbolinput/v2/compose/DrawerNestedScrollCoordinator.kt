@@ -43,6 +43,18 @@ internal class DrawerNestedScrollCoordinator(
     @Synchronized
     fun projectedFraction(): Float = projectedFraction
 
+    /**
+     * Projects a handle drag immediately. Positive pointer movement is
+     * downward and therefore collapses the drawer.
+     */
+    @Synchronized
+    fun consumeDragDelta(deltaY: Float): Float {
+        if (!deltaY.isFinite() || rangePx <= 0f) return 0f
+        val previous = projectedFraction
+        projectedFraction = (previous - deltaY / rangePx).coerceIn(0f, 1f)
+        return projectedFraction - previous
+    }
+
     /** Update pixel geometry without changing the normalized expansion position. */
     @Synchronized
     fun updateRange(newRangePx: Float) {

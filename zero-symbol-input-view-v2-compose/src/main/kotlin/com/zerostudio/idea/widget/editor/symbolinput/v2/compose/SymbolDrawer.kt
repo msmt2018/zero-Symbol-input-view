@@ -291,26 +291,25 @@ fun SymbolDrawer(
             val gridHeight = (totalHeight - effectiveHandleHeight - visibleIndicatorHeight).coerceAtLeast(0.dp)
             val rangePx = with(density) { dragRange.toPx() }
             val latestExpansionFraction by rememberUpdatedState(expansionFraction)
-            val nestedScrollConnection = remember(detentState, state, rangePx, settings) {
+            val nestedScrollCoordinator = remember(detentState, state, rangePx) {
+                DrawerNestedScrollCoordinator(expansionFraction, rangePx)
+            }
+            val nestedScrollConnection = remember(detentState, state, rangePx, settings, nestedScrollCoordinator) {
                 object : NestedScrollConnection {
                     override fun onPreScroll(
                         available: Offset,
                         source: NestedScrollSource
                     ): Offset {
-                        val consumedY = drawerNestedPreScrollConsumption(
-                            availableY = available.y,
-                            expansionFraction = latestExpansionFraction,
-                            rangePx = rangePx
-                        )
-                        if (consumedY != 0f && rangePx > 0f) {
+                        val consumption = nestedScrollCoordinator.consumePreScroll(available.y)
+                        if (consumption.deltaFraction != 0f) {
                             scope.launch {
                                 drawerMutationMutex.withLock {
-                                    if (detentState != null) detentState.dragBy(-consumedY / rangePx)
-                                    else state.dragBy(-consumedY / rangePx)
+                                    if (detentState != null) detentState.dragBy(consumption.deltaFraction)
+                                    else state.dragBy(consumption.deltaFraction)
                                 }
                             }
                         }
-                        return Offset(0f, consumedY)
+                        return Offset(0f, consumption.consumedY)
                     }
 
                     override fun onPostScroll(
@@ -318,27 +317,23 @@ fun SymbolDrawer(
                         available: Offset,
                         source: NestedScrollSource
                     ): Offset {
-                        val consumedY = drawerNestedPostScrollConsumption(
-                            availableY = available.y,
-                            expansionFraction = latestExpansionFraction,
-                            rangePx = rangePx
-                        )
-                        if (consumedY != 0f && rangePx > 0f) {
+                        val consumption = nestedScrollCoordinator.consumePostScroll(available.y)
+                        if (consumption.deltaFraction != 0f) {
                             scope.launch {
                                 drawerMutationMutex.withLock {
-                                    if (detentState != null) detentState.dragBy(-consumedY / rangePx)
-                                    else state.dragBy(-consumedY / rangePx)
+                                    if (detentState != null) detentState.dragBy(consumption.deltaFraction)
+                                    else state.dragBy(consumption.deltaFraction)
                                 }
                             }
                         }
-                        return Offset(0f, consumedY)
+                        return Offset(0f, consumption.consumedY)
                     }
 
                     override suspend fun onPostFling(
                         consumed: Velocity,
                         available: Velocity
                     ): Velocity {
-                        val fraction = latestExpansionFraction.coerceIn(0f, 1f)
+                        val fraction = nestedScrollCoordinator.projectedFraction()
                         val canSettle = (available.y < 0f && fraction < 1f) ||
                             (available.y > 0f && fraction > 0f)
                         if (!canSettle || rangePx <= 0f) return Velocity.Zero
@@ -353,12 +348,14 @@ fun SymbolDrawer(
                                     velocityThreshold = velocityThreshold,
                                     animationDurationMillis = duration
                                 )
+                                nestedScrollCoordinator.reconcile(detentState.expansionFraction)
                             } else {
                                 state.settle(
                                     velocityFraction = available.y / rangePx,
                                     animationDurationMillis = duration,
                                     velocityThreshold = velocityThreshold
                                 )
+                                nestedScrollCoordinator.reconcile(state.expansionFraction)
                             }
                         }
                         return Velocity(0f, available.y)
@@ -379,11 +376,13 @@ fun SymbolDrawer(
                             .draggable(
                                 orientation = Orientation.Vertical,
                                 state = rememberDraggableState { delta ->
-                                    val range = with(density) { dragRange.toPx().coerceAtLeast(1f) }
-                                    scope.launch {
-                                        drawerMutationMutex.withLock {
-                                            if (detentState != null) detentState.dragBy(-delta / range)
-                                            else state.dragBy(-delta / range)
+                                    val deltaFraction = nestedScrollCoordinator.consumeDragDelta(delta)
+                                    if (deltaFraction != 0f) {
+                                        scope.launch {
+                                            drawerMutationMutex.withLock {
+                                                if (detentState != null) detentState.dragBy(deltaFraction)
+                                                else state.dragBy(deltaFraction)
+                                            }
                                         }
                                     }
                                 },
@@ -400,12 +399,14 @@ fun SymbolDrawer(
                                                     velocityThreshold = velocityThreshold,
                                                     animationDurationMillis = animationDuration
                                                 )
+                                                nestedScrollCoordinator.reconcile(detentState.expansionFraction)
                                             } else {
                                                 state.settle(
                                                     velocityFraction = velocity / range,
                                                     animationDurationMillis = animationDuration,
                                                     velocityThreshold = velocityThreshold
                                                 )
+                                                nestedScrollCoordinator.reconcile(state.expansionFraction)
                                             }
                                         }
                                     }
