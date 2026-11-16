@@ -16,6 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import java.util.IdentityHashMap
+import java.util.concurrent.atomic.AtomicBoolean
 import androidx.compose.material3.ColorScheme
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
@@ -138,9 +139,12 @@ class ComposeSymbolDrawerExtensionRegistry {
     // Mutations may race after releasing `lock`; without ordered delivery, a slower
     // older notification can otherwise arrive after a newer one and roll UI state back.
     private val notificationLock = Any()
+    private class ObserverEntry(val callback: (Long) -> Unit) {
+        val active = AtomicBoolean(true)
+    }
     private data class ObserverNotification(
         val revision: Long,
-        val listeners: List<(Long) -> Unit>
+        val listeners: List<ObserverEntry>
     )
     private val pendingNotifications = java.util.ArrayDeque<ObserverNotification>()
     private var dispatchingNotifications = false
@@ -152,7 +156,7 @@ class ComposeSymbolDrawerExtensionRegistry {
     private val lifecycle = LinkedHashMap<String, ComposeSymbolDrawerLifecycleExtension>()
     private val settingsTabs = LinkedHashMap<String, ComposeSymbolDrawerSettingsTabExtension>()
     private val settingsItems = LinkedHashMap<String, ComposeSymbolDrawerSettingExtension>()
-    private val observers = LinkedHashSet<(Long) -> Unit>()
+    private val observers = LinkedHashSet<ObserverEntry>()
     // Per-registry-map registration tokens make replacement handles safe even
     // when the same extension instance is registered more than once.
     private val registrationTokens = IdentityHashMap<Any, MutableMap<String, Any>>()
@@ -219,14 +223,15 @@ class ComposeSymbolDrawerExtensionRegistry {
         emitCurrent: Boolean = false,
         listener: (Long) -> Unit
     ): AutoCloseable {
+        val entry = ObserverEntry(listener)
         val shouldDispatch = synchronized(notificationLock) {
             val currentRevision = synchronized(lock) {
-                observers += listener
+                observers += entry
                 revision
             }
             if (emitCurrent) {
                 pendingNotifications.addLast(
-                    ObserverNotification(currentRevision, listOf(listener))
+                    ObserverNotification(currentRevision, listOf(entry))
                 )
             }
             if (emitCurrent && !dispatchingNotifications) {
@@ -235,7 +240,12 @@ class ComposeSymbolDrawerExtensionRegistry {
             } else false
         }
         if (shouldDispatch) drainNotifications()
-        return AutoCloseable { synchronized(lock) { observers -= listener } }
+        return AutoCloseable {
+            // Invalidate queued snapshots as well as removing the observer from
+            // future snapshots. Closing must prevent callbacks not yet started.
+            entry.active.set(false)
+            synchronized(lock) { observers -= entry }
+        }
     }
 
     private fun notifyObservers() {
@@ -265,8 +275,10 @@ class ComposeSymbolDrawerExtensionRegistry {
                     null
                 } else pendingNotifications.removeFirst()
             } ?: break
-            event.listeners.forEach { listener ->
-                runCatching { listener(event.revision) }
+            event.listeners.forEach { observer ->
+                if (observer.active.get()) {
+                    runCatching { observer.callback(event.revision) }
+                }
             }
         }
     }
