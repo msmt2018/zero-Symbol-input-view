@@ -45,9 +45,10 @@
 
 package com.zerostudio.idea.widget.editor.symbolinput.v2.data
 
+import android.content.Context
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 
-/** UI- and platform-independent symbol group persistence contract. */
+/** Data boundary used by the drawer and the V2 manager UI. */
 interface SymbolGroupRepository {
     fun loadGroups(): List<SymbolGroup>
     fun saveGroups(groups: List<SymbolGroup>)
@@ -55,7 +56,77 @@ interface SymbolGroupRepository {
     fun markLegacyMigrationComplete() = Unit
 }
 
-/** Optional live-change observation for repositories shared by multiple consumers. */
+/**
+ * Optional live-change observation for repositories shared by a manager and a
+ * visible drawer. Implementations must notify after a successful durable write.
+ */
 interface ObservableSymbolGroupRepository : SymbolGroupRepository {
     fun observeGroups(listener: () -> Unit): AutoCloseable
+}
+
+/**
+ * V2-only SharedPreferences store. The explicit JSON codec gives actions a
+ * stable discriminator-based schema and still reads the previous V2 draft schema.
+ */
+class SharedPreferencesSymbolGroupRepository(
+    context: Context,
+    preferencesName: String = "symbol_drawer_v2"
+) : ObservableSymbolGroupRepository {
+    private val preferences = context.applicationContext
+        .getSharedPreferences(preferencesName, Context.MODE_PRIVATE)
+
+    override fun observeGroups(listener: () -> Unit): AutoCloseable {
+        val observer = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_GROUPS) runCatching(listener)
+        }
+        preferences.registerOnSharedPreferenceChangeListener(observer)
+        return AutoCloseable {
+            preferences.unregisterOnSharedPreferenceChangeListener(observer)
+        }
+    }
+
+    override fun loadGroups(): List<SymbolGroup> {
+        val json = preferences.getString(KEY_GROUPS, null) ?: return emptyList()
+        return runCatching {
+            val groups = SymbolGroupStorageCodec.decode(json)
+            // Canonicalize older V1/early-V2 storage on read. This persists the
+            // repaired global IDs and current versioned envelope atomically.
+            val canonical = SymbolGroupStorageCodec.encode(groups)
+            if (canonical != json) {
+                preferences.edit().putString(KEY_GROUPS, canonical).commit()
+            }
+            groups
+        }.getOrElse { error ->
+                // Preserve the only original copy before defaults or a later save
+                // can replace malformed data.
+                if (!preferences.contains(KEY_CORRUPT_GROUPS_BACKUP)) {
+                    preferences.edit()
+                        .putString(KEY_CORRUPT_GROUPS_BACKUP, json)
+                        .putString(KEY_CORRUPT_GROUPS_REASON, error.message?.take(512) ?: "Invalid stored data")
+                        .commit()
+                }
+                emptyList()
+            }
+    }
+
+    override fun isLegacyMigrationComplete(): Boolean =
+        preferences.getBoolean(KEY_LEGACY_MIGRATION_COMPLETE, false)
+
+    override fun markLegacyMigrationComplete() {
+        preferences.edit().putBoolean(KEY_LEGACY_MIGRATION_COMPLETE, true).apply()
+    }
+
+    override fun saveGroups(groups: List<SymbolGroup>) {
+        val encoded = SymbolGroupStorageCodec.encode(groups)
+        check(preferences.edit().putString(KEY_GROUPS, encoded).commit()) {
+            "Unable to persist symbol groups"
+        }
+    }
+
+    private companion object {
+        const val KEY_GROUPS = "groups_json_v2"
+        const val KEY_LEGACY_MIGRATION_COMPLETE = "legacy_migration_complete"
+        const val KEY_CORRUPT_GROUPS_BACKUP = "groups_corrupt_backup_v2"
+        const val KEY_CORRUPT_GROUPS_REASON = "groups_corrupt_reason_v2"
+    }
 }
