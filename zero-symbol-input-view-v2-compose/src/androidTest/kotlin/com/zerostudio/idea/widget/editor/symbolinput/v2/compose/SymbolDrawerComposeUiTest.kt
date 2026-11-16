@@ -53,4 +53,30 @@ class SymbolDrawerComposeUiTest {
         }
         composeRule.onNodeWithText("lambda").assertIsDisplayed()
     }
+    @Test
+    fun managerRendersSymbolsAndDispatchesEditCommands() {
+        var editedSymbolId: Long? = null
+        val symbol = SymbolEntry(
+            id = 42L,
+            label = "lambda",
+            shortAction = SymbolAction.InsertText("->")
+        )
+        composeRule.setContent {
+            MaterialTheme {
+                com.zerostudio.idea.widget.editor.symbolinput.v2.compose.manager.SymbolDrawerManagerScreen(
+                    groups = listOf(SymbolGroup("common", "Common", listOf(symbol))),
+                    onSelectGroup = {},
+                    onAddGroup = {},
+                    onRenameGroup = {},
+                    onDeleteGroup = {},
+                    selectedGroupId = "common",
+                    onEditSymbol = { _, selected -> editedSymbolId = selected.id }
+                )
+            }
+        }
+        composeRule.onNodeWithText("lambda").assertIsDisplayed()
+        composeRule.onNodeWithText("Edit").performClick()
+        composeRule.runOnIdle { assert(editedSymbolId == 42L) }
+    }
+
 }
