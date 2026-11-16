@@ -63,6 +63,8 @@ dependencyResolutionManagement {
 }
 ~~~
 
+该依赖使用仓库级聚合坐标 `com.github.msmt2018:zero-Symbol-input-view:4.1-v2`，适用于当前 `4.1-v2` 标签对应的仓库聚合发布。不要将它误写成旧文档中的 `v0.25.0`，也不要把 V2 子模块的 Maven 坐标与根项目聚合坐标混为一谈。JitPack 对多模块项目的根 artifact 与单独模块 artifact 使用不同坐标规则，见 [JitPack multi-module projects](https://docs.jitpack.io/building/#multi-module-projects)。
+
 Groovy DSL：
 
 ~~~groovy
