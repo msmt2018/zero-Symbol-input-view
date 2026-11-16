@@ -257,7 +257,11 @@ fun SymbolDrawer(
                                 customIndicator.Content(
                                     groups = contentGroups,
                                     selectedIndex = pagerState.currentPage,
-                                    onSelect = { index -> scope.launch { pagerState.animateScrollToPage(index) } },
+                                    onSelect = { index ->
+                                        if (index in contentGroups.indices) {
+                                            scope.launch { pagerState.animateScrollToPage(index) }
+                                        }
+                                    },
                                     modifier = Modifier.fillMaxWidth()
                                 )
                             } else {
