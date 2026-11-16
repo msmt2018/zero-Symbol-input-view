@@ -39,11 +39,11 @@ class SymbolDrawerDetentStateTest {
     @Test
     fun lowVelocityChoosesNearestAnchorAndLowerWinsTie() = runBlocking {
         val state = SymbolDrawerDetentState()
-        state.dragBy(0.24f)
+        state.dragBy(0.25f)
         state.settle(velocityFraction = 0f)
         assertEquals("collapsed", state.targetDetentId)
 
-        state.dragBy(0.01f)
+        state.dragBy(0.26f)
         state.settle(velocityFraction = 0f)
         assertEquals("half-expanded", state.targetDetentId)
     }
@@ -59,17 +59,20 @@ class SymbolDrawerDetentStateTest {
 
     @Test
     fun dynamicAnchorReplacementRetainsNearestStablePosition() {
-        val state = SymbolDrawerDetentState()
+        val state = SymbolDrawerDetentState(
+            initialDetentId = SymbolDrawerDetent.HalfExpanded.id
+        )
         state.selectGroup("symbols")
         state.updateDetents(
             listOf(
                 SymbolDrawerDetent.Collapsed,
-                SymbolDrawerDetent("peek", 0.3f),
+                SymbolDrawerDetent("peek", 0.4f),
                 SymbolDrawerDetent.Expanded
             )
         )
-        assertEquals("collapsed", state.targetDetentId)
+        assertEquals("peek", state.targetDetentId)
         assertEquals("symbols", state.selectedGroupId)
+        assertEquals("peek", state.currentDetentId)
     }
 
     @Test
