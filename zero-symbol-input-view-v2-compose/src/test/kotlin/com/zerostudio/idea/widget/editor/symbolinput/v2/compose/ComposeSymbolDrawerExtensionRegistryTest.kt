@@ -57,11 +57,13 @@ class ComposeSymbolDrawerExtensionRegistryTest {
         val revisions = Collections.synchronizedList(mutableListOf<Long>())
 
         registry.observe { revision ->
-            revisions += revision
             if (revision == 1L) {
                 firstCallbackEntered.countDown()
                 check(releaseFirstCallback.await(5, TimeUnit.SECONDS))
             }
+            // Record completion order, not entry order: this exposes a newer
+            // callback overtaking a stalled older callback.
+            revisions += revision
         }
 
         val firstWriter = Thread {
