@@ -253,7 +253,7 @@ fun SymbolDrawer(
                     Box(
                         Modifier
                             .fillMaxWidth()
-                            .height(handleHeight)
+                            .height(effectiveHandleHeight)
                             .draggable(
                                 orientation = Orientation.Vertical,
                                 state = rememberDraggableState { delta ->
