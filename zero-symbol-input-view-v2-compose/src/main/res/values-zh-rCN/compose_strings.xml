@@ -27,4 +27,17 @@
     <string name="compose_add_symbol">添加符号</string>
     <string name="compose_symbol_id">ID：%1$d</string>
     <string name="compose_edit">编辑</string>
+    <string name="compose_new_group_title">新建分组</string>
+    <string name="compose_rename_group_title">重命名分组</string>
+    <string name="compose_group_name">分组名称</string>
+    <string name="compose_create">创建</string>
+    <string name="compose_save">保存</string>
+    <string name="compose_cancel">取消</string>
+    <string name="compose_operation_failed">操作失败</string>
+    <string name="compose_ok">确定</string>
+    <string name="compose_backup_file_name">zero-symbol-drawer-backup.json</string>
+    <string name="compose_import_failed">导入失败</string>
+    <string name="compose_read_backup_failed">无法读取备份文件</string>
+    <string name="compose_create_backup_failed">无法创建备份文件</string>
+    <string name="compose_write_backup_failed">无法写入备份文件</string>
 </resources>

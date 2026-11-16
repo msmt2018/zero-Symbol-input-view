@@ -67,6 +67,10 @@ class SymbolDrawerManagerState internal constructor(
     fun importJson(json: String): Boolean =
         command { manager.replaceAll(SymbolGroupBundleCodec.decode(json)) }
 
+    /** Commit an already-decoded and validated bundle, e.g. decoded off the UI thread. */
+    fun importGroups(imported: List<SymbolGroup>): Boolean =
+        command { manager.replaceAll(imported.toList()) }
+
     /** Exports the current committed snapshot using the canonical V2 bundle format. */
     fun exportJson(): String? {
         return runCatching { SymbolGroupBundleCodec.encode(groups) }

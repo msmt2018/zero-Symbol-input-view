@@ -27,4 +27,17 @@
     <string name="compose_add_symbol">Add symbol</string>
     <string name="compose_symbol_id">ID: %1$d</string>
     <string name="compose_edit">Edit</string>
+    <string name="compose_new_group_title">New group</string>
+    <string name="compose_rename_group_title">Rename group</string>
+    <string name="compose_group_name">Group name</string>
+    <string name="compose_create">Create</string>
+    <string name="compose_save">Save</string>
+    <string name="compose_cancel">Cancel</string>
+    <string name="compose_operation_failed">Operation failed</string>
+    <string name="compose_ok">OK</string>
+    <string name="compose_backup_file_name">zero-symbol-drawer-backup.json</string>
+    <string name="compose_import_failed">Import failed</string>
+    <string name="compose_read_backup_failed">Unable to read backup</string>
+    <string name="compose_create_backup_failed">Unable to create backup file</string>
+    <string name="compose_write_backup_failed">Unable to write backup</string>
 </resources>
