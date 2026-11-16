@@ -124,6 +124,43 @@ class ComposeSymbolDrawerExtensionRegistryTest {
     }
 
     @Test
+    fun closingObserverSuppressesAlreadyQueuedInitialRevision() {
+        val registry = ComposeSymbolDrawerExtensionRegistry()
+        val firstCallbackEntered = CountDownLatch(1)
+        val releaseFirstCallback = CountDownLatch(1)
+        val queuedCallbackCount = java.util.concurrent.atomic.AtomicInteger()
+
+        registry.observe(emitCurrent = false) { revision ->
+            if (revision == 1L) {
+                firstCallbackEntered.countDown()
+                check(releaseFirstCallback.await(5, TimeUnit.SECONDS))
+            }
+        }
+        val writer = Thread { registry.registerAction(action("test.initial")) }
+        writer.start()
+        assertTrue(firstCallbackEntered.await(5, TimeUnit.SECONDS))
+
+        val handleReady = CountDownLatch(1)
+        val handleRef = java.util.concurrent.atomic.AtomicReference<AutoCloseable>()
+        val observer = Thread {
+            handleRef.set(registry.observe(emitCurrent = true) {
+                queuedCallbackCount.incrementAndGet()
+            })
+            handleReady.countDown()
+        }
+        observer.start()
+        assertTrue(handleReady.await(5, TimeUnit.SECONDS))
+        handleRef.get().close()
+
+        releaseFirstCallback.countDown()
+        writer.join(5_000)
+        observer.join(5_000)
+        assertTrue(!writer.isAlive)
+        assertTrue(!observer.isAlive)
+        assertEquals(0, queuedCallbackCount.get())
+    }
+
+    @Test
     fun initialRevisionUsesSerializedQueueWhenObserverMutatesRegistry() {
         val registry = ComposeSymbolDrawerExtensionRegistry()
         registry.registerAction(action("test.existing"))
