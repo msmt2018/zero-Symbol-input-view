@@ -36,6 +36,7 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -51,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.zerostudio.idea.widget.editor.symbolinput.v2.R
 import androidx.compose.ui.res.stringResource
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
@@ -86,9 +88,51 @@ fun SymbolDrawer(
         pageCount = { groups.size.coerceAtLeast(1) }
     )
     val selectedGroup = groups.getOrNull(pagerState.currentPage)
-    LaunchedEffect(selectedGroup?.id) {
+    val lifecycleExtensions = registeredExtensions.lifecycle
+
+    DisposableEffect(lifecycleExtensions) {
+        lifecycleExtensions.forEach { extension -> runCatching { extension.onAttached() } }
+        onDispose {
+            lifecycleExtensions.asReversed().forEach { extension ->
+                runCatching { extension.onDetached() }
+            }
+        }
+    }
+
+    LaunchedEffect(settings, lifecycleExtensions) {
+        lifecycleExtensions.forEach { extension ->
+            runCatching { extension.onSettingsChanged(settings) }
+        }
+    }
+    LaunchedEffect(groups, lifecycleExtensions) {
+        lifecycleExtensions.forEach { extension ->
+            runCatching { extension.onGroupsChanged(groups) }
+        }
+    }
+    LaunchedEffect(selectedGroup?.id, pagerState.currentPage, lifecycleExtensions) {
         selectedGroup?.let { state.selectGroup(it.id) }
         onGroupChanged(pagerState.currentPage, selectedGroup)
+        lifecycleExtensions.forEach { extension ->
+            runCatching { extension.onGroupSelected(pagerState.currentPage, selectedGroup) }
+        }
+    }
+    LaunchedEffect(state.expansionFraction, lifecycleExtensions) {
+        lifecycleExtensions.forEach { extension ->
+            runCatching { extension.onExpansionChanged(state.expansionFraction) }
+        }
+    }
+
+    fun invokeSymbol(symbol: SymbolEntry, longPress: Boolean) {
+        val action = if (longPress) symbol.longAction ?: symbol.shortAction else symbol.shortAction
+        val handled = registeredExtensions.actions.any { extension ->
+            runCatching { extension.handler.onAction(action, symbol) }.getOrDefault(false)
+        }
+        if (!handled) {
+            if (longPress) onSymbolLongClick(symbol) else onSymbolClick(symbol)
+        }
+        lifecycleExtensions.forEach { extension ->
+            runCatching { extension.onSymbolInvoked(symbol, longPress) }
+        }
     }
     LaunchedEffect(groups.map { it.id }) {
         val retained = groups.indexOfFirst { it.id == state.selectedGroupId }
@@ -212,15 +256,15 @@ fun SymbolDrawer(
                                             symbol = symbol,
                                             selected = false,
                                             modifier = Modifier.fillMaxWidth().height(effectiveCellHeight),
-                                            onClick = { onSymbolClick(symbol) },
-                                            onLongClick = { onSymbolLongClick(symbol) }
+                                            onClick = { invokeSymbol(symbol, false) },
+                                            onLongClick = { invokeSymbol(symbol, true) }
                                         )
                                     } else {
                                         SymbolCell(
                                             symbol = symbol,
                                             settings = settings,
-                                            onClick = { onSymbolClick(symbol) },
-                                            onLongClick = { onSymbolLongClick(symbol) }
+                                            onClick = { invokeSymbol(symbol, false) },
+                                            onLongClick = { invokeSymbol(symbol, true) }
                                         )
                                     }
                                 }
