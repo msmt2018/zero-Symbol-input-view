@@ -56,7 +56,7 @@ class ComposeSymbolDrawerExtensionRegistryTest {
         val secondMutationVisible = CountDownLatch(1)
         val revisions = Collections.synchronizedList(mutableListOf<Long>())
 
-        registry.observe { revision ->
+        registry.observe(emitCurrent = false) { revision ->
             if (revision == 1L) {
                 firstCallbackEntered.countDown()
                 check(releaseFirstCallback.await(5, TimeUnit.SECONDS))
@@ -101,10 +101,10 @@ class ComposeSymbolDrawerExtensionRegistryTest {
         val registry = ComposeSymbolDrawerExtensionRegistry()
         val observedBySecondListener = mutableListOf<Long>()
 
-        registry.observe { revision ->
+        registry.observe(emitCurrent = false) { revision ->
             if (revision == 1L) registry.registerAction(action("test.reentrant"))
         }
-        registry.observe { revision -> observedBySecondListener += revision }
+        registry.observe(emitCurrent = false) { revision -> observedBySecondListener += revision }
 
         registry.registerAction(action("test.initial"))
 
