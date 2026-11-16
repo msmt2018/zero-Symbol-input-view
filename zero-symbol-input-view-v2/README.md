@@ -83,7 +83,7 @@ Kotlin DSL：
 
 ~~~kotlin
 dependencies {
-    implementation("com.github.msmt2018.zero-Symbol-input-view:zero-symbol-input-view-v2:v0.25.0")
+    implementation("com.github.msmt2018:zero-Symbol-input-view:4.1-v2")
 }
 ~~~
 
@@ -91,23 +91,23 @@ Groovy DSL：
 
 ~~~groovy
 dependencies {
-    implementation 'com.github.msmt2018.zero-Symbol-input-view:zero-symbol-input-view-v2:v0.25.0'
+    implementation 'com.github.msmt2018:zero-Symbol-input-view:4.1-v2'
 }
 ~~~
 
-将 v0.25.0 替换为仓库中已经发布且 JitPack 构建成功的 Git Tag。不要把未发布分支当作正式版本。
+将 4.1-v2 替换为仓库中已经发布且 JitPack 构建成功的 Git Tag。不要把未发布分支当作正式版本。
 
 发布坐标：
 
 | 项目 | 值 |
 |---|---|
 | Maven repository | https://jitpack.io |
-| Group | com.github.msmt2018.zero-Symbol-input-view |
+| Group | com.github.msmt2018 |
 | Artifact | zero-symbol-input-view-v2 |
-| Version | Git Tag，例如 v0.25.0 |
-| 完整坐标 | com.github.msmt2018.zero-Symbol-input-view:zero-symbol-input-view-v2:v0.25.0 |
+| Version | Git Tag，例如 4.1-v2 |
+| 完整坐标 | com.github.msmt2018:zero-Symbol-input-view:4.1-v2 |
 
-仓库维护者通过 GitHub Actions → Publish V2 library to JitPack 手动发布，输入不带 v 的版本号（例如 0.25.0）。工作流会创建 v0.25.0 tag、运行 V2 单元测试、构建 Release AAR / Sources JAR 并验证 Maven 发布。普通 Android CI 不会自动发布 Maven 版本。公开仓库的消费者不需要 Maven 账号、密码或 GitHub Token。
+仓库维护者通过 GitHub Actions → Publish V2 library to JitPack 手动发布，输入不带 v 的版本号（例如 4.1-v2）。工作流会创建 4.1-v2 tag、运行 V2 单元测试、构建 Release AAR / Sources JAR 并验证 Maven 发布。普通 Android CI 不会自动发布 Maven 版本。公开仓库的消费者不需要 Maven 账号、密码或 GitHub Token。
 
 ## 3. 布局绑定控件
 
