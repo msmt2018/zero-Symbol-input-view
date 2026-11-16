@@ -264,11 +264,19 @@ fun SymbolDrawer(
                                     val velocityThreshold = drawerFlingVelocityThreshold(settings, rangeDp)
                                     val animationDuration = drawerAnimationDurationMs(settings)
                                     scope.launch {
-                                        state.settle(
-                                            velocityFraction = velocity / range,
-                                            animationDurationMillis = animationDuration,
-                                            velocityThreshold = velocityThreshold
-                                        )
+                                        if (detentState != null) {
+                                            detentState.settle(
+                                                velocityFraction = -velocity / range,
+                                                velocityThreshold = velocityThreshold,
+                                                animationDurationMillis = animationDuration
+                                            )
+                                        } else {
+                                            state.settle(
+                                                velocityFraction = velocity / range,
+                                                animationDurationMillis = animationDuration,
+                                                velocityThreshold = velocityThreshold
+                                            )
+                                        }
                                     }
                                 }
                             ),
