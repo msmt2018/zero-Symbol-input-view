@@ -12,6 +12,8 @@
 
 ## 项目简介
 
+本仓库还提供基于 `msmt2018/xedit-app` main 分支真实源码的接入示例：[xedit-app 4.1-v2 实际接入指南](zero-symbol-input-view-v2/api-docs/18-xedit-app-integration.md)。该示例明确区分启动页 `MainActivity` 与真正的编辑器 `EditorActivity`。
+
 Zero Symbol Input View V2 是面向代码编辑器、文本编辑器和 IDE 的 Android UI 组件库。它不是简单固定的一排快捷字符，而是一套完整的分组符号抽屉：包含独立的纵向抽屉交互、横向分组分页、符号管理、设置、数据持久化以及可扩展动作系统。
 
 当前仓库以 V2 为主要开发和集成方向。V1 仍保留用于旧版兼容和数据迁移；新功能和新宿主应优先接入 V2。
