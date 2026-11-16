@@ -11,6 +11,7 @@
 - [简体中文 API documentation](../README.md)
 
 ## 文档地图
+| [18 — xedit-app 4.1-v2 实际接入](18-xedit-app-integration.md) | 真实 EditorActivity、HighlightTextView、完整 import 和接入边界 | 基于现有编辑器接入 |
 
 | 文档 | 主题 | 适用场景 |
 |---|---|---|
