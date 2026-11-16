@@ -177,7 +177,7 @@ val auditComposeMigration by tasks.registering {
             Regex("""["']""" + Regex.escape(dependency) + """(?::[^"']*)?["']""")
                 .containsMatchIn(file("build.gradle.kts").readText())
         }
-        logger.lifecycle("Compose migration audit: ${sourceFiles.size} main source files scanned")
+        logger.lifecycle("Compose migration audit: ${sourceFiles.size} source files scanned")
         logger.lifecycle("Remaining View UI source findings: ${violations.size}")
         violations.forEach { logger.lifecycle("  - $it") }
         logger.lifecycle("Remaining View-only dependency declarations: ${dependencyViolations.size}")
@@ -201,8 +201,8 @@ val verifyComposeArtifactBoundary by tasks.registering {
         ).map { layout.projectDirectory.dir(it).asFile }
         val files = sourceRoots.filter { it.exists() }
             .flatMap { root -> root.walkTopDown().filter { it.isFile && it.extension in setOf("kt", "java") }.toList() }
-        val forbiddenImports = Regex("""^\\s*import\\s+(android\\.view\\.|android\\.widget\\.|android\\.graphics\\.|androidx\\.recyclerview\\.|androidx\\.viewpager2\\.|com\\.google\\.android\\.material\\.)""")
-        val forbiddenReferences = Regex("""\\b(AndroidView(?:Binding)?|SymbolDrawerView|ViewGroup|MotionEvent|RecyclerView|ViewPager2)\\b""")
+        val forbiddenImports = Regex("""^\s*import\s+(android\.view\.|android\.widget\.|android\.graphics\.|androidx\.recyclerview\.|androidx\.viewpager2\.|com\.google\.android\.material\.)""")
+        val forbiddenReferences = Regex("""\b(AndroidView(?:Binding)?|SymbolDrawerView|ViewGroup|MotionEvent|RecyclerView|ViewPager2)\b""")
         val violations = files.flatMap { file ->
             file.readLines().mapIndexedNotNull { index, line ->
                 val trimmed = line.trimStart()
