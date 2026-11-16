@@ -15,13 +15,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -37,9 +40,8 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 /**
  * Compose-native symbol manager.
  *
- * The screen owns only transient selection/expanded UI state. All mutations are
- * delegated as commands so a host can execute them through SymbolGroupManager
- * and its repository, keeping persistence and JSON compatibility out of UI.
+ * Selection is scoped to the active group and keyed by stable symbol IDs.
+ * Bulk commands are delegated as single manager transactions by the route.
  */
 @Composable
 fun SymbolDrawerManagerScreen(
@@ -55,24 +57,34 @@ fun SymbolDrawerManagerScreen(
     onEditSymbol: (groupId: String, symbol: SymbolEntry) -> Unit = { _, _ -> },
     onDeleteSymbol: (groupId: String, symbol: SymbolEntry) -> Unit = { _, _ -> },
     onMoveSymbol: (groupId: String, fromIndex: Int, toIndex: Int) -> Unit = { _, _, _ -> },
+    onDeleteSymbols: (groupId: String, symbolIds: Set<Long>) -> Unit = { _, _ -> },
+    onCopySymbols: (sourceGroupId: String, symbolIds: Set<Long>, targetGroupId: String) -> Unit = { _, _, _ -> },
+    onMoveSymbols: (sourceGroupId: String, symbolIds: Set<Long>, targetGroupId: String) -> Unit = { _, _, _ -> },
     onImportJson: () -> Unit = {},
     onExportJson: () -> Unit = {}
 ) {
-    var localSelectedGroupId by rememberSaveable { mutableStateOf(selectedGroupId ?: groups.firstOrNull()?.id) }
+    var localSelectedGroupId by rememberSaveable {
+        mutableStateOf(selectedGroupId ?: groups.firstOrNull()?.id)
+    }
     val effectiveSelectedId = selectedGroupId ?: localSelectedGroupId
     val selectedGroup = remember(groups, effectiveSelectedId) {
         groups.firstOrNull { it.id == effectiveSelectedId }
     }
+    val selectedSymbolIds = remember(effectiveSelectedId) { mutableStateListOf<Long>() }
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
+    var targetAction by remember { mutableStateOf<BulkTargetAction?>(null) }
+
     LaunchedEffect(groups, selectedGroupId) {
         if (selectedGroupId == null && groups.none { it.id == localSelectedGroupId }) {
             localSelectedGroupId = groups.firstOrNull()?.id
         }
     }
+    LaunchedEffect(selectedGroup?.id, selectedGroup?.symbols?.map { it.id }) {
+        val validIds = selectedGroup?.symbols?.mapTo(mutableSetOf()) { it.id }.orEmpty()
+        selectedSymbolIds.retainAll(validIds)
+    }
 
-    LazyColumn(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
+    LazyColumn(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         item(key = "manager-header") {
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
@@ -95,12 +107,9 @@ fun SymbolDrawerManagerScreen(
             Card(Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
                 Column(Modifier.padding(12.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            group.title,
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.weight(1f)
-                        )
+                        Text(group.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                         TextButton(onClick = {
+                            if (effectiveSelectedId != group.id) selectedSymbolIds.clear()
                             localSelectedGroupId = group.id
                             onSelectGroup(group.id)
                         }) {
@@ -128,25 +137,72 @@ fun SymbolDrawerManagerScreen(
 
         if (selectedGroup != null) {
             item(key = "symbol-header:${selectedGroup.id}") {
-                Row(
-                    Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        stringResource(R.string.compose_symbols_in_group, selectedGroup.title),
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.weight(1f)
-                    )
-                    TextButton(onClick = { onAddSymbol(selectedGroup.id) }) {
-                        Text(stringResource(R.string.compose_add_symbol))
+                Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            stringResource(R.string.compose_symbols_in_group, selectedGroup.title),
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.weight(1f)
+                        )
+                        TextButton(onClick = { onAddSymbol(selectedGroup.id) }) {
+                            Text(stringResource(R.string.compose_add_symbol))
+                        }
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            stringResource(R.string.compose_bulk_selected, selectedSymbolIds.size),
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.weight(1f)
+                        )
+                        TextButton(
+                            enabled = selectedGroup.symbols.isNotEmpty(),
+                            onClick = {
+                                if (selectedSymbolIds.size == selectedGroup.symbols.size) selectedSymbolIds.clear()
+                                else {
+                                    selectedSymbolIds.clear()
+                                    selectedSymbolIds.addAll(selectedGroup.symbols.map { it.id })
+                                }
+                            }
+                        ) {
+                            Text(stringResource(R.string.compose_bulk_select_all))
+                        }
+                        TextButton(enabled = selectedSymbolIds.isNotEmpty(), onClick = { selectedSymbolIds.clear() }) {
+                            Text(stringResource(R.string.compose_bulk_clear))
+                        }
+                    }
+                    if (selectedSymbolIds.isNotEmpty()) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            TextButton(onClick = { showDeleteConfirmation = true }) {
+                                Text(stringResource(R.string.compose_bulk_delete))
+                            }
+                            TextButton(
+                                enabled = groups.any { it.id != selectedGroup.id },
+                                onClick = { targetAction = BulkTargetAction.COPY }
+                            ) { Text(stringResource(R.string.compose_bulk_copy)) }
+                            TextButton(
+                                enabled = groups.any { it.id != selectedGroup.id },
+                                onClick = { targetAction = BulkTargetAction.MOVE }
+                            ) { Text(stringResource(R.string.compose_bulk_move)) }
+                        }
                     }
                 }
             }
             items(selectedGroup.symbols, key = { "symbol:${selectedGroup.id}:${it.id}" }) { symbol ->
                 val symbolIndex = selectedGroup.symbols.indexOfFirst { it.id == symbol.id }
+                val checked = symbol.id in selectedSymbolIds
                 Card(Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
                     Column(Modifier.padding(12.dp)) {
-                        Text(symbol.label, style = MaterialTheme.typography.bodyLarge)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(
+                                checked = checked,
+                                onCheckedChange = { value ->
+                                    if (value) {
+                                        if (symbol.id !in selectedSymbolIds) selectedSymbolIds.add(symbol.id)
+                                    } else selectedSymbolIds.remove(symbol.id)
+                                }
+                            )
+                            Text(symbol.label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                        }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 stringResource(R.string.compose_symbol_id, symbol.id),
@@ -173,4 +229,65 @@ fun SymbolDrawerManagerScreen(
             }
         }
     }
+
+    if (showDeleteConfirmation && selectedGroup != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmation = false },
+            title = { Text(stringResource(R.string.compose_bulk_delete_title)) },
+            text = { Text(stringResource(R.string.compose_bulk_delete_message, selectedSymbolIds.size)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    onDeleteSymbols(selectedGroup.id, selectedSymbolIds.toSet())
+                    selectedSymbolIds.clear()
+                    showDeleteConfirmation = false
+                }) { Text(stringResource(R.string.compose_bulk_delete)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirmation = false }) {
+                    Text(stringResource(R.string.compose_cancel))
+                }
+            }
+        )
+    }
+
+    val action = targetAction
+    if (action != null && selectedGroup != null) {
+        val targets = groups.filter { it.id != selectedGroup.id }
+        AlertDialog(
+            onDismissRequest = { targetAction = null },
+            title = {
+                Text(stringResource(
+                    if (action == BulkTargetAction.COPY) R.string.compose_bulk_copy_target
+                    else R.string.compose_bulk_move_target
+                ))
+            },
+            text = {
+                if (targets.isEmpty()) {
+                    Text(stringResource(R.string.compose_bulk_no_target))
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        targets.forEach { target ->
+                            TextButton(
+                                modifier = Modifier.fillMaxWidth(),
+                                onClick = {
+                                    val ids = selectedSymbolIds.toSet()
+                                    if (action == BulkTargetAction.COPY) onCopySymbols(selectedGroup.id, ids, target.id)
+                                    else onMoveSymbols(selectedGroup.id, ids, target.id)
+                                    selectedSymbolIds.clear()
+                                    targetAction = null
+                                }
+                            ) { Text(target.title) }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { targetAction = null }) {
+                    Text(stringResource(R.string.compose_cancel))
+                }
+            }
+        )
+    }
 }
+
+private enum class BulkTargetAction { COPY, MOVE }
