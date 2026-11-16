@@ -21,7 +21,7 @@ class SymbolDrawerComposeContractTest {
     fun stateStartsCollapsedAndKeepsStableGroupId() {
         val state = SymbolDrawerState(initiallyExpanded = false, selectedGroupId = "common")
         assertFalse(state.isExpanded)
-        assertEquals(0f, state.expansionFraction)
+        assertEquals(0f, state.expansionFraction, 0f)
         state.selectGroup("editing")
         assertEquals("editing", state.selectedGroupId)
     }
@@ -30,7 +30,7 @@ class SymbolDrawerComposeContractTest {
     fun stateRestoresExpandedIntent() {
         val state = SymbolDrawerState(initiallyExpanded = true, selectedGroupId = "common")
         assertTrue(state.isExpanded)
-        assertEquals(1f, state.expansionFraction)
+        assertEquals(1f, state.expansionFraction, 0f)
     }
 
     @Test

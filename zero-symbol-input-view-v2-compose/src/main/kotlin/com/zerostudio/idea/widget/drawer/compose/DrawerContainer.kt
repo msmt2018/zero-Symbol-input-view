@@ -142,7 +142,7 @@ fun DrawerContainer(
                                     scope.launch { state.dragBy(-delta / range) }
                                 },
                                 onDragStopped = { velocity ->
-                                    val range = (safeExpanded - safeCollapsed).value.coerceAtLeast(1f)
+                                    val range = with(density) { (safeExpanded - safeCollapsed).toPx().coerceAtLeast(1f) }
                                     scope.launch { state.settle(velocity / range, config.animationDurationMillis) }
                                 }
                             ),
