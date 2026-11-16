@@ -106,6 +106,9 @@ fun SymbolDrawerManagerRoute(
         },
         onDeleteSymbol = { id, symbol -> if (!state.removeSymbol(id, symbol.id)) operationError = state.lastError },
         onMoveSymbol = { id, from, to -> if (!state.moveSymbol(id, from, to)) operationError = state.lastError },
+        onDeleteSymbols = { id, ids -> if (state.removeSymbols(id, ids) == null) operationError = state.lastError },
+        onCopySymbols = { source, ids, target -> if (state.copySymbols(source, ids, target) == null) operationError = state.lastError },
+        onMoveSymbols = { source, ids, target -> if (!state.moveSymbolsToGroup(source, ids, target)) operationError = state.lastError },
         onImportJson = { importLauncher.launch(arrayOf("application/json", "text/json", "text/plain")) },
         onExportJson = {
             state.exportJson()?.let { exportContent = it; exportLauncher.launch(context.getString(R.string.compose_backup_file_name)) }

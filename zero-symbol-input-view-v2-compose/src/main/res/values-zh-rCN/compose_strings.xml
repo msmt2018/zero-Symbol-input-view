@@ -64,4 +64,16 @@
     <string name="compose_enable_long_action">启用长按动作</string>
     <string name="compose_action_value">动作值或参数</string>
     <string name="compose_group_not_found">所选分组已不存在</string>
+    <string name="compose_bulk_selected">已选择 %1$d 项</string>
+    <string name="compose_bulk_select_item">选择</string>
+    <string name="compose_bulk_selected_item">已选择</string>
+    <string name="compose_bulk_delete">批量删除</string>
+    <string name="compose_bulk_copy">复制到分组</string>
+    <string name="compose_bulk_move">移动到分组</string>
+    <string name="compose_bulk_clear">清除选择</string>
+    <string name="compose_bulk_delete_title">删除所选符号？</string>
+    <string name="compose_bulk_delete_message">确定删除所选的 %1$d 个符号吗？</string>
+    <string name="compose_bulk_copy_target">将所选符号复制到</string>
+    <string name="compose_bulk_move_target">将所选符号移动到</string>
+    <string name="compose_bulk_no_target">请先创建另一个分组，再复制或移动符号。</string>
 </resources>

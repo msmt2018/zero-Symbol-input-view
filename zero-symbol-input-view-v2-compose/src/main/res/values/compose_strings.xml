@@ -64,4 +64,16 @@
     <string name="compose_enable_long_action">Enable long-press action</string>
     <string name="compose_action_value">Action value or arguments</string>
     <string name="compose_group_not_found">The selected group no longer exists</string>
+    <string name="compose_bulk_selected">%1$d selected</string>
+    <string name="compose_bulk_select_item">Select</string>
+    <string name="compose_bulk_selected_item">Selected</string>
+    <string name="compose_bulk_delete">Delete selected</string>
+    <string name="compose_bulk_copy">Copy to group</string>
+    <string name="compose_bulk_move">Move to group</string>
+    <string name="compose_bulk_clear">Clear selection</string>
+    <string name="compose_bulk_delete_title">Delete selected symbols?</string>
+    <string name="compose_bulk_delete_message">Delete %1$d selected symbols?</string>
+    <string name="compose_bulk_copy_target">Copy selected symbols to</string>
+    <string name="compose_bulk_move_target">Move selected symbols to</string>
+    <string name="compose_bulk_no_target">Create another group to copy or move symbols.</string>
 </resources>
