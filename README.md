@@ -184,6 +184,8 @@ Some new public package entry points are currently Kotlin typealiases to existin
 
 ## Documentation
 
+- [xedit-app 4.1-v2 integration guide](zero-symbol-input-view-v2/api-docs/18-xedit-app-integration.md) — verified integration against the actual `EditorActivity` and `HighlightTextView`.
+
 | Guide | Description |
 |---|---|
 | [V2 Module README](zero-symbol-input-view-v2/README.md) | Dependency setup, JitPack, integration and migration |
