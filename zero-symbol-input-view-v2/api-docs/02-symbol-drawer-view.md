@@ -2,6 +2,19 @@
 
 包：`com.zerostudio.idea.widget.editor.symbolinput.v2`
 
+完整 import：
+
+```kotlin
+import com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawerView
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.DrawerConfig
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
+import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupRepository
+import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
+```
+
+注意：`DrawerConfig` 是 `model` 包中的符号抽屉配置；它与通用 Drawer 的同名配置不是同一个类型。
+
 ## 1. 类职责
 
 `SymbolDrawerView` 是面向符号输入场景的独立 Android `ViewGroup`。内部组合：
