@@ -156,3 +156,17 @@ The Compose module is a separately consumable artifact. Public APIs may expose C
 4. Every migration commit must be scoped to this Compose module.
 5. A source grep is not enough: inspect public API signatures and resolved Gradle dependencies.
 6. Report implementation, static audit, build, unit tests, instrumentation and CI as separate statuses.
+
+## Execution log
+
+### Baseline and first extraction — 2026-11-16
+
+- Confirmed the Compose module has 207 tracked files and 92 main Kotlin source files at the audited baseline.
+- Confirmed the sibling View module contains 182 tracked files and all 182 blob hashes match `main` exactly; no View module path is missing or modified.
+- Added `auditComposeMigration` to inventory forbidden UI imports/references across main, unit-test and androidTest source sets, plus direct View-only dependency declarations.
+- Added `verifyComposeArtifactBoundary` as a strict whole-source-set gate. It is intentionally not attached to `check` until migration findings have been removed.
+- Split `SymbolGroupRepository` / `ObservableSymbolGroupRepository` into platform-neutral contracts and moved `SharedPreferencesSymbolGroupRepository` into a dedicated storage source file.
+- Split `SymbolDrawerSettingsRepository` / `SettingsLoadResult` from the JSON codec and moved `SharedPreferencesSymbolDrawerSettingsRepository` into a dedicated storage source file. Package names and consumer-facing class names remain unchanged.
+- Replaced the obsolete View-based architecture diagram with the target Compose architecture and added this phase-by-phase migration plan.
+
+**Not yet verified:** the Gradle build, unit tests, instrumentation tests and CI for these commits. The latest workflow runs were pending at the time of this log. The old View UI classes, legacy manager/settings screens, old extension registry and View-only dependencies are still present and remain scheduled for replacement in later phases.

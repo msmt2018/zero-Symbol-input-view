@@ -77,3 +77,12 @@ Do not describe the artifact as fully native Compose until the source audit and 
 8. Manager/settings workflows, including import/export, editing, reordering and reset, are covered by tests.
 9. Run the full original View library test/build suite to prove that its behavior was not changed by Compose migration.
 10. Keep the migration PR in Draft until all gates and CI pass.
+
+
+## Detailed execution plan
+
+The complete source inventory, file-by-file migration disposition, target architecture, ordered execution phases and release gates are maintained in [COMPOSE_REFACTOR_PLAN.md](COMPOSE_REFACTOR_PLAN.md).
+
+The current branch has started Phase 1 by separating repository contracts from Android SharedPreferences adapters. This is only a domain/persistence boundary extraction; it does not mean the legacy View UI has been migrated or removed.
+
+Run `./gradlew :zero-symbol-input-view-v2-compose:auditComposeMigration` to list current source/dependency findings. The strict `verifyComposeArtifactBoundary` task is deliberately not wired into `check` until the legacy source migration is complete.
