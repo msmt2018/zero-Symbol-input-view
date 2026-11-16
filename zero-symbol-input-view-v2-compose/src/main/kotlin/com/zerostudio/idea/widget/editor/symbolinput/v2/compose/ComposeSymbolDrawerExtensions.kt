@@ -206,8 +206,20 @@ class ComposeSymbolDrawerExtensionRegistry {
         )
     }
 
-    fun observe(listener: (Long) -> Unit): AutoCloseable {
-        synchronized(lock) { observers += listener }
+    /**
+     * Observe registry revisions. When [emitCurrent] is true, the listener is
+     * synchronously called once with the current revision before this method
+     * returns; subsequent mutations are delivered through the serialized queue.
+     */
+    fun observe(
+        emitCurrent: Boolean = false,
+        listener: (Long) -> Unit
+    ): AutoCloseable {
+        val currentRevision = synchronized(lock) {
+            observers += listener
+            revision
+        }
+        if (emitCurrent) runCatching { listener(currentRevision) }
         return AutoCloseable { synchronized(lock) { observers -= listener } }
     }
 
