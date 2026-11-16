@@ -64,7 +64,7 @@ class BuiltInGroupIndicatorTest {
             }
         }
         composeRule.onNodeWithContentDescription("Group 1 of 2").performTouchInput {
-            click(Offset(size.width * .75f, size.height / 2f))
+            click(Offset(300f, 16f))
         }
         composeRule.onNodeWithContentDescription("Group 2 of 2").assertIsDisplayed()
     }
