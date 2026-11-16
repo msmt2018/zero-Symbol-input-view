@@ -36,7 +36,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
@@ -202,40 +201,31 @@ fun SymbolDrawer(
         pageCount = { contentGroups.size.coerceAtLeast(1) }
     )
     val selectedGroup = contentGroups.getOrNull(pagerState.currentPage)
-    val lifecycleExtensions = registeredExtensions.lifecycle
+    val eventExtensions = registeredExtensions.events
 
-    DisposableEffect(lifecycleExtensions) {
-        lifecycleExtensions.forEach { extension -> runCatching { extension.onAttached() } }
-        onDispose {
-            lifecycleExtensions.asReversed().forEach { extension ->
-                runCatching { extension.onDetached() }
-            }
+    LaunchedEffect(settings, eventExtensions) {
+        eventExtensions.forEach { extension ->
+            runCatching { extension.handler.onEvent(ComposeSymbolDrawerEvent.SettingsChanged(settings)) }
         }
     }
-
-    LaunchedEffect(settings, lifecycleExtensions) {
-        lifecycleExtensions.forEach { extension ->
-            runCatching { extension.onSettingsChanged(settings) }
+    LaunchedEffect(contentGroups, eventExtensions) {
+        eventExtensions.forEach { extension ->
+            runCatching { extension.handler.onEvent(ComposeSymbolDrawerEvent.GroupsChanged(contentGroups)) }
         }
     }
-    LaunchedEffect(contentGroups, lifecycleExtensions) {
-        lifecycleExtensions.forEach { extension ->
-            runCatching { extension.onGroupsChanged(contentGroups) }
-        }
-    }
-    LaunchedEffect(selectedGroup?.id, pagerState.currentPage, lifecycleExtensions) {
+    LaunchedEffect(selectedGroup?.id, pagerState.currentPage, eventExtensions) {
         selectedGroup?.let {
             state.selectGroup(it.id)
             detentState?.selectGroup(it.id)
         }
         onGroupChanged(pagerState.currentPage, selectedGroup)
-        lifecycleExtensions.forEach { extension ->
-            runCatching { extension.onGroupSelected(pagerState.currentPage, selectedGroup) }
+        eventExtensions.forEach { extension ->
+            runCatching { extension.handler.onEvent(ComposeSymbolDrawerEvent.GroupSelected(pagerState.currentPage, selectedGroup)) }
         }
     }
-    LaunchedEffect(expansionFraction, lifecycleExtensions) {
-        lifecycleExtensions.forEach { extension ->
-            runCatching { extension.onExpansionChanged(expansionFraction) }
+    LaunchedEffect(expansionFraction, eventExtensions) {
+        eventExtensions.forEach { extension ->
+            runCatching { extension.handler.onEvent(ComposeSymbolDrawerEvent.ExpansionChanged(expansionFraction)) }
         }
     }
 
@@ -254,8 +244,8 @@ fun SymbolDrawer(
         if (!handled) {
             if (longPress) onSymbolLongClick(symbol) else onSymbolClick(symbol)
         }
-        lifecycleExtensions.forEach { extension ->
-            runCatching { extension.onSymbolInvoked(symbol, longPress) }
+        eventExtensions.forEach { extension ->
+            runCatching { extension.handler.onEvent(ComposeSymbolDrawerEvent.SymbolInvoked(symbol, longPress)) }
         }
     }
     LaunchedEffect(contentGroups.map { it.id }, selectedGroupId) {
@@ -296,8 +286,8 @@ fun SymbolDrawer(
             }
             // One worker mirrors projected deltas into state; pointer events never spawn an unbounded job queue.
             val mutationDrainJob = remember(nestedScrollCoordinator) { arrayOfNulls<Job>(1) }
-            fun enqueueDrawerMutation(deltaFraction: Float) {
-                val leaseId = nestedScrollCoordinator.enqueueMutation(deltaFraction) ?: return
+
+            fun launchMutationDrain(leaseId: Long) {
                 mutationDrainJob[0] = scope.launch {
                     try {
                         while (true) {
@@ -306,13 +296,39 @@ fun SymbolDrawer(
                                 if (detentState != null) detentState.dragBy(nextDelta)
                                 else state.dragBy(nextDelta)
                             }
+                            check(nestedScrollCoordinator.acknowledgeMutation(leaseId, nextDelta)) {
+                                "Drawer mutation batch lost its active drain lease"
+                            }
                         }
                     } finally {
-                        // Cancellation/failure must not strand the coordinator's
-                        // lease. The generation check prevents an old worker from
-                        // releasing a lease acquired by a newer worker.
+                        // A cancelled in-flight batch is restored by release. If
+                        // callbacks queued more work while this worker was active,
+                        // acquire a fresh generation and continue draining it.
                         nestedScrollCoordinator.releaseMutationDrain(leaseId)
+                        nestedScrollCoordinator.acquirePendingMutationDrain()?.let { nextLease ->
+                            launchMutationDrain(nextLease)
+                        }
                     }
+                }
+            }
+
+            fun enqueueDrawerMutation(deltaFraction: Float) {
+                val leaseId = nestedScrollCoordinator.enqueueMutation(deltaFraction) ?: return
+                launchMutationDrain(leaseId)
+            }
+
+            suspend fun awaitMutationDrain() {
+                while (scope.coroutineContext[Job]?.isActive != false) {
+                    val current = mutationDrainJob[0]
+                    if (current == null) {
+                        val leaseId = nestedScrollCoordinator.acquirePendingMutationDrain() ?: return
+                        launchMutationDrain(leaseId)
+                        continue
+                    }
+                    current.join()
+                    if (mutationDrainJob[0] === current &&
+                        !nestedScrollCoordinator.hasPendingMutation()
+                    ) return
                 }
             }
             // Keep normalized projection across viewport/range changes, including
@@ -351,7 +367,7 @@ fun SymbolDrawer(
                         val rangeDp = with(density) { rangePx.toDp().value }
                         val velocityThreshold = drawerFlingVelocityThreshold(settings, rangeDp)
                         val duration = drawerAnimationDurationMs(settings)
-                        mutationDrainJob[0]?.join()
+                        awaitMutationDrain()
                         drawerMutationMutex.withLock {
                             if (detentState != null) {
                                 detentState.settle(
@@ -396,7 +412,7 @@ fun SymbolDrawer(
                                     val velocityThreshold = drawerFlingVelocityThreshold(settings, rangeDp)
                                     val animationDuration = drawerAnimationDurationMs(settings)
                                     scope.launch {
-                                        mutationDrainJob[0]?.join()
+                                        awaitMutationDrain()
                                         drawerMutationMutex.withLock {
                                             if (detentState != null) {
                                                 detentState.settle(

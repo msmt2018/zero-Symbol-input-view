@@ -24,6 +24,8 @@ internal class DrawerNestedScrollCoordinator(
     private var projectedFraction = initialFraction.requireFraction()
     private var rangePx = rangePx.requireRange()
     private var pendingMutationDelta = 0f
+    private var inFlightMutationDelta: Float? = null
+    private var inFlightMutationDrainId: Long? = null
     private var nextMutationDrainId = 0L
     private var activeMutationDrainId: Long? = null
 
@@ -80,12 +82,39 @@ internal class DrawerNestedScrollCoordinator(
      */
     @Synchronized
     fun takePendingMutation(leaseId: Long): Float? {
-        if (activeMutationDrainId != leaseId) return null
+        if (activeMutationDrainId != leaseId || inFlightMutationDelta != null) return null
         if (pendingMutationDelta == 0f) {
             activeMutationDrainId = null
             return null
         }
-        return pendingMutationDelta.also { pendingMutationDelta = 0f }
+        val delta = pendingMutationDelta
+        pendingMutationDelta = 0f
+        inFlightMutationDelta = delta
+        inFlightMutationDrainId = leaseId
+        return delta
+    }
+
+    /**
+     * A worker acknowledges a batch only after the corresponding suspend state
+     * mutation has completed. Until then the batch remains recoverable if the
+     * worker is cancelled or fails.
+     */
+    @Synchronized
+    fun acknowledgeMutation(leaseId: Long, deltaFraction: Float): Boolean {
+        if (activeMutationDrainId != leaseId ||
+            inFlightMutationDrainId != leaseId ||
+            inFlightMutationDelta != deltaFraction
+        ) return false
+        inFlightMutationDelta = null
+        inFlightMutationDrainId = null
+        return true
+    }
+
+    /** Acquire a new lease for restored pending work after a worker exits. */
+    @Synchronized
+    fun acquirePendingMutationDrain(): Long? {
+        if (activeMutationDrainId != null || pendingMutationDelta == 0f) return null
+        return (++nextMutationDrainId).also { activeMutationDrainId = it }
     }
 
     /**
@@ -96,12 +125,20 @@ internal class DrawerNestedScrollCoordinator(
     @Synchronized
     fun releaseMutationDrain(leaseId: Long): Boolean {
         if (activeMutationDrainId != leaseId) return false
+        if (inFlightMutationDrainId == leaseId) {
+            // The state mutation was not acknowledged. Restore it before
+            // releasing the lease so a replacement worker can safely retry.
+            pendingMutationDelta += inFlightMutationDelta ?: 0f
+            inFlightMutationDelta = null
+            inFlightMutationDrainId = null
+        }
         activeMutationDrainId = null
         return true
     }
 
     @Synchronized
-    fun hasPendingMutation(): Boolean = pendingMutationDelta != 0f || activeMutationDrainId != null
+    fun hasPendingMutation(): Boolean =
+        pendingMutationDelta != 0f || inFlightMutationDelta != null || activeMutationDrainId != null
 
     /** Update pixel geometry without changing the normalized expansion position. */
     @Synchronized

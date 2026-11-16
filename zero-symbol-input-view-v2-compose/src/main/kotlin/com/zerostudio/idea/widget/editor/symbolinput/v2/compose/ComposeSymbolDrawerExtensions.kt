@@ -76,17 +76,28 @@ interface ComposeSymbolDrawerThemeExtension {
     fun resolve(): ComposeDrawerTheme
 }
 
-interface ComposeSymbolDrawerLifecycleExtension {
-    val id: String
-    val priority: Int get() = 0
-    fun onAttached() = Unit
-    fun onSettingsChanged(settings: SymbolDrawerSettings) = Unit
-    fun onGroupsChanged(groups: List<SymbolGroup>) = Unit
-    fun onGroupSelected(index: Int, group: SymbolGroup?) = Unit
-    fun onExpansionChanged(fraction: Float) = Unit
-    fun onSymbolInvoked(symbol: SymbolEntry, longPress: Boolean) = Unit
-    fun onDetached() = Unit
+/**
+ * Semantic drawer events delivered to extensions while their contribution is
+ * active. Composition attachment and disposal are deliberately not exposed:
+ * Compose owns UI lifetime and cancels composition-scoped work automatically.
+ */
+sealed interface ComposeSymbolDrawerEvent {
+    data class SettingsChanged(val settings: SymbolDrawerSettings) : ComposeSymbolDrawerEvent
+    data class GroupsChanged(val groups: List<SymbolGroup>) : ComposeSymbolDrawerEvent
+    data class GroupSelected(val index: Int, val group: SymbolGroup?) : ComposeSymbolDrawerEvent
+    data class ExpansionChanged(val fraction: Float) : ComposeSymbolDrawerEvent
+    data class SymbolInvoked(val symbol: SymbolEntry, val longPress: Boolean) : ComposeSymbolDrawerEvent
 }
+
+fun interface ComposeSymbolDrawerEventHandler {
+    fun onEvent(event: ComposeSymbolDrawerEvent)
+}
+
+data class ComposeSymbolDrawerEventExtension(
+    val id: String,
+    val priority: Int = 0,
+    val handler: ComposeSymbolDrawerEventHandler
+)
 
 interface ComposeSymbolDrawerSettingsTabExtension {
     val id: String
@@ -122,7 +133,7 @@ data class ComposeSymbolDrawerExtensions(
     val groupIndicators: List<SymbolDrawerGroupIndicator> = emptyList(),
     val groupProviders: List<ComposeSymbolDrawerGroupProvider> = emptyList(),
     val themes: List<ComposeSymbolDrawerThemeExtension> = emptyList(),
-    val lifecycle: List<ComposeSymbolDrawerLifecycleExtension> = emptyList(),
+    val events: List<ComposeSymbolDrawerEventExtension> = emptyList(),
     val settingsTabs: List<ComposeSymbolDrawerSettingsTabExtension> = emptyList(),
     val settingsItems: List<ComposeSymbolDrawerSettingExtension> = emptyList()
 )
@@ -163,7 +174,7 @@ class ComposeSymbolDrawerExtensionRegistry {
     private val indicators = LinkedHashMap<String, SymbolDrawerGroupIndicator>()
     private val providers = LinkedHashMap<String, ComposeSymbolDrawerGroupProvider>()
     private val themes = LinkedHashMap<String, ComposeSymbolDrawerThemeExtension>()
-    private val lifecycle = LinkedHashMap<String, ComposeSymbolDrawerLifecycleExtension>()
+    private val events = LinkedHashMap<String, ComposeSymbolDrawerEventExtension>()
     private val settingsTabs = LinkedHashMap<String, ComposeSymbolDrawerSettingsTabExtension>()
     private val settingsItems = LinkedHashMap<String, ComposeSymbolDrawerSettingExtension>()
     private val observers = LinkedHashSet<ObserverEntry>()
@@ -177,7 +188,7 @@ class ComposeSymbolDrawerExtensionRegistry {
     fun registerGroupIndicator(value: SymbolDrawerGroupIndicator) = register(indicators, value.id, value)
     fun registerGroupProvider(value: ComposeSymbolDrawerGroupProvider) = register(providers, value.id, value)
     fun registerTheme(value: ComposeSymbolDrawerThemeExtension) = register(themes, value.id, value)
-    fun registerLifecycle(value: ComposeSymbolDrawerLifecycleExtension) = register(lifecycle, value.id, value)
+    fun registerEvent(value: ComposeSymbolDrawerEventExtension) = register(events, value.id, value)
     fun registerSettingsTab(value: ComposeSymbolDrawerSettingsTabExtension) = register(settingsTabs, value.id, value)
     fun registerSetting(value: ComposeSymbolDrawerSettingExtension) = register(settingsItems, value.id, value)
 
@@ -218,7 +229,7 @@ class ComposeSymbolDrawerExtensionRegistry {
             groupIndicators = ordered(indicators.values, { it.priority }, { it.id }),
             groupProviders = ordered(providers.values, { it.priority }, { it.id }),
             themes = ordered(themes.values, { it.priority }, { it.id }),
-            lifecycle = ordered(lifecycle.values, { it.priority }, { it.id }),
+            events = ordered(events.values, { it.priority }, { it.id }),
             settingsTabs = ordered(settingsTabs.values, { it.priority }, { it.id }),
             settingsItems = ordered(settingsItems.values, { it.priority }, { it.id })
         )
@@ -294,7 +305,7 @@ class ComposeSymbolDrawerExtensionRegistry {
     fun clear() {
         synchronized(lock) {
             actions.clear(); renderers.clear(); indicators.clear(); providers.clear()
-            themes.clear(); lifecycle.clear(); settingsTabs.clear(); settingsItems.clear()
+            themes.clear(); events.clear(); settingsTabs.clear(); settingsItems.clear()
             registrationTokens.clear()
             revision++
         }
