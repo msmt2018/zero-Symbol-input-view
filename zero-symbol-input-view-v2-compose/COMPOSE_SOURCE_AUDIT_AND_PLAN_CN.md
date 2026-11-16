@@ -35,22 +35,32 @@ Git tree 共盘点到 Compose 模块 **215 个 tracked files**，其中 **159 �
 | `manager`、`settings` | 旧管理页与设置页 | 必须以 Material 3 Compose 重写，不能将旧页面作为内部实现 |
 | 测试目录 | 53 个 unit tests、12 个 instrumentation tests | 按纯领域、Compose UI、旧 View host 三类重新归属；旧 View UI 测试不能算 Compose 覆盖 |
 
-### 2.1 已明确的 View 耦合文件
+### 2.1 全部 94 个 main Kotlin 文件的源码扫描结果
 
-下列文件不能进入最终 Compose artifact，必须重写、拆分或删除：
+已对 Git tree 中全部 94 个 `src/main/**/*.kt` 文件逐个读取源码，并按 Android View、Drawable、MotionEvent、Activity/Lifecycle、View callback 等标记扫描。确认以下文件存在真实的平台 UI/View 耦合，不能作为最终 Compose UI 实现保留：
 
-1. `SymbolDrawerView.kt`
-2. `ui/SymbolGroupIndicator.kt`
-3. `ui/SymbolPageAdapter.kt`
-4. `manager/SymbolDrawerManagerScreen.kt`
-5. `settings/SymbolDrawerSettingsScreen.kt`
-6. `extension/SymbolDrawerExtensionRegistry.kt`
-7. `drawer/DrawerContainer.kt`
-8. `settings/JsonDocumentPicker.kt`
-9. `adaptive/AdaptiveWindowObserver.kt`
-10. `adaptive/AdaptiveWindowController.kt`（直接持有 Android View/Observer）
+1. `symbolinput/v2/SymbolDrawerView.kt`：ViewGroup 抽屉主体、触摸/布局回调、ViewPager2/指示器集成。
+2. `symbolinput/v2/adaptive/AdaptiveWindowObserver.kt`：View layout/attach listener 与 WindowInsetsCompat 观察。
+3. `symbolinput/v2/adaptive/AdaptiveWindowController.kt`：持有 host View 并托管 Observer。
+4. `symbolinput/v2/adaptive/SymbolDrawerDockingCoordinator.kt`：构造参数直接接收 host View。
+5. `symbolinput/v2/ui/SymbolGroupIndicator.kt`：Android View/Canvas/Paint/Animator 指示器。
+6. `symbolinput/v2/ui/SymbolPageAdapter.kt`：RecyclerView/ViewPager2 adapter 与 cell View。
+7. `symbolinput/v2/manager/SymbolDrawerManagerScreen.kt`：旧 View 管理页面。
+8. `symbolinput/v2/settings/SymbolDrawerSettingsScreen.kt`：旧 View 设置页面。
+9. `symbolinput/v2/extension/SymbolDrawerExtensionRegistry.kt`：扩展契约公开 View、Context、MotionEvent、create/bind/recycle/attach/detach。
+10. `symbolinput/v2/drawer/DrawerContainer.kt`：旧 View drawer surface/container。
+11. `symbolinput/v2/drawer/core/DrawerInteractionController.kt`：MotionEvent、VelocityTracker、ViewConfiguration 手势控制。
+12. `symbolinput/v2/drawer/navigation/DrawerPageHost.kt`：ViewGroup/FrameLayout、MeasureSpec、View cache。
+13. `symbolinput/v2/drawer/navigation/DrawerPage.kt`：Android Drawable 图标类型，需改为 Compose Painter/Icon slot 或平台无关图标描述。
+14. `symbolinput/v2/drawer/panel/DrawerPanel.kt`：公共 panel content 契约返回 View。
+15. `symbolinput/v2/drawer/panel/DrawerPanelHost.kt`：View/ViewGroup/FrameLayout 测量与缓存。
+16. `symbolinput/v2/drawer/style/DrawerThemeResolver.kt`：ContextThemeWrapper 主题解析，应改为 MaterialTheme/Compose tokens。
+17. `symbolinput/v2/settings/JsonDocumentPicker.kt`：ActivityResultRegistry/LifecycleOwner 桥接，应迁移到 Compose Route 的 rememberLauncherForActivityResult 与独立流式 I/O adapter。
+18. `symbolinput/v2/ui/HostThemeColors.kt`：android.graphics.Color 颜色适配，应改为 Compose Color/token 映射。
 
-另外，旧 drawer 的 Controller/Adapter/Host 类需要逐个追踪调用关系；如果它们暴露手动 start/stop/close、View 类型或手动刷新语义，就不能作为公共 Compose UI API 保留。
+下列文件被文本扫描命中但只有 KDoc/版权注释出现 View 字样，不属于真实 View 依赖：`widget/drawer/DrawerApi.kt`、`symbolinput/v2/drawer/navigation/DrawerNavigationController.kt`、`symbolinput/v2/settings/SymbolDrawerSettings.kt`。仍需结合调用关系验证它们的公共 API 是否有手动 Controller 生命周期或旧语义；不能仅凭包名或注释判定为可直接保留。
+
+另外，`drawer/core/DrawerInteractionController` 与旧 generic drawer host 不应通过机械改名转成 Compose；必须把 gesture/state policy 从 MotionEvent/View host 中抽离，再由 Compose pointerInput/nestedScroll 实现。
 
 ### 2.2 依赖边界
 
