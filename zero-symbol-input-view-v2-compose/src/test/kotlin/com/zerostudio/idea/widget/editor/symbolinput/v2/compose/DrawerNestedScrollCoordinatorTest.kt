@@ -56,4 +56,31 @@ class DrawerNestedScrollCoordinatorTest {
         assertEquals(0.4f, coordinator.projectedFraction(), 0f)
         assertEquals(-60f, coordinator.consumePreScroll(-100f).consumedY, 0f)
     }
+
+    @Test
+    fun pendingMutationsCoalesceIntoSingleDrainLease() {
+        val coordinator = DrawerNestedScrollCoordinator(0.2f, 100f)
+
+        assertEquals(true, coordinator.enqueueMutation(0.3f))
+        assertEquals(false, coordinator.enqueueMutation(0.2f))
+        assertEquals(false, coordinator.enqueueMutation(-0.1f))
+        assertEquals(true, coordinator.hasPendingMutation())
+        assertEquals(0.4f, coordinator.takePendingMutation()!!, 0.0001f)
+        assertEquals(null, coordinator.takePendingMutation())
+        assertEquals(false, coordinator.hasPendingMutation())
+    }
+
+    @Test
+    fun enqueueAfterDrainLeaseReleaseStartsANewWorker() {
+        val coordinator = DrawerNestedScrollCoordinator(0f, 100f)
+
+        assertEquals(true, coordinator.enqueueMutation(0.1f))
+        assertEquals(0.1f, coordinator.takePendingMutation()!!, 0.0001f)
+        assertEquals(null, coordinator.takePendingMutation())
+
+        assertEquals(true, coordinator.enqueueMutation(0.2f))
+        assertEquals(0.2f, coordinator.takePendingMutation()!!, 0.0001f)
+        assertEquals(null, coordinator.takePendingMutation())
+    }
+
 }
