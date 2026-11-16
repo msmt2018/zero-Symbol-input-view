@@ -6,8 +6,6 @@
 
 package com.zerostudio.idea.widget.editor.symbolinput.v2.compose
 
-import androidx.compose.runtime.MonotonicFrameClock
-import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Test
@@ -25,23 +23,23 @@ class SymbolDrawerDetentStateTest {
     }
 
     @Test
-    fun settlesToAdjacentAnchorWhenFlinging() = runBlocking(AdvancingFrameClock()) {
+    fun settlesToAdjacentAnchorWhenFlinging() = kotlinx.coroutines.runBlocking {
         val state = SymbolDrawerDetentState()
         state.snapToDetent("half-expanded")
-        state.settle(velocityFraction = 1f)
+        state.settle(velocityFraction = 1f, animationDurationMillis = 0)
         assertEquals("expanded", state.targetDetentId)
         assertEquals(1f, state.expansionFraction, 0f)
 
-        state.settle(velocityFraction = -1f)
+        state.settle(velocityFraction = -1f, animationDurationMillis = 0)
         assertEquals("half-expanded", state.targetDetentId)
         assertEquals(0.5f, state.expansionFraction, 0f)
     }
 
     @Test
-    fun lowVelocityChoosesNearestAnchorAndLowerWinsTie() = runBlocking(AdvancingFrameClock()) {
+    fun lowVelocityChoosesNearestAnchorAndLowerWinsTie() = kotlinx.coroutines.runBlocking {
         val state = SymbolDrawerDetentState()
         state.dragBy(0.25f)
-        state.settle(velocityFraction = 0f)
+        state.settle(velocityFraction = 0f, animationDurationMillis = 0)
         assertEquals("collapsed", state.targetDetentId)
 
         state.dragBy(0.26f)
@@ -50,7 +48,7 @@ class SymbolDrawerDetentStateTest {
     }
 
     @Test
-    fun dragIsClampedToNormalizedRange() = runBlocking {
+    fun dragIsClampedToNormalizedRange() = kotlinx.coroutines.runBlocking {
         val state = SymbolDrawerDetentState()
         state.dragBy(2f)
         assertEquals(1f, state.expansionFraction, 0f)
@@ -59,7 +57,7 @@ class SymbolDrawerDetentStateTest {
     }
 
     @Test
-    fun dynamicAnchorReplacementRetainsNearestStablePosition() = runBlocking {
+    fun dynamicAnchorReplacementRetainsNearestStablePosition() = kotlinx.coroutines.runBlocking {
         val state = SymbolDrawerDetentState(
             initialDetentId = SymbolDrawerDetent.HalfExpanded.id
         )
@@ -97,7 +95,7 @@ class SymbolDrawerDetentStateTest {
     }
 
     @Test
-    fun updatingFractionOfStableAnchorRepositionsSettledDrawer() = runBlocking {
+    fun updatingFractionOfStableAnchorRepositionsSettledDrawer() = kotlinx.coroutines.runBlocking {
         val state = SymbolDrawerDetentState(
             detents = listOf(
                 SymbolDrawerDetent.Collapsed,
@@ -136,21 +134,13 @@ class SymbolDrawerDetentStateTest {
     }
 
     @Test
-    fun rejectsNonFiniteDragAndVelocity(): Unit = runBlocking {
+    fun rejectsNonFiniteDragAndVelocity(): Unit = kotlinx.coroutines.runBlocking {
         val state = SymbolDrawerDetentState()
         assertThrows(IllegalArgumentException::class.java) {
             runBlocking { state.dragBy(Float.NaN) }
         }
         assertThrows(IllegalArgumentException::class.java) {
             runBlocking { state.settle(velocityFraction = Float.POSITIVE_INFINITY) }
-        }
-    }
-    private class AdvancingFrameClock : MonotonicFrameClock {
-        private var frameTimeNanos = 0L
-
-        override suspend fun <R> withFrameNanos(onFrame: (Long) -> R): R {
-            frameTimeNanos += 16_666_667L
-            return onFrame(frameTimeNanos)
         }
     }
 }

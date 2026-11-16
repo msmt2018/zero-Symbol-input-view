@@ -122,10 +122,15 @@ class SymbolDrawerDetentState(
     ) {
         val detent = requireDetent(detentId)
         targetDetentId = detent.id
-        expansion.animateTo(
-            detent.fraction,
-            tween(animationDurationMillis.coerceAtLeast(0))
-        )
+        val duration = animationDurationMillis.coerceAtLeast(0)
+        if (duration == 0) {
+            // A zero-duration transition is a true snap: it must not request a
+            // frame clock, which also keeps reduced-motion and deterministic
+            // state tests independent from the Compose animation frame loop.
+            expansion.snapTo(detent.fraction)
+        } else {
+            expansion.animateTo(detent.fraction, tween(duration))
+        }
         currentDetentId = detent.id
     }
 
