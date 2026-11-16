@@ -14,6 +14,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import kotlinx.coroutines.runBlocking
 import org.junit.Test
 
 class SymbolDrawerComposeContractTest {
@@ -40,6 +41,27 @@ class SymbolDrawerComposeContractTest {
         val state = SymbolDrawerState(initiallyExpanded = true, selectedGroupId = "common")
         assertTrue(state.isExpanded)
         assertEquals(1f, state.expansionFraction, 0f)
+    }
+
+    @Test
+    fun dragUpdatesExpansionAndTargetAtTheHalfwayBoundary() = runBlocking {
+        val state = SymbolDrawerState(initiallyExpanded = false, selectedGroupId = null)
+        state.dragBy(0.49f)
+        assertFalse(state.isExpanded)
+        assertEquals(0.49f, state.expansionFraction, 0.001f)
+
+        state.dragBy(0.02f)
+        assertTrue(state.isExpanded)
+        assertEquals(0.51f, state.expansionFraction, 0.001f)
+    }
+
+    @Test
+    fun dragClampsExpansionToItsNormalizedRange() = runBlocking {
+        val state = SymbolDrawerState(initiallyExpanded = false, selectedGroupId = null)
+        state.dragBy(2f)
+        assertEquals(1f, state.expansionFraction, 0f)
+        state.dragBy(-3f)
+        assertEquals(0f, state.expansionFraction, 0f)
     }
 
     @Test
