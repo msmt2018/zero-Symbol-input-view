@@ -109,6 +109,62 @@ dependencies {
 
 仓库维护者通过 GitHub Actions → Publish V2 library to JitPack 手动发布，输入不带 v 的版本号（例如 4.1-v2）。工作流会创建 4.1-v2 tag、运行 V2 单元测试、构建 Release AAR / Sources JAR 并验证 Maven 发布。普通 Android CI 不会自动发布 Maven 版本。公开仓库的消费者不需要 Maven 账号、密码或 GitHub Token。
 
+## xedit-app 实际接入示例（4.1-v2）
+
+当前 xedit-app 的启动入口 `MainActivity` 只负责存储权限和跳转；真正持有编辑器的是 `x.code.app.activity.EditorActivity`，编辑器 View 是 `HighlightTextView`，旧快捷键栏是 `shortcutKeyView`。因此符号控件应接入 EditorActivity，而不是权限/启动页 MainActivity。
+
+app 模块依赖：
+```kotlin
+implementation("com.github.msmt2018:zero-Symbol-input-view:4.1-v2")
+```
+
+根目录 `settings.gradle.kts` 已启用 JitPack，并使用 `FAIL_ON_PROJECT_REPOS` 集中管理仓库，不需要在 app 模块重复声明仓库。
+
+在 `activity_editor.xml` 中保留旧快捷键 RecyclerView，并与 V2 控件放入同一个纵向底部容器：
+```xml
+<LinearLayout
+    android:id="@+id/bottom_toolbars"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_gravity="bottom"
+    android:orientation="vertical">
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/shortcut_key_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+    <com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawerView
+        android:id="@+id/symbol_drawer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+</LinearLayout>
+```
+
+在 `EditorActivity.onCreate()` 中绑定动作并加载分组。xedit-app 当前已确认的编辑器写入 API 是 `binding.editor.insert(text)`：
+```kotlin
+binding.symbolDrawer.apply {
+    onSymbolActionListener =
+        SymbolDrawerView.OnSymbolActionListener { symbol, isLongPress ->
+            val action = if (isLongPress) symbol.longAction else symbol.shortAction
+            if (action != null) {
+                val result = executeAction(action, editorSymbolActionHost())
+                // 根据 SymbolActionResult 记录不支持/失败动作
+            }
+        }
+    reloadGroups()
+}
+```
+
+最小宿主适配器将 `SymbolActionHost.insertText()` 映射到 `HighlightTextView.insert()`。选区替换、光标移动、删除、剪贴板、编辑器命令和扩展动作必须在确认编辑器 API 后逐项实现；未实现时返回 `false`，不能伪报成功。当前接入先打通符号插入路径。
+
+编辑器可视区域底部留白应覆盖两个底部控件的总高度：
+```kotlin
+bottomToolbars.post {
+    editor.setMarginLayout(bottom = bottomToolbars.height)
+}
+```
+
+`MainActivity` 是启动/权限页面，不应在该页面创建编辑器符号控件。Fragment/Activity 生命周期结束时应解除动作回调和扩展注册句柄。
+
 ## 3. 布局绑定控件
 
 ### 3.1 XML
