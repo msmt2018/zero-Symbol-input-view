@@ -16,11 +16,14 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.dp
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -120,4 +123,48 @@ class SymbolDrawerComposeUiTest {
             assertEquals("common", detentState.selectedGroupId)
         }
     }
+    @Test
+    fun upwardGridGestureExpandsCollapsedDrawerBeforeGridConsumesScroll() {
+        lateinit var drawerState: SymbolDrawerState
+        val symbols = List(60) { index ->
+            SymbolEntry(
+                id = index.toLong(),
+                label = "scroll-symbol-$index",
+                shortAction = SymbolAction.InsertText("symbol-$index")
+            )
+        }
+        composeRule.setContent {
+            MaterialTheme {
+                Box(Modifier.fillMaxWidth().height(280.dp)) {
+                    drawerState = rememberSymbolDrawerState()
+                    SymbolDrawer(
+                        groups = listOf(SymbolGroup("scroll", "Scroll", symbols)),
+                        state = drawerState,
+                        settings = com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings(
+                            columns = 5,
+                            collapsedRows = 1,
+                            indicatorHeightDp = 0,
+                            animationDurationMs = 0,
+                            minimumTouchTargetDp = 40
+                        ),
+                        onSymbolClick = {}
+                    )
+                }
+            }
+        }
+
+        composeRule.runOnIdle {
+            assertEquals(0f, drawerState.expansionFraction, 0f)
+        }
+        composeRule.onNodeWithText("scroll-symbol-0")
+            .performTouchInput { swipeUp() }
+        composeRule.waitForIdle()
+        composeRule.runOnIdle {
+            assertTrue(
+                "An upward gesture starting in the symbol grid should expand the drawer first",
+                drawerState.expansionFraction > 0f
+            )
+        }
+    }
+
 }

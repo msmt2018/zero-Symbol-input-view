@@ -71,8 +71,6 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.ThemeMode
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.HapticMode
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 
 /**
  * Material 3 Compose implementation of the V2 symbol drawer.
@@ -149,9 +147,6 @@ fun SymbolDrawer(
     detentState: SymbolDrawerDetentState? = null
 ) {
     val scope = rememberCoroutineScope()
-    // Animatable.snapTo cancels an in-flight mutation. Serialize pointer deltas
-    // and settling so high-frequency nested-scroll callbacks cannot cancel one another.
-    val drawerMutationMutex = remember { Mutex() }
     val hapticFeedback = LocalHapticFeedback.current
     val registeredExtensions = extensionRegistry?.let { rememberComposeSymbolDrawerExtensions(it) } ?: extensions
     val density = LocalDensity.current
@@ -303,10 +298,8 @@ fun SymbolDrawer(
                         )
                         if (consumedY != 0f && rangePx > 0f) {
                             scope.launch {
-                                drawerMutationMutex.withLock {
-                                    if (detentState != null) detentState.dragBy(-consumedY / rangePx)
-                                    else state.dragBy(-consumedY / rangePx)
-                                }
+                                if (detentState != null) detentState.dragBy(-consumedY / rangePx)
+                                else state.dragBy(-consumedY / rangePx)
                             }
                         }
                         return Offset(0f, consumedY)
@@ -324,10 +317,8 @@ fun SymbolDrawer(
                         )
                         if (consumedY != 0f && rangePx > 0f) {
                             scope.launch {
-                                drawerMutationMutex.withLock {
-                                    if (detentState != null) detentState.dragBy(-consumedY / rangePx)
-                                    else state.dragBy(-consumedY / rangePx)
-                                }
+                                if (detentState != null) detentState.dragBy(-consumedY / rangePx)
+                                else state.dragBy(-consumedY / rangePx)
                             }
                         }
                         return Offset(0f, consumedY)
@@ -345,7 +336,7 @@ fun SymbolDrawer(
                         val rangeDp = with(density) { rangePx.toDp().value }
                         val velocityThreshold = drawerFlingVelocityThreshold(settings, rangeDp)
                         val duration = drawerAnimationDurationMs(settings)
-                        drawerMutationMutex.withLock {
+                        scope.launch {
                             if (detentState != null) {
                                 detentState.settle(
                                     velocityFraction = -available.y / rangePx,
@@ -380,10 +371,8 @@ fun SymbolDrawer(
                                 state = rememberDraggableState { delta ->
                                     val range = with(density) { dragRange.toPx().coerceAtLeast(1f) }
                                     scope.launch {
-                                        drawerMutationMutex.withLock {
-                                            if (detentState != null) detentState.dragBy(-delta / range)
-                                            else state.dragBy(-delta / range)
-                                        }
+                                        if (detentState != null) detentState.dragBy(-delta / range)
+                                        else state.dragBy(-delta / range)
                                     }
                                 },
                                 onDragStopped = { velocity ->
@@ -392,20 +381,18 @@ fun SymbolDrawer(
                                     val velocityThreshold = drawerFlingVelocityThreshold(settings, rangeDp)
                                     val animationDuration = drawerAnimationDurationMs(settings)
                                     scope.launch {
-                                        drawerMutationMutex.withLock {
-                                            if (detentState != null) {
-                                                detentState.settle(
-                                                    velocityFraction = -velocity / range,
-                                                    velocityThreshold = velocityThreshold,
-                                                    animationDurationMillis = animationDuration
-                                                )
-                                            } else {
-                                                state.settle(
-                                                    velocityFraction = velocity / range,
-                                                    animationDurationMillis = animationDuration,
-                                                    velocityThreshold = velocityThreshold
-                                                )
-                                            }
+                                        if (detentState != null) {
+                                            detentState.settle(
+                                                velocityFraction = -velocity / range,
+                                                velocityThreshold = velocityThreshold,
+                                                animationDurationMillis = animationDuration
+                                            )
+                                        } else {
+                                            state.settle(
+                                                velocityFraction = velocity / range,
+                                                animationDurationMillis = animationDuration,
+                                                velocityThreshold = velocityThreshold
+                                            )
                                         }
                                     }
                                 }
