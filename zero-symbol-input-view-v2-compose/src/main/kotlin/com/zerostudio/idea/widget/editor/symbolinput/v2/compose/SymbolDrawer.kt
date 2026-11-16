@@ -42,7 +42,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -290,10 +290,12 @@ fun SymbolDrawer(
             val visibleIndicatorHeight = indicatorHeight * expansionFraction
             val gridHeight = (totalHeight - effectiveHandleHeight - visibleIndicatorHeight).coerceAtLeast(0.dp)
             val rangePx = with(density) { dragRange.toPx() }
-            val latestExpansionFraction by rememberUpdatedState(expansionFraction)
-            val nestedScrollCoordinator = remember(detentState, state, rangePx) {
+            val nestedScrollCoordinator = remember(detentState, state) {
                 DrawerNestedScrollCoordinator(expansionFraction, rangePx)
             }
+            // Keep normalized projection across viewport/range changes, including
+            // while accepted deltas are waiting to be applied to Animatable.
+            SideEffect { nestedScrollCoordinator.updateRange(rangePx) }
             val nestedScrollConnection = remember(detentState, state, rangePx, settings, nestedScrollCoordinator) {
                 object : NestedScrollConnection {
                     override fun onPreScroll(
