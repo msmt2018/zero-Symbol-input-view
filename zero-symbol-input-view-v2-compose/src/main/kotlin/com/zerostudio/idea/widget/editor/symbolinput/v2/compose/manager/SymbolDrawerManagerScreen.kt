@@ -22,6 +22,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.zerostudio.idea.widget.editor.symbolinput.v2.R
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 
 /** Compose-native manager surface; mutations are explicit immutable snapshots. */
@@ -39,8 +41,8 @@ fun SymbolDrawerManagerScreen(
             Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("符号分组管理", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
-            TextButton(onClick = onAddGroup) { Text("新建分组") }
+            Text(stringResource(R.string.compose_group_manager_title), style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+            TextButton(onClick = onAddGroup) { Text(stringResource(R.string.compose_add_group)) }
         }
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(groups, key = { it.id }) { group ->
@@ -48,11 +50,11 @@ fun SymbolDrawerManagerScreen(
                     Column(Modifier.padding(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(group.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                            TextButton(onClick = { onSelectGroup(group.id) }) { Text("选择") }
-                            TextButton(onClick = { onRenameGroup(group) }) { Text("重命名") }
-                            TextButton(onClick = { onDeleteGroup(group) }) { Text("删除") }
+                            TextButton(onClick = { onSelectGroup(group.id) }) { Text(stringResource(R.string.compose_select)) }
+                            TextButton(onClick = { onRenameGroup(group) }) { Text(stringResource(R.string.compose_rename)) }
+                            TextButton(onClick = { onDeleteGroup(group) }) { Text(stringResource(R.string.compose_delete)) }
                         }
-                        Text("${group.symbols.size} 个符号", style = MaterialTheme.typography.bodySmall)
+                        Text(stringResource(R.string.compose_symbol_count, group.symbols.size), style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="compose_action_manage">Manage</string>
+    <string name="compose_action_settings">Settings</string>
+    <string name="compose_no_groups">No symbol groups</string>
+    <string name="compose_settings_title">Layout and display</string>
+    <string name="compose_setting_columns">Symbols per row</string>
+    <string name="compose_setting_collapsed_rows">Rows while collapsed</string>
+    <string name="compose_setting_cell_height">Symbol cell height</string>
+    <string name="compose_setting_max_height">Maximum drawer height</string>
+    <string name="compose_setting_remember_expansion">Remember expanded state</string>
+    <string name="compose_setting_full_labels">Show full symbol labels</string>
+    <string name="compose_setting_show_labels">Show symbol labels</string>
+    <string name="compose_setting_reduce_motion">Reduce motion</string>
+    <string name="compose_group_manager_title">Symbol groups</string>
+    <string name="compose_add_group">Add group</string>
+    <string name="compose_select">Select</string>
+    <string name="compose_rename">Rename</string>
+    <string name="compose_delete">Delete</string>
+    <string name="compose_symbol_count">%1$d symbols</string>
+</resources>

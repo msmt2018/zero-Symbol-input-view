@@ -49,6 +49,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.zerostudio.idea.widget.editor.symbolinput.v2.R
+import androidx.compose.ui.res.stringResource
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
@@ -69,6 +71,7 @@ fun SymbolDrawer(
     settings: SymbolDrawerSettings = SymbolDrawerSettings(),
     maxHeight: Dp = settings.maxExpandedHeightDp.dp,
     extensions: ComposeSymbolDrawerExtensions = ComposeSymbolDrawerExtensions(),
+    extensionRegistry: ComposeSymbolDrawerExtensionRegistry? = null,
     onSymbolClick: (SymbolEntry) -> Unit,
     onSymbolLongClick: (SymbolEntry) -> Unit = {},
     onGroupChanged: (Int, SymbolGroup?) -> Unit = { _, _ -> },
@@ -76,6 +79,7 @@ fun SymbolDrawer(
     onOpenSettings: () -> Unit = {}
 ) {
     val scope = rememberCoroutineScope()
+    val registeredExtensions = extensionRegistry?.let { rememberComposeSymbolDrawerExtensions(it) } ?: extensions
     val density = LocalDensity.current
     val pagerState = rememberPagerState(
         initialPage = groups.indexOfFirst { it.id == state.selectedGroupId }.coerceAtLeast(0),
@@ -140,15 +144,15 @@ fun SymbolDrawer(
                         )
                     }
                     Row(Modifier.align(Alignment.CenterEnd), verticalAlignment = Alignment.CenterVertically) {
-                        TextButton(onClick = onOpenManager) { Text("管理") }
-                        TextButton(onClick = onOpenSettings) { Text("设置") }
+                        TextButton(onClick = onOpenManager) { Text(stringResource(R.string.compose_action_manage)) }
+                        TextButton(onClick = onOpenSettings) { Text(stringResource(R.string.compose_action_settings)) }
                     }
                 }
 
                 if (groups.isNotEmpty()) {
                     Box(Modifier.fillMaxWidth().height(visibleIndicatorHeight)) {
                         if (state.expansionFraction > 0.01f) {
-                            val customIndicator = extensions.groupIndicators
+                            val customIndicator = registeredExtensions.groupIndicators
                                 .sortedWith(compareByDescending<SymbolDrawerGroupIndicator> { it.priority }.thenBy { it.id })
                                 .firstOrNull()
                             if (customIndicator != null) {
@@ -198,7 +202,7 @@ fun SymbolDrawer(
                                 verticalArrangement = Arrangement.spacedBy(settings.cellVerticalSpacingDp.dp)
                             ) {
                                 items(group.symbols, key = { it.id }) { symbol ->
-                                    val renderer = extensions.itemRenderers
+                                    val renderer = registeredExtensions.itemRenderers
                                         .asSequence()
                                         .filter { it.accepts(symbol) }
                                         .sortedWith(compareByDescending<SymbolDrawerItemRenderer> { it.priority }.thenBy { it.id })
@@ -225,7 +229,7 @@ fun SymbolDrawer(
                     }
                 } else {
                     Box(Modifier.fillMaxWidth().height(gridHeight), contentAlignment = Alignment.Center) {
-                        Text("No symbol groups", style = MaterialTheme.typography.bodyMedium)
+                        Text(stringResource(R.string.compose_no_groups), style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }

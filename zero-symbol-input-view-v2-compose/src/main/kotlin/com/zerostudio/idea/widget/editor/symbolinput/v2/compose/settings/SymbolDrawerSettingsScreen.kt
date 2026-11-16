@@ -22,6 +22,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.zerostudio.idea.widget.editor.symbolinput.v2.R
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
 
 /** Material 3 settings editor. Persistence remains owned by the host/repository layer. */
@@ -37,14 +39,14 @@ fun SymbolDrawerSettingsScreen(
     ) {
         item {
             Text(
-                "布局与显示",
+                stringResource(R.string.compose_settings_title),
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 style = MaterialTheme.typography.titleLarge
             )
         }
         item {
             SettingSlider(
-                title = "每行符号数",
+                title = stringResource(R.string.compose_setting_columns),
                 value = settings.columns.toFloat(),
                 range = 1f..30f,
                 valueLabel = settings.columns.toString(),
@@ -53,7 +55,7 @@ fun SymbolDrawerSettingsScreen(
         }
         item {
             SettingSlider(
-                title = "收起时显示行数",
+                title = stringResource(R.string.compose_setting_collapsed_rows),
                 value = settings.collapsedRows.toFloat(),
                 range = 1f..16f,
                 valueLabel = settings.collapsedRows.toString(),
@@ -62,7 +64,7 @@ fun SymbolDrawerSettingsScreen(
         }
         item {
             SettingSlider(
-                title = "符号单元高度",
+                title = stringResource(R.string.compose_setting_cell_height),
                 value = settings.cellHeightDp.toFloat(),
                 range = 6f..128f,
                 valueLabel = "${settings.cellHeightDp} dp",
@@ -71,30 +73,30 @@ fun SymbolDrawerSettingsScreen(
         }
         item {
             SettingSlider(
-                title = "抽屉最大高度",
+                title = stringResource(R.string.compose_setting_max_height),
                 value = settings.maxExpandedHeightDp.toFloat(),
-                range = 80f..900f,
+                range = 80f..1800f,
                 valueLabel = "${settings.maxExpandedHeightDp} dp",
                 onValueChange = { onSettingsChange(settings.copy(maxExpandedHeightDp = it.toInt().coerceIn(80, 1800))) }
             )
         }
         item {
-            SettingSwitch("记忆抽屉展开状态", settings.rememberExpandedState) {
+            SettingSwitch(stringResource(R.string.compose_setting_remember_expansion), settings.rememberExpandedState) {
                 onSettingsChange(settings.copy(rememberExpandedState = it))
             }
         }
         item {
-            SettingSwitch("符号标题完整显示", settings.showFullSymbolLabels) {
+            SettingSwitch(stringResource(R.string.compose_setting_full_labels), settings.showFullSymbolLabels) {
                 onSettingsChange(settings.copy(showFullSymbolLabels = it))
             }
         }
         item {
-            SettingSwitch("显示符号标题", settings.showSymbolLabels) {
+            SettingSwitch(stringResource(R.string.compose_setting_show_labels), settings.showSymbolLabels) {
                 onSettingsChange(settings.copy(showSymbolLabels = it))
             }
         }
         item {
-            SettingSwitch("减少动画", settings.reduceMotion) {
+            SettingSwitch(stringResource(R.string.compose_setting_reduce_motion), settings.reduceMotion) {
                 onSettingsChange(settings.copy(reduceMotion = it))
             }
         }

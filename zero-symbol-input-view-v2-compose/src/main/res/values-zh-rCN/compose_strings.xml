@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="compose_action_manage">管理</string>
+    <string name="compose_action_settings">设置</string>
+    <string name="compose_no_groups">暂无符号分组</string>
+    <string name="compose_settings_title">布局与显示</string>
+    <string name="compose_setting_columns">每行符号数</string>
+    <string name="compose_setting_collapsed_rows">收起时显示行数</string>
+    <string name="compose_setting_cell_height">符号单元高度</string>
+    <string name="compose_setting_max_height">抽屉最大高度</string>
+    <string name="compose_setting_remember_expansion">记忆抽屉展开状态</string>
+    <string name="compose_setting_full_labels">符号标题完整显示</string>
+    <string name="compose_setting_show_labels">显示符号标题</string>
+    <string name="compose_setting_reduce_motion">减少动画</string>
+    <string name="compose_group_manager_title">符号分组管理</string>
+    <string name="compose_add_group">新建分组</string>
+    <string name="compose_select">选择</string>
+    <string name="compose_rename">重命名</string>
+    <string name="compose_delete">删除</string>
+    <string name="compose_symbol_count">%1$d 个符号</string>
+</resources>
