@@ -4,6 +4,9 @@
  */
 package com.zerostudio.idea.widget.editor.symbolinput.v2.compose
 
+import java.util.Collections
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -44,4 +47,55 @@ class ComposeSymbolDrawerExtensionRegistryTest {
 
         assertTrue(registry.snapshot().actions.isEmpty())
     }
+
+    @Test
+    fun observerNotificationsAreDeliveredInMonotonicRevisionOrder() {
+        val registry = ComposeSymbolDrawerExtensionRegistry()
+        val firstCallbackEntered = CountDownLatch(1)
+        val releaseFirstCallback = CountDownLatch(1)
+        val secondMutationVisible = CountDownLatch(1)
+        val revisions = Collections.synchronizedList(mutableListOf<Long>())
+
+        registry.observe { revision ->
+            revisions += revision
+            if (revision == 1L) {
+                firstCallbackEntered.countDown()
+                check(releaseFirstCallback.await(5, TimeUnit.SECONDS))
+            }
+        }
+
+        val firstWriter = Thread {
+            registry.registerAction(action("test.first"))
+        }
+        firstWriter.start()
+        assertTrue(firstCallbackEntered.await(5, TimeUnit.SECONDS))
+
+        val secondWriter = Thread {
+            registry.registerAction(action("test.second"))
+            secondMutationVisible.countDown()
+        }
+        secondWriter.start()
+
+        // The second mutation is committed while its notification waits for
+        // the first observer delivery to finish.
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5)
+        while (registry.snapshot().actions.size < 2 && System.nanoTime() < deadline) {
+            Thread.yield()
+        }
+        assertEquals(2, registry.snapshot().actions.size)
+
+        releaseFirstCallback.countDown()
+        firstWriter.join(5_000)
+        secondWriter.join(5_000)
+        assertTrue(!firstWriter.isAlive)
+        assertTrue(!secondWriter.isAlive)
+        assertTrue(secondMutationVisible.await(5, TimeUnit.SECONDS))
+        assertEquals(listOf(1L, 2L), revisions.toList())
+    }
+
+    private fun action(id: String) = ComposeSymbolDrawerActionExtension(
+        id = id,
+        title = id,
+        handler = ComposeSymbolActionHandler { _, _ -> true }
+    )
 }
