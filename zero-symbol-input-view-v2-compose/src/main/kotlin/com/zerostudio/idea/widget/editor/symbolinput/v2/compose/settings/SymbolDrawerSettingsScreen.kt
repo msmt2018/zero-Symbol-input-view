@@ -106,8 +106,18 @@ fun SymbolDrawerSettingsScreen(
                 item {
                     SettingChoice(
                         title = stringResource(R.string.compose_setting_theme),
-                        selected = settings.themeMode.name,
-                        options = ThemeMode.values().map { it to it.name },
+                        selected = stringResource(when (settings.themeMode) {
+                            ThemeMode.SYSTEM -> R.string.compose_choice_system
+                            ThemeMode.LIGHT -> R.string.compose_choice_light
+                            ThemeMode.DARK -> R.string.compose_choice_dark
+                        }),
+                        options = ThemeMode.values().map { mode ->
+                            mode to stringResource(when (mode) {
+                                ThemeMode.SYSTEM -> R.string.compose_choice_system
+                                ThemeMode.LIGHT -> R.string.compose_choice_light
+                                ThemeMode.DARK -> R.string.compose_choice_dark
+                            })
+                        },
                         onSelected = { onSettingsChange(settings.copy(themeMode = it)) }
                     )
                 }
@@ -122,24 +132,52 @@ fun SymbolDrawerSettingsScreen(
                 item {
                     SettingChoice(
                         title = stringResource(R.string.compose_setting_haptics),
-                        selected = settings.hapticMode.name,
-                        options = HapticMode.values().map { it to it.name },
+                        selected = stringResource(when (settings.hapticMode) {
+                            HapticMode.OFF -> R.string.compose_choice_off
+                            HapticMode.SELECTION -> R.string.compose_choice_selection
+                            HapticMode.ALL -> R.string.compose_choice_all
+                        }),
+                        options = HapticMode.values().map { mode ->
+                            mode to stringResource(when (mode) {
+                                HapticMode.OFF -> R.string.compose_choice_off
+                                HapticMode.SELECTION -> R.string.compose_choice_selection
+                                HapticMode.ALL -> R.string.compose_choice_all
+                            })
+                        },
                         onSelected = { onSettingsChange(settings.copy(hapticMode = it)) }
                     )
                 }
                 item {
                     SettingChoice(
                         title = stringResource(R.string.compose_setting_large_screen_layout),
-                        selected = settings.largeScreenLayoutMode.name,
-                        options = LargeScreenLayoutMode.values().map { it to it.name },
+                        selected = stringResource(when (settings.largeScreenLayoutMode) {
+                            LargeScreenLayoutMode.AUTO -> R.string.compose_choice_auto
+                            LargeScreenLayoutMode.BOTTOM -> R.string.compose_choice_bottom
+                            LargeScreenLayoutMode.SIDE -> R.string.compose_choice_side
+                        }),
+                        options = LargeScreenLayoutMode.values().map { mode ->
+                            mode to stringResource(when (mode) {
+                                LargeScreenLayoutMode.AUTO -> R.string.compose_choice_auto
+                                LargeScreenLayoutMode.BOTTOM -> R.string.compose_choice_bottom
+                                LargeScreenLayoutMode.SIDE -> R.string.compose_choice_side
+                            })
+                        },
                         onSelected = { onSettingsChange(settings.copy(largeScreenLayoutMode = it)) }
                     )
                 }
                 item {
                     SettingChoice(
                         title = stringResource(R.string.compose_setting_side_dock_edge),
-                        selected = settings.sideDockEdge.name,
-                        options = SideDockEdge.values().map { it to it.name },
+                        selected = stringResource(when (settings.sideDockEdge) {
+                            SideDockEdge.LEFT -> R.string.compose_choice_left
+                            SideDockEdge.RIGHT -> R.string.compose_choice_right
+                        }),
+                        options = SideDockEdge.values().map { edge ->
+                            edge to stringResource(when (edge) {
+                                SideDockEdge.LEFT -> R.string.compose_choice_left
+                                SideDockEdge.RIGHT -> R.string.compose_choice_right
+                            })
+                        },
                         onSelected = { onSettingsChange(settings.copy(sideDockEdge = it)) }
                     )
                 }
