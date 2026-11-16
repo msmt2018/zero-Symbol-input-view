@@ -63,8 +63,12 @@ class BuiltInGroupIndicatorTest {
                 )
             }
         }
+        val indicatorBounds = composeRule
+            .onNodeWithContentDescription("Group 1 of 2")
+            .fetchSemanticsNode()
+            .boundsInRoot
         composeRule.onNodeWithContentDescription("Group 1 of 2").performTouchInput {
-            click(Offset(300f, 16f))
+            click(Offset(indicatorBounds.width * 0.75f, indicatorBounds.height / 2f))
         }
         composeRule.onNodeWithContentDescription("Group 2 of 2").assertIsDisplayed()
     }
