@@ -58,7 +58,7 @@ class SymbolDrawerDetentStateTest {
     }
 
     @Test
-    fun dynamicAnchorReplacementRetainsNearestStablePosition() {
+    fun dynamicAnchorReplacementRetainsNearestStablePosition() = runBlocking {
         val state = SymbolDrawerDetentState(
             initialDetentId = SymbolDrawerDetent.HalfExpanded.id
         )
@@ -93,6 +93,27 @@ class SymbolDrawerDetentStateTest {
                 )
             )
         }
+    }
+
+    @Test
+    fun updatingFractionOfStableAnchorRepositionsSettledDrawer() = runBlocking {
+        val state = SymbolDrawerDetentState(
+            detents = listOf(
+                SymbolDrawerDetent.Collapsed,
+                SymbolDrawerDetent("half-expanded", 0.5f),
+                SymbolDrawerDetent.Expanded
+            ),
+            initialDetentId = "half-expanded"
+        )
+        state.updateDetents(
+            listOf(
+                SymbolDrawerDetent.Collapsed,
+                SymbolDrawerDetent("half-expanded", 0.62f),
+                SymbolDrawerDetent.Expanded
+            )
+        )
+        assertEquals("half-expanded", state.targetDetentId)
+        assertEquals(0.62f, state.expansionFraction, 0f)
     }
 
     @Test

@@ -84,21 +84,29 @@ class SymbolDrawerDetentState(
      * target disappears, its normalized position is retained by selecting the
      * nearest new anchor; ties prefer the lower (less expanded) anchor.
      */
-    fun updateDetents(detents: List<SymbolDrawerDetent>) {
+    suspend fun updateDetents(detents: List<SymbolDrawerDetent>) {
         val validated = validateDetents(detents)
-        val oldTargetFraction = configuredDetents.firstOrNull { it.id == targetDetentId }
+        val previousTargetId = targetDetentId
+        val previousCurrentId = currentDetentId
+        val oldTargetFraction = configuredDetents.firstOrNull { it.id == previousTargetId }
             ?.fraction ?: expansion.value
-        val oldCurrentFraction = configuredDetents.firstOrNull { it.id == currentDetentId }
+        val oldCurrentFraction = configuredDetents.firstOrNull { it.id == previousCurrentId }
             ?.fraction ?: oldTargetFraction
+        val wasSettled = previousTargetId == previousCurrentId &&
+            abs(expansion.value - oldCurrentFraction) <= POSITION_EPSILON
+
         configuredDetents = validated
 
-        val retainedTarget = validated.firstOrNull { it.id == targetDetentId }
+        val retainedTarget = validated.firstOrNull { it.id == previousTargetId }
             ?: nearestDetent(validated, oldTargetFraction)
-        val retainedCurrent = validated.firstOrNull { it.id == currentDetentId }
+        val retainedCurrent = validated.firstOrNull { it.id == previousCurrentId }
             ?: nearestDetent(validated, oldCurrentFraction)
 
         targetDetentId = retainedTarget.id
         currentDetentId = retainedCurrent.id
+        // When idle, keep the same semantic anchor at its newly measured
+        // fraction. While dragging/settling, preserve the live visual position.
+        if (wasSettled) expansion.snapTo(retainedCurrent.fraction)
     }
 
     suspend fun snapToDetent(detentId: String) {
@@ -157,6 +165,8 @@ class SymbolDrawerDetentState(
             ?: throw IllegalArgumentException("Unknown drawer detent: $id")
 
     companion object {
+        private const val POSITION_EPSILON = 0.0001f
+
         private fun validateDetents(detents: List<SymbolDrawerDetent>): List<SymbolDrawerDetent> {
             require(detents.size >= 2) { "At least two drawer detents are required" }
             require(detents.map { it.id }.distinct().size == detents.size) {

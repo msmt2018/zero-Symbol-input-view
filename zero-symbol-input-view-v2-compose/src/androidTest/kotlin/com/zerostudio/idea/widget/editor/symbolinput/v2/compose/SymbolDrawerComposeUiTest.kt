@@ -81,4 +81,43 @@ class SymbolDrawerComposeUiTest {
         composeRule.runOnIdle { assertEquals(42L, editedSymbolId) }
     }
 
-}
+}\n    @Test
+    fun drawerUsesTheSuppliedMultiDetentStateForInitialPresentation() {
+        val detentState = SymbolDrawerDetentState(
+            initialDetentId = SymbolDrawerDetent.HalfExpanded.id,
+            selectedGroupId = "common"
+        )
+        composeRule.setContent {
+            MaterialTheme {
+                Box(Modifier.fillMaxWidth().height(240.dp)) {
+                    SymbolDrawer(
+                        groups = listOf(
+                            SymbolGroup(
+                                id = "common",
+                                title = "Common",
+                                symbols = listOf(
+                                    SymbolEntry(
+                                        id = 7L,
+                                        label = "compose-detent",
+                                        shortAction = SymbolAction.InsertText("compose")
+                                    )
+                                )
+                            )
+                        ),
+                        state = rememberSymbolDrawerState(),
+                        detentState = detentState,
+                        onSymbolClick = {}
+                    )
+                }
+            }
+        }
+
+        composeRule.onNodeWithText("compose-detent").assertIsDisplayed()
+        composeRule.runOnIdle {
+            assertEquals("half-expanded", detentState.targetDetentId)
+            assertEquals(0.5f, detentState.expansionFraction, 0f)
+            assertEquals("common", detentState.selectedGroupId)
+        }
+    }
+
+
