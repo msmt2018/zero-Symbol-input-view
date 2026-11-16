@@ -136,12 +136,14 @@ class DrawerNestedScrollCoordinatorTest {
 
         val firstLease = coordinator.enqueueMutation(0.1f)!!
         assertEquals(0.1f, coordinator.takePendingMutation(firstLease)!!, 0.0001f)
+        assertEquals(true, coordinator.acknowledgeMutation(firstLease, 0.1f))
         assertEquals(null, coordinator.takePendingMutation(firstLease))
 
         val secondLease = coordinator.enqueueMutation(0.2f)!!
         assertEquals(false, coordinator.releaseMutationDrain(firstLease))
         assertEquals(true, coordinator.hasPendingMutation())
         assertEquals(0.2f, coordinator.takePendingMutation(secondLease)!!, 0.0001f)
+        assertEquals(true, coordinator.acknowledgeMutation(secondLease, 0.2f))
         assertEquals(null, coordinator.takePendingMutation(secondLease))
     }
 }
