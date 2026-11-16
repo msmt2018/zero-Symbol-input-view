@@ -78,7 +78,7 @@ private fun SymbolAction.valueText(): String = when (this) {
     SymbolAction.OpenManager, is SymbolAction.Composite -> ""
 }
 
-private fun ActionKind.create(value: String = ""): SymbolAction = when (this) {
+private fun ActionKind.create(value: String = defaultValue()): SymbolAction = when (this) {
     ActionKind.INSERT_TEXT -> SymbolAction.InsertText(value)
     ActionKind.REPLACE_SELECTION -> SymbolAction.ReplaceSelection(value)
     ActionKind.SURROUND_SELECTION -> {
@@ -87,7 +87,7 @@ private fun ActionKind.create(value: String = ""): SymbolAction = when (this) {
         SymbolAction.SurroundSelection(value.substring(0, split), value.substring(split + 1))
     }
     ActionKind.EDITOR_COMMAND -> SymbolAction.EditorCommand(
-        value.substringBefore('|'), value.substringAfter('|", "").ifEmpty { null }
+        value.substringBefore('|'), value.substringAfter('|', "").ifEmpty { null }
     )
     ActionKind.EXTENSION -> SymbolAction.Extension(
         value.substringBefore('|'), value.substringAfter('|", "").ifEmpty { null }
@@ -98,6 +98,17 @@ private fun ActionKind.create(value: String = ""): SymbolAction = when (this) {
     ActionKind.CLIPBOARD -> SymbolAction.Clipboard(ClipboardOperation.valueOf(value))
     ActionKind.OPEN_MANAGER -> SymbolAction.OpenManager
     ActionKind.COMPOSITE -> SymbolAction.Composite(emptyList())
+}
+
+private fun ActionKind.defaultValue(): String = when (this) {
+    ActionKind.SURROUND_SELECTION -> "|"
+    ActionKind.EDITOR_COMMAND -> "command"
+    ActionKind.EXTENSION -> "extension"
+    ActionKind.MOVE_CURSOR -> CursorTarget.values().first().name
+    ActionKind.DELETE -> DeleteKind.values().first().name
+    ActionKind.TRANSFORM_SELECTION -> SelectionTransform.values().first().name
+    ActionKind.CLIPBOARD -> ClipboardOperation.values().first().name
+    else -> ""
 }
 
 @Composable
