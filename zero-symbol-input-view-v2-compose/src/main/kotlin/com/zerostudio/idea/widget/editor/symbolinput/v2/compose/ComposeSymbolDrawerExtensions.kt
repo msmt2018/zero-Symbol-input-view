@@ -290,7 +290,9 @@ fun rememberComposeSymbolDrawerExtensions(
     var revision by remember(registry) { mutableStateOf(0L) }
     var snapshot by remember(registry) { mutableStateOf(registry.snapshot()) }
     DisposableEffect(registry) {
-        val registration = registry.observe {
+        // Queue the initial revision atomically with future observer events so a
+        // registration racing the first snapshot cannot leave this Compose state stale.
+        val registration = registry.observe(emitCurrent = true) {
             revision = it
             snapshot = registry.snapshot()
         }
