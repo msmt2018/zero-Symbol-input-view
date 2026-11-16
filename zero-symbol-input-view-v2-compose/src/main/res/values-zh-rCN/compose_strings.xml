@@ -91,4 +91,9 @@
     <string name="compose_setting_auto_collapse">执行动作后自动收起</string>
     <string name="compose_setting_prefetch_groups">预加载相邻分组</string>
     <string name="compose_setting_search_payload">搜索时包含动作参数</string>
+    <string name="compose_setting_theme">主题模式</string>
+    <string name="compose_setting_indicator_style">分组指示器样式</string>
+    <string name="compose_setting_haptics">触觉反馈</string>
+    <string name="compose_setting_large_screen_layout">大屏布局方式</string>
+    <string name="compose_setting_side_dock_edge">侧边停靠位置</string>
 </resources>
