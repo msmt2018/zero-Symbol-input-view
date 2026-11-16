@@ -18,4 +18,13 @@
     <string name="compose_rename">重命名</string>
     <string name="compose_delete">删除</string>
     <string name="compose_symbol_count">%1$d 个符号</string>
+    <string name="compose_import_json">导入 JSON</string>
+    <string name="compose_export_json">导出 JSON</string>
+    <string name="compose_selected">已选择</string>
+    <string name="compose_move_up">上移</string>
+    <string name="compose_move_down">下移</string>
+    <string name="compose_symbols_in_group">符号 · %1$s</string>
+    <string name="compose_add_symbol">添加符号</string>
+    <string name="compose_symbol_id">ID：%1$d</string>
+    <string name="compose_edit">编辑</string>
 </resources>

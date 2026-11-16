@@ -18,4 +18,13 @@
     <string name="compose_rename">Rename</string>
     <string name="compose_delete">Delete</string>
     <string name="compose_symbol_count">%1$d symbols</string>
+    <string name="compose_import_json">Import JSON</string>
+    <string name="compose_export_json">Export JSON</string>
+    <string name="compose_selected">Selected</string>
+    <string name="compose_move_up">Move up</string>
+    <string name="compose_move_down">Move down</string>
+    <string name="compose_symbols_in_group">Symbols · %1$s</string>
+    <string name="compose_add_symbol">Add symbol</string>
+    <string name="compose_symbol_id">ID: %1$d</string>
+    <string name="compose_edit">Edit</string>
 </resources>
