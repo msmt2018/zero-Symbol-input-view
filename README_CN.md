@@ -125,7 +125,7 @@ dependencies {
 }
 ```
 
-将 `4.1-v2` 替换为已经创建且 JitPack 构建及 artifact 验证成功的 Git Tag（例如 `vX.Y.Z`）。版本号使用完整 Tag 名称，包含开头的 `v`；不要把尚未发布的分支名当作正式依赖版本。公开 artifact 不需要 Maven 账号、密码或 GitHub Token。完整坐标以及远程/本地接入说明见 [V2 模块接入指南](zero-symbol-input-view-v2/README.md#2-jitpack-远程-maven-导入)。
+将 `4.1-v2` 替换为已经创建且 JitPack 构建及 artifact 验证成功的 Git Tag（例如 `vX.Y.Z`）。版本号使用完整 Tag 名称，包含开头的 `v`；不要把尚未发布的分支名当作正式依赖版本。上面的坐标是该多模块仓库的 **JitPack 根项目聚合 artifact**。JitPack 的根坐标 `com.github.User:Repo:Tag` 表示项目聚合构建；单独模块使用另一种 `com.github.User.Repo:Module:Tag` 坐标。详见 [JitPack 多模块项目说明](https://docs.jitpack.io/building/#multi-module-projects)。公开 artifact 不需要 Maven 账号、密码或 GitHub Token。完整坐标以及远程/本地接入说明见 [V2 模块接入指南](zero-symbol-input-view-v2/README.md#2-jitpack-远程-maven-导入)。
 
 ## 扩展 API 开发
 
