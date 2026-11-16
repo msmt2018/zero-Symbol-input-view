@@ -43,7 +43,7 @@ class SymbolDrawerDetentStateTest {
         state.settle(velocityFraction = 0f)
         assertEquals("collapsed", state.targetDetentId)
 
-        state.dragBy(0.25f)
+        state.dragBy(0.01f)
         state.settle(velocityFraction = 0f)
         assertEquals("half-expanded", state.targetDetentId)
     }
@@ -90,6 +90,19 @@ class SymbolDrawerDetentStateTest {
                 )
             )
         }
+    }
+
+    @Test
+    fun saverRestoresStableTargetAndSelectedGroup() {
+        val original = SymbolDrawerDetentState(
+            initialDetentId = "half-expanded",
+            selectedGroupId = "group-b"
+        )
+        val saver = SymbolDrawerDetentState.saver(SymbolDrawerDetent.Defaults)
+        val saved = saver.save(original)
+        val restored = saver.restore(saved!!)
+        assertEquals("half-expanded", restored?.targetDetentId)
+        assertEquals("group-b", restored?.selectedGroupId)
     }
 
     @Test

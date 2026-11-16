@@ -152,14 +152,14 @@ fun SymbolDrawer(
     val resolvedColorScheme = registeredExtensions.themes.firstNotNullOfOrNull { extension ->
         runCatching { extension.resolve().colorScheme }.getOrNull()
     } ?: modeColorScheme
+    val expansionFraction = detentState?.expansionFraction ?: state.expansionFraction
+    val selectedGroupId = detentState?.selectedGroupId ?: state.selectedGroupId
     val pagerState = rememberPagerState(
         initialPage = contentGroups.indexOfFirst { it.id == selectedGroupId }.coerceAtLeast(0),
         pageCount = { contentGroups.size.coerceAtLeast(1) }
     )
     val selectedGroup = contentGroups.getOrNull(pagerState.currentPage)
     val lifecycleExtensions = registeredExtensions.lifecycle
-    val expansionFraction = detentState?.expansionFraction ?: state.expansionFraction
-    val selectedGroupId = detentState?.selectedGroupId ?: state.selectedGroupId
 
     DisposableEffect(lifecycleExtensions) {
         lifecycleExtensions.forEach { extension -> runCatching { extension.onAttached() } }
@@ -238,13 +238,18 @@ fun SymbolDrawer(
             val collapsedGridHeight = effectiveCellHeight * settings.collapsedRows
             val collapsedHeight = handleHeight + collapsedGridHeight
             val availableHeight = if (constraints.hasBoundedHeight) this.maxHeight else maxHeight
-            val expandedHeight = availableHeight.coerceAtMost(maxHeight).coerceAtLeast(collapsedHeight)
-            val totalHeight = collapsedHeight + (expandedHeight - collapsedHeight) * state.expansionFraction
-            val visibleIndicatorHeight = indicatorHeight * state.expansionFraction
-            val gridHeight = (totalHeight - handleHeight - visibleIndicatorHeight).coerceAtLeast(collapsedGridHeight)
+            // Respect bounded parent constraints even when the configured
+            // collapsed grid cannot fit in the available viewport.
+            val expandedHeight = availableHeight.coerceAtMost(maxHeight).coerceAtLeast(0.dp)
+            val effectiveCollapsedHeight = collapsedHeight.coerceAtMost(expandedHeight)
+            val effectiveHandleHeight = handleHeight.coerceAtMost(effectiveCollapsedHeight)
+            val dragRange = (expandedHeight - effectiveCollapsedHeight).coerceAtLeast(0.dp)
+            val totalHeight = effectiveCollapsedHeight + dragRange * expansionFraction
+            val visibleIndicatorHeight = indicatorHeight * expansionFraction
+            val gridHeight = (totalHeight - effectiveHandleHeight - visibleIndicatorHeight).coerceAtLeast(0.dp)
 
             Column(Modifier.requiredHeight(totalHeight)) {
-                Box(Modifier.fillMaxWidth().height(handleHeight)) {
+                Box(Modifier.fillMaxWidth().height(effectiveHandleHeight)) {
                     Box(
                         Modifier
                             .fillMaxWidth()
@@ -252,7 +257,7 @@ fun SymbolDrawer(
                             .draggable(
                                 orientation = Orientation.Vertical,
                                 state = rememberDraggableState { delta ->
-                                    val range = with(density) { (expandedHeight - collapsedHeight).toPx().coerceAtLeast(1f) }
+                                    val range = with(density) { dragRange.toPx().coerceAtLeast(1f) }
                                     scope.launch {
                                         if (detentState != null) detentState.dragBy(-delta / range)
                                         else state.dragBy(-delta / range)

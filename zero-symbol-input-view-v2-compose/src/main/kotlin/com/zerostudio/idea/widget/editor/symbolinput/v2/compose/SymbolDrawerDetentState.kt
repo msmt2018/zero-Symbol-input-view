@@ -86,13 +86,19 @@ class SymbolDrawerDetentState(
      */
     fun updateDetents(detents: List<SymbolDrawerDetent>) {
         val validated = validateDetents(detents)
-        val oldTarget = configuredDetents.firstOrNull { it.id == targetDetentId }
+        val oldTargetFraction = configuredDetents.firstOrNull { it.id == targetDetentId }
             ?.fraction ?: expansion.value
+        val oldCurrentFraction = configuredDetents.firstOrNull { it.id == currentDetentId }
+            ?.fraction ?: oldTargetFraction
         configuredDetents = validated
-        val retained = validated.firstOrNull { it.id == targetDetentId }
-            ?: nearestDetent(validated, oldTarget)
-        targetDetentId = retained.id
-        if (currentDetentId !in validated.map { it.id }) currentDetentId = retained.id
+
+        val retainedTarget = validated.firstOrNull { it.id == targetDetentId }
+            ?: nearestDetent(validated, oldTargetFraction)
+        val retainedCurrent = validated.firstOrNull { it.id == currentDetentId }
+            ?: nearestDetent(validated, oldCurrentFraction)
+
+        targetDetentId = retainedTarget.id
+        currentDetentId = retainedCurrent.id
     }
 
     suspend fun snapToDetent(detentId: String) {
