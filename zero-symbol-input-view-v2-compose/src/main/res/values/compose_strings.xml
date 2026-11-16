@@ -55,4 +55,13 @@
     <string name="compose_hint_surround">Enter prefix|suffix</string>
     <string name="compose_hint_editor_command">Registered command ID, optionally followed by |payload</string>
     <string name="compose_hint_extension">Extension ID, optionally followed by |payload</string>
+
+<string name="compose_add_symbol_title">Add symbol</string>
+    <string name="compose_edit_symbol_title">Edit symbol</string>
+    <string name="compose_symbol_label">Symbol label</string>
+    <string name="compose_short_action">Short-press action</string>
+    <string name="compose_long_action">Long-press action</string>
+    <string name="compose_enable_long_action">Enable long-press action</string>
+    <string name="compose_action_value">Action value or arguments</string>
+    <string name="compose_group_not_found">The selected group no longer exists</string>
 </resources>

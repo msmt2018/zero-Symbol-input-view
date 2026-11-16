@@ -55,4 +55,13 @@
     <string name="compose_hint_surround">输入前缀|后缀</string>
     <string name="compose_hint_editor_command">已注册命令 ID，可选追加 |参数</string>
     <string name="compose_hint_extension">扩展 ID，可选追加 |参数</string>
+
+<string name="compose_add_symbol_title">添加符号</string>
+    <string name="compose_edit_symbol_title">编辑符号</string>
+    <string name="compose_symbol_label">符号标题</string>
+    <string name="compose_short_action">短按动作</string>
+    <string name="compose_long_action">长按动作</string>
+    <string name="compose_enable_long_action">启用长按动作</string>
+    <string name="compose_action_value">动作值或参数</string>
+    <string name="compose_group_not_found">所选分组已不存在</string>
 </resources>
