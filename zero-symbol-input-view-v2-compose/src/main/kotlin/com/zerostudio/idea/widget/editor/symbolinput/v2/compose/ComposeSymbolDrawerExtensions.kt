@@ -15,6 +15,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import java.util.IdentityHashMap
 import androidx.compose.material3.ColorScheme
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
@@ -142,6 +143,9 @@ class ComposeSymbolDrawerExtensionRegistry {
     private val settingsTabs = LinkedHashMap<String, ComposeSymbolDrawerSettingsTabExtension>()
     private val settingsItems = LinkedHashMap<String, ComposeSymbolDrawerSettingExtension>()
     private val observers = LinkedHashSet<(Long) -> Unit>()
+    // Per-registry-map registration tokens make replacement handles safe even
+    // when the same extension instance is registered more than once.
+    private val registrationTokens = IdentityHashMap<Any, MutableMap<String, Any>>()
     private var revision = 0L
 
     fun registerAction(value: ComposeSymbolDrawerActionExtension) = register(actions, value.id, value)
@@ -155,15 +159,23 @@ class ComposeSymbolDrawerExtensionRegistry {
 
     private fun <T : Any> register(target: LinkedHashMap<String, T>, id: String, value: T): AutoCloseable {
         require(id.matches(Regex("[A-Za-z0-9][A-Za-z0-9_.:/-]{0,255}"))) { "Invalid extension ID: $id" }
-        synchronized(lock) { target[id] = value; revision++ }
+        val token = Any()
+        synchronized(lock) {
+            target[id] = value
+            registrationTokens.getOrPut(target) { LinkedHashMap() }[id] = token
+            revision++
+        }
         notifyObservers()
         var closed = false
         return AutoCloseable {
             val removed = synchronized(lock) {
                 if (closed) false else {
                     closed = true
-                    if (target[id] === value) {
+                    val tokens = registrationTokens[target]
+                    if (tokens?.get(id) === token) {
                         target.remove(id)
+                        tokens.remove(id)
+                        if (tokens.isEmpty()) registrationTokens.remove(target)
                         revision++
                         true
                     } else false
@@ -202,6 +214,7 @@ class ComposeSymbolDrawerExtensionRegistry {
         synchronized(lock) {
             actions.clear(); renderers.clear(); indicators.clear(); providers.clear()
             themes.clear(); lifecycle.clear(); settingsTabs.clear(); settingsItems.clear()
+            registrationTokens.clear()
             revision++
         }
         notifyObservers()
