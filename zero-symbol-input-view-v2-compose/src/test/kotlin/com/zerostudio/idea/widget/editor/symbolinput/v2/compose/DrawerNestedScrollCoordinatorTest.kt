@@ -83,7 +83,6 @@ class DrawerNestedScrollCoordinatorTest {
         assertEquals(null, coordinator.takePendingMutation(2L))
     }
 
-}
 
     @Test
     fun cancelledWorkerCanReleaseLeaseAndPendingWorkCanRestart() {
@@ -112,3 +111,4 @@ class DrawerNestedScrollCoordinatorTest {
         assertEquals(0.2f, coordinator.takePendingMutation(secondLease)!!, 0.0001f)
         assertEquals(null, coordinator.takePendingMutation(secondLease))
     }
+}
