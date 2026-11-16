@@ -90,7 +90,7 @@ private fun ActionKind.create(value: String = defaultValue()): SymbolAction = wh
         value.substringBefore('|'), value.substringAfter('|', "").ifEmpty { null }
     )
     ActionKind.EXTENSION -> SymbolAction.Extension(
-        value.substringBefore('|'), value.substringAfter('|", "").ifEmpty { null }
+        value.substringBefore('|'), value.substringAfter('|', "").ifEmpty { null }
     )
     ActionKind.MOVE_CURSOR -> SymbolAction.MoveCursor(CursorTarget.valueOf(value))
     ActionKind.DELETE -> SymbolAction.Delete(DeleteKind.valueOf(value))
