@@ -14,7 +14,7 @@ plugins {
 }
 
 android {
-    namespace = "com.zerostudio.idea.widget.editor.symbolinput.v2.compose"
+    namespace = "com.zerostudio.idea.widget.editor.symbolinput.v2"
     defaultConfig {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")

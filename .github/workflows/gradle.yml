@@ -121,6 +121,36 @@ jobs:
       - name: Compile V2 library instrumentation tests
         run: ./gradlew :zero-symbol-input-view-v2:assembleDebugAndroidTest
 
+  compose-library-validation:
+    name: Compose V2 library build and tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+        with:
+          submodules: true
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          java-version: 17
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Grant Permissions for Gradle
+        run: chmod +x gradlew
+
+      - name: Build Compose V2 debug and release variants
+        run: ./gradlew :zero-symbol-input-view-v2-compose:assembleDebug :zero-symbol-input-view-v2-compose:assembleRelease
+
+      - name: Run Compose V2 unit tests
+        run: ./gradlew :zero-symbol-input-view-v2-compose:testDebugUnitTest
+
+      - name: Compile Compose V2 instrumentation tests
+        run: ./gradlew :zero-symbol-input-view-v2-compose:assembleDebugAndroidTest
+
   v2-library-instrumentation:
     name: V2 Library Android ${{ matrix.api-level }} instrumentation tests
     runs-on: ubuntu-latest

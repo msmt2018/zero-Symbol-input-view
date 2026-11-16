@@ -34,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 
@@ -117,6 +118,7 @@ fun DrawerContainer(
     expandedContent: @Composable () -> Unit
 ) {
     val scope = rememberCoroutineScope()
+    val density = LocalDensity.current
     BoxWithConstraints(modifier.fillMaxSize()) {
         val safeExpanded = config.expandedHeight.coerceAtMost(maxHeight)
         val safeCollapsed = config.collapsedHeight.coerceAtMost(safeExpanded)
@@ -136,7 +138,7 @@ fun DrawerContainer(
                             Modifier.fillMaxWidth().height(28.dp).draggable(
                                 orientation = Orientation.Vertical,
                                 state = rememberDraggableState { delta ->
-                                    val range = (safeExpanded - safeCollapsed).value.coerceAtLeast(1f)
+                                    val range = with(density) { (safeExpanded - safeCollapsed).toPx().coerceAtLeast(1f) }
                                     scope.launch { state.dragBy(-delta / range) }
                                 },
                                 onDragStopped = { velocity ->
