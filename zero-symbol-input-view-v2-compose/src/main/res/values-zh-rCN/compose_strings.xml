@@ -107,4 +107,10 @@
     <string name="compose_choice_side">侧边</string>
     <string name="compose_choice_left">左侧</string>
     <string name="compose_choice_right">右侧</string>
+    <string name="compose_action_composite">组合动作</string>
+    <string name="compose_action_move_up">上移</string>
+    <string name="compose_action_move_down">下移</string>
+    <string name="compose_action_remove">移除</string>
+    <string name="compose_composite_children">子动作：%1$d 个</string>
+    <string name="compose_composite_add_action">添加子动作</string>
 </resources>
