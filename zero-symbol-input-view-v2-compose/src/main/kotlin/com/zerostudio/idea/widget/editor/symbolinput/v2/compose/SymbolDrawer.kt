@@ -71,6 +71,15 @@ import kotlinx.coroutines.launch
  * Vertical expansion is handled by the drag handle; HorizontalPager exclusively
  * owns group paging. The indicator is revealed continuously as the drawer opens.
  */
+/**
+ * Converts the configured page cache budget into Compose Pager's symmetric
+ * beyond-viewport page count. The configured budget includes the visible page.
+ */
+internal fun pageBeyondViewportCount(settings: SymbolDrawerSettings): Int {
+    if (!settings.prefetchAdjacentGroups || settings.pageCacheLimit <= 1) return 0
+    return ((settings.pageCacheLimit - 1) / 2).coerceAtMost(4)
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SymbolDrawer(
@@ -269,6 +278,7 @@ fun SymbolDrawer(
 
                     HorizontalPager(
                         state = pagerState,
+                        beyondViewportPageCount = pageBeyondViewportCount(settings),
                         modifier = Modifier.fillMaxWidth().height(gridHeight),
                         key = { page -> contentGroups.getOrNull(page)?.id ?: "empty-$page" }
                     ) { page ->
