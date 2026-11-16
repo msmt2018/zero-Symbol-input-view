@@ -44,6 +44,8 @@
  */
 package com.zerostudio.idea.widget.editor.symbolinput.v2.data
 
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.ClipboardOperation
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
