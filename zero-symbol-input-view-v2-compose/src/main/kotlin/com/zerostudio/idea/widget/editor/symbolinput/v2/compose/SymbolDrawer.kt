@@ -64,6 +64,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSet
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.ThemeMode
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.HapticMode
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
 
 /**
  * Material 3 Compose implementation of the V2 symbol drawer.
@@ -108,7 +109,16 @@ fun SymbolDrawer(
         // Explicit host data remains authoritative; providers fill missing IDs.
         groups.forEach { merged[it.id] = it }
         registeredExtensions.groupProviders.forEach { provider ->
-            runCatching { provider.loadGroups() }.getOrNull()?.forEach { group ->
+            val providedGroups = try {
+                provider.loadGroups()
+            } catch (cancelled: CancellationException) {
+                // Never turn a cancelled composition/effect into a successful load.
+                throw cancelled
+            } catch (_: Throwable) {
+                // One optional provider must not prevent other providers or host data.
+                emptyList()
+            }
+            providedGroups.forEach { group ->
                 merged.putIfAbsent(group.id, group)
             }
         }
@@ -250,9 +260,8 @@ fun SymbolDrawer(
                 if (contentGroups.isNotEmpty()) {
                     Box(Modifier.fillMaxWidth().height(visibleIndicatorHeight)) {
                         if (state.expansionFraction > 0.01f) {
-                            val customIndicator = registeredExtensions.groupIndicators
-                                .sortedWith(compareByDescending<SymbolDrawerGroupIndicator> { it.priority }.thenBy { it.id })
-                                .firstOrNull()
+                            // Registry snapshots are already priority/ID ordered.
+                            val customIndicator = registeredExtensions.groupIndicators.firstOrNull()
                             if (customIndicator != null) {
                                 customIndicator.Content(
                                     groups = contentGroups,
@@ -295,11 +304,10 @@ fun SymbolDrawer(
                                 verticalArrangement = Arrangement.spacedBy(settings.cellVerticalSpacingDp.dp)
                             ) {
                                 items(group.symbols, key = { it.id }) { symbol ->
+                                    // The immutable registry snapshot is already ordered; avoid
+                                    // allocating and sorting a sequence for every visible symbol.
                                     val renderer = registeredExtensions.itemRenderers
-                                        .asSequence()
-                                        .filter { it.accepts(symbol) }
-                                        .sortedWith(compareByDescending<SymbolDrawerItemRenderer> { it.priority }.thenBy { it.id })
-                                        .firstOrNull()
+                                        .firstOrNull { it.accepts(symbol) }
                                     if (renderer != null) {
                                         renderer.Content(
                                             symbol = symbol,
