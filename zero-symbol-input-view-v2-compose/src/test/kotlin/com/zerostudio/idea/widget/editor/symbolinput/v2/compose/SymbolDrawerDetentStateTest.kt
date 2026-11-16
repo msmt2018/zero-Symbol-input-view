@@ -6,6 +6,7 @@
 
 package com.zerostudio.idea.widget.editor.symbolinput.v2.compose
 
+import androidx.compose.runtime.MonotonicFrameClock
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
@@ -24,7 +25,7 @@ class SymbolDrawerDetentStateTest {
     }
 
     @Test
-    fun settlesToAdjacentAnchorWhenFlinging() = runBlocking {
+    fun settlesToAdjacentAnchorWhenFlinging() = runBlocking(AdvancingFrameClock()) {
         val state = SymbolDrawerDetentState()
         state.snapToDetent("half-expanded")
         state.settle(velocityFraction = 1f)
@@ -37,7 +38,7 @@ class SymbolDrawerDetentStateTest {
     }
 
     @Test
-    fun lowVelocityChoosesNearestAnchorAndLowerWinsTie() = runBlocking {
+    fun lowVelocityChoosesNearestAnchorAndLowerWinsTie() = runBlocking(AdvancingFrameClock()) {
         val state = SymbolDrawerDetentState()
         state.dragBy(0.25f)
         state.settle(velocityFraction = 0f)
@@ -142,6 +143,14 @@ class SymbolDrawerDetentStateTest {
         }
         assertThrows(IllegalArgumentException::class.java) {
             runBlocking { state.settle(velocityFraction = Float.POSITIVE_INFINITY) }
+        }
+    }
+    private class AdvancingFrameClock : MonotonicFrameClock {
+        private var frameTimeNanos = 0L
+
+        override suspend fun <R> withFrameNanos(onFrame: (Long) -> R): R {
+            frameTimeNanos += 16_666_667L
+            return onFrame(frameTimeNanos)
         }
     }
 }
