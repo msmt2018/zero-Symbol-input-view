@@ -31,6 +31,14 @@ dependencies {
 ```
 Use an existing Git tag whose JitPack build succeeded. A branch name is not a release.
 
+## xedit-app integration reference
+
+In xedit-app, the manifest launcher `x.code.app.activity.MainActivity` is the permission/start screen. The actual editor is `x.code.app.activity.EditorActivity`, and its editor instance is `binding.editor` (`HighlightTextView`). Add `SymbolDrawerView` to `activity_editor.xml`, not to the launcher layout.
+
+The existing verified text insertion call is `binding.editor.insert(text)`. Route the selected `SymbolAction` through `drawer.executeAction(action, host)`. Map `SymbolActionHost.insertText(template)` to that editor method and return true. Return false for selection, cursor, deletion, clipboard and custom-command capabilities until their corresponding editor APIs have been verified and implemented.
+
+Keep the legacy `shortcut_key_view` and `symbol_drawer` in one vertical bottom container. Set the editor's bottom margin to the container's total height so neither toolbar overlays the editable viewport.
+
 ## Add the View
 
 ```xml
