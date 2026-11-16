@@ -51,19 +51,6 @@ import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 
-interface SymbolDrawerSettingsRepository {
-    fun load(): SettingsLoadResult
-    fun save(settings: SymbolDrawerSettings)
-    fun reset()
-    /** True when a durable user snapshot exists rather than only defaults. */
-    fun hasStoredSettings(): Boolean = false
-}
-
-data class SettingsLoadResult(
-    val settings: SymbolDrawerSettings,
-    val recoveredFromInvalidData: Boolean = false
-)
-
 /** Versioned JSON codec kept separate so defaults and malformed values are testable. */
 object SymbolDrawerSettingsCodec {
     private val gson = Gson()
@@ -166,42 +153,5 @@ object SymbolDrawerSettingsCodec {
             ),
             sideDockEdge = SideDockEdge.valueOf(enumValue("sideDockEdge", defaults.sideDockEdge.name))
         )
-    }
-}
-
-class SharedPreferencesSymbolDrawerSettingsRepository(
-    context: Context,
-    preferencesName: String = "symbol_drawer_v2_settings",
-    private val preferences: SharedPreferences = context.applicationContext
-        .getSharedPreferences(preferencesName, Context.MODE_PRIVATE)
-) : SymbolDrawerSettingsRepository {
-    override fun load(): SettingsLoadResult {
-        val raw = preferences.getString(KEY_SETTINGS, null)
-            ?: return SettingsLoadResult(SymbolDrawerSettings())
-        val decoded = runCatching { SymbolDrawerSettingsCodec.decode(raw) }
-        return decoded.fold(
-            onSuccess = { SettingsLoadResult(it) },
-            onFailure = { SettingsLoadResult(SymbolDrawerSettings(), recoveredFromInvalidData = true) }
-        )
-    }
-
-    override fun save(settings: SymbolDrawerSettings) {
-        // Constructor validation rejects out-of-range settings before persistence.
-        val json = SymbolDrawerSettingsCodec.encode(settings)
-        check(preferences.edit().putString(KEY_SETTINGS, json).commit()) {
-            "Unable to persist symbol drawer settings"
-        }
-    }
-
-    override fun reset() {
-        check(preferences.edit().remove(KEY_SETTINGS).commit()) {
-            "Unable to reset symbol drawer settings"
-        }
-    }
-
-    override fun hasStoredSettings(): Boolean = preferences.contains(KEY_SETTINGS)
-
-    private companion object {
-        const val KEY_SETTINGS = "settings_json_v1"
     }
 }

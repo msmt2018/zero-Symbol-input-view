@@ -1,73 +1,43 @@
-# Symbol Drawer V2 Architecture
+# Zero Symbol Drawer V2 — Compose Architecture
 
-## Product contract
+## Product intent
 
-This library implements one integrated symbol drawer:
+This module is an independent Jetpack Compose implementation of the symbol drawer. It is not a wrapper or port that embeds the Android View library. The sibling `zero-symbol-input-view-v2` module is a separate, immutable product and is not a dependency.
 
-- vertical drag expands/collapses the symbol surface;
-- the group indicator is progressively revealed by drawer expansion;
-- horizontal swipe changes the active group;
-- tapping a group indicator changes the same pager;
-- symbol click and long-click are dispatched through one callback contract;
-- group identity and selected page survive data refreshes when IDs remain stable.
+## Behavioral contract
 
-The legacy library remains untouched and is the behavioural reference during V2 development.
+- Vertical drag expands/collapses the drawer with deterministic velocity settling.
+- The group navigation indicator is progressively revealed with expansion.
+- Horizontal paging changes the active symbol group without accidentally changing drawer height.
+- Selecting a group indicator selects the corresponding page.
+- Short and long symbol gestures dispatch distinct typed actions.
+- Stable group identity preserves selection across data refreshes.
+- Manager/settings operations update durable data atomically and expose failures to the UI.
+- State restoration, accessibility, focus, keyboard input, reduced motion and touch target requirements are part of the component contract.
 
-## Runtime composition
+## Target runtime architecture
 
-```text
-SymbolDrawerView
-├── SymbolGroupIndicator (horizontal RecyclerView)
-└── ViewPager2 (horizontal paging)
-    └── SymbolPageAdapter
-        └── RecyclerView + GridLayoutManager per page
-            └── SymbolAdapter (DiffUtil)
+```
+Compose public API and composable slots
+  └─ Compose presentation (drawer, indicator, pager, grid, manager, settings)
+       └─ UI state + use cases + Compose extension registry
+            └─ platform-neutral models, actions, codecs, policies, repository contracts
+                 └─ Android storage and SAF adapters (no View UI)
 ```
 
-## Responsibilities
+## Implementation boundaries
 
-- **SymbolDrawerView**: owns the integrated interaction, height, indicator reveal, pager synchronization and public API. Its expansion geometry includes indicator height separately from grid height, so the indicator remains revealable even when every symbol group fits in the collapsed grid.
-- **DrawerGeometry**: pure row/height/reveal calculations; no View dependencies.
-- **SymbolGroupRepository**: persistence boundary. The default SharedPreferences implementation uses a V2-only namespace.
-- **LegacySymbolDataMigration**: one-way imports the legacy compact JSON preference when the V2 store is empty; it never writes to the legacy store.
-- **SymbolGroupManager**: repository-backed group/symbol commands that a dedicated manager UI can consume.
-- **SymbolGroupIndicator**: recycles group labels and only updates changed selection rows.
-- **SymbolPageAdapter**: pages are recycled by ViewPager2; each page uses a grid RecyclerView and shared recycled pool.
-- **Action configuration**: every symbol exposes independent V1-compatible short-press and optional long-press action selectors, using the exact V1 action IDs, ordering and text-parameter rules. The manager list is also embedded in the settings screen.
-- **Settings repository and screen**: immutable schema-versioned settings snapshots persisted independently from symbol data; the programmatic settings screen exposes each setting and reports saved snapshots to the host. `SymbolDrawerView.applySettings` applies grid geometry, expansion cap, indicator style, labels, touch targets, long-press timing, haptics, motion, cache and fling behavior.
-- **Versioned persistence and bundle codec**: new SharedPreferences writes and import/export use the versioned V2 typed-action envelope. Stable group/symbol IDs, icons, independent short/long typed actions and legacy action metadata are preserved. The decoder continues to read the original V1 compact JSON schema and the previous unversioned V2 draft array.
+- All UI uses Compose UI, Foundation, Material 3 and Animation APIs.
+- No Android View widgets, ViewGroup, ViewPager2, RecyclerView, View-based Material, AndroidView or AndroidViewBinding.
+- Public customization uses composable slots/renderers, immutable state and explicit event callbacks.
+- Platform services such as Context, ContentResolver and Activity Result may be used only in non-UI adapters or Compose host routes.
+- Shared behavior is limited to UI-independent models, JSON compatibility, action protocols, validation and pure algorithms.
+- The artifact must build and run without the sibling View library.
 
-## Gesture arbitration
+## Data compatibility
 
-The drawer intercepts only predominantly vertical movement after touch slop. Horizontal movement remains with ViewPager2. This is intentionally not implemented as a competing horizontal pager. The drag controller tracks velocity and snaps to the nearest endpoint, with a fling threshold for deliberate fast movement.
+The versioned V2 typed-action JSON envelope and legacy V1 compact JSON import remain compatibility contracts. Stable IDs, icon metadata, short/long actions and legacy payload metadata must survive decode/encode. Settings schema versions, enum identifiers and defaults are also compatibility contracts.
 
-The V2 interaction contract must continue to be validated against the legacy control:
-1. a vertical upward drag expands the drawer;
-2. a vertical downward drag collapses it;
-3. the group indicator appears continuously during expansion and disappears continuously during collapse;
-4. a horizontal swipe changes groups without changing drawer height;
-5. tapping a group indicator changes the same page;
-6. short and long symbol gestures remain distinct;
-7. updating groups preserves the selected group by stable group ID.
+## Migration status
 
-## Performance strategy
-
-- RecyclerView-backed indicator instead of creating every indicator child manually.
-- ViewPager2 page recycling instead of recreating all pages on every data update.
-- DiffUtil for symbol cells.
-- Shared RecycledViewPool for page grids.
-- No page item animator during rapid symbol data changes.
-- Immutable snapshots at the UI boundary.
-- Height math is calculated in a pure object and only updates layout params when values actually change.
-
-## Compatibility and migration
-
-- Package: `com.zerostudio.idea.widget.editor.symbolinput.v2`.
-- Persistence: `symbol_drawer_v2/groups_json_v2`; legacy keys are never written.
-- Editor integration is callback-based. A host can bridge the callback to the existing `SymbolActionExecutor`.
-- This is a parallel implementation. Do not remove or redirect the legacy widget until behavioural tests and an app-level comparison pass.
-
-## Deliberate non-goals for this foundation
-
-- The V1 compact data classes are retained in `model.legacy`; migration reads the legacy schema without modifying it. New V2 persistence writes use the versioned typed-action envelope, while legacy IDs and payloads remain attached as compatibility metadata.
-- The settings screen embeds the symbol manager. Each symbol row opens the V1-style editor for its own short/long action configuration.
+See [COMPOSE_REFACTOR_PLAN.md](COMPOSE_REFACTOR_PLAN.md) for the audited source inventory, ordered migration phases and release gates. The copied View baseline is transitional technical debt and must be removed before the Compose artifact is considered complete.
