@@ -81,6 +81,17 @@ internal fun pageBeyondViewportCount(settings: SymbolDrawerSettings): Int {
     return ((settings.pageCacheLimit - 1) / 2).coerceAtMost(4)
 }
 
+/** Converts the configured fling speed (dp/s) to the drawer's normalized range/s. */
+internal fun drawerFlingVelocityThreshold(
+    settings: SymbolDrawerSettings,
+    expandedRangeDp: Float
+): Float = settings.flingVelocityDpPerSecond.toFloat() /
+    expandedRangeDp.coerceAtLeast(1f)
+
+/** Reduced-motion mode disables settling animation without disabling dragging. */
+internal fun drawerAnimationDurationMs(settings: SymbolDrawerSettings): Int =
+    if (settings.reduceMotion) 0 else settings.animationDurationMs
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SymbolDrawer(
@@ -239,14 +250,9 @@ fun SymbolDrawer(
                                 },
                                 onDragStopped = { velocity ->
                                     val range = with(density) { (expandedHeight - collapsedHeight).toPx().coerceAtLeast(1f) }
-                                    val velocityThreshold = with(density) {
-                                        settings.flingVelocityDpPerSecond.dp.toPx() / range
-                                    }
-                                    val animationDuration = if (settings.reduceMotion) {
-                                        0
-                                    } else {
-                                        settings.animationDurationMs
-                                    }
+                                    val rangeDp = with(density) { range.toDp().value }
+                                    val velocityThreshold = drawerFlingVelocityThreshold(settings, rangeDp)
+                                    val animationDuration = drawerAnimationDurationMs(settings)
                                     scope.launch {
                                         state.settle(
                                             velocityFraction = velocity / range,
