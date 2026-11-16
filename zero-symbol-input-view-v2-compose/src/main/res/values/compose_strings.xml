@@ -77,4 +77,18 @@
     <string name="compose_bulk_copy_target">Copy selected symbols to</string>
     <string name="compose_bulk_move_target">Move selected symbols to</string>
     <string name="compose_bulk_no_target">Create another group to copy or move symbols.</string>
+    <string name="compose_setting_horizontal_spacing">Horizontal cell spacing</string>
+    <string name="compose_setting_vertical_spacing">Vertical cell spacing</string>
+    <string name="compose_setting_indicator_height">Group indicator height</string>
+    <string name="compose_setting_label_size">Symbol label text size</string>
+    <string name="compose_setting_animation_duration">Animation duration</string>
+    <string name="compose_setting_fling_velocity">Drawer fling velocity</string>
+    <string name="compose_setting_long_press_timeout">Long-press timeout</string>
+    <string name="compose_setting_page_cache">Cached group pages</string>
+    <string name="compose_setting_touch_target">Minimum touch target</string>
+    <string name="compose_setting_group_titles">Show group titles</string>
+    <string name="compose_setting_action_hints">Show action hints</string>
+    <string name="compose_setting_auto_collapse">Collapse after action</string>
+    <string name="compose_setting_prefetch_groups">Preload adjacent groups</string>
+    <string name="compose_setting_search_payload">Include action payloads in search</string>
 </resources>
