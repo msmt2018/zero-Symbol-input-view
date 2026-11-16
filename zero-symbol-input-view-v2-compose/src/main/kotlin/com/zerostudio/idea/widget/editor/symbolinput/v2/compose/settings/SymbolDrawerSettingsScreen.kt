@@ -124,8 +124,8 @@ fun SymbolDrawerSettingsScreen(
                 item {
                     SettingChoice(
                         title = stringResource(R.string.compose_setting_indicator_style),
-                        selected = settings.indicatorStyle.name.replace('_', ' '),
-                        options = GroupIndicatorStyle.values().map { it to it.name.replace('_', ' ') },
+                        selected = settings.indicatorStyle.localizedLabel(),
+                        options = GroupIndicatorStyle.values().map { it to it.localizedLabel() },
                         onSelected = { onSettingsChange(settings.copy(indicatorStyle = it)) }
                     )
                 }
@@ -423,5 +423,51 @@ private fun <T> SettingChoice(
         }
     }
 }
+
+
+@Composable
+private fun GroupIndicatorStyle.localizedLabel(): String = stringResource(when (this) {
+    GroupIndicatorStyle.TEXT_TABS -> R.string.compose_indicator_text_tabs
+    GroupIndicatorStyle.TEXT -> R.string.compose_indicator_text
+    GroupIndicatorStyle.PILL -> R.string.compose_indicator_pill
+    GroupIndicatorStyle.DOTS -> R.string.compose_indicator_dots
+    GroupIndicatorStyle.UNDERLINE -> R.string.compose_indicator_underline
+    GroupIndicatorStyle.GOOEY_METABALL -> R.string.compose_indicator_gooey_metaball
+    GroupIndicatorStyle.ELASTIC_WORM -> R.string.compose_indicator_elastic_worm
+    GroupIndicatorStyle.SPRING_BLOB -> R.string.compose_indicator_spring_blob
+    GroupIndicatorStyle.LIQUID_MERGE -> R.string.compose_indicator_liquid_merge
+    GroupIndicatorStyle.VERNIER_TICKS -> R.string.compose_indicator_vernier_ticks
+    GroupIndicatorStyle.MECHANICAL_RULER -> R.string.compose_indicator_mechanical_ruler
+    GroupIndicatorStyle.WHEEL_ROLLER -> R.string.compose_indicator_wheel_roller
+    GroupIndicatorStyle.CAMERA_DIAL -> R.string.compose_indicator_camera_dial
+    GroupIndicatorStyle.RADIAL_RING -> R.string.compose_indicator_radial_ring
+    GroupIndicatorStyle.RADAR_SWEEP -> R.string.compose_indicator_radar_sweep
+    GroupIndicatorStyle.HUD_ARC -> R.string.compose_indicator_hud_arc
+    GroupIndicatorStyle.ORBIT_DOTS -> R.string.compose_indicator_orbit_dots
+    GroupIndicatorStyle.ELASTIC_WAVE -> R.string.compose_indicator_elastic_wave
+    GroupIndicatorStyle.SINE_WAVE -> R.string.compose_indicator_sine_wave
+    GroupIndicatorStyle.BOUNCE_TRACK -> R.string.compose_indicator_bounce_track
+    GroupIndicatorStyle.SPRING_SLIDER -> R.string.compose_indicator_spring_slider
+    GroupIndicatorStyle.MORPHING_BAR -> R.string.compose_indicator_morphing_bar
+    GroupIndicatorStyle.SEGMENTED_TRACK -> R.string.compose_indicator_segmented_track
+    GroupIndicatorStyle.PROGRESS_LINE -> R.string.compose_indicator_progress_line
+    GroupIndicatorStyle.DOUBLE_TRACK -> R.string.compose_indicator_double_track
+    GroupIndicatorStyle.MINIMAL_DASHES -> R.string.compose_indicator_minimal_dashes
+    GroupIndicatorStyle.SQUARE_TICKS -> R.string.compose_indicator_square_ticks
+    GroupIndicatorStyle.DIAMOND_MARKERS -> R.string.compose_indicator_diamond_markers
+    GroupIndicatorStyle.TRIANGLE_POINTER -> R.string.compose_indicator_triangle_pointer
+    GroupIndicatorStyle.HEXAGON_NODES -> R.string.compose_indicator_hexagon_nodes
+    GroupIndicatorStyle.GLOWING_NODES -> R.string.compose_indicator_glowing_nodes
+    GroupIndicatorStyle.PULSE_DOTS -> R.string.compose_indicator_pulse_dots
+    GroupIndicatorStyle.STACKED_CARDS -> R.string.compose_indicator_stacked_cards
+    GroupIndicatorStyle.MINI_PREVIEW -> R.string.compose_indicator_mini_preview
+    GroupIndicatorStyle.THUMBNAIL_STRIP -> R.string.compose_indicator_thumbnail_strip
+    GroupIndicatorStyle.NUMBER_BADGES -> R.string.compose_indicator_number_badges
+    GroupIndicatorStyle.VERTICAL_RAIL -> R.string.compose_indicator_vertical_rail
+    GroupIndicatorStyle.ARC_NODES -> R.string.compose_indicator_arc_nodes
+    GroupIndicatorStyle.FLUID_TRAIL -> R.string.compose_indicator_fluid_trail
+    GroupIndicatorStyle.DIGITAL_COUNTER -> R.string.compose_indicator_digital_counter
+    GroupIndicatorStyle.STEPPER -> R.string.compose_indicator_stepper
+})
 
 private const val GENERAL_TAB_ID = "general"
