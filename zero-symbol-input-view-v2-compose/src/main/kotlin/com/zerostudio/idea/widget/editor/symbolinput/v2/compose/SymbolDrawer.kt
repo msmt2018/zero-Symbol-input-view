@@ -239,7 +239,21 @@ fun SymbolDrawer(
                                 },
                                 onDragStopped = { velocity ->
                                     val range = with(density) { (expandedHeight - collapsedHeight).toPx().coerceAtLeast(1f) }
-                                    scope.launch { state.settle(velocity / range, settings.animationDurationMs) }
+                                    val velocityThreshold = with(density) {
+                                        settings.flingVelocityDpPerSecond.dp.toPx() / range
+                                    }
+                                    val animationDuration = if (settings.reduceMotion) {
+                                        0
+                                    } else {
+                                        settings.animationDurationMs
+                                    }
+                                    scope.launch {
+                                        state.settle(
+                                            velocityFraction = velocity / range,
+                                            animationDurationMillis = animationDuration,
+                                            velocityThreshold = velocityThreshold
+                                        )
+                                    }
                                 }
                             ),
                         contentAlignment = Alignment.Center
