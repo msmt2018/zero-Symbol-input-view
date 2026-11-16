@@ -72,7 +72,11 @@ class LegacySymbolDataCodecTest {
     @Test fun historicalClipboardActionIdsRoundTripWithoutRenumbering() {
         val legacy = """[{"n":"剪贴板","d":[{"a":0,"b":"复制","d":1},{"a":0,"b":"剪切","d":2}]}]"""
         val decoded = LegacySymbolDataCodec.decode(legacy)
+        assertEquals(SymbolAction.Clipboard(ClipboardOperation.COPY), decoded[0].symbols[0].longAction)
+        assertEquals(SymbolAction.Clipboard(ClipboardOperation.CUT), decoded[0].symbols[1].longAction)
         val roundTrip = LegacySymbolDataCodec.decode(LegacySymbolDataCodec.encode(decoded))
+        assertEquals(SymbolAction.Clipboard(ClipboardOperation.COPY), roundTrip[0].symbols[0].longAction)
+        assertEquals(SymbolAction.Clipboard(ClipboardOperation.CUT), roundTrip[0].symbols[1].longAction)
         assertEquals(1, roundTrip[0].symbols[0].legacyLongActionId)
         assertEquals(2, roundTrip[0].symbols[1].legacyLongActionId)
     }
