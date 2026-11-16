@@ -285,7 +285,7 @@ fun SymbolDrawer(
             val gridHeight = (totalHeight - effectiveHandleHeight - visibleIndicatorHeight).coerceAtLeast(0.dp)
             val rangePx = with(density) { dragRange.toPx() }
             val latestExpansionFraction by rememberUpdatedState(expansionFraction)
-            val nestedScrollConnection = remember(detentState, state, rangePx) {
+            val nestedScrollConnection = remember(detentState, state, rangePx, settings) {
                 object : NestedScrollConnection {
                     override fun onPreScroll(
                         available: Offset,
