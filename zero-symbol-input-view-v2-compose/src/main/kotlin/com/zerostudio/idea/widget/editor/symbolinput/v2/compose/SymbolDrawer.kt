@@ -30,6 +30,8 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
@@ -46,6 +48,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -58,6 +61,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
+import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.ThemeMode
 import kotlinx.coroutines.launch
 
 /**
@@ -100,9 +104,20 @@ fun SymbolDrawer(
         providerGroupsState.value = merged.values.toList()
     }
     val contentGroups = providerGroupsState.value ?: groups
+    val hostColorScheme = MaterialTheme.colorScheme
+    val systemDark = isSystemInDarkTheme()
+    val modeColorScheme = remember(settings.themeMode, systemDark, hostColorScheme) {
+        when (settings.themeMode) {
+            ThemeMode.SYSTEM -> hostColorScheme
+            ThemeMode.LIGHT -> lightColorScheme()
+            ThemeMode.DARK -> darkColorScheme()
+        }
+    }
+    // Explicit registered theme extensions take precedence over the built-in
+    // mode so a host can provide its own complete design system.
     val resolvedColorScheme = registeredExtensions.themes.firstNotNullOfOrNull { extension ->
         runCatching { extension.resolve().colorScheme }.getOrNull()
-    } ?: MaterialTheme.colorScheme
+    } ?: modeColorScheme
     val pagerState = rememberPagerState(
         initialPage = contentGroups.indexOfFirst { it.id == state.selectedGroupId }.coerceAtLeast(0),
         pageCount = { contentGroups.size.coerceAtLeast(1) }
