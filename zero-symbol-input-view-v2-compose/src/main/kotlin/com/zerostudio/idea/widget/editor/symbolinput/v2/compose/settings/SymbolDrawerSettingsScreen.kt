@@ -15,6 +15,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.OutlinedButton
+import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.ThemeMode
+import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.GroupIndicatorStyle
+import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.HapticMode
+import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.LargeScreenLayoutMode
+import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SideDockEdge
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Slider
@@ -93,6 +101,46 @@ fun SymbolDrawerSettingsScreen(
                         stringResource(R.string.compose_settings_title),
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                         style = MaterialTheme.typography.titleLarge
+                    )
+                }
+                item {
+                    SettingChoice(
+                        title = stringResource(R.string.compose_setting_theme),
+                        selected = settings.themeMode.name,
+                        options = ThemeMode.values().map { it to it.name },
+                        onSelected = { onSettingsChange(settings.copy(themeMode = it)) }
+                    )
+                }
+                item {
+                    SettingChoice(
+                        title = stringResource(R.string.compose_setting_indicator_style),
+                        selected = settings.indicatorStyle.name.replace('_', ' '),
+                        options = GroupIndicatorStyle.values().map { it to it.name.replace('_', ' ') },
+                        onSelected = { onSettingsChange(settings.copy(indicatorStyle = it)) }
+                    )
+                }
+                item {
+                    SettingChoice(
+                        title = stringResource(R.string.compose_setting_haptics),
+                        selected = settings.hapticMode.name,
+                        options = HapticMode.values().map { it to it.name },
+                        onSelected = { onSettingsChange(settings.copy(hapticMode = it)) }
+                    )
+                }
+                item {
+                    SettingChoice(
+                        title = stringResource(R.string.compose_setting_large_screen_layout),
+                        selected = settings.largeScreenLayoutMode.name,
+                        options = LargeScreenLayoutMode.values().map { it to it.name },
+                        onSelected = { onSettingsChange(settings.copy(largeScreenLayoutMode = it)) }
+                    )
+                }
+                item {
+                    SettingChoice(
+                        title = stringResource(R.string.compose_setting_side_dock_edge),
+                        selected = settings.sideDockEdge.name,
+                        options = SideDockEdge.values().map { it to it.name },
+                        onSelected = { onSettingsChange(settings.copy(sideDockEdge = it)) }
                     )
                 }
                 item {
@@ -305,6 +353,35 @@ private fun SettingSwitch(title: String, checked: Boolean, onCheckedChange: (Boo
         ) {
             Text(title, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
             Switch(checked = checked, onCheckedChange = onCheckedChange)
+        }
+    }
+}
+
+@Composable
+private fun <T> SettingChoice(
+    title: String,
+    selected: String,
+    options: List<Pair<T, String>>,
+    onSelected: (T) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Card(Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
+        Row(
+            Modifier.fillMaxWidth().padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(title, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+            Column(horizontalAlignment = Alignment.End) {
+                OutlinedButton(onClick = { expanded = true }) { Text(selected) }
+                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    options.forEach { (value, label) ->
+                        DropdownMenuItem(
+                            text = { Text(label) },
+                            onClick = { onSelected(value); expanded = false }
+                        )
+                    }
+                }
+            }
         }
     }
 }
