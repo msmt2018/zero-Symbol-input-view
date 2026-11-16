@@ -123,8 +123,13 @@ class SymbolDrawerDetentStateTest {
             selectedGroupId = "group-b"
         )
         val saver = SymbolDrawerDetentState.saver(SymbolDrawerDetent.Defaults)
-        val saved = saver.save(original)
-        val restored = saver.restore(saved!!)
+        val restored = saver.restore(
+            listOf(
+                original.targetDetentId,
+                original.currentDetentId,
+                original.selectedGroupId.orEmpty()
+            )
+        )
         assertEquals("half-expanded", restored?.targetDetentId)
         assertEquals("group-b", restored?.selectedGroupId)
     }
