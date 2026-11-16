@@ -27,6 +27,15 @@ class SymbolDrawerComposeContractTest {
     }
 
     @Test
+    fun selectingGroupPublishesObservableStateValue() {
+        val state = SymbolDrawerState(initiallyExpanded = false, selectedGroupId = null)
+        state.selectGroup("editing")
+        assertEquals("editing", state.selectedGroupId)
+        state.selectGroup("symbols")
+        assertEquals("symbols", state.selectedGroupId)
+    }
+
+    @Test
     fun stateRestoresExpandedIntent() {
         val state = SymbolDrawerState(initiallyExpanded = true, selectedGroupId = "common")
         assertTrue(state.isExpanded)

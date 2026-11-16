@@ -8,9 +8,9 @@
 package com.zerostudio.idea.widget.editor.symbolinput.v2.compose
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.listSaver
 
@@ -21,9 +21,9 @@ class SymbolDrawerState internal constructor(
     selectedGroupId: String?
 ) {
     internal val expansion = Animatable(if (initiallyExpanded) 1f else 0f)
-    var targetExpanded: Boolean = initiallyExpanded
+    var targetExpanded: Boolean by mutableStateOf(initiallyExpanded)
         private set
-    var selectedGroupId: String? = selectedGroupId
+    var selectedGroupId: String? by mutableStateOf(selectedGroupId)
         private set
 
     val expansionFraction: Float get() = expansion.value
@@ -44,8 +44,8 @@ class SymbolDrawerState internal constructor(
     }
 
     internal suspend fun dragBy(deltaFraction: Float) {
-        targetExpanded = expansion.value > 0.5f
         expansion.snapTo((expansion.value + deltaFraction).coerceIn(0f, 1f))
+        targetExpanded = expansion.value >= 0.5f
     }
 
     internal suspend fun settle(
