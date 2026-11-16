@@ -29,7 +29,7 @@ fun SymbolDrawerSettingsRoute(
     val state = rememberSymbolDrawerSettingsState(repository)
     SymbolDrawerSettingsScreen(
         settings = state.settings,
-        onSettingsChange = state::update,
+        onSettingsChange = { candidate -> state.update(candidate) },
         modifier = modifier,
         extensions = extensions
     )
