@@ -9,7 +9,7 @@ import org.gradle.api.publish.maven.MavenPublication
 
 plugins {
     id("com.android.library")
-    id("org.jetbrains.kotlin.plugin.compose")
+    alias(libs.plugins.kotlin.compose)
     id("maven-publish")
 }
 

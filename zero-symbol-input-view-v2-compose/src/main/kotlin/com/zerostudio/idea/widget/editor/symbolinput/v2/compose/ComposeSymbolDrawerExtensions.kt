@@ -9,6 +9,9 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.compose
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
@@ -56,3 +59,64 @@ data class ComposeSymbolDrawerExtensions(
     }
 }
 
+
+/** Thread-safe session registry. Registration handles are idempotent and snapshots are immutable. */
+class ComposeSymbolDrawerExtensionRegistry {
+    private val lock = Any()
+    private val itemRenderers = LinkedHashMap<String, SymbolDrawerItemRenderer>()
+    private val indicators = LinkedHashMap<String, SymbolDrawerGroupIndicator>()
+    private var revision = 0L
+    private val observers = LinkedHashSet<(Long) -> Unit>()
+
+    fun registerItemRenderer(renderer: SymbolDrawerItemRenderer): AutoCloseable =
+        register(itemRenderers, renderer.id, renderer)
+
+    fun registerGroupIndicator(indicator: SymbolDrawerGroupIndicator): AutoCloseable =
+        register(indicators, indicator.id, indicator)
+
+    private fun <T> register(target: LinkedHashMap<String, T>, id: String, value: T): AutoCloseable {
+        require(id.matches(Regex("[A-Za-z0-9][A-Za-z0-9_.:/-]{0,255}")))
+        synchronized(lock) { target[id] = value; revision++ }
+        notifyObservers()
+        var closed = false
+        return AutoCloseable {
+            val removed = synchronized(lock) {
+                if (closed) false else {
+                    closed = true
+                    if (target[id] === value) {
+                        target.remove(id)
+                        revision++
+                        true
+                    } else false
+                }
+            }
+            if (removed) notifyObservers()
+        }
+    }
+
+    fun snapshot(): ComposeSymbolDrawerExtensions = synchronized(lock) {
+        ComposeSymbolDrawerExtensions(
+            itemRenderers = itemRenderers.values.sortedWith(compareByDescending<SymbolDrawerItemRenderer> { it.priority }.thenBy { it.id }),
+            groupIndicators = indicators.values.sortedWith(compareByDescending<SymbolDrawerGroupIndicator> { it.priority }.thenBy { it.id })
+        )
+    }
+
+    fun observe(listener: (Long) -> Unit): AutoCloseable {
+        synchronized(lock) { observers += listener }
+        return AutoCloseable { synchronized(lock) { observers -= listener } }
+    }
+
+    private fun notifyObservers() {
+        val next: Pair<Long, List<(Long) -> Unit>> = synchronized(lock) { revision to observers.toList() }
+        next.second.forEach { runCatching { it(next.first) } }
+    }
+
+    fun clear() {
+        synchronized(lock) {
+            itemRenderers.clear()
+            indicators.clear()
+            revision++
+        }
+        notifyObservers()
+    }
+}

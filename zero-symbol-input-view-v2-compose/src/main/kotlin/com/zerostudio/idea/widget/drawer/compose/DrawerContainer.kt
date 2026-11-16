@@ -13,24 +13,19 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.draggable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.rememberDraggableState
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.listSaver
@@ -41,8 +36,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
-import kotlin.math.max
-import kotlin.math.min
 
 /** A stable named snap point in a bottom drawer. */
 data class DrawerAnchor(val id: String, val height: Dp) {
@@ -125,8 +118,8 @@ fun DrawerContainer(
 ) {
     val scope = rememberCoroutineScope()
     BoxWithConstraints(modifier.fillMaxSize()) {
-        val safeExpanded = min(config.expandedHeight, maxHeight)
-        val safeCollapsed = min(config.collapsedHeight, safeExpanded)
+        val safeExpanded = config.expandedHeight.coerceAtMost(maxHeight)
+        val safeCollapsed = config.collapsedHeight.coerceAtMost(safeExpanded)
         val targetHeight = safeCollapsed + (safeExpanded - safeCollapsed) * state.expansionFraction
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
             Surface(
@@ -148,7 +141,7 @@ fun DrawerContainer(
                                 },
                                 onDragStopped = { velocity ->
                                     val range = (safeExpanded - safeCollapsed).value.coerceAtLeast(1f)
-                                    scope.launch { state.settle(-velocity / range, config.animationDurationMillis) }
+                                    scope.launch { state.settle(velocity / range, config.animationDurationMillis) }
                                 }
                             ),
                             contentAlignment = Alignment.Center

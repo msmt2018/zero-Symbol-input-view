@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -34,6 +33,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -52,8 +52,6 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
 import kotlinx.coroutines.launch
-import kotlin.math.max
-import kotlin.math.min
 
 /**
  * Material 3 Compose implementation of the V2 symbol drawer.
@@ -69,6 +67,7 @@ fun SymbolDrawer(
     modifier: Modifier = Modifier,
     settings: SymbolDrawerSettings = SymbolDrawerSettings(),
     maxHeight: Dp = settings.maxExpandedHeightDp.dp,
+    extensions: ComposeSymbolDrawerExtensions = ComposeSymbolDrawerExtensions(),
     onSymbolClick: (SymbolEntry) -> Unit,
     onSymbolLongClick: (SymbolEntry) -> Unit = {},
     onGroupChanged: (Int, SymbolGroup?) -> Unit = { _, _ -> },
@@ -104,65 +103,81 @@ fun SymbolDrawer(
             val handleHeight = 24.dp
             val indicatorHeight = settings.indicatorHeightDp.dp
             val cellHeight = settings.cellHeightDp.dp
-            val collapsedGridHeight = cellHeight * settings.collapsedRows
+            val effectiveCellHeight = maxOf(cellHeight, settings.minimumTouchTargetDp.dp)
+            val collapsedGridHeight = effectiveCellHeight * settings.collapsedRows
             val collapsedHeight = handleHeight + collapsedGridHeight
-            val boundedMax = if (constraints.hasBoundedHeight) maxHeight else maxHeight.coerceAtLeast(maxHeight)
-            val expandedHeight = min(maxHeight.value.takeIf { constraints.hasBoundedHeight } ?: maxHeight.value, maxHeight.value)
-                .let { if (it.isFinite() && it > collapsedHeight.value) it.dp else maxHeight }
-                .coerceAtLeast(collapsedHeight)
-                .let { min(it, maxHeight.takeIf { constraints.hasBoundedHeight } ?: maxHeight) }
+            val availableHeight = if (constraints.hasBoundedHeight) this.maxHeight else maxHeight
+            val expandedHeight = availableHeight.coerceAtMost(maxHeight).coerceAtLeast(collapsedHeight)
             val totalHeight = collapsedHeight + (expandedHeight - collapsedHeight) * state.expansionFraction
             val visibleIndicatorHeight = indicatorHeight * state.expansionFraction
             val gridHeight = (totalHeight - handleHeight - visibleIndicatorHeight).coerceAtLeast(collapsedGridHeight)
 
             Column(Modifier.requiredHeight(totalHeight)) {
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .height(handleHeight)
-                        .draggable(
-                            orientation = Orientation.Vertical,
-                            state = rememberDraggableState { delta ->
-                                val range = with(density) { (expandedHeight - collapsedHeight).toPx().coerceAtLeast(1f) }
-                                scope.launch { state.dragBy(-delta / range) }
-                            },
-                            onDragStopped = { velocity ->
-                                val range = with(density) { (expandedHeight - collapsedHeight).toPx().coerceAtLeast(1f) }
-                                scope.launch { state.settle(-velocity / range) }
-                            }
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
+                Box(Modifier.fillMaxWidth().height(handleHeight)) {
                     Box(
                         Modifier
-                            .size(width = 36.dp, height = 4.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f))
-                    )
+                            .fillMaxWidth()
+                            .height(handleHeight)
+                            .draggable(
+                                orientation = Orientation.Vertical,
+                                state = rememberDraggableState { delta ->
+                                    val range = with(density) { (expandedHeight - collapsedHeight).toPx().coerceAtLeast(1f) }
+                                    scope.launch { state.dragBy(-delta / range) }
+                                },
+                                onDragStopped = { velocity ->
+                                    val range = with(density) { (expandedHeight - collapsedHeight).toPx().coerceAtLeast(1f) }
+                                    scope.launch { state.settle(velocity / range, settings.animationDurationMs) }
+                                }
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box(
+                            Modifier
+                                .size(width = 36.dp, height = 4.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f))
+                        )
+                    }
+                    Row(Modifier.align(Alignment.CenterEnd), verticalAlignment = Alignment.CenterVertically) {
+                        TextButton(onClick = onOpenManager) { Text("管理") }
+                        TextButton(onClick = onOpenSettings) { Text("设置") }
+                    }
                 }
 
                 if (groups.isNotEmpty()) {
                     Box(Modifier.fillMaxWidth().height(visibleIndicatorHeight)) {
                         if (state.expansionFraction > 0.01f) {
-                            ScrollableTabRow(
-                                selectedTabIndex = pagerState.currentPage.coerceIn(0, groups.lastIndex),
-                                edgePadding = 8.dp,
-                                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                                contentColor = MaterialTheme.colorScheme.onSurface
-                            ) {
-                                groups.forEachIndexed { index, group ->
-                                    Tab(
-                                        selected = pagerState.currentPage == index,
-                                        onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
-                                        text = {
-                                            Text(
-                                                text = group.title,
-                                                maxLines = 1,
-                                                softWrap = false,
-                                                overflow = TextOverflow.Clip
-                                            )
-                                        }
-                                    )
+                            val customIndicator = extensions.groupIndicators
+                                .sortedWith(compareByDescending<SymbolDrawerGroupIndicator> { it.priority }.thenBy { it.id })
+                                .firstOrNull()
+                            if (customIndicator != null) {
+                                customIndicator.Content(
+                                    groups = groups,
+                                    selectedIndex = pagerState.currentPage,
+                                    onSelect = { index -> scope.launch { pagerState.animateScrollToPage(index) } },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            } else {
+                                ScrollableTabRow(
+                                    selectedTabIndex = pagerState.currentPage.coerceIn(0, groups.lastIndex),
+                                    edgePadding = 8.dp,
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                                    contentColor = MaterialTheme.colorScheme.onSurface
+                                ) {
+                                    groups.forEachIndexed { index, group ->
+                                        Tab(
+                                            selected = pagerState.currentPage == index,
+                                            onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
+                                            text = {
+                                                Text(
+                                                    text = group.title,
+                                                    maxLines = 1,
+                                                    softWrap = false,
+                                                    overflow = TextOverflow.Clip
+                                                )
+                                            }
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -182,12 +197,27 @@ fun SymbolDrawer(
                                 verticalArrangement = Arrangement.spacedBy(settings.cellVerticalSpacingDp.dp)
                             ) {
                                 items(group.symbols, key = { it.id }) { symbol ->
-                                    SymbolCell(
-                                        symbol = symbol,
-                                        settings = settings,
-                                        onClick = { onSymbolClick(symbol) },
-                                        onLongClick = { onSymbolLongClick(symbol) }
-                                    )
+                                    val renderer = extensions.itemRenderers
+                                        .asSequence()
+                                        .filter { it.accepts(symbol) }
+                                        .sortedWith(compareByDescending<SymbolDrawerItemRenderer> { it.priority }.thenBy { it.id })
+                                        .firstOrNull()
+                                    if (renderer != null) {
+                                        renderer.Content(
+                                            symbol = symbol,
+                                            selected = false,
+                                            modifier = Modifier.fillMaxWidth().height(effectiveCellHeight),
+                                            onClick = { onSymbolClick(symbol) },
+                                            onLongClick = { onSymbolLongClick(symbol) }
+                                        )
+                                    } else {
+                                        SymbolCell(
+                                            symbol = symbol,
+                                            settings = settings,
+                                            onClick = { onSymbolClick(symbol) },
+                                            onLongClick = { onSymbolLongClick(symbol) }
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -214,7 +244,7 @@ private fun SymbolCell(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .height(settings.cellHeightDp.dp)
+            .height(maxOf(settings.cellHeightDp, settings.minimumTouchTargetDp).dp)
             .combinedClickable(
                 role = Role.Button,
                 onClick = onClick,
