@@ -43,7 +43,7 @@ class SymbolDrawerDetentStateTest {
         assertEquals("collapsed", state.targetDetentId)
 
         state.dragBy(0.26f)
-        state.settle(velocityFraction = 0f)
+        state.settle(velocityFraction = 0f, animationDurationMillis = 0)
         assertEquals("half-expanded", state.targetDetentId)
     }
 
@@ -137,10 +137,10 @@ class SymbolDrawerDetentStateTest {
     fun rejectsNonFiniteDragAndVelocity(): Unit = kotlinx.coroutines.runBlocking {
         val state = SymbolDrawerDetentState()
         assertThrows(IllegalArgumentException::class.java) {
-            runBlocking { state.dragBy(Float.NaN) }
+            kotlinx.coroutines.runBlocking { state.dragBy(Float.NaN) }
         }
         assertThrows(IllegalArgumentException::class.java) {
-            runBlocking { state.settle(velocityFraction = Float.POSITIVE_INFINITY) }
+            kotlinx.coroutines.runBlocking { state.settle(velocityFraction = Float.POSITIVE_INFINITY) }
         }
     }
 }
