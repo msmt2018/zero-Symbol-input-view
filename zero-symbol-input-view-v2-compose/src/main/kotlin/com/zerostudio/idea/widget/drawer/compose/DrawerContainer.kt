@@ -10,7 +10,7 @@ package com.zerostudio.idea.widget.drawer.compose
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.draggable
+import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Box
@@ -85,7 +85,7 @@ class DrawerState internal constructor(initialFraction: Float, initialPageId: St
     }
 
     companion object {
-        val Saver: Saver<DrawerState, List<Any>> = listSaver(
+        val Saver: Saver<DrawerState, List<Any>> = listSaver<DrawerState, Any>(
             save = { listOf(it.fraction.value, it.selectedPageId.orEmpty()) },
             restore = {
                 DrawerState(
