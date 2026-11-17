@@ -45,129 +45,105 @@
 
 package com.zerostudio.idea.widget.editor.symbolinput.v2.settings
 
-import android.content.Context
-import android.content.ContextWrapper
 import android.net.Uri
-import androidx.activity.ComponentActivity
-import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import java.util.concurrent.atomic.AtomicInteger
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 
 /**
- * Lifecycle-bound Storage Access Framework picker for JSON import/export.
- * The host Activity remains in control of document access; no storage
- * permission or direct filesystem path is required.
+ * Composition-scoped JSON document picker actions. The launcher registration
+ * and cleanup are handled by rememberLauncherForActivityResult.
  */
-internal class JsonDocumentPicker(
-    context: Context,
-    private val onImported: (String) -> Unit,
-    private val onError: (Throwable) -> Unit
+@Stable
+class JsonDocumentPickerState internal constructor(
+    private val openAction: () -> Unit,
+    private val saveAction: (fileName: String, json: String) -> Unit
 ) {
-    private val activity = context.findComponentActivity()
-    private var pendingExport: String? = null
-    private val openLauncher: ActivityResultLauncher<Array<String>>?
-    private val saveLauncher: ActivityResultLauncher<String>?
+    fun openJson() = openAction()
+    fun saveJson(fileName: String, json: String) = saveAction(fileName, json)
+}
 
-    init {
-        val host = activity
-        if (host == null) {
-            openLauncher = null
-            saveLauncher = null
-        } else {
-            val suffix = nextId.incrementAndGet()
-            val registry = host.activityResultRegistry
-            // Use the registry overload without a LifecycleOwner: settings
-            // dialogs are commonly opened after the Activity is already
-            // RESUMED, when lifecycle-bound registration is no longer legal.
-            openLauncher = registry.register(
-                "zero-symbol-json-open-$suffix",
-                ActivityResultContracts.OpenDocument()
-            ) { uri -> if (uri != null) read(uri) }
-            saveLauncher = registry.register(
-                "zero-symbol-json-save-$suffix",
-                ActivityResultContracts.CreateDocument("application/json")
-            ) { uri -> if (uri != null) write(uri) }
-            host.lifecycle.addObserver(object : LifecycleEventObserver {
-                override fun onStateChanged(source: androidx.lifecycle.LifecycleOwner, event: Lifecycle.Event) {
-                    if (event == Lifecycle.Event.ON_DESTROY) {
-                        openLauncher?.unregister()
-                        saveLauncher?.unregister()
-                        source.lifecycle.removeObserver(this)
+/**
+ * Creates Storage Access Framework actions without retaining an Activity,
+ * registering lifecycle observers or exposing launcher lifecycle to callers.
+ */
+@Composable
+fun rememberJsonDocumentPicker(
+    onImported: (String) -> Unit,
+    onExported: (() -> Unit)? = null,
+    onError: (Throwable) -> Unit
+): JsonDocumentPickerState {
+    val context = LocalContext.current
+    val latestImported by rememberUpdatedState(onImported)
+    val latestExported by rememberUpdatedState(onExported)
+    val latestError by rememberUpdatedState(onError)
+    var pendingExport by remember { mutableStateOf<String?>(null) }
+
+    val openLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            runCatching {
+                val input = context.contentResolver.openInputStream(uri)
+                    ?: error("Unable to open selected JSON document")
+                input.use { stream ->
+                    val output = java.io.ByteArrayOutputStream()
+                    val buffer = ByteArray(8 * 1024)
+                    var total = 0
+                    while (true) {
+                        val count = stream.read(buffer)
+                        if (count < 0) break
+                        total += count
+                        require(total <= MAX_IMPORT_BYTES) {
+                            "Selected JSON file exceeds the 16 MiB import limit"
+                        }
+                        output.write(buffer, 0, count)
                     }
+                    output.toString(Charsets.UTF_8.name()).removePrefix("\uFEFF")
                 }
-            })
+            }.onSuccess { json ->
+                runCatching { latestImported(json) }.onFailure(latestError)
+            }.onFailure(latestError)
         }
     }
 
-    fun openJson() {
-        runCatching {
-            val launcher = openLauncher
-                ?: error("JSON file picker requires a ComponentActivity host")
-            // Document providers often label JSON as application/octet-stream.
-            // Select broadly, then validate the actual contents with the JSON codecs.
-            launcher.launch(arrayOf("*/*"))
-        }.onFailure { error -> runCatching { onError(error) } }
+    val saveLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri: Uri? ->
+        if (uri != null) {
+            runCatching {
+                val payload = pendingExport ?: error("No JSON export is pending")
+                val output = context.contentResolver.openOutputStream(uri, "wt")
+                    ?: error("Unable to create selected JSON document")
+                output.bufferedWriter(Charsets.UTF_8).use { it.write(payload) }
+            }.onSuccess {
+                runCatching { latestExported?.invoke() }.onFailure(latestError)
+            }.onFailure(latestError)
+        }
+        pendingExport = null
     }
 
-    fun saveJson(fileName: String, json: String) {
-        val launcher = saveLauncher
-        if (launcher == null) {
-            runCatching { onError(IllegalStateException("JSON file picker requires a ComponentActivity host")) }
-            return
-        }
-        pendingExport = json
-        runCatching { launcher.launch(fileName) }.onFailure { error ->
-            pendingExport = null
-            runCatching { onError(error) }
-        }
-    }
-
-    private fun read(uri: Uri) {
-        // Include decoding AND the import callback in the same failure boundary.
-        // Schema errors (including unsupported legacy action IDs) must be reported
-        // to the settings UI rather than escaping through ActivityResult delivery.
-        runCatching {
-            val input = activity?.contentResolver?.openInputStream(uri)
-                ?: error("Unable to open selected JSON file")
-            input.use { stream ->
-                val output = java.io.ByteArrayOutputStream()
-                val buffer = ByteArray(8 * 1024)
-                var total = 0
-                while (true) {
-                    val count = stream.read(buffer)
-                    if (count < 0) break
-                    total += count
-                    require(total <= MAX_IMPORT_BYTES) { "Selected JSON file exceeds the 16 MiB import limit" }
-                    output.write(buffer, 0, count)
+    return remember(openLauncher, saveLauncher) {
+        JsonDocumentPickerState(
+            openAction = {
+                runCatching { openLauncher.launch(arrayOf("*/*")) }.onFailure(latestError)
+            },
+            saveAction = { fileName, json ->
+                pendingExport = json
+                runCatching { saveLauncher.launch(fileName) }.onFailure {
+                    pendingExport = null
+                    latestError(it)
                 }
-                output.toString(Charsets.UTF_8.name()).removePrefix("\uFEFF")
-            }.also(onImported)
-        }.onFailure { error -> runCatching { onError(error) } }
-    }
-
-    private fun write(uri: Uri) {
-        runCatching {
-            val payload = pendingExport ?: error("No JSON export is pending")
-            val output = activity?.contentResolver?.openOutputStream(uri, "wt")
-                ?: error("Unable to create selected JSON file")
-            output.bufferedWriter(Charsets.UTF_8).use { it.write(payload) }
-            pendingExport = null
-        }.onSuccess { }.onFailure { error -> runCatching { onError(error) } }
-    }
-
-    private fun Context.findComponentActivity(): ComponentActivity? {
-        var current: Context? = this
-        while (current is ContextWrapper) {
-            if (current is ComponentActivity) return current
-            current = current.baseContext
-        }
-        return current as? ComponentActivity
-    }
-
-    private companion object {
-        const val MAX_IMPORT_BYTES = 16 * 1024 * 1024
-        val nextId = AtomicInteger()
+            }
+        )
     }
 }
+
+private const val MAX_IMPORT_BYTES = 16 * 1024 * 1024
