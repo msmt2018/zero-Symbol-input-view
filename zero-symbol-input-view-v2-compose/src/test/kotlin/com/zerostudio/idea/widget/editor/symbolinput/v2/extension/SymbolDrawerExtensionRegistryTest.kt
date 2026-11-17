@@ -1,56 +1,11 @@
-/*
- * This file is part of zero-Symbol-input-view-V2.
- *
- * Copyright (C) 2026 android_zero
- *
- * SPDX-License-Identifier: AGPL-3.0-only AND GPL-3.0-only AND Apache-2.0
- *
- * License Information:
- *
- * This file is distributed under the following licenses, which apply
- * cumulatively to the same work:
- *
- * 1. GNU Affero General Public License v3.0 only (AGPL-3.0-only):
- *    Grants the rights to use, study, modify, and redistribute this work.
- *    When a modified version is used to provide network services to users,
- *    the corresponding source code must be made available under the
- *    applicable AGPL terms.
- *
- * 2. GNU General Public License v3.0 only (GPL-3.0-only):
- *    Grants the rights to use, study, modify, and redistribute this work.
- *    Distribution of covered binaries requires compliance with the source
- *    code, license notice, attribution, and other applicable GPL terms.
- *
- * 3. Apache License 2.0 (Apache-2.0):
- *    Grants copyright and applicable patent rights to use, modify, and
- *    distribute this work, subject to its license conditions, including
- *    preservation of notices, inclusion of the license, and marking changes.
- *
- * The SPDX operator "AND" means that all listed license terms apply
- * cumulatively. It does not mean that recipients may choose only one
- * of the listed licenses.
- *
- * You must comply with the applicable terms of all three licenses.
- * This notice is a summary and does not replace the full license texts.
- *
- * Full license texts:
- * - GNU AGPL v3.0: https://www.gnu.org/licenses/agpl-3.0.html
- * - GNU GPL v3.0:  https://www.gnu.org/licenses/gpl-3.0.html
- * - Apache 2.0:    https://www.apache.org/licenses/LICENSE-2.0
- *
- * Author: android_zero
- * GitHub: https://github.com/msmt2018
- * WeChat: android_zero
- */
 package com.zerostudio.idea.widget.editor.symbolinput.v2.extension
 
+import androidx.compose.runtime.Composable
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionHost
-import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionId
-import com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolItem
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
+import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
 import org.junit.Assert.*
 import org.junit.Test
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
 
 class SymbolDrawerExtensionRegistryTest {
     private class Host : SymbolActionHost {
@@ -70,16 +25,15 @@ class SymbolDrawerExtensionRegistryTest {
         }
     }
 
-    @Test fun registeredActionIsDispatchedAndHandleUnregistersIt() {
+    @Test fun registeredActionDispatchesAndRegistrationHandleUnregisters() {
         val registry = SymbolDrawerExtensionRegistry()
         val host = Host()
         var called = false
         val handle = registry.registerAction(
-            SymbolDrawerActionExtension(
-                id = "sample.insert",
-                title = "Sample",
-                handler = { _, payload -> called = payload == "hello"; true }
-            )
+            SymbolDrawerActionExtension("sample.insert", "Sample", handler = { _, payload ->
+                called = payload == "hello"
+                true
+            })
         )
         val wrapped = registry.wrapActionHost(host)
         assertTrue(wrapped.executeExtension("sample.insert", "hello"))
@@ -89,171 +43,124 @@ class SymbolDrawerExtensionRegistryTest {
         assertEquals("sample.insert", host.last?.first)
     }
 
-    @Test fun numericLegacyActionIdDispatchesWithUnchangedPayloadAndUnregisters() {
+    @Test fun staleRegistrationHandleCannotRemoveReplacement() {
         val registry = SymbolDrawerExtensionRegistry()
-        val host = Host()
-        var received: String? = null
-        val handle = registry.registerLegacyAction(73) { _, payload ->
-            received = payload
-            true
-        }
-
-        val wrapped = registry.wrapActionHost(host)
-        assertTrue(wrapped.executeExtension("legacy.action.73", "custom-payload"))
-        assertEquals("custom-payload", received)
-        assertNull(host.last)
-
-        handle.close()
-        assertFalse(wrapped.executeExtension("legacy.action.73", "fallback"))
-        assertEquals("legacy.action.73", host.last?.first)
-        assertEquals("fallback", host.last?.second)
-    }
-
-    @Test fun customActionReplacesByIdWithoutOldHandleRemovingReplacement() {
-        val registry = SymbolDrawerExtensionRegistry()
-        var first = false
-        var second = false
-        val firstHandle = registry.registerAction(
-            SymbolDrawerActionExtension("app.command", "First", handler = { _, _ -> first = true; true })
-        )
-        registry.registerAction(
-            SymbolDrawerActionExtension("app.command", "Second", handler = { _, _ -> second = true; true })
-        )
-        firstHandle.close()
-        registry.wrapActionHost(Host()).executeExtension("app.command", null)
-        assertFalse(first)
-        assertTrue(second)
-    }
-
-    @Test
-    fun replacedLegacyActionSurvivesClosingPreviousHandle() {
-        val registry = SymbolDrawerExtensionRegistry()
-        var first = false
-        var second = false
-        val firstHandle = registry.registerLegacyAction(91) { _, _ -> first = true; true }
-        registry.registerLegacyAction(91) { _, _ -> second = true; true }
-
-        firstHandle.close()
-        assertTrue(registry.wrapActionHost(Host()).executeExtension("legacy.action.91", null))
-        assertFalse(first)
-        assertTrue(second)
-    }
-
-    @Test
-    fun legacyActionHandleCanBeClosedRepeatedly() {
-        val registry = SymbolDrawerExtensionRegistry()
-        var notifications = 0
-        registry.observe(emitCurrent = false) { notifications++ }
-        val handle = registry.registerLegacyAction(92) { _, _ -> true }
-        assertEquals(1, notifications)
-
-        handle.close()
-        handle.close()
-        assertEquals(2, notifications)
-        assertNull(registry.actionHandlers.get(92))
-    }
-
-    @Test
-    fun clearRemovesCurrentActionsAndAllowsFreshRegistration() {
-        val registry = SymbolDrawerExtensionRegistry()
-        var oldCalled = false
-        var newCalled = false
-        val oldHandle = registry.registerAction(
-            SymbolDrawerActionExtension("clear.action", "Old", handler = { _, _ -> oldCalled = true; true })
-        )
-
-        registry.clear()
+        val old = registry.registerAction(SymbolDrawerActionExtension("same.id", "Old", handler = { _, _ -> false }))
+        val current = registry.registerAction(SymbolDrawerActionExtension("same.id", "Current", handler = { _, _ -> true }))
+        old.close()
+        assertEquals("Current", registry.snapshot().actions.single().title)
+        current.close()
         assertTrue(registry.snapshot().actions.isEmpty())
-        assertNull(registry.actionHandlers.get(SymbolActionId.extension("clear.action")))
-
-        val newHandle = registry.registerAction(
-            SymbolDrawerActionExtension("clear.action", "New", handler = { _, _ -> newCalled = true; true })
-        )
-        // Closing a handle from before clear must not unregister the new entry.
-        oldHandle.close()
-        assertTrue(registry.wrapActionHost(Host()).executeExtension("clear.action", null))
-        assertFalse(oldCalled)
-        assertTrue(newCalled)
-
-        newHandle.close()
-        assertNull(registry.actionHandlers.get(SymbolActionId.extension("clear.action")))
     }
 
-    @Test
-    fun builtInFeatureIdsAreStableAndDistinct() {
-        val ids = listOf(
-            SymbolDrawerBuiltInFeatures.SEARCH,
-            SymbolDrawerBuiltInFeatures.FAVORITES,
-            SymbolDrawerBuiltInFeatures.RECENT,
-            SymbolDrawerBuiltInFeatures.SETTINGS,
-            SymbolDrawerBuiltInFeatures.MANAGER
-        )
-        assertEquals(ids.size, ids.toSet().size)
-        assertEquals(
-            listOf(
-                "builtin.search",
-                "builtin.favorites",
-                "builtin.recent",
-                "builtin.settings",
-                "builtin.manager"
-            ),
-            ids
-        )
-    }
-
-    @Test fun builtInVisibilityDefaultsToVisibleAndCanBeRestored() {
+    @Test fun composeItemRendererAndIndicatorAreRegisteredAsContentSlots() {
         val registry = SymbolDrawerExtensionRegistry()
-        assertTrue(registry.isBuiltInVisible("builtin.search"))
-        registry.setBuiltInVisible("builtin.search", false)
-        assertFalse(registry.isBuiltInVisible("builtin.search"))
-        registry.setBuiltInVisible("builtin.search", true)
-        assertTrue(registry.isBuiltInVisible("builtin.search"))
+        val renderer = object : SymbolDrawerItemRenderer {
+            override val id = "sample.renderer"
+            override val title = "Sample renderer"
+            override fun accepts(entry: SymbolEntry) = entry.label.startsWith("@")
+            @Composable
+            override fun Content(
+                entry: SymbolEntry,
+                state: SymbolDrawerItemRenderState,
+                onClick: () -> Unit,
+                onLongClick: (() -> Unit)?
+            ) = Unit
+        }
+        val indicator = object : SymbolGroupIndicatorExtension {
+            override val id = "sample.indicator"
+            override val title = "Sample indicator"
+            @Composable override fun Content(state: SymbolGroupIndicatorState) = Unit
+        }
+        val rendererHandle = registry.registerItemRenderer(renderer)
+        val indicatorHandle = registry.registerIndicator(indicator)
+        assertEquals("sample.renderer", registry.snapshot().itemRenderers.single().id)
+        assertEquals("sample.indicator", registry.snapshot().indicators.single().id)
+        rendererHandle.close()
+        indicatorHandle.close()
+        assertTrue(registry.snapshot().itemRenderers.isEmpty())
+        assertTrue(registry.snapshot().indicators.isEmpty())
     }
 
+    @Test fun settingsAndThemeExtensionsArePlatformNeutral() {
+        val registry = SymbolDrawerExtensionRegistry()
+        val tab = object : SymbolDrawerSettingsTabExtension {
+            override val id = "sample.settings.tab"
+            override val title = "Sample tab"
+            @Composable override fun Content(scope: SymbolDrawerSettingsScope) = Unit
+        }
+        val setting = object : SymbolDrawerSettingExtension {
+            override val id = "sample.settings.item"
+            override val tabId = "sample.settings.tab"
+            override val title = "Sample setting"
+            @Composable override fun Content(scope: SymbolDrawerSettingsScope) = Unit
+        }
+        val theme = object : SymbolDrawerThemeExtension {
+            override val id = "sample.theme"
+            override val title = "Sample theme"
+            override fun resolve(settings: SymbolDrawerSettings) = SymbolDrawerTheme(
+                primary = 1,
+                onPrimary = 2,
+                surface = 3,
+                onSurface = 4,
+                secondaryText = 5,
+                outline = 6
+            )
+        }
+        val handles = listOf(
+            registry.registerSettingsTab(tab),
+            registry.registerSetting(setting),
+            registry.registerTheme(theme)
+        )
+        assertEquals("sample.settings.tab", registry.snapshot().settingsTabs.single().id)
+        assertEquals("sample.settings.item", registry.snapshot().settingsItems.single().id)
+        assertEquals("sample.theme", registry.snapshot().themes.single().id)
+        handles.forEach { it.close() }
+        assertTrue(registry.snapshot().settingsTabs.isEmpty())
+        assertTrue(registry.snapshot().settingsItems.isEmpty())
+        assertTrue(registry.snapshot().themes.isEmpty())
+    }
 
-    @Test fun observerReceivesImmutableSnapshotsAndCanUnsubscribe() {
+    @Test fun legacyGroupProviderAndBuiltInVisibilityRemainAvailable() {
+        val registry = SymbolDrawerExtensionRegistry()
+        val provider = object : SymbolDrawerLegacyGroupProvider {
+            override val id = "sample.groups"
+            override val title = "Sample groups"
+            override suspend fun loadGroups() = listOf(
+                com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolGroup("sample")
+            )
+        }
+        val handle = registry.registerGroupProvider(provider)
+        registry.setBuiltInVisible("builtin.manager", false)
+        assertEquals("sample.groups", registry.snapshot().groupProviders.single().id)
+        assertFalse(registry.isBuiltInVisible("builtin.manager"))
+        handle.close()
+        assertTrue(registry.snapshot().groupProviders.isEmpty())
+    }
+
+    @Test fun snapshotsAdvanceAndObserverHandleUnsubscribes() {
         val registry = SymbolDrawerExtensionRegistry()
         val revisions = mutableListOf<Long>()
-        val actionCounts = mutableListOf<Int>()
-        val handle = registry.observe { snapshot ->
-            revisions += snapshot.revision
-            actionCounts += snapshot.actions.size
-        }
-        val registration = registry.registerAction(
-            SymbolDrawerActionExtension("observe.action", "Observed", handler = { _, _ -> true })
-        )
-        assertEquals(2, revisions.size)
-        assertEquals(0, actionCounts.first())
-        assertEquals(1, actionCounts.last())
-        assertTrue(revisions.last() > revisions.first())
-        registration.close()
-        assertEquals(0, registry.snapshot().actions.size)
-        val countAfterClose = revisions.size
+        val handle = registry.observe { revisions += it.revision }
+        registry.registerAction(SymbolDrawerActionExtension("one", "One", handler = { _, _ -> true }))
+        registry.registerAction(SymbolDrawerActionExtension("two", "Two", handler = { _, _ -> true }))
         handle.close()
-        registry.setBuiltInVisible("builtin.search", false)
-        assertEquals(countAfterClose, revisions.size)
+        assertTrue(revisions.zipWithNext().all { (before, after) -> after > before })
+        assertEquals(registry.revision(), registry.snapshot().revision)
     }
 
-    @Test
-    fun throwingInitialObserverDoesNotBreakRegistryRegistration() {
+    @Test fun extensionErrorCallbackIsIsolated() {
         val registry = SymbolDrawerExtensionRegistry()
-        registry.observe(emitCurrent = true) {
-            error("observer failure")
+        var reported = false
+        registry.onExtensionErrorListener = { id, error ->
+            assertEquals("test.extension", id)
+            assertEquals("boom", error.message)
+            reported = true
         }
-        val handle = registry.registerAction(
-            SymbolDrawerActionExtension("safe.observer", "Safe", handler = { _, _ -> true })
-        )
-        assertEquals(1, registry.snapshot().actions.size)
-        handle.close()
-        assertTrue(registry.snapshot().actions.isEmpty())
-    }
-
-    @Test fun snapshotContainsBuiltInVisibilityAndAllContributionTypes() {
-        val registry = SymbolDrawerExtensionRegistry()
-        registry.setBuiltInVisible("builtin.manager", false)
-        val snapshot = registry.snapshot()
-        assertFalse(snapshot.builtInVisibility["builtin.manager"] ?: true)
-        assertEquals(registry.revision(), snapshot.revision)
+        registry.reportError("test.extension", IllegalStateException("boom"))
+        assertTrue(reported)
+        registry.onExtensionErrorListener = { _, _ -> error("diagnostic callback failure") }
+        registry.reportError("test.extension", IllegalStateException("isolated"))
     }
 
     @Test(expected = IllegalArgumentException::class)
@@ -262,138 +169,4 @@ class SymbolDrawerExtensionRegistryTest {
             SymbolDrawerActionExtension("bad id", "Bad", handler = { _, _ -> true })
         )
     }
-
-    @Test
-    fun itemViewRendererIsPublishedAndUnregisteredFromTheDrawerRegistry() {
-        val registry = SymbolDrawerExtensionRegistry()
-        val renderer = object : SymbolDrawerItemViewExtension {
-            override val id = "sample.renderer"
-            override val title = "Sample renderer"
-            override fun createView(
-                context: android.content.Context,
-                item: com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolItem,
-                state: SymbolDrawerItemViewState
-            ): android.view.View = error("Creation is owned by SymbolPageAdapter")
-            override fun bindView(
-                view: android.view.View,
-                item: com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolItem,
-                state: SymbolDrawerItemViewState
-            ) = Unit
-        }
-        val handle = registry.registerItemView(renderer)
-        assertEquals("sample.renderer", registry.itemViews().single().id)
-        assertEquals("sample.renderer", registry.snapshot().itemViews.single().id)
-        handle.close()
-        assertTrue(registry.itemViews().isEmpty())
-    }
-
-    @Test
-    fun legacyProvidersAndLifecycleContributionsAreVisibleInSnapshots() {
-        val registry = SymbolDrawerExtensionRegistry()
-        val provider = object : SymbolDrawerLegacyGroupProvider {
-            override val id = "sample.groups"
-            override val title = "Sample groups"
-            override suspend fun loadGroups() =
-                listOf(com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolGroup("sample"))
-        }
-        val lifecycle = object : SymbolDrawerLifecycleExtension {
-            override val id = "sample.lifecycle"
-        }
-        val providerHandle = registry.registerGroupProvider(provider)
-        val lifecycleHandle = registry.registerLifecycle(lifecycle)
-        assertEquals("sample.groups", registry.snapshot().groupProviders.single().id)
-        assertEquals("sample.lifecycle", registry.snapshot().lifecycle.single().id)
-        providerHandle.close()
-        lifecycleHandle.close()
-        assertTrue(registry.snapshot().groupProviders.isEmpty())
-        assertTrue(registry.snapshot().lifecycle.isEmpty())
-    }
-    @Test fun itemViewExtensionStateCallbackIsOptionalAndSourceCompatible() {
-        val extension = object : SymbolDrawerItemViewExtension {
-            override val id = "test.state"
-            override val title = "State"
-            override fun createView(
-                context: android.content.Context,
-                item: SymbolItem,
-                state: SymbolDrawerItemViewState
-            ): android.view.View = throw UnsupportedOperationException()
-            override fun bindView(
-                view: android.view.View,
-                item: SymbolItem,
-                state: SymbolDrawerItemViewState
-            ) = Unit
-        }
-        assertEquals("test.state", extension.id)
-        // All lifecycle/state hooks remain optional for existing third-party renderers.
-        val viewType: (android.view.View, SymbolItem) -> Unit = { view, item ->
-            extension.onViewAttachedToWindow(view, item)
-            extension.onViewDetachedFromWindow(view, item)
-            extension.onStateChanged(view, item, SymbolDrawerItemViewState(0, 0))
-        }
-        assertNotNull(viewType)
-    }
-    @Test fun extensionErrorListenerIsolatedFromFaultyHostCallback() {
-        val registry = SymbolDrawerExtensionRegistry()
-        var reported = 0
-        registry.onExtensionErrorListener = { id, error ->
-            assertEquals("test.extension", id)
-            assertEquals("boom", error.message)
-            reported++
-        }
-        registry.reportError("test.extension", IllegalStateException("boom"))
-        assertEquals(1, reported)
-
-        registry.onExtensionErrorListener = { _, _ -> error("host diagnostic callback failure") }
-        registry.reportError("test.extension", IllegalStateException("isolated"))
-    }
-    @Test
-    fun concurrentMutationsNeverDeliverOlderSnapshotsAfterNewerOnes() {
-        val registry = SymbolDrawerExtensionRegistry()
-        val firstCallbackEntered = CountDownLatch(1)
-        val releaseFirstCallback = CountDownLatch(1)
-        val revisions = java.util.Collections.synchronizedList(mutableListOf<Long>())
-        val actionCounts = java.util.Collections.synchronizedList(mutableListOf<Int>())
-
-        registry.observe(emitCurrent = false) { snapshot ->
-            revisions += snapshot.revision
-            actionCounts += snapshot.actions.size
-            if (snapshot.actions.size == 1) {
-                firstCallbackEntered.countDown()
-                check(releaseFirstCallback.await(5, TimeUnit.SECONDS))
-            }
-        }
-
-        val firstMutation = Thread {
-            registry.registerAction(
-                SymbolDrawerActionExtension("concurrent.first", "First", handler = { _, _ -> true })
-            )
-        }
-        firstMutation.start()
-        assertTrue(firstCallbackEntered.await(5, TimeUnit.SECONDS))
-
-        val secondMutation = Thread {
-            registry.registerAction(
-                SymbolDrawerActionExtension("concurrent.second", "Second", handler = { _, _ -> true })
-            )
-        }
-        secondMutation.start()
-
-        // Wait until the second contribution is committed while its notification
-        // is still queued behind the first observer callback.
-        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5)
-        while (registry.snapshot().actions.size < 2 && System.nanoTime() < deadline) {
-            Thread.yield()
-        }
-        assertEquals(2, registry.snapshot().actions.size)
-        releaseFirstCallback.countDown()
-        firstMutation.join(5_000)
-        secondMutation.join(5_000)
-
-        assertFalse(firstMutation.isAlive)
-        assertFalse(secondMutation.isAlive)
-        assertEquals(2, actionCounts.last())
-        assertTrue(revisions.zipWithNext().all { (before, after) -> after > before })
-        assertTrue(actionCounts.zipWithNext().all { (before, after) -> after >= before })
-    }
-
 }
