@@ -62,3 +62,28 @@ typealias DrawerThemeResolver = com.zerostudio.idea.widget.editor.symbolinput.v2
 
 /** Compose-native drawer entry point. */
 typealias SymbolDrawerState = com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawerState
+typealias DrawerContainerState = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.DrawerContainerState
+
+/** Compose-native generic drawer container facade. */
+@androidx.compose.runtime.Composable
+fun DrawerContainer(
+    config: com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.config.DrawerConfig = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.config.DrawerConfig(),
+    modifier: androidx.compose.ui.Modifier = androidx.compose.ui.Modifier,
+    state: DrawerContainerState = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.rememberDrawerContainerState(),
+    title: String? = null,
+    pages: List<com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerPage> = emptyList(),
+    selectedPageId: String? = null,
+    onPageSelected: (com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerPage) -> Unit = {},
+    onDismiss: () -> Unit = {},
+    content: @androidx.compose.runtime.Composable androidx.compose.foundation.layout.BoxScope.() -> Unit
+) = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.DrawerContainer(
+    config = config,
+    modifier = modifier,
+    state = state,
+    title = title,
+    pages = pages,
+    selectedPageId = selectedPageId,
+    onPageSelected = onPageSelected,
+    onDismiss = onDismiss,
+    content = content
+)
