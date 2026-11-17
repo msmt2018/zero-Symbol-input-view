@@ -45,387 +45,223 @@
 
 package com.zerostudio.idea.widget.editor.symbolinput.v2.ui
 
-import android.animation.ValueAnimator
-import android.content.Context
-import android.graphics.Canvas
-import android.graphics.Paint
-import android.graphics.Path
-import android.graphics.RectF
-import android.view.MotionEvent
-import android.view.View
-import android.view.ViewGroup
-import android.widget.FrameLayout
-import android.widget.ImageButton
-import android.widget.LinearLayout
-import android.util.TypedValue
-import androidx.interpolator.view.animation.FastOutSlowInInterpolator
-import com.zerostudio.idea.widget.editor.symbolinput.v2.R
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.weight
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.GroupIndicatorStyle
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
-import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerTheme
 import kotlin.math.PI
 import kotlin.math.cos
-import kotlin.math.min
 import kotlin.math.sin
 
 /**
- * Group navigation shell. Group/page ownership remains in SymbolDrawerView and
- * ViewPager2; this class is a replaceable presentation surface only.
+ * Compose-native group navigation indicator.
+ *
+ * All 40 persisted V2 indicator style identifiers remain stable. They are
+ * rendered with Compose Canvas primitives and never allocate Android Views.
  */
-internal class SymbolGroupIndicator(
-    context: Context,
-    private val onGroupSelected: (Int) -> Unit
-) : FrameLayout(context) {
-    var onSettingsClick: (() -> Unit)? = null
-    private val renderer = IndicatorRenderer(context) { index -> onGroupSelected(index) }
-    private val settingsButton = ImageButton(context).apply {
-        val target = dp(48)
-        minimumWidth = target
-        minimumHeight = target
-        contentDescription = context.getString(R.string.symbol_drawer_accessibility_settings)
-        isClickable = true
-        isFocusable = true
-        scaleType = android.widget.ImageView.ScaleType.CENTER_INSIDE
-        setPadding(dp(12), dp(12), dp(12), dp(12))
-        val selectable = TypedValue()
-        if (context.theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, selectable, true) && selectable.resourceId != 0) {
-            setBackgroundResource(selectable.resourceId)
-        }
-        setImageDrawable(MaterialSettingsDrawable(HostThemeColors.onSurface(context)))
-        setOnClickListener { onSettingsClick?.invoke() }
-    }
-    init {
-        clipChildren = false
-        clipToPadding = false
-        setBackgroundColor(HostThemeColors.surface(context))
-        addView(renderer, LayoutParams(0, LayoutParams.MATCH_PARENT).apply {
-            width = LayoutParams.MATCH_PARENT
-            marginEnd = dp(48)
-        })
-        addView(settingsButton, LayoutParams(dp(48), LayoutParams.MATCH_PARENT, android.view.Gravity.END))
-    }
-    fun submitGroups(groups: List<SymbolGroup>) = renderer.submitGroups(groups)
-    /** Controls the built-in settings affordance independently of indicator styling. */
-    fun setSettingsButtonVisible(visible: Boolean) {
-        settingsButton.visibility = if (visible) View.VISIBLE else View.GONE
-    }
-
-    fun applySettings(settings: SymbolDrawerSettings) {
-        renderer.applySettings(settings)
-        settingsButton.setImageDrawable(MaterialSettingsDrawable(renderer.themeOnSurface()))
-    }
-
-    fun applyTheme(theme: SymbolDrawerTheme?) {
-        renderer.applyTheme(theme)
-        setBackgroundColor(theme?.drawerBackground ?: HostThemeColors.surface(context))
-        settingsButton.setImageDrawable(MaterialSettingsDrawable(theme?.onSurface ?: HostThemeColors.onSurface(context)))
-    }
-    override fun setBackgroundColor(color: Int) {
-        super.setBackgroundColor(color)
-        renderer.invalidate()
-    }
-    fun setSelectedIndex(index: Int) = renderer.setSelectedIndex(index)
-    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
-        super.onSizeChanged(w, h, oldw, oldh)
-        renderer.invalidate()
-    }
-    private fun dp(value: Int) = (value * resources.displayMetrics.density + .5f).toInt()
-}
-
-/**
- * 40 independent drawing modes over one stable page-selection contract.
- * Non-text modes intentionally omit group titles; each node/dot/segment maps
- * one-to-one to a symbol group page.
- */
-private class IndicatorRenderer(
-    context: Context,
-    private val onSelected: (Int) -> Unit
-) : View(context) {
-    private val density = resources.displayMetrics.density
-    private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val bounds = RectF()
-    private var groups: List<SymbolGroup> = emptyList()
-    private var selected = 0
-    private var settings = SymbolDrawerSettings()
-    private var customTheme: SymbolDrawerTheme? = null
-    private var animation = 1f
-    private var animator: ValueAnimator? = null
-    private val primary get() = customTheme?.primary ?: HostThemeColors.primary(context)
-    private val onSurface get() = customTheme?.onSurface ?: HostThemeColors.onSurface(context)
-    private val surface get() = customTheme?.surface ?: HostThemeColors.surface(context)
-
-    fun themeOnSurface(): Int = onSurface
-
-    fun applyTheme(theme: SymbolDrawerTheme?) {
-        customTheme = theme
-        invalidate()
-    }
-    private fun dp(v: Float) = v * density
-
-    init {
-        isClickable = true
-        isFocusable = true
-        contentDescription = context.getString(R.string.symbol_drawer_accessibility_group_indicator)
-    }
-    fun submitGroups(value: List<SymbolGroup>) {
-        groups = value.toList()
-        selected = selected.coerceIn(0, (groups.size - 1).coerceAtLeast(0))
-        invalidate()
-    }
-    fun applySettings(value: SymbolDrawerSettings) {
-        settings = value
-        invalidate()
-    }
-    fun setSelectedIndex(index: Int) {
-        if (groups.isEmpty()) return
-        val next = index.coerceIn(groups.indices)
-        if (next == selected) { invalidate(); return }
-        selected = next
-        animator?.cancel()
-        if (!settings.reduceMotion && settings.animationDurationMs > 0) {
-            animator = ValueAnimator.ofFloat(0f, 1f).apply {
-                duration = settings.animationDurationMs.toLong()
-                interpolator = FastOutSlowInInterpolator()
-                addUpdateListener { animation = it.animatedValue as Float; invalidate() }
-                start()
+@Composable
+fun SymbolGroupIndicator(
+    groups: List<SymbolGroup>,
+    selectedIndex: Int,
+    onGroupSelected: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    settings: SymbolDrawerSettings = SymbolDrawerSettings(),
+    onSettingsClick: (() -> Unit)? = null
+) {
+    val selected = selectedIndex.coerceIn(0, (groups.size - 1).coerceAtLeast(0))
+    val textMode = settings.indicatorStyle == GroupIndicatorStyle.TEXT ||
+        settings.indicatorStyle == GroupIndicatorStyle.TEXT_TABS
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (textMode) {
+            LazyRow(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                itemsIndexed(groups, key = { _, group -> group.id }) { index, group ->
+                    Text(
+                        text = group.title,
+                        modifier = Modifier.clickable { onGroupSelected(index) },
+                        color = if (index == selected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.labelLarge,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         } else {
-            animation = 1f
-            invalidate()
-        }
-        contentDescription = context.getString(R.string.symbol_drawer_accessibility_group_position, selected + 1, groups.size)
-    }
-    override fun onDraw(canvas: Canvas) {
-        super.onDraw(canvas)
-        val count = groups.size
-        if (count == 0) return
-        val style = settings.indicatorStyle
-        val w = width.toFloat()
-        val h = height.toFloat()
-        val centerY = h / 2f
-        val horizontalInset = dp(10f)
-        val usable = (w - horizontalInset * 2).coerceAtLeast(1f)
-        val slot = usable / count
-        val x = horizontalInset + slot * (selected + .5f)
-        val radius = min(dp(12f), h * .28f)
-        paint.style = Paint.Style.FILL
-        paint.color = onSurface
-        paint.alpha = 90
-        when (style) {
-            GroupIndicatorStyle.TEXT_TABS, GroupIndicatorStyle.TEXT -> drawTextTabs(canvas, slot, horizontalInset, h)
-            GroupIndicatorStyle.PILL -> drawPill(canvas, x, centerY, slot, h)
-            GroupIndicatorStyle.DOTS, GroupIndicatorStyle.PULSE_DOTS,
-            GroupIndicatorStyle.ORBIT_DOTS -> drawDots(canvas, slot, horizontalInset, centerY, radius, style)
-            GroupIndicatorStyle.UNDERLINE -> drawUnderline(canvas, slot, horizontalInset, h)
-            GroupIndicatorStyle.GOOEY_METABALL, GroupIndicatorStyle.LIQUID_MERGE,
-            GroupIndicatorStyle.SPRING_BLOB, GroupIndicatorStyle.FLUID_TRAIL,
-            GroupIndicatorStyle.ELASTIC_WORM -> drawLiquid(canvas, slot, horizontalInset, centerY, radius, style)
-            GroupIndicatorStyle.VERNIER_TICKS, GroupIndicatorStyle.MECHANICAL_RULER,
-            GroupIndicatorStyle.WHEEL_ROLLER, GroupIndicatorStyle.CAMERA_DIAL,
-            GroupIndicatorStyle.MINIMAL_DASHES, GroupIndicatorStyle.SQUARE_TICKS ->
-                drawTicks(canvas, slot, horizontalInset, centerY, style)
-            GroupIndicatorStyle.RADIAL_RING, GroupIndicatorStyle.RADAR_SWEEP,
-            GroupIndicatorStyle.HUD_ARC, GroupIndicatorStyle.ARC_NODES ->
-                drawRadial(canvas, slot, horizontalInset, centerY, radius, style)
-            GroupIndicatorStyle.ELASTIC_WAVE, GroupIndicatorStyle.SINE_WAVE,
-            GroupIndicatorStyle.BOUNCE_TRACK, GroupIndicatorStyle.SPRING_SLIDER ->
-                drawWave(canvas, slot, horizontalInset, centerY, style)
-            GroupIndicatorStyle.MORPHING_BAR, GroupIndicatorStyle.SEGMENTED_TRACK,
-            GroupIndicatorStyle.PROGRESS_LINE, GroupIndicatorStyle.DOUBLE_TRACK,
-            GroupIndicatorStyle.VERTICAL_RAIL, GroupIndicatorStyle.STEPPER ->
-                drawTrack(canvas, slot, horizontalInset, centerY, h, style)
-            GroupIndicatorStyle.DIAMOND_MARKERS, GroupIndicatorStyle.TRIANGLE_POINTER,
-            GroupIndicatorStyle.HEXAGON_NODES, GroupIndicatorStyle.GLOWING_NODES ->
-                drawShapes(canvas, slot, horizontalInset, centerY, radius, style)
-            GroupIndicatorStyle.STACKED_CARDS, GroupIndicatorStyle.MINI_PREVIEW,
-            GroupIndicatorStyle.THUMBNAIL_STRIP, GroupIndicatorStyle.NUMBER_BADGES,
-            GroupIndicatorStyle.DIGITAL_COUNTER ->
-                drawCards(canvas, slot, horizontalInset, centerY, h, style)
-        }
-    }
-    private fun drawTextTabs(c: Canvas, slot: Float, inset: Float, h: Float) {
-        groups.forEachIndexed { i, group ->
-            val cx = inset + slot * (i + .5f)
-            paint.color = if (i == selected) primary else onSurface
-            paint.alpha = if (i == selected) 255 else 175
-            paint.textSize = dp(14f)
-            paint.typeface = if (i == selected) android.graphics.Typeface.create("sans-serif-medium", 0) else android.graphics.Typeface.DEFAULT
-            paint.textAlign = Paint.Align.CENTER
-            val title = if (settings.showGroupTitles) group.title else (i + 1).toString()
-            val label = android.text.TextUtils.ellipsize(title, android.text.TextPaint().apply { textSize = paint.textSize }, slot - dp(8f), android.text.TextUtils.TruncateAt.END).toString()
-            c.drawText(label, cx, h / 2f - (paint.ascent() + paint.descent()) / 2f, paint)
-        }
-        paint.color = primary
-        paint.alpha = 255
-        c.drawRoundRect(inset + slot * selected + dp(5f), h - dp(3f), inset + slot * (selected + 1) - dp(5f), h - dp(1f), dp(2f), dp(2f), paint)
-    }
-    private fun drawPill(c: Canvas, x: Float, cy: Float, slot: Float, h: Float) {
-        paint.color = primary; paint.alpha = 45
-        c.drawRoundRect(x - slot * .43f, cy - h * .34f, x + slot * .43f, cy + h * .34f, h, h, paint)
-        paint.color = primary; paint.alpha = 255
-        c.drawCircle(x, cy, dp(4f) * (.8f + .2f * animation), paint)
-    }
-    private fun drawDots(c: Canvas, slot: Float, inset: Float, cy: Float, r: Float, style: GroupIndicatorStyle) {
-        groups.indices.forEach { i ->
-            val cx = inset + slot * (i + .5f)
-            val active = i == selected
-            paint.color = if (active) primary else onSurface
-            paint.alpha = if (active) 255 else 105
-            val rr = if (active) r * (if (style == GroupIndicatorStyle.PULSE_DOTS) 1.15f else 1f) else r * .55f
-            if (active && style != GroupIndicatorStyle.DOTS) c.drawRoundRect(cx - rr * 1.8f, cy - rr * .55f, cx + rr * 1.8f, cy + rr * .55f, rr, rr, paint)
-            else c.drawCircle(cx, cy, rr, paint)
-            if (style == GroupIndicatorStyle.ORBIT_DOTS && active) {
-                paint.style = Paint.Style.STROKE; paint.strokeWidth = dp(1.2f)
-                c.drawCircle(cx, cy, rr + dp(4f), paint); paint.style = Paint.Style.FILL
-            }
-        }
-    }
-    private fun drawUnderline(c: Canvas, slot: Float, inset: Float, h: Float) {
-        groups.indices.forEach { i ->
-            paint.color = onSurface; paint.alpha = 55
-            val left = inset + slot * i + dp(4f)
-            c.drawRoundRect(left, h / 2f - dp(1f), left + slot - dp(8f), h / 2f + dp(1f), dp(2f), dp(2f), paint)
-        }
-        paint.color = primary; paint.alpha = 255
-        val left = inset + slot * selected + dp(4f)
-        c.drawRoundRect(left, h / 2f - dp(2f), left + slot - dp(8f), h / 2f + dp(2f), dp(3f), dp(3f), paint)
-    }
-    private fun drawLiquid(c: Canvas, slot: Float, inset: Float, cy: Float, r: Float, style: GroupIndicatorStyle) {
-        groups.indices.forEach { i ->
-            val cx = inset + slot * (i + .5f)
-            paint.color = onSurface; paint.alpha = 65
-            c.drawCircle(cx, cy, r * .42f, paint)
-        }
-        val cx = inset + slot * (selected + .5f)
-        val stretch = if (style == GroupIndicatorStyle.ELASTIC_WORM) 1.8f else 1.25f
-        paint.color = primary; paint.alpha = 255
-        c.drawRoundRect(cx - r * stretch, cy - r * .7f, cx + r * stretch, cy + r * .7f, r, r, paint)
-        if (style == GroupIndicatorStyle.GOOEY_METABALL || style == GroupIndicatorStyle.LIQUID_MERGE) {
-            if (selected > 0) c.drawCircle(cx - slot * .32f, cy, r * .48f, paint)
-            if (selected < groups.lastIndex) c.drawCircle(cx + slot * .32f, cy, r * .48f, paint)
-        }
-    }
-    private fun drawTicks(c: Canvas, slot: Float, inset: Float, cy: Float, style: GroupIndicatorStyle) {
-        groups.indices.forEach { i ->
-            val x = inset + slot * (i + .5f)
-            val active = i == selected
-            paint.color = if (active) primary else onSurface; paint.alpha = if (active) 255 else 120
-            paint.strokeWidth = if (active) dp(2.5f) else dp(1f)
-            val extent = if (active) dp(15f) else dp(if (style == GroupIndicatorStyle.CAMERA_DIAL) 7f else 10f)
-            if (style == GroupIndicatorStyle.SQUARE_TICKS) c.drawRect(x - dp(1f), cy - extent, x + dp(1f), cy + extent, paint)
-            else c.drawLine(x, cy - extent, x, cy + extent, paint)
-            if (active && style == GroupIndicatorStyle.WHEEL_ROLLER) {
-                paint.style = Paint.Style.STROKE; c.drawCircle(x, cy, dp(7f), paint); paint.style = Paint.Style.FILL
-            }
-        }
-    }
-    private fun drawRadial(c: Canvas, slot: Float, inset: Float, cy: Float, r: Float, style: GroupIndicatorStyle) {
-        val cx = width / 2f
-        val radius = min(width * .34f, height * .42f)
-        paint.style = Paint.Style.STROKE; paint.strokeWidth = dp(2f); paint.color = onSurface; paint.alpha = 75
-        c.drawCircle(cx, cy, radius, paint)
-        val angle = -PI / 2.0 + (2.0 * PI * selected / groups.size)
-        paint.color = primary; paint.alpha = 255
-        if (style == GroupIndicatorStyle.RADIAL_RING || style == GroupIndicatorStyle.HUD_ARC) {
-            val rect = RectF(cx - radius, cy - radius, cx + radius, cy + radius)
-            c.drawArc(rect, -90f, 360f / groups.size, false, paint)
-        } else {
-            c.drawLine(cx, cy, cx + cos(angle).toFloat() * radius, cy + sin(angle).toFloat() * radius, paint)
-        }
-        paint.style = Paint.Style.FILL
-        groups.indices.forEach { i ->
-            val a = -PI / 2.0 + (2.0 * PI * i / groups.size)
-            val px = cx + cos(a).toFloat() * radius
-            val py = cy + sin(a).toFloat() * radius
-            paint.color = if (i == selected) primary else onSurface; paint.alpha = 220
-            c.drawCircle(px, py, if (i == selected) dp(3.5f) else dp(2f), paint)
-        }
-    }
-    private fun drawWave(c: Canvas, slot: Float, inset: Float, cy: Float, style: GroupIndicatorStyle) {
-        val path = Path()
-        groups.indices.forEach { i ->
-            val x = inset + slot * (i + .5f)
-            val y = cy + if (style == GroupIndicatorStyle.SINE_WAVE) sin(i * .9).toFloat() * dp(5f) else 0f
-            if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
-            paint.color = if (i == selected) primary else onSurface; paint.alpha = 220
-            paint.style = Paint.Style.FILL
-            c.drawCircle(x, y, if (i == selected) dp(5f) else dp(2.5f), paint)
-        }
-        paint.color = primary; paint.alpha = 155; paint.style = Paint.Style.STROKE; paint.strokeWidth = dp(2f)
-        c.drawPath(path, paint); paint.style = Paint.Style.FILL
-    }
-    private fun drawTrack(c: Canvas, slot: Float, inset: Float, cy: Float, h: Float, style: GroupIndicatorStyle) {
-        groups.indices.forEach { i ->
-            val left = inset + slot * i + dp(2f)
-            val right = inset + slot * (i + 1) - dp(2f)
-            paint.color = if (i == selected) primary else onSurface
-            paint.alpha = if (i == selected) 255 else 65
-            if (style == GroupIndicatorStyle.VERTICAL_RAIL) {
-                c.drawRoundRect(left + slot * .35f, cy - h * .3f, right - slot * .35f, cy + h * .3f, dp(3f), dp(3f), paint)
-            } else {
-                c.drawRoundRect(left, cy - dp(if (i == selected) 4f else 2f), right, cy + dp(if (i == selected) 4f else 2f), dp(4f), dp(4f), paint)
-            }
-        }
-    }
-    private fun drawShapes(c: Canvas, slot: Float, inset: Float, cy: Float, r: Float, style: GroupIndicatorStyle) {
-        groups.indices.forEach { i ->
-            val x = inset + slot * (i + .5f)
-            paint.color = if (i == selected) primary else onSurface; paint.alpha = if (i == selected) 255 else 100
-            val rr = if (i == selected) r * .8f else r * .4f
-            when (style) {
-                GroupIndicatorStyle.DIAMOND_MARKERS -> {
-                    val p = Path().apply { moveTo(x, cy - rr); lineTo(x + rr, cy); lineTo(x, cy + rr); lineTo(x - rr, cy); close() }
-                    c.drawPath(p, paint)
+            Canvas(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .pointerInput(groups.size) {
+                        detectTapGestures { point ->
+                            if (groups.isNotEmpty() && size.width > 0) {
+                                val index = (point.x / size.width * groups.size)
+                                    .toInt().coerceIn(0, groups.lastIndex)
+                                onGroupSelected(index)
+                            }
+                        }
+                    }
+            ) {
+                val count = groups.size
+                if (count > 0) {
+                    val primary = MaterialTheme.colorScheme.primary
+                    val inactive = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.58f)
+                    val centerY = size.height / 2f
+                    val step = size.width / count
+                    val style = settings.indicatorStyle
+                    val selectedX = step * (selected + 0.5f)
+                    val lineStart = Offset(step * 0.5f, centerY)
+                    val lineEnd = Offset(size.width - step * 0.5f, centerY)
+
+                    when (style) {
+                        GroupIndicatorStyle.UNDERLINE,
+                        GroupIndicatorStyle.PILL,
+                        GroupIndicatorStyle.SEGMENTED_TRACK,
+                        GroupIndicatorStyle.PROGRESS_LINE,
+                        GroupIndicatorStyle.DOUBLE_TRACK,
+                        GroupIndicatorStyle.SPRING_SLIDER,
+                        GroupIndicatorStyle.MORPHING_BAR -> {
+                            drawLine(inactive.copy(alpha = 0.25f), lineStart, lineEnd, 3.dp.toPx(), StrokeCap.Round)
+                            val width = (step * 0.72f).coerceAtLeast(4.dp.toPx())
+                            drawRoundRect(
+                                primary,
+                                topLeft = Offset(selectedX - width / 2f, centerY - 3.dp.toPx()),
+                                size = Size(width, 6.dp.toPx()),
+                                cornerRadius = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx())
+                            )
+                            if (style == GroupIndicatorStyle.DOUBLE_TRACK) {
+                                drawLine(primary.copy(alpha = 0.45f), Offset(step * 0.5f, centerY + 7.dp.toPx()), Offset(size.width - step * 0.5f, centerY + 7.dp.toPx()), 1.dp.toPx())
+                            }
+                        }
+                        GroupIndicatorStyle.RADIAL_RING,
+                        GroupIndicatorStyle.HUD_ARC,
+                        GroupIndicatorStyle.RADAR_SWEEP,
+                        GroupIndicatorStyle.CAMERA_DIAL,
+                        GroupIndicatorStyle.WHEEL_ROLLER -> {
+                            val radius = (size.height * 0.34f).coerceAtLeast(3.dp.toPx())
+                            for (i in 0 until count) {
+                                val angle = -90f + 360f * i / count
+                                val radians = angle * PI.toFloat() / 180f
+                                val x = selectedX + cos(radians) * radius
+                                val y = centerY + sin(radians) * radius
+                                drawCircle(if (i == selected) primary else inactive, if (i == selected) 3.dp.toPx() else 1.8.dp.toPx(), Offset(x, y))
+                            }
+                            drawArc(
+                                color = primary.copy(alpha = 0.75f),
+                                startAngle = -90f,
+                                sweepAngle = 360f * (selected + 1) / count,
+                                useCenter = false,
+                                topLeft = Offset(selectedX - radius - 4.dp.toPx(), centerY - radius - 4.dp.toPx()),
+                                size = Size((radius + 4.dp.toPx()) * 2, (radius + 4.dp.toPx()) * 2),
+                                style = Stroke(width = 1.5.dp.toPx())
+                            )
+                        }
+                        GroupIndicatorStyle.VERTICAL_RAIL -> {
+                            for (i in 0 until count) {
+                                val y = size.height * (i + 0.5f) / count
+                                drawLine(if (i == selected) primary else inactive, Offset(size.width * 0.5f, y - 2.dp.toPx()), Offset(size.width * 0.5f, y + 2.dp.toPx()), if (i == selected) 4.dp.toPx() else 2.dp.toPx(), StrokeCap.Round)
+                            }
+                        }
+                        else -> {
+                            drawLine(inactive.copy(alpha = 0.22f), lineStart, lineEnd, 1.dp.toPx(), StrokeCap.Round)
+                            for (i in 0 until count) {
+                                val x = step * (i + 0.5f)
+                                val active = i == selected
+                                val radius = when (style) {
+                                    GroupIndicatorStyle.GLOWING_NODES, GroupIndicatorStyle.PULSE_DOTS,
+                                    GroupIndicatorStyle.ORBIT_DOTS, GroupIndicatorStyle.ARC_NODES -> if (active) 5.dp.toPx() else 2.dp.toPx()
+                                    GroupIndicatorStyle.NUMBER_BADGES, GroupIndicatorStyle.DIGITAL_COUNTER,
+                                    GroupIndicatorStyle.STEPPER -> if (active) 5.dp.toPx() else 3.dp.toPx()
+                                    GroupIndicatorStyle.HEXAGON_NODES, GroupIndicatorStyle.DIAMOND_MARKERS,
+                                    GroupIndicatorStyle.SQUARE_TICKS -> if (active) 4.dp.toPx() else 2.5.dp.toPx()
+                                    else -> if (active) 4.5.dp.toPx() else 2.dp.toPx()
+                                }
+                                val color = if (active) primary else inactive
+                                when (style) {
+                                    GroupIndicatorStyle.MINIMAL_DASHES,
+                                    GroupIndicatorStyle.VERNIER_TICKS,
+                                    GroupIndicatorStyle.MECHANICAL_RULER -> drawLine(color, Offset(x, centerY - radius * 1.7f), Offset(x, centerY + radius * 1.7f), if (active) 2.dp.toPx() else 1.dp.toPx(), StrokeCap.Round)
+                                    GroupIndicatorStyle.SQUARE_TICKS,
+                                    GroupIndicatorStyle.STACKED_CARDS,
+                                    GroupIndicatorStyle.THUMBNAIL_STRIP,
+                                    GroupIndicatorStyle.MINI_PREVIEW -> drawRect(color, Offset(x - radius, centerY - radius), Size(radius * 2, radius * 2))
+                                    GroupIndicatorStyle.DIAMOND_MARKERS -> {
+                                        val path = Path().apply { moveTo(x, centerY-radius); lineTo(x+radius,centerY); lineTo(x,centerY+radius); lineTo(x-radius,centerY); close() }
+                                        drawPath(path, color)
+                                    }
+                                    GroupIndicatorStyle.TRIANGLE_POINTER -> {
+                                        val path = Path().apply { moveTo(x, centerY-radius); lineTo(x+radius,centerY+radius); lineTo(x-radius,centerY+radius); close() }
+                                        drawPath(path, color)
+                                    }
+                                    GroupIndicatorStyle.HEXAGON_NODES -> {
+                                        val path = Path()
+                                        for (corner in 0..5) {
+                                            val a = (PI / 3.0 * corner - PI / 6.0).toFloat()
+                                            val px = x + cos(a) * radius
+                                            val py = centerY + sin(a) * radius
+                                            if (corner == 0) path.moveTo(px, py) else path.lineTo(px, py)
+                                        }
+                                        path.close()
+                                        drawPath(path, color)
+                                    }
+                                    GroupIndicatorStyle.ELASTIC_WORM,
+                                    GroupIndicatorStyle.SPRING_BLOB,
+                                    GroupIndicatorStyle.LIQUID_MERGE,
+                                    GroupIndicatorStyle.GOOEY_METABALL,
+                                    GroupIndicatorStyle.ELASTIC_WAVE,
+                                    GroupIndicatorStyle.SINE_WAVE,
+                                    GroupIndicatorStyle.BOUNCE_TRACK,
+                                    GroupIndicatorStyle.FLUID_TRAIL -> {
+                                        val distance = (i - selected).toFloat()
+                                        val y = centerY + sin(distance * 0.7f) * if (active) 0f else 3.dp.toPx()
+                                        drawCircle(color, radius * if (active) 1.2f else 0.8f, Offset(x, y))
+                                    }
+                                    else -> drawCircle(color, radius, Offset(x, centerY))
+                                }
+                            }
+                        }
+                    }
                 }
-                GroupIndicatorStyle.TRIANGLE_POINTER -> {
-                    val p = Path().apply { moveTo(x, cy - rr); lineTo(x + rr, cy + rr); lineTo(x - rr, cy + rr); close() }
-                    c.drawPath(p, paint)
-                }
-                GroupIndicatorStyle.HEXAGON_NODES -> c.drawRoundRect(x - rr, cy - rr, x + rr, cy + rr, rr * .3f, rr * .3f, paint)
-                else -> c.drawCircle(x, cy, rr, paint)
             }
         }
-    }
-    private fun drawCards(c: Canvas, slot: Float, inset: Float, cy: Float, h: Float, style: GroupIndicatorStyle) {
-        groups.indices.forEach { i ->
-            val x = inset + slot * (i + .5f)
-            val active = i == selected
-            paint.color = if (active) primary else onSurface
-            paint.alpha = if (active) 220 else 65
-            val cardH = if (style == GroupIndicatorStyle.NUMBER_BADGES || style == GroupIndicatorStyle.DIGITAL_COUNTER) dp(22f) else h * .52f
-            c.drawRoundRect(x - slot * .38f, cy - cardH / 2, x + slot * .38f, cy + cardH / 2, dp(5f), dp(5f), paint)
-            if (style == GroupIndicatorStyle.NUMBER_BADGES || style == GroupIndicatorStyle.DIGITAL_COUNTER) {
-                paint.color = if (active) (customTheme?.onPrimary ?: HostThemeColors.onPrimary(context)) else surface
-                paint.textAlign = Paint.Align.CENTER; paint.textSize = dp(11f)
-                c.drawText((i + 1).toString(), x, cy - (paint.ascent() + paint.descent()) / 2, paint)
-            }
+        if (onSettingsClick != null) {
+            Text(
+                text = "⚙",
+                modifier = Modifier.clickable(onClick = onSettingsClick),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.titleMedium
+            )
         }
-    }
-    override fun onTouchEvent(event: MotionEvent): Boolean {
-        when (event.actionMasked) {
-            MotionEvent.ACTION_DOWN -> return true
-            MotionEvent.ACTION_UP -> {
-                if (groups.isNotEmpty()) {
-                    val inset = dp(10f)
-                    val slot = (width - inset * 2).coerceAtLeast(1f) / groups.size
-                    val index = ((event.x - inset) / slot).toInt().coerceIn(groups.indices)
-                    onSelected(index)
-                    performClick()
-                }
-                return true
-            }
-            MotionEvent.ACTION_CANCEL -> return true
-        }
-        return true
-    }
-    override fun performClick(): Boolean {
-        super.performClick()
-        return true
-    }
-    override fun onDetachedFromWindow() {
-        animator?.cancel()
-        animator = null
-        super.onDetachedFromWindow()
     }
 }

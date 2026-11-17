@@ -68,7 +68,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
@@ -98,6 +97,8 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.R
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.DrawerConfig
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
+import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
+import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.SymbolGroupIndicator
 import kotlin.math.abs
 
 /**
@@ -139,7 +140,8 @@ fun SymbolDrawer(
     groups: List<SymbolGroup>,
     modifier: Modifier = Modifier,
     state: SymbolDrawerState = rememberSymbolDrawerState(),
-    config: DrawerConfig = DrawerConfig(),
+    settings: SymbolDrawerSettings = SymbolDrawerSettings(),
+    config: DrawerConfig = settings.toDrawerConfig(),
     onSymbolClick: (SymbolEntry) -> Unit,
     onSymbolLongClick: ((SymbolEntry) -> Unit)? = null,
     onOpenManager: (() -> Unit)? = null,
@@ -226,47 +228,16 @@ fun SymbolDrawer(
                 )
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth().height(config.indicatorHeightDp.coerceAtLeast(0).dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                LazyRow(
-                    modifier = Modifier.weight(1f),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    itemsIndexed(safeGroups, key = { _, group -> group.id }) { index, group ->
-                        val selected = index == pagerState.currentPage
-                        Text(
-                            text = group.title,
-                            modifier = Modifier
-                                .clip(MaterialTheme.shapes.small)
-                                .clickable { state.selectedPage = index }
-                                .padding(horizontal = 12.dp, vertical = 6.dp),
-                            color = if (selected) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.labelLarge,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-                if (onOpenManager != null) {
-                    Text(
-                        text = stringResource(R.string.compose_symbol_drawer_manager),
-                        modifier = Modifier.clickable(onClick = onOpenManager).padding(horizontal = 8.dp, vertical = 6.dp),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-                if (onOpenSettings != null) {
-                    Text(
-                        text = stringResource(R.string.compose_symbol_drawer_settings),
-                        modifier = Modifier.clickable(onClick = onOpenSettings).padding(horizontal = 8.dp, vertical = 6.dp),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
+            SymbolGroupIndicator(
+                groups = safeGroups,
+                selectedIndex = pagerState.currentPage,
+                onGroupSelected = { state.selectedPage = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(config.indicatorHeightDp.coerceAtLeast(0).dp),
+                settings = settings,
+                onSettingsClick = onOpenSettings
+            )
 
             if (safeGroups.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
