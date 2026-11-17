@@ -133,7 +133,7 @@ fun DrawerContainer(
     }
     val dragThreshold = with(density) { 32.dp.toPx() }
     var dragDistance by remember { mutableFloatStateOf(0f) }
-    val dragState = remember {
+    val dragState = remember(state) {
         DraggableState { delta ->
             dragDistance += delta
             if (dragDistance < -dragThreshold) {
@@ -165,7 +165,7 @@ fun DrawerContainer(
                 Modifier
                     .fillMaxSize()
                     .background(
-                        config.style.colors.scrim?.let(::Color)
+                        config.style.colors.scrim?.let { Color(it) }
                             ?: Color.Black.copy(alpha = 0.32f)
                     )
                     .clickable(enabled = config.dismissOnScrimTap) {

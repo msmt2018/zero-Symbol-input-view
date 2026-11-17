@@ -48,7 +48,6 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.draggable
 import androidx.compose.foundation.gestures.DraggableState
@@ -60,7 +59,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.weight
@@ -85,8 +83,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -178,7 +174,7 @@ fun SymbolDrawer(
 
     var dragDistance by remember { mutableFloatStateOf(0f) }
     val dragThresholdPx = with(density) { 28.dp.toPx() }
-    val dragState = remember {
+    val dragState = remember(state) {
         DraggableState { delta ->
             dragDistance += delta
             if (dragDistance <= -dragThresholdPx) {
@@ -266,33 +262,3 @@ fun SymbolDrawer(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun SymbolDrawerCell(
-    entry: SymbolEntry,
-    minimumHeight: androidx.compose.ui.unit.Dp,
-    onClick: () -> Unit,
-    onLongClick: (() -> Unit)?
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = minimumHeight)
-            .clip(MaterialTheme.shapes.small)
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = onLongClick
-            )
-            .padding(horizontal = 2.dp, vertical = 4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = entry.label,
-            textAlign = TextAlign.Center,
-            style = MaterialTheme.typography.bodyMedium,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis
-        )
-    }
-}
