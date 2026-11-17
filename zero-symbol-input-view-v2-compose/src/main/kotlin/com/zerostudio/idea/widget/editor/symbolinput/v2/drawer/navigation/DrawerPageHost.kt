@@ -47,6 +47,7 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -92,7 +93,9 @@ fun DrawerPageHost(
             modifier = modifier.fillMaxSize(),
             key = { index -> pages[index].id }
         ) { index ->
-            pages[index].content.content.invoke(this)
+            Column(Modifier.fillMaxSize()) {
+                pages[index].content.content.invoke(this)
+            }
         }
     }
 }
