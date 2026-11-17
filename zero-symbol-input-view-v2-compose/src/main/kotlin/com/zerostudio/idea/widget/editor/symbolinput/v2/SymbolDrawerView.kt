@@ -49,6 +49,7 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.draggable
 import androidx.compose.foundation.gestures.DraggableState
 import androidx.compose.foundation.gestures.Orientation
@@ -62,16 +63,18 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.ui.res.stringResource
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -85,15 +88,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import com.zerostudio.idea.widget.editor.symbolinput.v2.R
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.DrawerConfig
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
@@ -221,12 +222,8 @@ fun SymbolDrawer(
                     Modifier
                         .size(width = 36.dp, height = 4.dp)
                         .clip(CircleShape)
-                        .then(Modifier),
-                ) {
-                    Surface(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)) {
-                        Box(Modifier.fillMaxSize())
-                    }
-                }
+                        .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f))
+                )
             }
 
             Row(
@@ -237,17 +234,13 @@ fun SymbolDrawer(
                     modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    items(safeGroups, key = { it.id }) { group ->
-                        val index = safeGroups.indexOf(group)
+                    itemsIndexed(safeGroups, key = { _, group -> group.id }) { index, group ->
                         val selected = index == pagerState.currentPage
                         Text(
                             text = group.title,
                             modifier = Modifier
                                 .clip(MaterialTheme.shapes.small)
-                                .combinedClickable(
-                                    onClick = { state.selectedPage = index },
-                                    onLongClick = { }
-                                )
+                                .clickable { state.selectedPage = index }
                                 .padding(horizontal = 12.dp, vertical = 6.dp),
                             color = if (selected) MaterialTheme.colorScheme.primary
                                 else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -259,22 +252,16 @@ fun SymbolDrawer(
                 }
                 if (onOpenManager != null) {
                     Text(
-                        text = "管理",
-                        modifier = Modifier.combinedClickable(
-                            onClick = onOpenManager,
-                            onLongClick = { }
-                        ).padding(horizontal = 8.dp, vertical = 6.dp),
+                        text = stringResource(R.string.compose_symbol_drawer_manager),
+                        modifier = Modifier.clickable(onClick = onOpenManager).padding(horizontal = 8.dp, vertical = 6.dp),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
                 if (onOpenSettings != null) {
                     Text(
-                        text = "设置",
-                        modifier = Modifier.combinedClickable(
-                            onClick = onOpenSettings,
-                            onLongClick = { }
-                        ).padding(horizontal = 8.dp, vertical = 6.dp),
+                        text = stringResource(R.string.compose_symbol_drawer_settings),
+                        modifier = Modifier.clickable(onClick = onOpenSettings).padding(horizontal = 8.dp, vertical = 6.dp),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -284,7 +271,7 @@ fun SymbolDrawer(
             if (safeGroups.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(
-                        text = "暂无符号",
+                        text = stringResource(R.string.compose_symbol_drawer_empty),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodyMedium
                     )
