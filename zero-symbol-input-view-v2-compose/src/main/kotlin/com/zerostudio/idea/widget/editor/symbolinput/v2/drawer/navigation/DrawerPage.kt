@@ -45,19 +45,19 @@
 
 package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation
 
-import android.graphics.drawable.Drawable
+import androidx.compose.runtime.Composable
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.panel.DrawerPanelContent
 
-/** Generic page contract; no symbol-group model is involved. */
+/** Generic declarative page contract; no symbol-group model is involved. */
 data class DrawerPage(
     val id: String,
-    val title: CharSequence,
+    val title: String,
     val content: DrawerPanelContent,
-    val icon: Drawable? = null
+    val icon: (@Composable () -> Unit)? = null
 ) {
     init {
         require(id.isNotBlank()) { "Page id must not be blank" }
-        require(title.isNotEmpty()) { "Page title must not be empty" }
+        require(title.isNotBlank()) { "Page title must not be blank" }
     }
 }
 

@@ -45,22 +45,24 @@
 
 package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.panel
 
-import android.content.Context
-import android.view.View
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.runtime.Composable
 
-/** Optional lifecycle contract for content hosted by a drawer panel. */
-interface DrawerPanelContent {
-    fun createView(): View
-    /** Theme-aware creation hook; legacy implementations remain source-compatible. */
-    fun createView(context: Context): View = createView()
-    fun onPanelAttached() = Unit
-    fun onPanelVisible() = Unit
-    fun onPanelHidden() = Unit
-    fun onPanelDetached() = Unit
-}
+/**
+ * Declarative panel slot. Content is composed only while its host is in the
+ * composition; there is no View factory or attach/detach lifecycle contract.
+ */
+data class DrawerPanelContent(
+    val content: @Composable ColumnScope.() -> Unit
+)
 
-/** Distinguishes the always-available compact surface from expanded content. */
+/** Distinguishes compact content from expanded content. */
 enum class DrawerPanelSlot {
     PEEK,
     EXPANDED
 }
+
+/** Convenience factory for a composable panel slot. */
+fun drawerPanelContent(
+    content: @Composable ColumnScope.() -> Unit
+): DrawerPanelContent = DrawerPanelContent(content)

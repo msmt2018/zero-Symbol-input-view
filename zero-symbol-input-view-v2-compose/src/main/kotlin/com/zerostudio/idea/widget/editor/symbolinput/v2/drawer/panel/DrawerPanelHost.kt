@@ -45,88 +45,21 @@
 
 package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.panel
 
-import android.content.Context
-import android.view.View
-import android.view.ViewGroup
-import android.widget.FrameLayout
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 
 /**
- * Minimal replaceable content host. It deliberately knows nothing about
- * symbols, pages, repositories or action execution.
+ * Compose host for a panel slot. Composition owns all child state and effects.
  */
-class DrawerPanelHost @JvmOverloads constructor(
-    context: Context,
-    val slot: DrawerPanelSlot,
-    private val contentDescriptionLabel: CharSequence? = null
-) : FrameLayout(context) {
-    private var panelContent: DrawerPanelContent? = null
-    private var contentView: View? = null
-    private var panelVisible = false
-
-    init {
-        contentDescription = contentDescriptionLabel
-        clipChildren = false
-        clipToPadding = false
-    }
-
-    fun setContent(content: DrawerPanelContent?) = setContent(content, context)
-
-    fun setContent(content: DrawerPanelContent?, viewContext: Context) {
-        if (panelContent === content && contentView != null) return
-        replaceContent(content, viewContext)
-    }
-
-    fun refreshContentContext(viewContext: Context) {
-        val current = panelContent ?: return
-        replaceContent(current, viewContext)
-    }
-
-    private fun replaceContent(content: DrawerPanelContent?, viewContext: Context) {
-        if (panelVisible) panelContent?.onPanelHidden()
-        panelVisible = false
-        panelContent?.onPanelDetached()
-        contentView?.let { old ->
-            if (old.parent === this) removeView(old)
-        }
-        panelContent = content
-        contentView = content?.createView(viewContext)?.also { view ->
-            (view.parent as? ViewGroup)?.removeView(view)
-            addView(view, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
-            content.onPanelAttached()
-        }
-    }
-
-    fun measureContentHeight(maxWidthPx: Int, maxHeightPx: Int): Int {
-        val view = contentView ?: return 0
-        // Measure container content under the sheet's bound so large lists do
-        // not trigger an unbounded child traversal. A plain leaf View is the
-        // exception: View.getDefaultSize() treats AT_MOST as fill and would make
-        // a 96dp minimum-height Peek view report the entire maximum sheet height.
-        val heightSpec = if (view is ViewGroup) {
-            View.MeasureSpec.makeMeasureSpec(
-                maxHeightPx.coerceAtLeast(0),
-                View.MeasureSpec.AT_MOST
-            )
-        } else {
-            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
-        }
-        view.measure(
-            View.MeasureSpec.makeMeasureSpec(maxWidthPx.coerceAtLeast(0), View.MeasureSpec.EXACTLY),
-            heightSpec
-        )
-        return view.measuredHeight.coerceIn(0, maxHeightPx.coerceAtLeast(0))
-    }
-
-    fun content(): DrawerPanelContent? = panelContent
-
-    fun dispatchPanelVisible(visible: Boolean) {
-        if (panelVisible == visible) return
-        panelVisible = visible
-        if (visible) panelContent?.onPanelVisible() else panelContent?.onPanelHidden()
-    }
-
-    override fun onDetachedFromWindow() {
-        dispatchPanelVisible(false)
-        super.onDetachedFromWindow()
+@Composable
+fun DrawerPanelHost(
+    content: DrawerPanelContent?,
+    modifier: Modifier = Modifier,
+    slot: DrawerPanelSlot
+) {
+    Column(modifier = modifier.fillMaxSize()) {
+        content?.content?.invoke(this)
     }
 }
