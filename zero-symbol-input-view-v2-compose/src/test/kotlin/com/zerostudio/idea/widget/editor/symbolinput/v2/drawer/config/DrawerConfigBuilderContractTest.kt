@@ -96,7 +96,7 @@ class DrawerConfigBuilderContractTest {
         assertFalse(config.navigationConfig.scrollable)
         assertFalse(config.navigationConfig.showTitles)
         assertEquals(DrawerThemeMode.FOLLOW_HOST, config.style.themeMode)
-        assertEquals(DrawerColorAttributes(1, 2, 3, 4), config.style.colorAttributes)
+        assertEquals(DrawerColorAttributes("colorSurface", "colorOnSurface", "colorOnSurfaceVariant", "colorPrimary"), config.style.colorAttributes)
         assertEquals(21, config.style.colors.surface)
         assertEquals(22, config.style.colors.primaryText)
         assertEquals(23, config.style.colors.secondaryText)
