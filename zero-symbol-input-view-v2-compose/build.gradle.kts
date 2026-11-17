@@ -30,11 +30,7 @@ dependencies {
     // retained as the migration baseline while their UI adapters are replaced.
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlin.stdlib)
-    implementation("androidx.activity:activity-ktx:1.9.3")
     implementation("androidx.activity:activity-compose:1.9.3")
-    implementation("androidx.recyclerview:recyclerview:1.4.0")
-    implementation("androidx.viewpager2:viewpager2:1.1.0")
-    implementation(libs.material)
     implementation(libs.gson)
     api(libs.androidx.annotation)
 
@@ -45,7 +41,6 @@ dependencies {
     api("androidx.compose.foundation:foundation")
     api("androidx.compose.material3:material3")
     implementation("androidx.compose.ui:ui-tooling-preview")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.9.4")
     debugImplementation("androidx.compose.ui:ui-tooling")
 
     testImplementation(libs.junit)
@@ -125,7 +120,7 @@ val verifyComposeUiBoundary by tasks.registering {
 }
 
 tasks.named("check") {
-    dependsOn(verifyComposeUiBoundary)
+    dependsOn(verifyComposeUiBoundary, verifyComposeArtifactBoundary)
 }
 
 /**
@@ -157,7 +152,8 @@ val auditComposeMigration by tasks.registering {
     val viewOnlyDependencies = listOf(
         "androidx.recyclerview:recyclerview",
         "androidx.viewpager2:viewpager2",
-        "com.google.android.material:material"
+        "com.google.android.material:material",
+        "androidx.lifecycle:lifecycle-runtime-compose"
     )
 
     doLast {
@@ -215,7 +211,8 @@ val verifyComposeArtifactBoundary by tasks.registering {
         val dependencies = listOf(
             "androidx.recyclerview:recyclerview",
             "androidx.viewpager2:viewpager2",
-            "com.google.android.material:material"
+            "com.google.android.material:material",
+            "androidx.lifecycle:lifecycle-runtime-compose"
         ).filter { it in file("build.gradle.kts").readText() }
         check(violations.isEmpty() && dependencies.isEmpty()) {
             "Compose artifact boundary is not clean. Run auditComposeMigration for the complete inventory."
