@@ -44,7 +44,6 @@
  */
 package com.zerostudio.idea.widget.drawer
 
-typealias DrawerContainer = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.DrawerContainer
 typealias DrawerConfig = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.config.DrawerConfig
 typealias DrawerPresentationMode = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.config.DrawerPresentationMode
 typealias DrawerPreset = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.preset.DrawerPreset
