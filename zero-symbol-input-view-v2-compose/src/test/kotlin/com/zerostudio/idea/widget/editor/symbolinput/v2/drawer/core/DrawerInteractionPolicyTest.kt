@@ -1,78 +1,54 @@
-/*
- * This file is part of zero-Symbol-input-view-V2.
- *
- * Copyright (C) 2026 android_zero
- *
- * SPDX-License-Identifier: AGPL-3.0-only AND GPL-3.0-only AND Apache-2.0
- *
- * License Information:
- *
- * This file is distributed under the following licenses, which apply
- * cumulatively to the same work:
- *
- * 1. GNU Affero General Public License v3.0 only (AGPL-3.0-only):
- *    Grants the rights to use, study, modify, and redistribute this work.
- *    When a modified version is used to provide network services to users,
- *    the corresponding source code must be made available under the
- *    applicable AGPL terms.
- *
- * 2. GNU General Public License v3.0 only (GPL-3.0-only):
- *    Grants the rights to use, study, modify, and redistribute this work.
- *    Distribution of covered binaries requires compliance with the source
- *    code, license notice, attribution, and other applicable GPL terms.
- *
- * 3. Apache License 2.0 (Apache-2.0):
- *    Grants copyright and applicable patent rights to use, modify, and
- *    distribute this work, subject to its license conditions, including
- *    preservation of notices, inclusion of the license, and marking changes.
- *
- * The SPDX operator "AND" means that all listed license terms apply
- * cumulatively. It does not mean that recipients may choose only one
- * of the listed licenses.
- *
- * You must comply with the applicable terms of all three licenses.
- * This notice is a summary and does not replace the full license texts.
- *
- * Full license texts:
- * - GNU AGPL v3.0: https://www.gnu.org/licenses/agpl-3.0.html
- * - GNU GPL v3.0:  https://www.gnu.org/licenses/gpl-3.0.html
- * - Apache 2.0:    https://www.apache.org/licenses/LICENSE-2.0
- *
- * Author: android_zero
- * GitHub: https://github.com/msmt2018
- * WeChat: android_zero
- */
 package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core
 
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
+import org.junit.Assert.*
 import org.junit.Test
 
 class DrawerInteractionPolicyTest {
-    @Test fun upwardDragIsAcceptedOnlyBelowExpandedBound() {
-        assertTrue(DrawerInteractionController.shouldInterceptVerticalDrag(-20f, 180, 80, 300, false))
-        assertFalse(DrawerInteractionController.shouldInterceptVerticalDrag(-20f, 300, 80, 300, false))
+    @Test fun upwardDragIncreasesHeightAndClampsAtExpandedBound() {
+        val controller = DrawerInteractionController(80, 300)
+        controller.beginDrag()
+        assertEquals(180, controller.dragBy(-100f))
+        assertEquals(300, controller.dragBy(-500f))
+        assertEquals(300, controller.endDrag(-1200f, 900f))
+        assertFalse(controller.isDragging)
     }
 
-    @Test fun downwardDragWaitsUntilNestedChildReachesTop() {
-        assertFalse(DrawerInteractionController.shouldInterceptVerticalDrag(20f, 300, 80, 300, true))
-        assertTrue(DrawerInteractionController.shouldInterceptVerticalDrag(20f, 300, 80, 300, false))
+    @Test fun downwardDragDecreasesHeightAndClampsAtCollapsedBound() {
+        val controller = DrawerInteractionController(80, 300, 240)
+        controller.beginDrag()
+        assertEquals(140, controller.dragBy(100f))
+        assertEquals(80, controller.dragBy(500f))
+        assertEquals(80, controller.endDrag(1100f, 900f))
     }
 
-    @Test fun collapsedDrawerDoesNotConsumeDownwardDrag() {
-        assertFalse(DrawerInteractionController.shouldInterceptVerticalDrag(20f, 80, 80, 300, false))
+    @Test fun slowDragSettlesToNearestAnchor() {
+        val expanded = DrawerInteractionController(80, 300, 220)
+        expanded.beginDrag()
+        assertEquals(300, expanded.endDrag(100f, 900f))
+        val collapsed = DrawerInteractionController(80, 300, 140)
+        collapsed.beginDrag()
+        assertEquals(80, collapsed.endDrag(100f, 900f))
     }
 
-    @Test fun zeroMovementAndZeroRangeAreNeverIntercepted() {
-        assertFalse(DrawerInteractionController.shouldInterceptVerticalDrag(0f, 180, 80, 300, false))
-        assertFalse(DrawerInteractionController.shouldInterceptVerticalDrag(-20f, 80, 80, 80, false))
+    @Test fun cancelAndSynchronizeClearDragState() {
+        val controller = DrawerInteractionController(80, 300)
+        controller.beginDrag()
+        controller.dragBy(-80f)
+        assertEquals(160, controller.cancelDrag())
+        assertFalse(controller.isDragging)
+        assertEquals(250, controller.synchronizeHeight(250))
     }
 
-    @Test fun downwardDragCanCollapseFromAnIntermediateHeight() {
-        assertTrue(DrawerInteractionController.shouldInterceptVerticalDrag(1f, 81, 80, 300, false))
+    @Test fun updatingBoundsCanPreserveExpansionFraction() {
+        val controller = DrawerInteractionController(100, 300, 200)
+        assertEquals(400, controller.updateBounds(200, 600))
+        assertEquals(0.5f, controller.expansionFraction)
+        assertEquals(400, controller.updateBounds(200, 300, preserveExpansionFraction = false))
     }
 
-    @Test fun upwardDragCanExpandFromTheFirstPixelAbovePeek() {
-        assertTrue(DrawerInteractionController.shouldInterceptVerticalDrag(-1f, 81, 80, 300, false))
+    @Test fun invalidDeltasAndBoundsAreRejected() {
+        val controller = DrawerInteractionController(80, 300)
+        assertTrue(runCatching { controller.dragBy(Float.NaN) }.isFailure)
+        assertTrue(runCatching { controller.updateBounds(300, 200) }.isFailure)
     }
 }

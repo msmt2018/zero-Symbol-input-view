@@ -46,16 +46,13 @@
 package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation
 
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.panel.DrawerPanelContent
-import android.view.View
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class DrawerNavigationControllerTest {
-    private fun page(id: String) = DrawerPage(id, id, object : DrawerPanelContent {
-        override fun createView(): View = error("View must not be created by navigation state")
-    })
+    private fun page(id: String) = DrawerPage(id, id, DrawerPanelContent { })
 
     @Test fun selectsPagesAndPreservesSelectionAcrossUpdates() {
         val controller = DrawerNavigationController()

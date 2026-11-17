@@ -44,7 +44,6 @@
  */
 package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation
 
-import android.view.View
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.panel.DrawerPanelContent
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -57,9 +56,7 @@ class DrawerNavigationControllerMethodExecutionTest {
     private fun page(id: String) = DrawerPage(
         id = id,
         title = "Page $id",
-        content = object : DrawerPanelContent {
-            override fun createView(): View = error("Navigation must not create page views")
-        }
+        content = DrawerPanelContent { }
     )
 
     @Test

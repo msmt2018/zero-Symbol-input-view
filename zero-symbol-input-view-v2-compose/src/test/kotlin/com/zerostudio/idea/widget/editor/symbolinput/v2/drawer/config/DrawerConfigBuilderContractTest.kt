@@ -13,9 +13,7 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class DrawerConfigBuilderContractTest {
-    private val panel = object : DrawerPanelContent {
-        override fun createView(): android.view.View = error("Builder must retain content without creating views")
-    }
+    private val panel = DrawerPanelContent { }
 
     @Test fun everyBuilderSetterContributesToBuiltImmutableConfig() {
         val navigation = DrawerNavigationConfig(showIcons = true)
@@ -48,7 +46,7 @@ class DrawerConfigBuilderContractTest {
             .setThemeMode(DrawerThemeMode.LIGHT)
             .setFollowHostTheme()
             .setColors(colors)
-            .setColorAttributes(DrawerColorAttributes(1, 2, 3, 4))
+            .setColorAttributes(DrawerColorAttributes("colorSurface", "colorOnSurface", "colorOnSurfaceVariant", "colorPrimary"))
             .setSurfaceColor(21)
             .setPrimaryTextColor(22)
             .setSecondaryTextColor(23)

@@ -5,15 +5,12 @@
  */
 package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation
 
-import android.view.View
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.panel.DrawerPanelContent
 import org.junit.Assert.*
 import org.junit.Test
 
 class DrawerNavigationContractTest {
-    private fun page(id: String, title: String = id) = DrawerPage(id, title, object : DrawerPanelContent {
-        override fun createView(): View = error("Navigation must not instantiate page views")
-    })
+    private fun page(id: String, title: String = id) = DrawerPage(id, title, DrawerPanelContent { })
 
     @Test fun pageRejectsBlankIdAndEmptyTitle() {
         assertThrows(IllegalArgumentException::class.java) { page(" ") }
