@@ -8,89 +8,61 @@
 
 package com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive
 
-import android.view.View
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
 
-/**
- * Connects live window changes and saved preferences to the docking layout API.
- *
- * The editor host receives a resolved immutable spec and applies it to its own
- * container. This keeps window observation out of SymbolDrawerView and avoids
- * silently replacing the host's insets or layout listeners.
- */
+/** Pure docking state coordinator. Window measurements are supplied by Compose. */
 class SymbolDrawerDockingCoordinator(
-    hostView: View,
+    initialWindow: WindowAdaptiveInfo,
     settings: SymbolDrawerSettings,
     private var bottomCollapsedHeightDp: Float,
     private var bottomExpandedHeightDp: Float,
     private val onLayoutResolved: (SymbolDrawerDockingLayoutSpec) -> Unit
-) : AutoCloseable {
-
+) {
     private var currentSettings = settings
-    private var currentWindow: WindowAdaptiveInfo? = null
-    private var closed = false
-
-    private val observer by lazy(LazyThreadSafetyMode.NONE) {
-        AdaptiveWindowObserver(hostView, onChanged = { window ->
-            currentWindow = window
-            dispatch()
-        })
-    }
+    private var currentWindow = initialWindow
 
     init {
         require(bottomCollapsedHeightDp >= 0f)
         require(bottomExpandedHeightDp >= bottomCollapsedHeightDp)
-        // Attach only after constructor invariants are validated.
-        observer
     }
 
-    /** Update after settings are edited or restored from persistent storage. */
+    fun updateWindow(value: WindowAdaptiveInfo) {
+        if (currentWindow == value) return
+        currentWindow = value
+        dispatch()
+    }
+
     fun updateSettings(value: SymbolDrawerSettings) {
-        if (closed || currentSettings == value) return
+        if (currentSettings == value) return
         currentSettings = value
         dispatch()
     }
 
-    /** Update when the host's legacy bottom-drawer geometry changes. */
     fun updateBottomGeometry(collapsedHeightDp: Float, expandedHeightDp: Float) {
         require(collapsedHeightDp >= 0f)
         require(expandedHeightDp >= collapsedHeightDp)
-        if (closed) return
-        if (bottomCollapsedHeightDp == collapsedHeightDp &&
-            bottomExpandedHeightDp == expandedHeightDp
-        ) return
+        if (bottomCollapsedHeightDp == collapsedHeightDp && bottomExpandedHeightDp == expandedHeightDp) return
         bottomCollapsedHeightDp = collapsedHeightDp
         bottomExpandedHeightDp = expandedHeightDp
         dispatch()
     }
 
-    /** Supply folding information from an optional WindowManager adapter. */
     fun updateFoldingFeature(value: FoldingFeatureInfo) {
-        if (!closed) observer.updateFoldingFeature(value)
+        if (currentWindow.foldingFeature == value) return
+        currentWindow = currentWindow.copy(foldingFeature = value)
+        dispatch()
     }
 
-    /** Re-evaluate against the latest host bounds. */
-    fun refresh() {
-        if (!closed) observer.refresh()
-    }
+    fun refresh() = dispatch()
 
     private fun dispatch() {
-        val window = currentWindow ?: return
-        if (closed) return
         onLayoutResolved(
             SymbolDrawerDockingLayoutResolver.resolve(
                 settings = currentSettings,
-                window = window,
+                window = currentWindow,
                 bottomCollapsedHeightDp = bottomCollapsedHeightDp,
                 bottomExpandedHeightDp = bottomExpandedHeightDp
             )
         )
-    }
-
-    override fun close() {
-        if (closed) return
-        closed = true
-        observer.close()
-        currentWindow = null
     }
 }

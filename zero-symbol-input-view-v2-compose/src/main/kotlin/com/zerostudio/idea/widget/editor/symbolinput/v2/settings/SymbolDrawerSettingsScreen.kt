@@ -54,7 +54,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -79,9 +78,8 @@ import androidx.compose.ui.unit.dp
 import com.zerostudio.idea.widget.editor.symbolinput.v2.R
 
 /**
- * Stateless-host-friendly settings surface. All values are immutable snapshots;
- * the host decides where to persist them. No Activity, Context, View, dialog
- * controller or manual lifecycle callback is required.
+ * Immutable settings editor rendered entirely with Compose. The host persists
+ * snapshots; local state prevents rapid slider changes from using stale values.
  */
 @Composable
 fun SymbolDrawerSettingsScreen(
@@ -90,137 +88,118 @@ fun SymbolDrawerSettingsScreen(
     modifier: Modifier = Modifier,
     onReset: (() -> Unit)? = null
 ) {
+    var current by remember(settings) { mutableStateOf(settings) }
     fun update(transform: (SymbolDrawerSettings) -> SymbolDrawerSettings) {
-        onSettingsChange(transform(settings))
+        current = transform(current)
+        onSettingsChange(current)
     }
 
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
+        modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(stringResource(R.string.compose_settings_title), style = MaterialTheme.typography.headlineSmall)
 
         SettingsSection(stringResource(R.string.compose_settings_appearance)) {
-            EnumSetting(
-                label = stringResource(R.string.compose_settings_theme),
-                value = settings.themeMode,
-                values = ThemeMode.entries,
-                onValue = { update { it.copy(themeMode = it) } }
-            )
-            EnumSetting(
-                label = stringResource(R.string.compose_settings_indicator),
-                value = settings.indicatorStyle,
-                values = GroupIndicatorStyle.entries,
-                onValue = { update { it.copy(indicatorStyle = it) } }
-            )
-            IntSetting(stringResource(R.string.compose_settings_indicator_height), settings.indicatorHeightDp, 0, 96) {
-                update { it.copy(indicatorHeightDp = it) }
+            EnumSetting(stringResource(R.string.compose_settings_theme), current.themeMode, ThemeMode.entries) { value ->
+                update { it.copy(themeMode = value) }
             }
-            IntSetting(stringResource(R.string.compose_settings_label_size), settings.symbolLabelTextSizeSp, 8, 32) {
-                update { it.copy(symbolLabelTextSizeSp = it) }
+            EnumSetting(stringResource(R.string.compose_settings_indicator), current.indicatorStyle, GroupIndicatorStyle.entries) { value ->
+                update { it.copy(indicatorStyle = value) }
             }
-            SwitchSetting(stringResource(R.string.compose_settings_show_labels), settings.showSymbolLabels) {
-                update { it.copy(showSymbolLabels = it) }
+            IntSetting(stringResource(R.string.compose_settings_indicator_height), current.indicatorHeightDp, 0, 96) { value ->
+                update { it.copy(indicatorHeightDp = value) }
             }
-            SwitchSetting(stringResource(R.string.compose_settings_full_labels), settings.showFullSymbolLabels) {
-                update { it.copy(showFullSymbolLabels = it) }
+            IntSetting(stringResource(R.string.compose_settings_label_size), current.symbolLabelTextSizeSp, 8, 32) { value ->
+                update { it.copy(symbolLabelTextSizeSp = value) }
             }
-            SwitchSetting(stringResource(R.string.compose_settings_group_titles), settings.showGroupTitles) {
-                update { it.copy(showGroupTitles = it) }
+            SwitchSetting(stringResource(R.string.compose_settings_show_labels), current.showSymbolLabels) { value ->
+                update { it.copy(showSymbolLabels = value) }
             }
-            SwitchSetting(stringResource(R.string.compose_settings_action_hints), settings.showActionHints) {
-                update { it.copy(showActionHints = it) }
+            SwitchSetting(stringResource(R.string.compose_settings_full_labels), current.showFullSymbolLabels) { value ->
+                update { it.copy(showFullSymbolLabels = value) }
+            }
+            SwitchSetting(stringResource(R.string.compose_settings_group_titles), current.showGroupTitles) { value ->
+                update { it.copy(showGroupTitles = value) }
+            }
+            SwitchSetting(stringResource(R.string.compose_settings_action_hints), current.showActionHints) { value ->
+                update { it.copy(showActionHints = value) }
             }
         }
 
         SettingsSection(stringResource(R.string.compose_settings_layout)) {
-            IntSetting(stringResource(R.string.compose_settings_columns), settings.columns, 1, 30) {
-                update { it.copy(columns = it) }
+            IntSetting(stringResource(R.string.compose_settings_columns), current.columns, 1, 30) { value ->
+                update { it.copy(columns = value) }
             }
-            IntSetting(stringResource(R.string.compose_settings_collapsed_rows), settings.collapsedRows, 1, 16) {
-                update { it.copy(collapsedRows = it) }
+            IntSetting(stringResource(R.string.compose_settings_collapsed_rows), current.collapsedRows, 1, 16) { value ->
+                update { it.copy(collapsedRows = value) }
             }
-            IntSetting(stringResource(R.string.compose_settings_cell_height), settings.cellHeightDp, 6, 128) {
-                update { it.copy(cellHeightDp = it) }
+            IntSetting(stringResource(R.string.compose_settings_cell_height), current.cellHeightDp, 6, 128) { value ->
+                update { it.copy(cellHeightDp = value) }
             }
-            IntSetting(stringResource(R.string.compose_settings_horizontal_spacing), settings.cellHorizontalSpacingDp, -24, 48) {
-                update { it.copy(cellHorizontalSpacingDp = it) }
+            IntSetting(stringResource(R.string.compose_settings_horizontal_spacing), current.cellHorizontalSpacingDp, -24, 48) { value ->
+                update { it.copy(cellHorizontalSpacingDp = value) }
             }
-            IntSetting(stringResource(R.string.compose_settings_vertical_spacing), settings.cellVerticalSpacingDp, -24, 48) {
-                update { it.copy(cellVerticalSpacingDp = it) }
+            IntSetting(stringResource(R.string.compose_settings_vertical_spacing), current.cellVerticalSpacingDp, -24, 48) { value ->
+                update { it.copy(cellVerticalSpacingDp = value) }
             }
-            IntSetting(stringResource(R.string.compose_settings_max_height), settings.maxExpandedHeightDp, 80, 1800) {
-                update { it.copy(maxExpandedHeightDp = it) }
+            IntSetting(stringResource(R.string.compose_settings_max_height), current.maxExpandedHeightDp, 80, 1800) { value ->
+                update { it.copy(maxExpandedHeightDp = value) }
             }
-            EnumSetting(
-                label = stringResource(R.string.compose_settings_large_screen),
-                value = settings.largeScreenLayoutMode,
-                values = LargeScreenLayoutMode.entries,
-                onValue = { update { it.copy(largeScreenLayoutMode = it) } }
-            )
-            EnumSetting(
-                label = stringResource(R.string.compose_settings_side_edge),
-                value = settings.sideDockEdge,
-                values = SideDockEdge.entries,
-                onValue = { update { it.copy(sideDockEdge = it) } }
-            )
+            EnumSetting(stringResource(R.string.compose_settings_large_screen), current.largeScreenLayoutMode, LargeScreenLayoutMode.entries) { value ->
+                update { it.copy(largeScreenLayoutMode = value) }
+            }
+            EnumSetting(stringResource(R.string.compose_settings_side_edge), current.sideDockEdge, SideDockEdge.entries) { value ->
+                update { it.copy(sideDockEdge = value) }
+            }
         }
 
         SettingsSection(stringResource(R.string.compose_settings_interaction)) {
-            IntSetting(stringResource(R.string.compose_settings_animation), settings.animationDurationMs, 0, 1200) {
-                update { it.copy(animationDurationMs = it) }
+            IntSetting(stringResource(R.string.compose_settings_animation), current.animationDurationMs, 0, 1200) { value ->
+                update { it.copy(animationDurationMs = value) }
             }
-            IntSetting(stringResource(R.string.compose_settings_fling), settings.flingVelocityDpPerSecond, 100, 6000) {
-                update { it.copy(flingVelocityDpPerSecond = it) }
+            IntSetting(stringResource(R.string.compose_settings_fling), current.flingVelocityDpPerSecond, 100, 6000) { value ->
+                update { it.copy(flingVelocityDpPerSecond = value) }
             }
-            IntSetting(stringResource(R.string.compose_settings_long_press), settings.longPressTimeoutMs, 250, 1000) {
-                update { it.copy(longPressTimeoutMs = it) }
+            IntSetting(stringResource(R.string.compose_settings_long_press), current.longPressTimeoutMs, 250, 1000) { value ->
+                update { it.copy(longPressTimeoutMs = value) }
             }
-            EnumSetting(
-                label = stringResource(R.string.compose_settings_haptics),
-                value = settings.hapticMode,
-                values = HapticMode.entries,
-                onValue = { update { it.copy(hapticMode = it) } }
-            )
-            SwitchSetting(stringResource(R.string.compose_settings_reduce_motion), settings.reduceMotion) {
-                update { it.copy(reduceMotion = it) }
+            EnumSetting(stringResource(R.string.compose_settings_haptics), current.hapticMode, HapticMode.entries) { value ->
+                update { it.copy(hapticMode = value) }
             }
-            SwitchSetting(stringResource(R.string.compose_settings_auto_collapse), settings.autoCollapseAfterAction) {
-                update { it.copy(autoCollapseAfterAction = it) }
+            SwitchSetting(stringResource(R.string.compose_settings_reduce_motion), current.reduceMotion) { value ->
+                update { it.copy(reduceMotion = value) }
             }
-            SwitchSetting(stringResource(R.string.compose_settings_remember_expansion), settings.rememberExpandedState) {
-                update { it.copy(rememberExpandedState = it) }
+            SwitchSetting(stringResource(R.string.compose_settings_auto_collapse), current.autoCollapseAfterAction) { value ->
+                update { it.copy(autoCollapseAfterAction = value) }
+            }
+            SwitchSetting(stringResource(R.string.compose_settings_remember_expansion), current.rememberExpandedState) { value ->
+                update { it.copy(rememberExpandedState = value) }
             }
         }
 
         SettingsSection(stringResource(R.string.compose_settings_performance)) {
-            IntSetting(stringResource(R.string.compose_settings_page_cache), settings.pageCacheLimit, 1, 9) {
-                update { it.copy(pageCacheLimit = it) }
+            IntSetting(stringResource(R.string.compose_settings_page_cache), current.pageCacheLimit, 1, 9) { value ->
+                update { it.copy(pageCacheLimit = value) }
             }
-            IntSetting(stringResource(R.string.compose_settings_touch_target), settings.minimumTouchTargetDp, 20, 112) {
-                update { it.copy(minimumTouchTargetDp = it) }
+            IntSetting(stringResource(R.string.compose_settings_touch_target), current.minimumTouchTargetDp, 20, 112) { value ->
+                update { it.copy(minimumTouchTargetDp = value) }
             }
-            SwitchSetting(stringResource(R.string.compose_settings_prefetch), settings.prefetchAdjacentGroups) {
-                update { it.copy(prefetchAdjacentGroups = it) }
+            SwitchSetting(stringResource(R.string.compose_settings_prefetch), current.prefetchAdjacentGroups) { value ->
+                update { it.copy(prefetchAdjacentGroups = value) }
             }
-            SwitchSetting(stringResource(R.string.compose_settings_search_payload), settings.searchIncludesActionPayload) {
-                update { it.copy(searchIncludesActionPayload = it) }
+            SwitchSetting(stringResource(R.string.compose_settings_search_payload), current.searchIncludesActionPayload) { value ->
+                update { it.copy(searchIncludesActionPayload = value) }
             }
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             if (onReset != null) {
                 OutlinedButton(onClick = onReset, modifier = Modifier.weight(1f)) {
                     Text(stringResource(R.string.compose_settings_reset))
                 }
             }
-            Button(onClick = { onSettingsChange(settings) }, modifier = Modifier.weight(1f)) {
+            Button(onClick = { onSettingsChange(current) }, modifier = Modifier.weight(1f)) {
                 Text(stringResource(R.string.compose_settings_apply))
             }
         }
@@ -230,10 +209,7 @@ fun SymbolDrawerSettingsScreen(
 @Composable
 private fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) {
     Card(Modifier.fillMaxWidth()) {
-        Column(
-            Modifier.fillMaxWidth().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
+        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
             HorizontalDivider()
             content(this)
