@@ -112,7 +112,7 @@ class ComposeMigrationContractTest {
         compose.setContent {
             Box(Modifier.size(width = 500.dp, height = 400.dp)) {
                 AdaptiveWindowObserver(Modifier.fillMaxSize()) { info ->
-                    Text("window-width-\${info.widthDp.toInt()}")
+                    Text("window-width-" + info.widthDp.toInt())
                 }
             }
         }

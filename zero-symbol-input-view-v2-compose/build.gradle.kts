@@ -53,8 +53,7 @@ dependencies {
 }
 
 /**
- * Keep the migrated UI packages strictly Compose-native while legacy View
- * implementation files are still being extracted from this migration baseline.
+ * Enforce a Compose-only UI source boundary across the complete library module.
  *
  * This is intentionally a package-scoped guard: it does not pretend that the
  * entire artifact is already free of transitional View sources.
@@ -64,12 +63,8 @@ val verifyComposeUiBoundary by tasks.registering {
     description = "Rejects Android View and View-based Material UI APIs in Compose UI packages."
 
     val composeUiRoots = listOf(
-        layout.projectDirectory.dir(
-            "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/compose"
-        ).asFile,
-        layout.projectDirectory.dir(
-            "src/main/kotlin/com/zerostudio/idea/widget/drawer/compose"
-        ).asFile
+        layout.projectDirectory.dir("src/main/kotlin").asFile,
+        layout.projectDirectory.dir("src/main/java").asFile
     )
 
     doLast {
@@ -120,7 +115,7 @@ val verifyComposeUiBoundary by tasks.registering {
 }
 
 tasks.named("check") {
-    dependsOn(verifyComposeUiBoundary, verifyComposeArtifactBoundary)
+    dependsOn(verifyComposeUiBoundary, "verifyComposeArtifactBoundary")
 }
 
 /**
