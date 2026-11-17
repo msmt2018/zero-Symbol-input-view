@@ -43,7 +43,7 @@ class DrawerInteractionPolicyTest {
         val controller = DrawerInteractionController(100, 300, 200)
         assertEquals(400, controller.updateBounds(200, 600))
         assertEquals(0.5f, controller.expansionFraction)
-        assertEquals(400, controller.updateBounds(200, 300, preserveExpansionFraction = false))
+        assertEquals(300, controller.updateBounds(200, 300, preserveExpansionFraction = false))
     }
 
     @Test fun invalidDeltasAndBoundsAreRejected() {
