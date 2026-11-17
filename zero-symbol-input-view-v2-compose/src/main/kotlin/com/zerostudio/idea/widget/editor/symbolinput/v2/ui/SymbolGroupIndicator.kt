@@ -94,6 +94,8 @@ fun SymbolGroupIndicator(
     onSettingsClick: (() -> Unit)? = null
 ) {
     val selected = selectedIndex.coerceIn(0, (groups.size - 1).coerceAtLeast(0))
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val inactiveColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.58f)
     val textMode = settings.indicatorStyle == GroupIndicatorStyle.TEXT ||
         settings.indicatorStyle == GroupIndicatorStyle.TEXT_TABS
     Row(
@@ -135,8 +137,8 @@ fun SymbolGroupIndicator(
             ) {
                 val count = groups.size
                 if (count > 0) {
-                    val primary = MaterialTheme.colorScheme.primary
-                    val inactive = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.58f)
+                    val primary = primaryColor
+                    val inactive = inactiveColor
                     val centerY = size.height / 2f
                     val step = size.width / count
                     val style = settings.indicatorStyle
