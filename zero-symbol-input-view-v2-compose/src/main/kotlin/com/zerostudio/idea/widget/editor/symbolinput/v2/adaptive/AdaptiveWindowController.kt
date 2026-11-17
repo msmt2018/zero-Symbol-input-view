@@ -5,135 +5,48 @@
  */
 package com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive
 
-import android.view.View
-
 /**
- * Lifecycle-safe shared window observation for V2 widgets.
+ * Optional platform-neutral adaptive-window snapshot publisher.
  *
- * A control can subscribe to the same controller instead of installing its own
- * layout/insets listeners. The controller owns one observer and fans out
- * immutable snapshots to registered listeners.
- *
- * Subscriptions are independent: registering the same callback more than once
- * creates distinct handles, and closing one handle never removes another.
- * Listener collection changes are synchronized; callbacks are always invoked
- * outside the lock so listeners may safely add/remove subscriptions reentrantly.
+ * Android/Compose hosts supply immutable measurements; this model never
+ * observes a View or owns window/listener lifecycle.
  */
-class AdaptiveWindowController(
-    hostView: View,
-    insetsMode: WindowInsetsMode = WindowInsetsMode.SUBTRACT_SYSTEM_INSETS
-) : AutoCloseable {
+class AdaptiveWindowController(initialSnapshot: WindowAdaptiveInfo) {
     private val lock = Any()
     private val listeners = LinkedHashMap<Long, (WindowAdaptiveInfo) -> Unit>()
     private var nextListenerId = 0L
+    @Volatile private var latestSnapshot: WindowAdaptiveInfo = initialSnapshot
 
-    @Volatile
-    private var closed = false
-
-    @Volatile
-    private var latestSnapshot: WindowAdaptiveInfo? = null
-
-    @Volatile
-    private var listenerFailure: Exception? = null
-
-    /**
-     * Optional diagnostics hook. A subscriber failure is recorded and reported
-     * here without escaping the View layout/insets callback and crashing the host.
-     */
-    @Volatile
-    var onListenerError: ((Exception) -> Unit)? = null
-
-    val lastListenerFailure: Exception?
-        get() = listenerFailure
-
-    private val observer = AdaptiveWindowObserver(
-        view = hostView,
-        onChanged = ::dispatch,
-        insetsMode = insetsMode
-    )
-
-    val current: WindowAdaptiveInfo?
-        get() = latestSnapshot
+    fun latest(): WindowAdaptiveInfo = latestSnapshot
 
     fun addListener(
-        listener: (WindowAdaptiveInfo) -> Unit,
-        emitCurrent: Boolean = true
+        emitCurrent: Boolean = true,
+        listener: (WindowAdaptiveInfo) -> Unit
     ): AutoCloseable {
         val id: Long
-        val snapshot: WindowAdaptiveInfo?
+        val snapshot: WindowAdaptiveInfo
         synchronized(lock) {
-            check(!closed) { "AdaptiveWindowController is closed" }
             id = ++nextListenerId
             listeners[id] = listener
-            snapshot = if (emitCurrent) latestSnapshot else null
+            snapshot = latestSnapshot
         }
-
-        var subscriptionClosed = false
-        val subscription = AutoCloseable {
-            synchronized(lock) {
-                if (!subscriptionClosed) {
-                    subscriptionClosed = true
-                    listeners.remove(id)
-                }
-            }
-        }
-        try {
-            snapshot?.let(listener)
-        } catch (failure: Throwable) {
-            subscription.close()
-            throw failure
-        }
-        return subscription
+        if (emitCurrent) runCatching { listener(snapshot) }
+        return AutoCloseable { synchronized(lock) { listeners.remove(id) } }
     }
 
-    fun updateFoldingFeature(value: FoldingFeatureInfo) {
-        check(!closed) { "AdaptiveWindowController is closed" }
-        val previous = latestSnapshot
-        observer.updateFoldingFeature(value)
-        // The observer intentionally waits for attachment before measuring.
-        // Still expose host-supplied posture immediately in the last known
-        // window snapshot, so consumers do not keep stale fold information
-        // while the host view is temporarily detached.
-        if (previous != null && latestSnapshot === previous &&
-            previous.foldingFeature != value
-        ) {
-            dispatch(previous.copy(foldingFeature = value))
-        }
-    }
-
-    fun refresh() {
-        check(!closed) { "AdaptiveWindowController is closed" }
-        observer.refresh()
-    }
-
-    private fun dispatch(snapshot: WindowAdaptiveInfo) {
+    fun update(value: WindowAdaptiveInfo) {
         val callbacks = synchronized(lock) {
-            if (closed) return
-            latestSnapshot = snapshot
+            if (latestSnapshot == value) return
+            latestSnapshot = value
             listeners.values.toList()
         }
-        callbacks.forEach { callback ->
-            try {
-                callback(snapshot)
-            } catch (failure: Exception) {
-                listenerFailure = failure
-                // Listener code is external to the observer. Never let a faulty
-                // subscriber escape through View.onLayoutChange on the main
-                // thread; retain the failure for diagnostics and notify hosts.
-                runCatching { onListenerError?.invoke(failure) }
-            }
-        }
+        callbacks.forEach { callback -> runCatching { callback(value) } }
     }
 
-    override fun close() {
-        synchronized(lock) {
-            if (closed) return
-            closed = true
-            listeners.clear()
-            latestSnapshot = null
-        }
-        // Detach the observer after making the controller inert. Any callback
-        // racing with close will see closed=true and will be ignored.
-        observer.close()
+    /** Re-emits the current snapshot after host policy changes. */
+    fun refresh() {
+        val snapshot = latestSnapshot
+        val callbacks = synchronized(lock) { listeners.values.toList() }
+        callbacks.forEach { callback -> runCatching { callback(snapshot) } }
     }
 }

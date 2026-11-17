@@ -45,14 +45,17 @@
 
 package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style
 
-/** Theme behavior of a drawer. FOLLOW_HOST is the default and never overrides the Activity theme. */
+import androidx.compose.ui.text.font.FontWeight
+
+/** Theme behavior of a drawer; actual palette resolution follows the active Material 3 theme. */
 enum class DrawerThemeMode { FOLLOW_HOST, LIGHT, DARK }
 
+/** Optional semantic names for host theme roles; no resource IDs are retained. */
 data class DrawerColorAttributes(
-    val surfaceAttr: Int = com.google.android.material.R.attr.colorSurface,
-    val primaryTextAttr: Int = com.google.android.material.R.attr.colorOnSurface,
-    val secondaryTextAttr: Int = com.google.android.material.R.attr.colorOnSurfaceVariant,
-    val accentAttr: Int = androidx.appcompat.R.attr.colorPrimary
+    val surfaceAttr: String = "colorSurface",
+    val primaryTextAttr: String = "colorOnSurface",
+    val secondaryTextAttr: String = "colorOnSurfaceVariant",
+    val accentAttr: String = "colorPrimary"
 )
 
 data class DrawerColors(
@@ -63,7 +66,6 @@ data class DrawerColors(
     val outline: Int? = null,
     val scrim: Int? = null
 ) {
-    /** Explicit values override the host theme; null values inherit from it. */
     fun overlay(override: DrawerColors): DrawerColors = DrawerColors(
         surface = override.surface ?: surface,
         primaryText = override.primaryText ?: primaryText,
@@ -100,8 +102,8 @@ data class DrawerTypography(
     val titleSizeSp: Float = 18f,
     val bodySizeSp: Float = 14f,
     val captionSizeSp: Float = 12f,
-    val titleStyle: Int = android.graphics.Typeface.BOLD,
-    val bodyStyle: Int = android.graphics.Typeface.NORMAL,
+    val titleStyle: FontWeight = FontWeight.Bold,
+    val bodyStyle: FontWeight = FontWeight.Normal,
     val fontFamily: String? = null
 ) {
     init {
@@ -141,7 +143,6 @@ data class DrawerShape(
     }
 }
 
-/** Complete visual token set. Values are immutable and safe to share between drawers. */
 data class DrawerStyle(
     val themeMode: DrawerThemeMode = DrawerThemeMode.FOLLOW_HOST,
     val colorAttributes: DrawerColorAttributes = DrawerColorAttributes(),
