@@ -44,13 +44,10 @@
  */
 package com.zerostudio.idea.widget.editor.symbolinput.v2
 
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerInteractionController
-
 /**
- * @deprecated Gesture arbitration is now owned by the feature-neutral drawer
- * core. Kept as a source-compatible bridge for existing tests and integrations.
+ * Pure gesture arbitration helper retained for callers migrating to Compose
+ * draggable/nested-scroll modifiers.
  */
-@Deprecated("Use DrawerInteractionController.shouldInterceptVerticalDrag")
 internal object SymbolDrawerDragPolicy {
     fun shouldInterceptVerticalDrag(
         fingerDeltaY: Float,
@@ -58,11 +55,13 @@ internal object SymbolDrawerDragPolicy {
         collapsedHeightPx: Int,
         expandedHeightPx: Int,
         childCanScrollUp: Boolean
-    ): Boolean = DrawerInteractionController.shouldInterceptVerticalDrag(
-        fingerDeltaY = fingerDeltaY,
-        currentHeightPx = currentHeightPx,
-        collapsedHeightPx = collapsedHeightPx,
-        expandedHeightPx = expandedHeightPx,
-        childCanScrollUp = childCanScrollUp
-    )
+    ): Boolean {
+        if (!fingerDeltaY.isFinite() || expandedHeightPx <= collapsedHeightPx) return false
+        if (fingerDeltaY > 0f && childCanScrollUp) return false
+        return when {
+            fingerDeltaY < 0f -> currentHeightPx < expandedHeightPx
+            fingerDeltaY > 0f -> currentHeightPx > collapsedHeightPx
+            else -> false
+        }
+    }
 }

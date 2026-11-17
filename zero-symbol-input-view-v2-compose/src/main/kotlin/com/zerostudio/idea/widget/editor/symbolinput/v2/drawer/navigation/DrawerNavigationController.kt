@@ -46,8 +46,8 @@
 package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation
 
 /**
- * UI-agnostic page selection model. Any TabLayout, RecyclerView or custom
- * navigation view can observe and bind to this controller.
+ * UI-agnostic page selection model. Compose navigation slots observe immutable
+ * snapshots; the controller owns no composable, View, adapter or lifecycle.
  */
 class DrawerNavigationController {
     fun interface Listener {

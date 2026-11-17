@@ -59,8 +59,9 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerTheme
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerTypography
 
 /**
- * Public runtime control surface. A concrete DrawerContainer will bind this contract
- * to Android measurement, nested scrolling, touch dispatch, page hosting and animation.
+ * Optional host-facing control contract for a Compose drawer state holder.
+ * Implementations expose semantic commands and immutable state snapshots only;
+ * they do not create Views or require callers to manage UI lifecycle callbacks.
  */
 interface DrawerController {
     fun expand(animated: Boolean = true)
