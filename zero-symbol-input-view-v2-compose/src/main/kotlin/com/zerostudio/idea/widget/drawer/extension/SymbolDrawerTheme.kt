@@ -44,10 +44,9 @@
  */
 package com.zerostudio.idea.widget.drawer.extension
 
-import android.content.Context
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
 
-/** Immutable theme token snapshot. Color values use Android ARGB encoding. */
+/** Immutable theme token snapshot. Color values use Android-compatible ARGB encoding. */
 data class SymbolDrawerTheme(
     val primary: Int,
     val onPrimary: Int,
@@ -60,15 +59,12 @@ data class SymbolDrawerTheme(
 )
 
 /**
- * Java/Kotlin JVM extension point for supplying a drawer palette.
- *
- * The extension is registered with the owning drawer's extension registry.
- * Returning a new snapshot causes attached drawer surfaces to receive the
- * updated palette; null is represented by clearing the selected theme ID.
+ * Platform-neutral palette provider. Implementations return immutable tokens;
+ * the Compose host maps them to Material 3 ColorScheme values.
  */
 interface SymbolDrawerThemeExtension {
     val id: String
     val title: String
     val priority: Int get() = 0
-    fun resolve(context: Context, settings: SymbolDrawerSettings): SymbolDrawerTheme
+    fun resolve(settings: SymbolDrawerSettings): SymbolDrawerTheme
 }
