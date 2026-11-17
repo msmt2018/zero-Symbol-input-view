@@ -65,9 +65,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
@@ -99,6 +96,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
 import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.SymbolGroupIndicator
+import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.SymbolPage
 import kotlin.math.abs
 
 /**
@@ -254,21 +252,14 @@ fun SymbolDrawer(
                     key = { page -> safeGroups[page].id }
                 ) { page ->
                     val group = safeGroups[page]
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(config.columns.coerceIn(1, 30)),
-                        modifier = Modifier.fillMaxSize().padding(horizontal = 4.dp),
-                        verticalArrangement = Arrangement.spacedBy(config.cellVerticalSpacingDp.dp),
-                        horizontalArrangement = Arrangement.spacedBy(config.cellHorizontalSpacingDp.dp)
-                    ) {
-                        items(group.symbols, key = { it.id }) { entry ->
-                            SymbolDrawerCell(
-                                entry = entry,
-                                minimumHeight = config.cellHeightDp.coerceAtLeast(config.minimumTouchTargetDp).dp,
-                                onClick = { onSymbolClick(entry) },
-                                onLongClick = onSymbolLongClick?.let { callback -> { callback(entry) } }
-                            )
-                        }
-                    }
+                    SymbolPage(
+                        group = group,
+                        config = config,
+                        settings = settings,
+                        modifier = Modifier.fillMaxSize(),
+                        onSymbolClick = onSymbolClick,
+                        onSymbolLongClick = onSymbolLongClick
+                    )
                 }
             }
         }
