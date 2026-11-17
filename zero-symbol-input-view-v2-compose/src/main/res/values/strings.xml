@@ -387,4 +387,28 @@
     <string name="compose_settings_search_payload">Include action payload in search</string>
     <string name="compose_settings_reset">Reset</string>
     <string name="compose_settings_apply">Apply</string>
+
+    <string name="compose_manager_title">Symbol manager</string>
+    <string name="compose_manager_close">Close</string>
+    <string name="compose_manager_add_group">Add group</string>
+    <string name="compose_manager_export">Copy JSON</string>
+    <string name="compose_manager_import">Import JSON</string>
+    <string name="compose_manager_groups">Groups</string>
+    <string name="compose_manager_rename">Rename</string>
+    <string name="compose_manager_delete">Delete</string>
+    <string name="compose_manager_no_group">No group selected</string>
+    <string name="compose_manager_add_symbol">Add symbol</string>
+    <string name="compose_manager_create_group_hint">Create a group to start adding symbols.</string>
+    <string name="compose_manager_edit">Edit</string>
+    <string name="compose_manager_rename_group">Rename group</string>
+    <string name="compose_manager_group_name">Group name</string>
+    <string name="compose_manager_save">Save</string>
+    <string name="compose_manager_cancel">Cancel</string>
+    <string name="compose_manager_edit_symbol">Edit symbol</string>
+    <string name="compose_manager_symbol_label">Symbol label</string>
+    <string name="compose_manager_insert_text">Insert text action</string>
+    <string name="compose_manager_import_title">Import symbol groups</string>
+    <string name="compose_manager_json">JSON</string>
+    <string name="compose_manager_error">Operation failed</string>
+    <string name="compose_manager_ok">OK</string>
 </resources>

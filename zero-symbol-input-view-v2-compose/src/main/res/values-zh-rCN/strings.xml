@@ -387,4 +387,28 @@
     <string name="compose_settings_search_payload">搜索时包含动作参数</string>
     <string name="compose_settings_reset">恢复默认</string>
     <string name="compose_settings_apply">应用</string>
+
+    <string name="compose_manager_title">符号管理</string>
+    <string name="compose_manager_close">关闭</string>
+    <string name="compose_manager_add_group">新建分组</string>
+    <string name="compose_manager_export">复制 JSON</string>
+    <string name="compose_manager_import">导入 JSON</string>
+    <string name="compose_manager_groups">分组</string>
+    <string name="compose_manager_rename">重命名</string>
+    <string name="compose_manager_delete">删除</string>
+    <string name="compose_manager_no_group">未选择分组</string>
+    <string name="compose_manager_add_symbol">新建符号</string>
+    <string name="compose_manager_create_group_hint">请先创建分组，然后添加符号。</string>
+    <string name="compose_manager_edit">编辑</string>
+    <string name="compose_manager_rename_group">重命名分组</string>
+    <string name="compose_manager_group_name">分组名称</string>
+    <string name="compose_manager_save">保存</string>
+    <string name="compose_manager_cancel">取消</string>
+    <string name="compose_manager_edit_symbol">编辑符号</string>
+    <string name="compose_manager_symbol_label">符号标签</string>
+    <string name="compose_manager_insert_text">插入文本动作</string>
+    <string name="compose_manager_import_title">导入符号分组</string>
+    <string name="compose_manager_json">JSON</string>
+    <string name="compose_manager_error">操作失败</string>
+    <string name="compose_manager_ok">确定</string>
 </resources>
