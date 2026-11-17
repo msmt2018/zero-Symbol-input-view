@@ -7,7 +7,7 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive
 
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -51,10 +51,8 @@ fun AdaptiveWindowObserver(
         )
         content(
             WindowAdaptiveInfo(
-                widthDp = maxWidth.takeUnless { it == androidx.compose.ui.unit.Constraints.Infinity.dp }?.value
-                    ?: 0f,
-                heightDp = maxHeight.takeUnless { it == androidx.compose.ui.unit.Constraints.Infinity.dp }?.value
-                    ?: 0f,
+                widthDp = maxWidth.value.takeIf { it.isFinite() } ?: 0f,
+                heightDp = maxHeight.value.takeIf { it.isFinite() } ?: 0f,
                 density = density.density,
                 insets = insets,
                 foldingFeature = foldingFeature
