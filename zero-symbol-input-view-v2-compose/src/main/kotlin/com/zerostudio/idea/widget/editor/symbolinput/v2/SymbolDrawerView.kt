@@ -109,6 +109,11 @@ class SymbolDrawerState internal constructor(
         internal set
     var expanded by mutableStateOf(initiallyExpanded)
         internal set
+
+    fun expand() { expanded = true }
+    fun collapse() { expanded = false }
+    fun toggle() { expanded = !expanded }
+    fun selectPage(index: Int) { selectedPage = index.coerceAtLeast(0) }
 }
 
 /** Creates state whose lifetime is the calling Composition. */

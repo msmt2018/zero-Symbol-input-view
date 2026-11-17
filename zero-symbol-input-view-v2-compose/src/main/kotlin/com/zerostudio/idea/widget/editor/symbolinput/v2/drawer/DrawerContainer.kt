@@ -95,6 +95,10 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.panel.DrawerPanel
 class DrawerContainerState internal constructor(initiallyExpanded: Boolean) {
     var expanded by mutableStateOf(initiallyExpanded)
         internal set
+
+    fun expand() { expanded = true }
+    fun collapse() { expanded = false }
+    fun toggle() { expanded = !expanded }
 }
 
 @Composable
