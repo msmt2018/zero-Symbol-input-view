@@ -48,10 +48,9 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SymbolTextDocumentContractTest {
-    private class Buffer(var value: String) : SymbolTextDocument {
+    private open class Buffer(var value: String) : SymbolTextDocument {
         private var caret = 0
         val transactionEvents = mutableListOf<Boolean>()
-        var failReplaceAt: Int? = null
         var failRollback = false
         override val isEditable = true
         override val textLength get() = value.length
@@ -74,14 +73,14 @@ class SymbolTextDocumentContractTest {
         override fun lineText(line: Int) = textBetween(lineStartOffset(line), lineEndOffset(line))
         override fun textBetween(start: Int, end: Int) = value.substring(start, end)
         override fun charAt(offset: Int) = value[offset]
-        override fun replace(start: Int, end: Int, replacement: String): Boolean {
+        override open fun replace(start: Int, end: Int, replacement: String): Boolean {
             value = value.replaceRange(start, end, replacement)
             caret = start + replacement.length
             return true
         }
         override fun setSelection(start: Int, end: Int) { caret = end }
         override fun beginEditTransaction() { transactionEvents += true }
-        override fun endEditTransaction(commit: Boolean) {
+        override open fun endEditTransaction(commit: Boolean) {
             transactionEvents += commit
             if (!commit && failRollback) error("rollback callback failed")
         }
