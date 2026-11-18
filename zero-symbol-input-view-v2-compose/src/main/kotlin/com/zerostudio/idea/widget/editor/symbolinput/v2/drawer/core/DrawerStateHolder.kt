@@ -33,6 +33,7 @@ class DrawerStateHolder(
     private var heightPx by mutableStateOf(0)
     private var dragging by mutableStateOf(false)
     private var animating by mutableStateOf(false)
+    private var targetAnchorId by mutableStateOf<String?>(null)
     private var resolvedAnchors by mutableStateOf(
         DrawerAnchorResolver.resolve(initialStrategy, initialInput)
     )
@@ -80,6 +81,7 @@ class DrawerStateHolder(
         }
         dragging = false
         animating = false
+        targetAnchorId = null
         publish()
     }
 
@@ -99,6 +101,7 @@ class DrawerStateHolder(
     fun beginDrag() {
         dragging = true
         animating = false
+        targetAnchorId = null
         publish()
     }
 
@@ -166,6 +169,7 @@ class DrawerStateHolder(
         )
         dragging = false
         animating = target.heightPx != heightPx
+        targetAnchorId = target.id.takeIf { animating }
         publish()
         return target
     }
@@ -186,6 +190,7 @@ class DrawerStateHolder(
         heightPx = target.heightPx
         dragging = false
         animating = false
+        targetAnchorId = null
         publish()
     }
 
@@ -193,6 +198,7 @@ class DrawerStateHolder(
         val target = resolvedAnchors.firstOrNull { it.id == anchorId } ?: return null
         animating = target.heightPx != heightPx
         dragging = false
+        targetAnchorId = target.id.takeIf { animating }
         publish()
         return target
     }
@@ -212,7 +218,8 @@ class DrawerStateHolder(
             currentHeightPx = heightPx,
             anchors = resolvedAnchors,
             isDragging = dragging,
-            isAnimating = animating
+            isAnimating = animating,
+            targetAnchorId = targetAnchorId
         )
         listeners.forEach { it(snapshot) }
     }
