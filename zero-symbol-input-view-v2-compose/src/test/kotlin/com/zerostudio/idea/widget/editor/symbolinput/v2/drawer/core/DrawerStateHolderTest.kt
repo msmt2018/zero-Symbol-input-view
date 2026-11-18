@@ -113,4 +113,41 @@ class DrawerStateHolderTest {
 private fun DrawerStateHolder.collapseToPeekForTest() {
     val peek = anchors.minBy { it.heightPx }
     finishAnimation(peek.id)
+    @Test
+    fun nestedScrollMutatesTheSingleHolderStateAndReturnsRemainder() {
+        val holder = DrawerStateHolder(
+            input().copy(minHeightPx = 100, maxHeightPx = 1000, existingExpandedHeightPx = 1000),
+            ThreeStageAnchorStrategy(useAutomaticPeekHeight = false),
+            "half"
+        )
+        val result = holder.dispatchNestedScroll(
+            availableDeltaY = -10_000f,
+            childCanScrollBackward = false,
+            phase = DrawerNestedScrollPhase.PRE_SCROLL
+        )
+        assertEquals(-500, holder.currentHeightPx)
+        assertEquals(-500f, result.consumedDeltaY, 0f)
+        assertEquals(-9_500f, result.remainingDeltaY, 0f)
+        assertEquals(true, holder.isDragging)
+    }
+
+    @Test
+    fun nestedScrollLeavesDownwardMotionToChildWhenChildCanScrollBackward() {
+        val holder = DrawerStateHolder(
+            input().copy(minHeightPx = 100, maxHeightPx = 1000, existingExpandedHeightPx = 1000),
+            ThreeStageAnchorStrategy(useAutomaticPeekHeight = false),
+            "half"
+        )
+        val before = holder.currentHeightPx
+        val result = holder.dispatchNestedScroll(
+            availableDeltaY = 40f,
+            childCanScrollBackward = true,
+            phase = DrawerNestedScrollPhase.PRE_SCROLL
+        )
+        assertEquals(0f, result.consumedDeltaY, 0f)
+        assertEquals(40f, result.remainingDeltaY, 0f)
+        assertEquals(before, holder.currentHeightPx)
+        assertEquals(false, holder.isDragging)
+    }
+
 }
