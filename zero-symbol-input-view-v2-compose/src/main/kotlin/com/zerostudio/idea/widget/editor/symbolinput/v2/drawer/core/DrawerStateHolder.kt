@@ -95,6 +95,7 @@ class DrawerStateHolder(
         )
         dragging = false
         animating = false
+        targetAnchorId = null
         publish()
     }
 
@@ -138,7 +139,11 @@ class DrawerStateHolder(
     /** Applies finger movement in pixels; upward/negative movement expands. */
     fun dragBy(fingerDeltaY: Float): Int {
         require(fingerDeltaY.isFinite()) { "Drag delta must be finite" }
-        if (!dragging) dragging = true
+        if (!dragging) {
+            dragging = true
+            animating = false
+            targetAnchorId = null
+        }
         heightPx = (heightPx - fingerDeltaY).toInt().coerceIn(
             resolvedAnchors.minOf { it.heightPx },
             resolvedAnchors.maxOf { it.heightPx }
