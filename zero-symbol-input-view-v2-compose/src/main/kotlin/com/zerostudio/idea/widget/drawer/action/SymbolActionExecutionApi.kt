@@ -208,14 +208,20 @@ class SymbolActionExecutor(
         if (composite.actions.size > maxCompositeActions) {
             return SymbolActionResult.Invalid("Composite action contains too many steps")
         }
-        var completed = 0
         composite.actions.forEach { child ->
             val result = executeInternal(child, host, depth + 1, cancellation, progress, budget)
             if (result is SymbolActionResult.Cancelled) return result
             if (result != SymbolActionResult.Executed) {
-                return if (completed == 0) result else SymbolActionResult.PartialFailure(completed, result)
+                // Progress counts successfully executed leaf actions across every
+                // nesting level. A nested PartialFailure already carries that
+                // operation-wide count and must not be wrapped a second time.
+                if (result is SymbolActionResult.PartialFailure) return result
+                return if (progress.completedActions == 0) {
+                    result
+                } else {
+                    SymbolActionResult.PartialFailure(progress.completedActions, result)
+                }
             }
-            completed++
         }
         return SymbolActionResult.Executed
     }

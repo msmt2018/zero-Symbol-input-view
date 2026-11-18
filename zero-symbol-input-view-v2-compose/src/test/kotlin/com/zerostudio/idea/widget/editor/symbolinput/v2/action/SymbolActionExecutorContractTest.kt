@@ -102,6 +102,43 @@ class SymbolActionExecutorContractTest {
         assertEquals(listOf("insert:a", "replace:b", "manager", "extension:plugin.done:null"), host.calls)
     }
 
+    @Test fun nestedCompositeFailureReportsCompletedLeafActionsAcrossAllLevels() {
+        val host = Host().apply {
+            afterInsert = null
+        }
+        val decliningHost = object : SymbolActionHost by host {
+            override fun insertText(template: String): Boolean {
+                host.calls += "insert:$template"
+                return template != "fail"
+            }
+        }
+        val action = SymbolAction.Composite(listOf(
+            SymbolAction.InsertText("root"),
+            SymbolAction.Composite(listOf(
+                SymbolAction.InsertText("nested-one"),
+                SymbolAction.InsertText("nested-two"),
+                SymbolAction.InsertText("fail")
+            )),
+            SymbolAction.OpenManager
+        ))
+
+        val result = executor.execute(action, decliningHost)
+
+        assertEquals(
+            com.zerostudio.idea.widget.drawer.action.SymbolActionResult.PartialFailure(
+                completedActions = 3,
+                cause = com.zerostudio.idea.widget.drawer.action.SymbolActionResult.Unsupported(
+                    SymbolAction.InsertText("fail")
+                )
+            ),
+            result
+        )
+        assertEquals(
+            listOf("insert:root", "insert:nested-one", "insert:nested-two", "insert:fail"),
+            host.calls
+        )
+    }
+
     @Test fun rejectsEmptyCompositeAndActionCountOverflowBeforeHostCalls() {
         val host = Host()
         assertTrue(executor.execute(SymbolAction.Composite(emptyList()), host) is com.zerostudio.idea.widget.drawer.action.SymbolActionResult.Invalid)
