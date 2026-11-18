@@ -102,6 +102,36 @@ class DrawerStateHolder(
         publish()
     }
 
+    /**
+     * Applies one nested-scroll delta through the shared state engine.
+     *
+     * The policy decides ownership; this holder remains the only mutable source
+     * of drawer height. The returned remainder must be passed back to Compose's
+     * nested-scroll dispatcher so the child/ancestor can consume it.
+     */
+    fun dispatchNestedScroll(
+        availableDeltaY: Float,
+        childCanScrollBackward: Boolean,
+        phase: DrawerNestedScrollPhase
+    ): DrawerNestedScrollResult {
+        val minimum = resolvedAnchors.minOf { it.heightPx }
+        val maximum = resolvedAnchors.maxOf { it.heightPx }
+        val result = DrawerNestedScrollPolicy.resolve(
+            DrawerNestedScrollInput(
+                availableDeltaY = availableDeltaY,
+                currentHeightPx = heightPx.coerceIn(minimum, maximum),
+                minimumHeightPx = minimum,
+                maximumHeightPx = maximum,
+                childCanScrollBackward = childCanScrollBackward,
+                phase = phase
+            )
+        )
+        if (result.consumedDeltaY != 0f) {
+            dragBy(result.consumedDeltaY)
+        }
+        return result
+    }
+
     /** Applies finger movement in pixels; upward/negative movement expands. */
     fun dragBy(fingerDeltaY: Float): Int {
         require(fingerDeltaY.isFinite()) { "Drag delta must be finite" }
