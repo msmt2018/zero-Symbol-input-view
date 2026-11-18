@@ -40,7 +40,12 @@ class DrawerNestedScrollPolicyTest {
     @Test
     fun downwardMotionIsLeftToScrollableChild() {
         val result = DrawerNestedScrollPolicy.resolve(
-            input(delta = 180f, height = 700, childCanScrollBackward = true)
+            input(
+                delta = 180f,
+                height = 700,
+                childCanScrollBackward = true,
+                phase = DrawerNestedScrollPhase.PRE_SCROLL
+            )
         )
         assertEquals(0f, result.consumedDeltaY, 0f)
         assertEquals(180f, result.remainingDeltaY, 0f)
@@ -48,7 +53,9 @@ class DrawerNestedScrollPolicyTest {
 
     @Test
     fun downwardMotionCollapsesDrawerAtChildStartBoundary() {
-        val result = DrawerNestedScrollPolicy.resolve(input(180f, 700))
+        val result = DrawerNestedScrollPolicy.resolve(
+            input(180f, 700, phase = DrawerNestedScrollPhase.POST_SCROLL)
+        )
         assertEquals(180f, result.consumedDeltaY, 0f)
         assertEquals(0f, result.remainingDeltaY, 0f)
     }
