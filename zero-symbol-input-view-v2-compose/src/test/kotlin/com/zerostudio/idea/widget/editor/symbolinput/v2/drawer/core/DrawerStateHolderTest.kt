@@ -28,7 +28,6 @@ class DrawerStateHolderTest {
             initialStrategy = ThreeStageAnchorStrategy(useAutomaticPeekHeight = false),
             initialAnchorId = "half"
         )
-
         assertEquals("half", holder.snapshot.currentAnchorId)
         assertEquals(400, holder.currentHeightPx)
         assertFalse(holder.isDragging)
@@ -41,16 +40,11 @@ class DrawerStateHolderTest {
             initialStrategy = ThreeStageAnchorStrategy(useAutomaticPeekHeight = false),
             initialAnchorId = "half"
         )
-
         holder.beginDrag()
         holder.dragBy(-30f)
         assertEquals(430, holder.currentHeightPx)
         assertTrue(holder.isDragging)
-
-        val target = holder.endDrag(
-            fingerVelocityY = 0f,
-            minimumFlingVelocityPxPerSecond = 100f
-        )
+        val target = holder.endDrag(0f, 100f)
         assertEquals("half", target.id)
         assertFalse(holder.isDragging)
     }
@@ -62,14 +56,9 @@ class DrawerStateHolderTest {
             initialStrategy = ThreeStageAnchorStrategy(useAutomaticPeekHeight = false),
             initialAnchorId = "half"
         )
-
         holder.beginDrag()
         holder.dragBy(-30f)
-        val target = holder.endDrag(
-            fingerVelocityY = -500f,
-            minimumFlingVelocityPxPerSecond = 100f
-        )
-
+        val target = holder.endDrag(-500f, 100f)
         assertEquals("expanded", target.id)
         assertTrue(holder.isAnimating)
         holder.finishAnimation(target.id)
@@ -84,12 +73,10 @@ class DrawerStateHolderTest {
             initialStrategy = ExistingHeightAnchorStrategy(),
             initialAnchorId = "expanded"
         )
-
         holder.updateGeometry(
             input().copy(minHeightPx = 100, maxHeightPx = 1000, existingExpandedHeightPx = 1000),
             preserveExpansionFraction = true
         )
-
         assertEquals(1000, holder.currentHeightPx)
         assertNotNull(holder.snapshot.currentAnchor)
     }
@@ -99,20 +86,14 @@ class DrawerStateHolderTest {
         val holder = DrawerStateHolder(input())
         val observed = mutableListOf<DrawerState>()
         val listener: (DrawerState) -> Unit = { observed += it }
-
         holder.addStateListener(listener)
         holder.beginDrag()
         holder.removeStateListener(listener)
         holder.collapseToPeekForTest()
-
         assertTrue(observed.size >= 2)
         assertTrue(observed.last().isDragging)
     }
-}
 
-private fun DrawerStateHolder.collapseToPeekForTest() {
-    val peek = anchors.minBy { it.heightPx }
-    finishAnimation(peek.id)
     @Test
     fun nestedScrollMutatesTheSingleHolderStateAndReturnsRemainder() {
         val holder = DrawerStateHolder(
@@ -125,10 +106,10 @@ private fun DrawerStateHolder.collapseToPeekForTest() {
             childCanScrollBackward = false,
             phase = DrawerNestedScrollPhase.PRE_SCROLL
         )
-        assertEquals(-500, holder.currentHeightPx)
-        assertEquals(-500f, result.consumedDeltaY, 0f)
-        assertEquals(-9_500f, result.remainingDeltaY, 0f)
-        assertEquals(true, holder.isDragging)
+        assertEquals(1000, holder.currentHeightPx)
+        assertEquals(-600f, result.consumedDeltaY, 0f)
+        assertEquals(-9_400f, result.remainingDeltaY, 0f)
+        assertTrue(holder.isDragging)
     }
 
     @Test
@@ -139,15 +120,15 @@ private fun DrawerStateHolder.collapseToPeekForTest() {
             "half"
         )
         val before = holder.currentHeightPx
-        val result = holder.dispatchNestedScroll(
-            availableDeltaY = 40f,
-            childCanScrollBackward = true,
-            phase = DrawerNestedScrollPhase.PRE_SCROLL
-        )
+        val result = holder.dispatchNestedScroll(40f, true, DrawerNestedScrollPhase.PRE_SCROLL)
         assertEquals(0f, result.consumedDeltaY, 0f)
         assertEquals(40f, result.remainingDeltaY, 0f)
         assertEquals(before, holder.currentHeightPx)
-        assertEquals(false, holder.isDragging)
+        assertFalse(holder.isDragging)
     }
+}
 
+private fun DrawerStateHolder.collapseToPeekForTest() {
+    val peek = anchors.minBy { it.heightPx }
+    finishAnimation(peek.id)
 }
