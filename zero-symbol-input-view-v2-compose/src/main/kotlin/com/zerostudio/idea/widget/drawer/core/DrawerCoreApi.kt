@@ -57,3 +57,5 @@ typealias DrawerAnchorStrategies = com.zerostudio.idea.widget.editor.symbolinput
 typealias DrawerController = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerController
 typealias DrawerInteractionController = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerInteractionController
 typealias DrawerState = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerState
+
+typealias DrawerStateHolder = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerStateHolder
