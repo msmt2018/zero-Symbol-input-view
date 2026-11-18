@@ -36,7 +36,7 @@ class SymbolTextDocumentActionHost(
     private val genericCommands = GenericSymbolTextActions.createRegistry()
 
     override fun insertText(template: String): Boolean {
-        if (!document.isEditable) return false
+        if (!document.isEditable || document.lineCount <= 0) return false
         val start = minOf(document.selectionStart, document.selectionEnd).coerceIn(0, document.textLength)
         val end = maxOf(document.selectionStart, document.selectionEnd).coerceIn(start, document.textLength)
         val selected = document.textBetween(start, end)

@@ -50,10 +50,10 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SymbolTextDocumentActionHostTest {
-    private class Document(var value: String) : SymbolTextDocument {
+    private open class Document(var value: String) : SymbolTextDocument {
         override var isEditable: Boolean = true
         override val textLength get() = value.length
-        override val lineCount get() = value.split("\n").size
+        override open val lineCount get() = value.split("\n").size
         override var cursorOffset: Int = 0
             private set
         override var selectionStart: Int = 0
@@ -98,6 +98,15 @@ class SymbolTextDocumentActionHostTest {
             selectionEnd = end.coerceIn(0, value.length)
             cursorOffset = selectionEnd
         }
+    }
+
+    @Test fun insertTextSafelyDeclinesDocumentsWithoutAnyLines() {
+        val document = object : Document("") {
+            override val lineCount: Int = 0
+        }
+        val host = SymbolTextDocumentActionHost(document)
+        assertFalse(host.insertText("text"))
+        assertEquals("", document.value)
     }
 
     @Test fun insertTextExpandsMacroAndPlacesSelection() {
