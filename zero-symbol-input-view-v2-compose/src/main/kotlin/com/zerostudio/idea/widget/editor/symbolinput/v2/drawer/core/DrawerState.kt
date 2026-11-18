@@ -51,7 +51,9 @@ data class DrawerState(
     val currentHeightPx: Int,
     val anchors: List<DrawerAnchor>,
     val isDragging: Boolean = false,
-    val isAnimating: Boolean = false
+    val isAnimating: Boolean = false,
+    /** Stable destination selected for the active animation, if any. */
+    val targetAnchorId: String? = null
 ) {
     init {
         require(currentAnchorId.isNotBlank())
@@ -59,6 +61,9 @@ data class DrawerState(
         require(anchors.isNotEmpty())
         require(anchors.map { it.id }.distinct().size == anchors.size) {
             "Drawer state anchor IDs must be unique"
+        }
+        require(targetAnchorId == null || anchors.any { it.id == targetAnchorId }) {
+            "Target anchor '$targetAnchorId' must exist in the state anchor list"
         }
         require(anchors.any { it.id == currentAnchorId }) {
             "Current anchor '$currentAnchorId' must exist in the state anchor list"
