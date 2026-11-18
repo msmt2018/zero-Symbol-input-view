@@ -386,10 +386,10 @@ class SymbolGroupBundleCodecTest {
         assertEquals(SymbolAction.EditorCommand("selection.selectAll"), bracket.longAction)
         val cut = groups[1].symbols.first { it.label == "剪切" }
         val copy = groups[1].symbols.first { it.label == "复制" }
-        // V1 numeric IDs 1/2 had no executor dispatch branch. Preserve them as
-        // unresolved legacy extensions instead of inventing clipboard behavior.
-        assertEquals(SymbolAction.Extension("legacy.action.2"), cut.longAction)
-        assertEquals(SymbolAction.Extension("legacy.action.1"), copy.longAction)
+        // Historical MT Manager IDs 1/2 are copy/cut long actions. V2 maps
+        // them to the host clipboard contract while preserving the original IDs.
+        assertEquals(SymbolAction.Clipboard(ClipboardOperation.CUT), cut.longAction)
+        assertEquals(SymbolAction.Clipboard(ClipboardOperation.COPY), copy.longAction)
         assertEquals("const-string v0, \"\"", groups[1].symbols[3].legacyShortText)
     }
 

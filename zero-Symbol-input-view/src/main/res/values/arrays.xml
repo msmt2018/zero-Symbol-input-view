@@ -40,9 +40,9 @@
         <item>@string/action_f10</item>
         <item>@string/action_f11</item>
         <item>@string/action_f12</item>
-        <item>@string/action_ctrl_c</item>
-        <item>@string/action_ctrl_x</item>
-        <item>@string/action_ctrl_v</item>
+        <item>@string/action_copy</item>
+        <item>@string/action_cut</item>
+        <item>@string/action_paste</item>
         <item>@string/action_undo</item>
         <item>@string/action_redo</item>
     </string-array>
