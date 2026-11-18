@@ -89,8 +89,10 @@ interface SymbolTextDocument {
         return try {
             for (edit in ordered) {
                 if (!replace(edit.start, edit.end, edit.replacement)) {
-                    endEditTransaction(false)
+                    // Mark the transaction as finalized before invoking host code:
+                    // if rollback itself throws, the catch block must not call it twice.
                     finished = true
+                    endEditTransaction(false)
                     return false
                 }
             }

@@ -50,6 +50,9 @@ import org.junit.Test
 class SymbolTextDocumentContractTest {
     private class Buffer(var value: String) : SymbolTextDocument {
         private var caret = 0
+        val transactionEvents = mutableListOf<Boolean>()
+        var failReplaceAt: Int? = null
+        var failRollback = false
         override val isEditable = true
         override val textLength get() = value.length
         override val lineCount get() = value.split("\n").size
@@ -77,6 +80,11 @@ class SymbolTextDocumentContractTest {
             return true
         }
         override fun setSelection(start: Int, end: Int) { caret = end }
+        override fun beginEditTransaction() { transactionEvents += true }
+        override fun endEditTransaction(commit: Boolean) {
+            transactionEvents += commit
+            if (!commit && failRollback) error("rollback callback failed")
+        }
     }
 
     @Test fun convertsBetweenUtf16OffsetsAndLineColumn() {
@@ -103,6 +111,36 @@ class SymbolTextDocumentContractTest {
             TextDocumentEdit(2, 2, "Y")
         )))
         assertEquals("abcd", document.value)
+    }
+
+    @Test fun applyEditsCommitsSuccessfulBatchesAndRollsBackRejectedBatches() {
+        val success = Buffer("abcdef")
+        assertTrue(success.applyEdits(listOf(TextDocumentEdit(1, 2, "X"), TextDocumentEdit(4, 5, "Y"))))
+        assertEquals(listOf(true, true), success.transactionEvents)
+
+        val rejected = object : Buffer("abcdef") {
+            override fun replace(start: Int, end: Int, replacement: String): Boolean {
+                if (start == 1) return false
+                return super.replace(start, end, replacement)
+            }
+        }
+        assertFalse(rejected.applyEdits(listOf(TextDocumentEdit(1, 2, "X"), TextDocumentEdit(4, 5, "Y"))))
+        assertEquals(listOf(true, false), rejected.transactionEvents)
+    }
+
+    @Test fun rollbackCallbackFailureIsNotInvokedTwice() {
+        val document = object : Buffer("abcdef") {
+            override fun replace(start: Int, end: Int, replacement: String): Boolean = false
+            override fun endEditTransaction(commit: Boolean) {
+                transactionEvents += commit
+                if (!commit) error("rollback callback failed")
+            }
+        }
+        val failure = runCatching {
+            document.applyEdits(listOf(TextDocumentEdit(1, 2, "X")))
+        }.exceptionOrNull()
+        assertEquals("rollback callback failed", failure?.message)
+        assertEquals(listOf(true, false), document.transactionEvents)
     }
 
     @Test fun rejectsOverlappingEditsBeforeMutatingDocument() {
