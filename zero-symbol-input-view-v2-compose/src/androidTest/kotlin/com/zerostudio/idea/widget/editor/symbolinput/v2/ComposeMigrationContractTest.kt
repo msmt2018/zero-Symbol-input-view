@@ -9,7 +9,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.test.assertExists
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -65,7 +64,7 @@ class ComposeMigrationContractTest {
                 )
             }
         }
-        compose.onNodeWithText("First").assertExists()
+        compose.onNodeWithText("First").assertIsDisplayed()
         compose.onNodeWithText("@").assertIsDisplayed().performClick()
         compose.runOnIdle { assertEquals(1, clicks) }
     }
@@ -105,7 +104,7 @@ class ComposeMigrationContractTest {
         }
         compose.onNodeWithText("Page one").assertIsDisplayed().performTouchInput { swipeLeft() }
         compose.waitForIdle()
-        compose.onNodeWithText("Page two").assertExists()
+        compose.onNodeWithText("Page two").assertIsDisplayed()
     }
 
     @Test fun adaptiveObserverReportsComposeLayoutBounds() {
@@ -116,7 +115,7 @@ class ComposeMigrationContractTest {
                 }
             }
         }
-        compose.onNodeWithText("window-width-500").assertExists()
+        compose.onNodeWithText("window-width-500").assertIsDisplayed()
     }
 
     @Test fun settingsScreenRendersMaterial3Sections() {
@@ -128,8 +127,8 @@ class ComposeMigrationContractTest {
                 )
             }
         }
-        compose.onNodeWithText("Symbol drawer settings").assertExists()
-        compose.onNodeWithText("Appearance").assertExists()
-        compose.onNodeWithText("Performance").assertExists()
+        compose.onNodeWithText("Symbol drawer settings").assertIsDisplayed()
+        compose.onNodeWithText("Appearance").assertIsDisplayed()
+        compose.onNodeWithText("Performance").assertIsDisplayed()
     }
 }
