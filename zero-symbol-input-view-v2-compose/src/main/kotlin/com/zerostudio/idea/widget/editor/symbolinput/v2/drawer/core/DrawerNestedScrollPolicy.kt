@@ -21,8 +21,9 @@ enum class DrawerNestedScrollPhase {
  * Immutable facts needed to decide whether the drawer or its child owns a
  * portion of a nested-scroll delta.
  *
- * [childCanScrollBackward] means the child can consume a positive/downward
- * gesture by scrolling toward its start (for example, a list is not at the top).
+ * [childCanScrollBackward] is retained as diagnostic input for hosts. Actual
+ * child consumption is represented by the delta passed to POST_SCROLL; the
+ * policy therefore does not infer consumption from a potentially stale flag.
  */
 data class DrawerNestedScrollInput(
     val availableDeltaY: Float,
@@ -57,9 +58,13 @@ data class DrawerNestedScrollResult(
  * - Upward motion expands the drawer before the child while the drawer is not
  *   fully expanded.
  * - Once fully expanded, upward motion belongs to the child.
- * - Downward motion belongs to a scrollable child first.
- * - At the child's start boundary, downward motion collapses the drawer.
- * - POST_SCROLL handles deltas left by the child using the same boundaries.
+ * - PRE_SCROLL: upward motion expands the drawer before the child; downward
+ *   motion is never consumed, so the child gets first refusal while collapsing.
+ * - POST_SCROLL: only downward remainder is offered to the drawer. Compose has
+ *   already let the child consume its share, so this remainder represents motion
+ *   the child could not use (normally because it reached its start boundary).
+ * - Upward remainder is not consumed in POST_SCROLL; expansion belongs to the
+ *   pre-scroll phase and must not be delayed until after child scrolling.
  */
 object DrawerNestedScrollPolicy {
     @JvmStatic
@@ -72,18 +77,12 @@ object DrawerNestedScrollPolicy {
         val canExpand = input.currentHeightPx < input.maximumHeightPx
         val canCollapse = input.currentHeightPx > input.minimumHeightPx
 
-        val drawerOwnsDelta = when {
-            delta < 0f -> canExpand
-            delta > 0f -> canCollapse && !input.childCanScrollBackward
-            else -> false
-        }
-
-        // PRE_SCROLL gives the drawer first refusal for expansion. For collapse,
-        // it only participates at the child's start boundary. POST_SCROLL is
-        // deliberately symmetric for any delta the child did not consume.
+        // Nested-scroll ordering is directional and phase-sensitive. The child
+        // must get the first opportunity to consume downward motion; the drawer
+        // only receives the unconsumed remainder in POST_SCROLL.
         val shouldConsume = when (input.phase) {
-            DrawerNestedScrollPhase.PRE_SCROLL -> drawerOwnsDelta
-            DrawerNestedScrollPhase.POST_SCROLL -> drawerOwnsDelta
+            DrawerNestedScrollPhase.PRE_SCROLL -> delta < 0f && canExpand
+            DrawerNestedScrollPhase.POST_SCROLL -> delta > 0f && canCollapse
         }
 
         if (!shouldConsume) return DrawerNestedScrollResult(0f, delta)
