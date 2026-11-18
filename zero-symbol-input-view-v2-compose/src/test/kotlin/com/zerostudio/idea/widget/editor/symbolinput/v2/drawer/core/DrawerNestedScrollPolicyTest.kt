@@ -61,6 +61,47 @@ class DrawerNestedScrollPolicyTest {
     }
 
     @Test
+    fun downwardMotionIsNotConsumedDuringPreScrollEvenAtChildStart() {
+        val result = DrawerNestedScrollPolicy.resolve(
+            input(
+                delta = 180f,
+                height = 700,
+                childCanScrollBackward = false,
+                phase = DrawerNestedScrollPhase.PRE_SCROLL
+            )
+        )
+        assertEquals(0f, result.consumedDeltaY, 0f)
+        assertEquals(180f, result.remainingDeltaY, 0f)
+    }
+
+    @Test
+    fun downwardRemainderCollapsesDrawerDuringPostScroll() {
+        val result = DrawerNestedScrollPolicy.resolve(
+            input(
+                delta = 180f,
+                height = 700,
+                childCanScrollBackward = false,
+                phase = DrawerNestedScrollPhase.POST_SCROLL
+            )
+        )
+        assertEquals(180f, result.consumedDeltaY, 0f)
+        assertEquals(0f, result.remainingDeltaY, 0f)
+    }
+
+    @Test
+    fun upwardRemainderIsNotConsumedDuringPostScroll() {
+        val result = DrawerNestedScrollPolicy.resolve(
+            input(
+                delta = -80f,
+                height = 400,
+                phase = DrawerNestedScrollPhase.POST_SCROLL
+            )
+        )
+        assertEquals(0f, result.consumedDeltaY, 0f)
+        assertEquals(-80f, result.remainingDeltaY, 0f)
+    }
+
+    @Test
     fun zeroRangeDoesNotConsume() {
         val result = DrawerNestedScrollPolicy.resolve(
             DrawerNestedScrollInput(
