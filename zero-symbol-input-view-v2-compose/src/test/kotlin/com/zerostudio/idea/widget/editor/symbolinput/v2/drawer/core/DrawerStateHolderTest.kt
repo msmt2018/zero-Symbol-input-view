@@ -86,7 +86,7 @@ class DrawerStateHolderTest {
         )
 
         holder.updateGeometry(
-            input().copy(minHeightPx = 100, maxHeightPx = 1000),
+            input().copy(minHeightPx = 100, maxHeightPx = 1000, existingExpandedHeightPx = 1000),
             preserveExpansionFraction = true
         )
 
@@ -98,7 +98,7 @@ class DrawerStateHolderTest {
     fun listenersReceiveInitialAndSubsequentSnapshots() {
         val holder = DrawerStateHolder(input())
         val observed = mutableListOf<DrawerState>()
-        val listener: (DrawerState) -> Unit = observed::add
+        val listener: (DrawerState) -> Unit = { observed += it }
 
         holder.addStateListener(listener)
         holder.beginDrag()
