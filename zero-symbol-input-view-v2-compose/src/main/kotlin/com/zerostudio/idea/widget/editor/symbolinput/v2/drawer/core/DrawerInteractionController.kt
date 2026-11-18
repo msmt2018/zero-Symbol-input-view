@@ -14,6 +14,10 @@ import kotlin.math.abs
  * Context, animator, attachment state or a UI lifecycle. Compose owns gesture
  * collection and animation; this type only resolves bounded height updates.
  */
+@Deprecated(
+    message = "Use DrawerStateHolder with DrawerAnchorStrategy; this legacy controller maintains a separate two-bound state.",
+    replaceWith = ReplaceWith("DrawerStateHolder")
+)
 class DrawerInteractionController(
     minimumHeightPx: Int,
     maximumHeightPx: Int,
