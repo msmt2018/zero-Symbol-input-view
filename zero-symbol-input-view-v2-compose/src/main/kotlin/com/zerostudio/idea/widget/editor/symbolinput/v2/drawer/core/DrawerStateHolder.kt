@@ -262,6 +262,20 @@ class DrawerStateHolder(
         return target
     }
 
+    /**
+     * Moves directly to a stable anchor without scheduling host animation.
+     * This is the synchronous counterpart to [moveToAnchor].
+     */
+    fun snapToAnchor(anchorId: String): DrawerAnchor? {
+        val target = resolvedAnchors.firstOrNull { it.id == anchorId } ?: return null
+        heightPx = target.heightPx
+        dragging = false
+        animating = false
+        targetAnchorId = null
+        publish()
+        return target
+    }
+
     fun addStateListener(listener: (DrawerState) -> Unit) {
         listeners = listeners + listener
         listener(snapshot)
