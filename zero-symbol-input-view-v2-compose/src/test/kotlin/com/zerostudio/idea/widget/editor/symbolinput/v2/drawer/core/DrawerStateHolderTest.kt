@@ -139,6 +139,25 @@ class DrawerStateHolderTest {
     }
 
     @Test
+    fun cancelDragRetainsContinuousHeightAndSynchronizeClearsTransitionState() {
+        val holder = DrawerStateHolder(
+            initialInput = input(),
+            initialStrategy = ThreeStageAnchorStrategy(useAutomaticPeekHeight = false),
+            initialAnchorId = "half"
+        )
+        holder.dragBy(-35f)
+        assertEquals(435, holder.currentHeightPx)
+        assertEquals(435, holder.cancelDrag())
+        assertFalse(holder.isDragging)
+        assertFalse(holder.isAnimating)
+        assertEquals(null, holder.snapshot.targetAnchorId)
+
+        assertEquals(800, holder.synchronizeHeight(900))
+        assertEquals(800, holder.currentHeightPx)
+        assertTrue(holder.snapshot.isAtStableAnchor)
+    }
+
+    @Test
     fun listenersReceiveInitialAndSubsequentSnapshots() {
         val holder = DrawerStateHolder(input())
         val observed = mutableListOf<DrawerState>()
