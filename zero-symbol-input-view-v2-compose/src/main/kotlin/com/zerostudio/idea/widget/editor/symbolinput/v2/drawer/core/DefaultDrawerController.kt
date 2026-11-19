@@ -48,15 +48,17 @@ class DefaultDrawerController(
     val navigationController = DrawerNavigationController()
 
     override fun expand(animated: Boolean) {
-        stateHolder.expandToMaxAnchor()
+        val target = stateHolder.anchors.maxByOrNull { it.heightPx } ?: return
+        if (animated) stateHolder.moveToAnchor(target.id) else stateHolder.snapToAnchor(target.id)
     }
 
     override fun collapse(animated: Boolean) {
-        stateHolder.collapseToMinAnchor()
+        val target = stateHolder.anchors.minByOrNull { it.heightPx } ?: return
+        if (animated) stateHolder.moveToAnchor(target.id) else stateHolder.snapToAnchor(target.id)
     }
 
     override fun moveToAnchor(anchorId: String, animated: Boolean) {
-        stateHolder.moveToAnchor(anchorId)
+        if (animated) stateHolder.moveToAnchor(anchorId) else stateHolder.snapToAnchor(anchorId)
     }
 
     override fun refreshAnchors() {
