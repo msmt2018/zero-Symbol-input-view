@@ -8,6 +8,7 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.unit.Velocity
 
 /**
  * Compose adapter for [DrawerStateHolder]'s platform-independent scroll policy.
@@ -17,13 +18,26 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
  * offered to the drawer only in post-scroll, after descendants have consumed
  * their available portion. The holder remains the sole mutable height owner.
  *
- * Fling is intentionally not intercepted here. Fling velocity is resolved by
- * the host's drag/settle pipeline so nested-scroll and direct-drag velocity do
- * not compete to settle the same anchor.
+ * Fling settlement happens in [onPostFling], after descendants have had the
+ * opportunity to consume their velocity. The resulting target is published by
+ * [DrawerStateHolder]; the Compose host observes targetAnchorId and performs
+ * the actual animation. This adapter never creates a coroutine scope or runs
+ * animations itself.
+ *
+ * A host that uses a separate direct-drag pointer-input pipeline must call
+ * DrawerStateHolder.endDrag itself when that gesture ends; nested-scroll fling
+ * callbacks only complete gestures dispatched through the nested-scroll chain.
  */
 class DrawerNestedScrollConnection(
-    private val stateHolder: DrawerStateHolder
+    private val stateHolder: DrawerStateHolder,
+    private val minimumFlingVelocityPxPerSecond: Float = 400f
 ) : NestedScrollConnection {
+
+    init {
+        require(minimumFlingVelocityPxPerSecond.isFinite() &&
+            minimumFlingVelocityPxPerSecond >= 0f
+        ) { "Minimum fling velocity must be finite and non-negative" }
+    }
 
     override fun onPreScroll(
         available: Offset,
@@ -48,5 +62,26 @@ class DrawerNestedScrollConnection(
             phase = DrawerNestedScrollPhase.POST_SCROLL
         )
         return Offset(x = 0f, y = result.consumedDeltaY)
+    }
+
+    override suspend fun onPostFling(
+        consumed: Velocity,
+        available: Velocity
+    ): Velocity {
+        if (!stateHolder.isDragging) return Velocity.Zero
+
+        val heightBeforeSettle = stateHolder.currentHeightPx
+        val target = stateHolder.endDrag(
+            fingerVelocityY = available.y,
+            minimumFlingVelocityPxPerSecond = minimumFlingVelocityPxPerSecond
+        )
+
+        // Consume only the vertical velocity that actually caused a drawer
+        // transition. Horizontal velocity always remains available to ancestors.
+        return if (target.heightPx != heightBeforeSettle) {
+            Velocity(x = 0f, y = available.y)
+        } else {
+            Velocity.Zero
+        }
     }
 }
