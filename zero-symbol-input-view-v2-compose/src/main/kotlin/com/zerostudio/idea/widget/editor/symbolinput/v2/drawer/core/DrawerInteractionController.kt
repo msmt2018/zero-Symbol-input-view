@@ -1,21 +1,22 @@
 /*
- * This file is part of zero-Symbol-input-view-V2.
+ * This file is part of zero-Symbol-input-view-V2 Compose.
  * Copyright (C) 2026 android_zero
  * SPDX-License-Identifier: AGPL-3.0-only AND GPL-3.0-only AND Apache-2.0
  */
 package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core
 
-import kotlin.math.abs
-
 /**
- * Platform-neutral drag geometry used by Compose gesture modifiers.
+ * Deprecated compatibility facade for the former two-bound interaction API.
  *
- * This class deliberately does not own MotionEvent, VelocityTracker, View,
- * Context, animator, attachment state or a UI lifecycle. Compose owns gesture
- * collection and animation; this type only resolves bounded height updates.
+ * All runtime state is delegated to [DrawerStateHolder]. This class intentionally
+ * contains no independent height, bounds, or dragging state, preventing legacy
+ * integrations from creating a second source of truth beside the anchor engine.
+ *
+ * New integrations should use DrawerStateHolder directly so intermediate anchors,
+ * target-anchor identity, nested scrolling and semantic navigation remain available.
  */
 @Deprecated(
-    message = "Use DrawerStateHolder with DrawerAnchorStrategy; this legacy controller maintains a separate two-bound state.",
+    message = "Use DrawerStateHolder with DrawerAnchorStrategy; this facade is retained for source compatibility.",
     replaceWith = ReplaceWith("DrawerStateHolder")
 )
 class DrawerInteractionController(
@@ -23,26 +24,40 @@ class DrawerInteractionController(
     maximumHeightPx: Int,
     initialHeightPx: Int = minimumHeightPx
 ) {
-    var minimumHeightPx: Int = minimumHeightPx
-        private set
-    var maximumHeightPx: Int = maximumHeightPx
-        private set
-    var currentHeightPx: Int = initialHeightPx.coerceIn(minimumHeightPx, maximumHeightPx)
-        private set
-    var isDragging: Boolean = false
-        private set
+    private val holder: DrawerStateHolder
 
     init {
         require(minimumHeightPx >= 0)
         require(maximumHeightPx >= minimumHeightPx)
+        val input = DrawerAnchorInput(
+            minHeightPx = minimumHeightPx,
+            maxHeightPx = maximumHeightPx,
+            viewportHeightPx = maximumHeightPx,
+            contentHeightPx = maximumHeightPx,
+            existingExpandedHeightPx = maximumHeightPx
+        )
+        holder = DrawerStateHolder(
+            initialInput = input,
+            initialStrategy = ExistingHeightAnchorStrategy(),
+            initialAnchorId = if (initialHeightPx == maximumHeightPx) "expanded" else "peek"
+        )
+        holder.synchronizeHeight(initialHeightPx)
     }
 
+    val minimumHeightPx: Int
+        get() = holder.anchors.minOf { it.heightPx }
+
+    val maximumHeightPx: Int
+        get() = holder.anchors.maxOf { it.heightPx }
+
+    val currentHeightPx: Int
+        get() = holder.currentHeightPx
+
+    val isDragging: Boolean
+        get() = holder.isDragging
+
     val expansionFraction: Float
-        get() {
-            val range = maximumHeightPx - minimumHeightPx
-            return if (range <= 0) 0f
-            else (currentHeightPx - minimumHeightPx).toFloat() / range
-        }
+        get() = holder.snapshot.expansionFraction
 
     fun updateBounds(
         minimumHeightPx: Int,
@@ -51,62 +66,37 @@ class DrawerInteractionController(
     ): Int {
         require(minimumHeightPx >= 0)
         require(maximumHeightPx >= minimumHeightPx)
-        val fraction = expansionFraction
-        this.minimumHeightPx = minimumHeightPx
-        this.maximumHeightPx = maximumHeightPx
-        currentHeightPx = if (preserveExpansionFraction) {
-            (minimumHeightPx + (maximumHeightPx - minimumHeightPx) * fraction).toInt()
-        } else {
-            currentHeightPx.coerceIn(minimumHeightPx, maximumHeightPx)
-        }
-        return currentHeightPx
+        val nextInput = DrawerAnchorInput(
+            minHeightPx = minimumHeightPx,
+            maxHeightPx = maximumHeightPx,
+            viewportHeightPx = maximumHeightPx,
+            contentHeightPx = maximumHeightPx,
+            existingExpandedHeightPx = maximumHeightPx
+        )
+        holder.updateGeometry(nextInput, preserveExpansionFraction)
+        return holder.currentHeightPx
     }
 
     fun beginDrag() {
-        isDragging = true
+        holder.beginDrag()
     }
 
     /** Applies a finger delta in pixels; negative deltas expand a bottom sheet. */
-    fun dragBy(deltaPx: Float): Int {
-        require(deltaPx.isFinite())
-        if (!isDragging) isDragging = true
-        currentHeightPx = (currentHeightPx - deltaPx).coerceIn(
-            minimumHeightPx.toFloat(),
-            maximumHeightPx.toFloat()
-        ).toInt()
-        return currentHeightPx
-    }
+    fun dragBy(deltaPx: Float): Int = holder.dragBy(deltaPx)
 
     /**
-     * Ends a drag and returns a stable target. Fling direction follows finger
-     * velocity: an upward (negative) finger velocity expands the sheet.
+     * Ends a drag and returns the selected stable height. With this legacy
+     * two-anchor facade, a qualifying fling resolves to the corresponding bound.
      */
     fun endDrag(
         fingerVelocityY: Float,
         minimumFlingVelocityPxPerSecond: Float
-    ): Int {
-        require(fingerVelocityY.isFinite())
-        require(minimumFlingVelocityPxPerSecond.isFinite() &&
-            minimumFlingVelocityPxPerSecond >= 0f)
-        isDragging = false
-        return when {
-            abs(fingerVelocityY) >= minimumFlingVelocityPxPerSecond ->
-                if (fingerVelocityY < 0f) maximumHeightPx else minimumHeightPx
-            currentHeightPx >= (minimumHeightPx + maximumHeightPx) / 2 ->
-                maximumHeightPx
-            else -> minimumHeightPx
-        }.also { currentHeightPx = it }
-    }
+    ): Int = holder.endDrag(
+        fingerVelocityY = fingerVelocityY,
+        minimumFlingVelocityPxPerSecond = minimumFlingVelocityPxPerSecond
+    ).heightPx
 
-    fun cancelDrag(): Int {
-        isDragging = false
-        currentHeightPx = currentHeightPx.coerceIn(minimumHeightPx, maximumHeightPx)
-        return currentHeightPx
-    }
+    fun cancelDrag(): Int = holder.cancelDrag()
 
-    fun synchronizeHeight(heightPx: Int): Int {
-        isDragging = false
-        currentHeightPx = heightPx.coerceIn(minimumHeightPx, maximumHeightPx)
-        return currentHeightPx
-    }
+    fun synchronizeHeight(heightPx: Int): Int = holder.synchronizeHeight(heightPx)
 }
