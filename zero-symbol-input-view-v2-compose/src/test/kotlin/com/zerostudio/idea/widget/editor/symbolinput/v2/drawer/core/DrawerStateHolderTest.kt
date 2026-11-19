@@ -81,9 +81,9 @@ class DrawerStateHolderTest {
         holder.finishAnimation("expanded")
 
         assertEquals(null, holder.moveToAdjacentAnchor(expand = true))
-        assertEquals("half", holder.collapseToMinAnchor()?.id)
-        holder.finishAnimation("half")
         assertEquals("peek", holder.collapseToMinAnchor()?.id)
+        holder.finishAnimation("peek")
+        assertEquals("half", holder.moveToAdjacentAnchor(expand = true)?.id)
     }
 
     @Test
