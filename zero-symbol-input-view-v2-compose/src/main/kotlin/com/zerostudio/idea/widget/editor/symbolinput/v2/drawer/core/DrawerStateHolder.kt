@@ -179,6 +179,35 @@ class DrawerStateHolder(
         return target
     }
 
+    /**
+     * Cancels an active drag without snapping to an anchor. The continuous
+     * height is retained; the host may subsequently request a semantic target.
+     */
+    fun cancelDrag(): Int {
+        dragging = false
+        animating = false
+        targetAnchorId = null
+        publish()
+        return heightPx
+    }
+
+    /**
+     * Synchronizes an externally-owned, already-resolved pixel position.
+     * Intended for compatibility adapters and geometry restoration, not for
+     * per-frame animation (use updateAnimatedHeight for that).
+     */
+    fun synchronizeHeight(height: Int): Int {
+        heightPx = height.coerceIn(
+            resolvedAnchors.minOf { it.heightPx },
+            resolvedAnchors.maxOf { it.heightPx }
+        )
+        dragging = false
+        animating = false
+        targetAnchorId = null
+        publish()
+        return heightPx
+    }
+
     /** Called by the Compose animation host for each animated pixel position. */
     fun updateAnimatedHeight(height: Int) {
         heightPx = height.coerceIn(
