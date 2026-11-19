@@ -199,6 +199,31 @@ class DrawerStateHolder(
         publish()
     }
 
+    /** Selects the most expanded resolved anchor without owning animation execution. */
+    fun expandToMaxAnchor(): DrawerAnchor? =
+        resolvedAnchors.maxByOrNull { it.heightPx }?.let { moveToAnchor(it.id) }
+
+    /** Selects the most collapsed resolved anchor without owning animation execution. */
+    fun collapseToMinAnchor(): DrawerAnchor? =
+        resolvedAnchors.minByOrNull { it.heightPx }?.let { moveToAnchor(it.id) }
+
+    /**
+     * Selects the adjacent stable anchor in visible-height direction.
+     *
+     * [expand] advances toward greater visible height; false advances toward
+     * lower visible height. The current continuous height is used, so a drag
+     * released between anchors does not accidentally skip the nearest stage.
+     */
+    fun moveToAdjacentAnchor(expand: Boolean): DrawerAnchor? {
+        val ordered = resolvedAnchors.sortedBy { it.heightPx }
+        val target = if (expand) {
+            ordered.firstOrNull { it.heightPx > heightPx }
+        } else {
+            ordered.lastOrNull { it.heightPx < heightPx }
+        } ?: return null
+        return moveToAnchor(target.id)
+    }
+
     fun moveToAnchor(anchorId: String): DrawerAnchor? {
         val target = resolvedAnchors.firstOrNull { it.id == anchorId } ?: return null
         animating = target.heightPx != heightPx
