@@ -67,6 +67,38 @@ class DrawerStateHolderTest {
     }
 
 
+
+    @Test
+    fun semanticNavigationUsesResolvedAnchorSet() {
+        val holder = DrawerStateHolder(
+            initialInput = input(),
+            initialStrategy = ThreeStageAnchorStrategy(useAutomaticPeekHeight = false),
+            initialAnchorId = "half"
+        )
+
+        assertEquals("expanded", holder.expandToMaxAnchor()?.id)
+        assertEquals("expanded", holder.snapshot.targetAnchorId)
+        holder.finishAnimation("expanded")
+
+        assertEquals(null, holder.moveToAdjacentAnchor(expand = true))
+        assertEquals("half", holder.collapseToMinAnchor()?.id)
+        holder.finishAnimation("half")
+        assertEquals("peek", holder.collapseToMinAnchor()?.id)
+    }
+
+    @Test
+    fun adjacentNavigationDoesNotSkipAnchorFromIntermediateHeight() {
+        val holder = DrawerStateHolder(
+            initialInput = input(),
+            initialStrategy = ThreeStageAnchorStrategy(useAutomaticPeekHeight = false),
+            initialAnchorId = "half"
+        )
+        holder.beginDrag()
+        holder.dragBy(-20f)
+        val target = holder.moveToAdjacentAnchor(expand = true)
+        assertEquals("expanded", target?.id)
+    }
+
     @Test
     fun animationTargetIsDistinctFromNearestCurrentAnchorAndClearedOnFinish() {
         val holder = DrawerStateHolder(
