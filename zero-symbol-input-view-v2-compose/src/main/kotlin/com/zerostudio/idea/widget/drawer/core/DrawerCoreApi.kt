@@ -59,3 +59,9 @@ typealias DrawerInteractionController = com.zerostudio.idea.widget.editor.symbol
 typealias DrawerState = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerState
 
 typealias DrawerStateHolder = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerStateHolder
+
+typealias DrawerNestedScrollPhase = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerNestedScrollPhase
+typealias DrawerNestedScrollInput = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerNestedScrollInput
+typealias DrawerNestedScrollResult = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerNestedScrollResult
+typealias DrawerNestedScrollPolicy = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerNestedScrollPolicy
+typealias DrawerNestedScrollConnection = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerNestedScrollConnection
