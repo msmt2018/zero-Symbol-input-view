@@ -58,6 +58,12 @@ typealias DrawerMotion = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer
 typealias DrawerShape = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerShape
 typealias DrawerThemeResolver = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerThemeResolver
 
+typealias DrawerController = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerController
+typealias DefaultDrawerController = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DefaultDrawerController
+typealias DrawerStateHolder = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerStateHolder
+typealias DrawerState = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerState
+
+
 
 /** Compose-native drawer entry point. */
 typealias SymbolDrawerState = com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawerState
