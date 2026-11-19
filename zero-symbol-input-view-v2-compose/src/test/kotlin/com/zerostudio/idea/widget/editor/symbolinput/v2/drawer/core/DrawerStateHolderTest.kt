@@ -164,13 +164,13 @@ class DrawerStateHolderTest {
             phase = DrawerNestedScrollPhase.PRE_SCROLL
         )
         assertEquals(1000, holder.currentHeightPx)
-        assertEquals(-600f, result.consumedDeltaY, 0f)
-        assertEquals(-9_400f, result.remainingDeltaY, 0f)
+        assertEquals(-500f, result.consumedDeltaY, 0f)
+        assertEquals(-9_500f, result.remainingDeltaY, 0f)
         assertTrue(holder.isDragging)
     }
 
     @Test
-    fun nestedScrollLeavesDownwardMotionToChildWhenChildCanScrollBackward() {
+    fun nestedScrollPreScrollNeverConsumesDownwardMotionRegardlessOfChildFlag() {
         val holder = DrawerStateHolder(
             input().copy(minHeightPx = 100, maxHeightPx = 1000, existingExpandedHeightPx = 1000),
             ThreeStageAnchorStrategy(useAutomaticPeekHeight = false),
