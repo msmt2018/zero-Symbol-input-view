@@ -66,6 +66,31 @@ class DrawerStateHolderTest {
         assertTrue(holder.snapshot.isAtStableAnchor)
     }
 
+
+    @Test
+    fun animationTargetIsDistinctFromNearestCurrentAnchorAndClearedOnFinish() {
+        val holder = DrawerStateHolder(
+            initialInput = input(),
+            initialStrategy = ThreeStageAnchorStrategy(useAutomaticPeekHeight = false),
+            initialAnchorId = "half"
+        )
+
+        val target = holder.moveToAnchor("expanded")
+        assertEquals("expanded", target?.id)
+        assertEquals("expanded", holder.snapshot.targetAnchorId)
+        assertEquals("half", holder.snapshot.currentAnchorId)
+        assertTrue(holder.snapshot.isAnimating)
+
+        holder.updateAnimatedHeight(650)
+        assertEquals("expanded", holder.snapshot.targetAnchorId)
+        assertEquals("half", holder.snapshot.currentAnchorId)
+
+        holder.finishAnimation("expanded")
+        assertEquals(null, holder.snapshot.targetAnchorId)
+        assertEquals("expanded", holder.snapshot.currentAnchorId)
+        assertTrue(holder.snapshot.isAtStableAnchor)
+    }
+
     @Test
     fun geometryChangePreservesExpansionFraction() {
         val holder = DrawerStateHolder(
