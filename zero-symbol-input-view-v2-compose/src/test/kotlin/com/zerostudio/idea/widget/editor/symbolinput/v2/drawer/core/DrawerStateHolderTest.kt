@@ -81,7 +81,7 @@ class DrawerStateHolderTest {
         assertEquals("half", holder.snapshot.currentAnchorId)
         assertTrue(holder.snapshot.isAnimating)
 
-        holder.updateAnimatedHeight(650)
+        holder.updateAnimatedHeight(550)
         assertEquals("expanded", holder.snapshot.targetAnchorId)
         assertEquals("half", holder.snapshot.currentAnchorId)
 
