@@ -37,10 +37,11 @@ class DefaultDrawerControllerTest {
     fun semanticCommandsDelegateToTheSingleStateHolder() {
         val controller = controller()
         controller.expand(animated = false)
-        assertEquals("expanded", controller.currentState()?.targetAnchorId)
+        assertEquals("expanded", controller.currentState()?.currentAnchorId)
+        assertEquals(null, controller.currentState()?.targetAnchorId)
+        assertTrue(controller.currentState()?.isAtStableAnchor == true)
         assertEquals(controller.stateHolder.snapshot, controller.currentState())
 
-        controller.stateHolder.finishAnimation("expanded")
         controller.collapse()
         assertEquals("peek", controller.currentState()?.targetAnchorId)
     }
