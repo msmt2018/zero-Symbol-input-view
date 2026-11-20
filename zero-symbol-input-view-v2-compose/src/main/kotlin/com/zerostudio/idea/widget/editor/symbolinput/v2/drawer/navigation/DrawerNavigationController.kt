@@ -91,8 +91,14 @@ class DrawerNavigationController {
     fun snapshot() = DrawerNavigationSnapshot(selectedId, pages.map { it.id })
 
     fun addListener(listener: Listener) {
-        listeners += listener
-        listener.onNavigationChanged(snapshot(), selectedIndex())
+        if (!listeners.add(listener)) return
+        try {
+            listener.onNavigationChanged(snapshot(), selectedIndex())
+        } catch (failure: RuntimeException) {
+            // Roll back a subscription that cannot accept its initial state.
+            listeners.remove(listener)
+            throw failure
+        }
     }
 
     fun removeListener(listener: Listener) {
