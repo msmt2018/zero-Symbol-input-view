@@ -54,11 +54,11 @@ class SymbolTextDocumentActionHostTest {
         override var isEditable: Boolean = true
         override val textLength get() = value.length
         override open val lineCount get() = value.split("\n").size
-        override var cursorOffset: Int = 0
+        final override var cursorOffset: Int = 0
             private set
-        override var selectionStart: Int = 0
+        final override var selectionStart: Int = 0
             private set
-        override var selectionEnd: Int = 0
+        final override var selectionEnd: Int = 0
             private set
 
         override fun lineForOffset(offset: Int): Int =
