@@ -246,13 +246,17 @@ class DrawerStateHolder(
      * Animation state is derived from the presence of an active semantic target;
      * unsolicited frame updates must not create a phantom transition.
      */
-    fun updateAnimatedHeight(height: Int) {
+    fun updateAnimatedHeight(height: Int, generation: Long): Boolean {
+        // Every animation frame must prove ownership, not only its completion
+        // callback. A cancelled animation can still dispatch a queued frame.
+        if (targetAnchorId == null || animationGeneration != generation) return false
         heightPx = height.coerceIn(
             resolvedAnchors.minOf { it.heightPx },
             resolvedAnchors.maxOf { it.heightPx }
         )
-        animating = targetAnchorId != null
+        animating = true
         publish()
+        return true
     }
 
     fun finishAnimation(anchorId: String, generation: Long): Boolean {
