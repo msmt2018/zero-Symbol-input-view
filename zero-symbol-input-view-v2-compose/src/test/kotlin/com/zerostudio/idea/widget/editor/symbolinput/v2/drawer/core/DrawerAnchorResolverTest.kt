@@ -89,6 +89,18 @@ class DrawerAnchorResolverTest {
         assertEquals(listOf(120, 400, 900), anchors.map { it.heightPx })
     }
 
+    @Test fun resolvedAnchorSnapshotCannotBeMutatedByConsumers() {
+        val anchors = DrawerAnchorResolver.resolve(ThreeStageAnchorStrategy(), input)
+        try {
+            (anchors as MutableList<DrawerAnchor>).add(
+                DrawerAnchor("injected", 300, DrawerAnchorState.CUSTOM)
+            )
+            throw AssertionError("Resolved anchor snapshots must be immutable")
+        } catch (expected: UnsupportedOperationException) {
+            assertEquals(3, anchors.size)
+        }
+    }
+
     @Test fun duplicateHeightsAreCollapsed() {
         val anchors = DrawerAnchorResolver.resolve(
             ThreeStageAnchorStrategy(halfExpandedFraction = 0.1f, useAutomaticPeekHeight = false),
