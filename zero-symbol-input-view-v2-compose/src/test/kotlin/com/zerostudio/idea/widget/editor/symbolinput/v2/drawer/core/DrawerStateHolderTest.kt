@@ -171,6 +171,21 @@ class DrawerStateHolderTest {
     }
 
     @Test
+    fun fractionalDragDeltasAccumulateInsteadOfBeingDiscarded() {
+        val holder = DrawerStateHolder(
+            initialInput = input(),
+            initialStrategy = ExistingHeightAnchorStrategy(),
+            initialAnchorId = "expanded"
+        )
+        holder.beginDrag()
+        repeat(4) { holder.dragBy(-0.25f) }
+        assertEquals(1, holder.currentHeightPx - 800)
+        repeat(4) { holder.dragBy(0.25f) }
+        assertEquals(0, holder.currentHeightPx - 800)
+    }
+
+
+    @Test
     fun nestedScrollMutatesTheSingleHolderStateAndReturnsRemainder() {
         val holder = DrawerStateHolder(
             input().copy(minHeightPx = 100, maxHeightPx = 1000, existingExpandedHeightPx = 1000),
