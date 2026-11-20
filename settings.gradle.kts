@@ -5,9 +5,12 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 pluginManagement {
     includeBuild("build-logic")
     repositories {
-        gradlePluginPortal()
+        // Resolve Kotlin Gradle plugin transitive BOMs from canonical Maven
+        // repositories first. Plugin Portal can serve the plugin POM while a
+        // transitive Kotlin BOM is temporarily absent from its mirror.
         google()
         mavenCentral()
+        gradlePluginPortal()
     }
 }
 
