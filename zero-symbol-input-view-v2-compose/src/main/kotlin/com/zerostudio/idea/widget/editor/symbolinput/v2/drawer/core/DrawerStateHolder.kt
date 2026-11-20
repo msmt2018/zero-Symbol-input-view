@@ -347,7 +347,19 @@ class DrawerStateHolder(
         )
         // A callback may add or remove listeners. Iterate over a stable snapshot
         // so listener mutations cannot invalidate the active dispatch iterator.
-        listeners.toList().forEach { it(snapshot) }
+        var dispatchFailure: RuntimeException? = null
+        listeners.toList().forEach { listener ->
+            try {
+                listener(snapshot)
+            } catch (failure: RuntimeException) {
+                val firstFailure = dispatchFailure
+                if (firstFailure == null) dispatchFailure = failure
+                else firstFailure.addSuppressed(failure)
+            }
+        }
+        // State publication is complete for every observer before surfacing
+        // callback failures to the caller.
+        dispatchFailure?.let { throw it }
     }
 
     private fun createSnapshot(
