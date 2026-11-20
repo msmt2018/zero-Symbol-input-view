@@ -268,10 +268,6 @@ class DrawerStateHolder(
         return true
     }
 
-    @Deprecated("Capture activeAnimationGeneration and pass it to finishAnimation")
-    fun finishAnimation(anchorId: String) {
-        activeAnimationGeneration?.let { finishAnimation(anchorId, it) }
-    }
 
     /** Selects the most expanded resolved anchor without owning animation execution. */
     fun expandToMaxAnchor(): DrawerAnchor? =
