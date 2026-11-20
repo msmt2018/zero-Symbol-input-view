@@ -66,8 +66,13 @@ class DefaultDrawerController(
     }
 
     override fun setAnchorStrategy(strategy: DrawerAnchorStrategy) {
-        stateHolder.setAnchorStrategy(strategy)
-        config = config.copy(anchorStrategy = strategy)
+        // Re-applying an equivalent strategy must not interrupt active motion.
+        if (strategy != stateHolder.anchorStrategy) {
+            stateHolder.setAnchorStrategy(strategy)
+        }
+        if (strategy != config.anchorStrategy) {
+            config = config.copy(anchorStrategy = strategy)
+        }
     }
 
     override fun setPresentationMode(mode: DrawerPresentationMode) {
@@ -75,7 +80,10 @@ class DefaultDrawerController(
     }
 
     override fun applyConfig(config: DrawerConfig) {
-        stateHolder.setAnchorStrategy(config.anchorStrategy)
+        // Style/presentation-only updates must preserve an active drag/animation.
+        if (config.anchorStrategy != stateHolder.anchorStrategy) {
+            stateHolder.setAnchorStrategy(config.anchorStrategy)
+        }
         this.config = config
     }
 
