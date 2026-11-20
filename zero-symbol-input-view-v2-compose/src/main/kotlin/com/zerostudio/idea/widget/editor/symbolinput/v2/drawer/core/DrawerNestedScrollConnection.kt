@@ -74,6 +74,19 @@ class DrawerNestedScrollConnection(
         return Offset(x = 0f, y = result.consumedDeltaY)
     }
 
+    /**
+     * Clears gesture ownership when the host's pointer/nested-scroll gesture
+     * is cancelled before a fling callback is dispatched.
+     *
+     * This method deliberately does not cancel the shared holder's drag:
+     * another input pipeline may currently own that holder. The host that
+     * owns the cancelled gesture must coordinate [DrawerStateHolder.cancelDrag]
+     * when appropriate.
+     */
+    fun cancelGesture() {
+        ownsNestedScrollGesture = false
+    }
+
     override suspend fun onPostFling(
         consumed: Velocity,
         available: Velocity
