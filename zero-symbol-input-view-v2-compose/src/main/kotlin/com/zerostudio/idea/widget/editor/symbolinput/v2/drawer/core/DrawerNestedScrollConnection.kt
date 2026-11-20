@@ -33,6 +33,14 @@ class DrawerNestedScrollConnection(
     private val minimumFlingVelocityPxPerSecond: Float = 400f
 ) : NestedScrollConnection {
 
+    /**
+     * Tracks whether this connection actually consumed scroll in the current
+     * nested-scroll gesture. The holder may also be driven by a direct pointer
+     * gesture, so its global dragging flag alone is not proof that this
+     * connection owns the fling callback.
+     */
+    private var ownsNestedScrollGesture = false
+
     init {
         require(minimumFlingVelocityPxPerSecond.isFinite() &&
             minimumFlingVelocityPxPerSecond >= 0f
@@ -48,6 +56,7 @@ class DrawerNestedScrollConnection(
             childCanScrollBackward = false,
             phase = DrawerNestedScrollPhase.PRE_SCROLL
         )
+        if (result.consumedDeltaY != 0f) ownsNestedScrollGesture = true
         return Offset(x = 0f, y = result.consumedDeltaY)
     }
 
@@ -61,6 +70,7 @@ class DrawerNestedScrollConnection(
             childCanScrollBackward = false,
             phase = DrawerNestedScrollPhase.POST_SCROLL
         )
+        if (result.consumedDeltaY != 0f) ownsNestedScrollGesture = true
         return Offset(x = 0f, y = result.consumedDeltaY)
     }
 
@@ -68,7 +78,9 @@ class DrawerNestedScrollConnection(
         consumed: Velocity,
         available: Velocity
     ): Velocity {
-        if (!stateHolder.isDragging) return Velocity.Zero
+        val ownsGesture = ownsNestedScrollGesture
+        ownsNestedScrollGesture = false
+        if (!ownsGesture || !stateHolder.isDragging) return Velocity.Zero
 
         val heightBeforeSettle = stateHolder.currentHeightPx
         val target = stateHolder.endDrag(
