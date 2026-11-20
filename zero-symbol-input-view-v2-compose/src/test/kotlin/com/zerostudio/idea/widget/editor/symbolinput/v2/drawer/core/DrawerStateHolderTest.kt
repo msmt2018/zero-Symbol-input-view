@@ -103,7 +103,9 @@ class DrawerStateHolderTest {
     fun animationFrameWithoutTargetDoesNotCreatePhantomAnimatingState() {
         val holder = DrawerStateHolder(input(), ThreeStageAnchorStrategy(useAutomaticPeekHeight = false), "half")
         assertFalse(holder.updateAnimatedHeight(450, 0L))
-        assertEquals(80, holder.currentHeightPx)
+        // The requested initial anchor is "half" (400px); a rejected frame
+        // must leave that exact initial height unchanged.
+        assertEquals(400, holder.currentHeightPx)
         assertFalse(holder.isAnimating)
         assertEquals(null, holder.snapshot.targetAnchorId)
     }
