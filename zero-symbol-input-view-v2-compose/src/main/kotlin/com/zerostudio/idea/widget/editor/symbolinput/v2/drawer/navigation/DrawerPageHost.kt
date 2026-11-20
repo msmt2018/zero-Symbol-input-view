@@ -53,7 +53,11 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 /**
  * Composition-native page host. Page content is composed by HorizontalPager;
@@ -67,22 +71,47 @@ fun DrawerPageHost(
     onPageSelected: (DrawerPage) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val selectedIndex = pages.indexOfFirst { it.id == selectedPageId }
-        .coerceAtLeast(0)
+    // Keep page identity separate from list position. Reordering the same
+    // pages must synchronize the pager to the selected ID without treating
+    // the old numeric index as a user selection.
+    val pageIds = remember(pages) { pages.map { it.id } }
+    val pagesById = remember(pages) { pages.associateBy { it.id } }
+    val latestPagesById = rememberUpdatedState(pagesById)
+    val latestOnPageSelected = rememberUpdatedState(onPageSelected)
+
+    val selectedIndex = pageIds.indexOf(selectedPageId).coerceAtLeast(0)
     val pagerState = rememberPagerState(
         initialPage = selectedIndex.coerceAtMost((pages.size - 1).coerceAtLeast(0)),
-        pageCount = { pages.size }
+        pageCount = { pageIds.size }
     )
 
-    LaunchedEffect(selectedPageId, pages.size) {
-        if (pages.isNotEmpty()) {
-            val target = pages.indexOfFirst { it.id == selectedPageId }
-                .takeIf { it >= 0 } ?: 0
-            if (pagerState.currentPage != target) pagerState.animateScrollToPage(target)
+    LaunchedEffect(selectedPageId, pageIds) {
+        if (pageIds.isNotEmpty()) {
+            val target = pageIds.indexOf(selectedPageId).takeIf { it >= 0 } ?: 0
+            if (pagerState.settledPage != target) {
+                pagerState.animateScrollToPage(target)
+            }
         }
     }
-    LaunchedEffect(pagerState.currentPage, pages) {
-        pages.getOrNull(pagerState.currentPage)?.let(onPageSelected)
+
+    // Observe settled user navigation only. Drop the initial emission whenever
+    // page identity changes; that emission describes the previous pager
+    // position, not a new user choice in the reordered data set.
+    LaunchedEffect(pagerState, pageIds) {
+        var skipInitialPosition = true
+        snapshotFlow { pagerState.settledPage }
+            .distinctUntilChanged()
+            .collect { page ->
+                if (skipInitialPosition) {
+                    skipInitialPosition = false
+                } else {
+                    val pageId = pageIds.getOrNull(page)
+                    val selectedPage = pageId?.let { latestPagesById.value[it] }
+                    if (selectedPage != null) {
+                        latestOnPageSelected.value(selectedPage)
+                    }
+                }
+            }
     }
 
     if (pages.isEmpty()) {
@@ -91,7 +120,7 @@ fun DrawerPageHost(
         HorizontalPager(
             state = pagerState,
             modifier = modifier.fillMaxSize(),
-            key = { index -> pages[index].id }
+            key = { index -> pageIds[index] }
         ) { index ->
             Column(Modifier.fillMaxSize()) {
                 pages[index].content.content.invoke(this)
