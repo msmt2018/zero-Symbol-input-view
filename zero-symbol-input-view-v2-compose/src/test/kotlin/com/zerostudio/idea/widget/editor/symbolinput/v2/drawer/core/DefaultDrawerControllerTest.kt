@@ -27,6 +27,13 @@ class DefaultDrawerControllerTest {
     }
 
     @Test
+    fun controllerConfigurationStartsWithTheHoldersActiveAnchorStrategy() {
+        val controller = controller()
+        assertEquals(controller.stateHolder.anchorStrategy, controller.config.anchorStrategy)
+        assertEquals(ThreeStageAnchorStrategy(useAutomaticPeekHeight = false), controller.config.anchorStrategy)
+    }
+
+    @Test
     fun semanticCommandsDelegateToTheSingleStateHolder() {
         val controller = controller()
         controller.expand(animated = false)
