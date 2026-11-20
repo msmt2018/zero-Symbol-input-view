@@ -93,6 +93,9 @@ class DrawerStateHolder(
 
     fun setAnchorStrategy(newStrategy: DrawerAnchorStrategy) {
         require(newStrategy.id.isNotBlank()) { "Anchor strategy ID must not be blank" }
+        // Equal immutable policies do not change anchor resolution. Avoid
+        // resetting an in-flight gesture/animation for redundant host updates.
+        if (newStrategy === strategy || newStrategy == strategy) return
         val oldMin = resolvedAnchors.minOf { it.heightPx }
         val oldMax = resolvedAnchors.maxOf { it.heightPx }
         val oldFraction = if (oldMax > oldMin) {
