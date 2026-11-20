@@ -18,7 +18,7 @@ class DrawerNestedScrollConnectionTest {
             maxHeightPx = 800,
             viewportHeightPx = 800,
             contentHeightPx = 600,
-            viewportWidth = 400
+            viewportWidthPx = 400
         )
         return DrawerStateHolder(
             initialInput = input,
