@@ -74,7 +74,7 @@ class DrawerStateHolder(
         val oldMin = resolvedAnchors.minOf { it.heightPx }
         val oldMax = resolvedAnchors.maxOf { it.heightPx }
         val oldFraction = if (oldMax > oldMin) {
-            (heightPx - oldMin).toFloat() / (oldMax - oldMin)
+            ((heightPx - oldMin).toFloat() / (oldMax - oldMin)).coerceIn(0f, 1f)
         } else 0f
 
         input = newInput
@@ -103,7 +103,7 @@ class DrawerStateHolder(
         val oldMin = resolvedAnchors.minOf { it.heightPx }
         val oldMax = resolvedAnchors.maxOf { it.heightPx }
         val oldFraction = if (oldMax > oldMin) {
-            (heightPx - oldMin).toFloat() / (oldMax - oldMin)
+            ((heightPx - oldMin).toFloat() / (oldMax - oldMin)).coerceIn(0f, 1f)
         } else {
             0f
         }
