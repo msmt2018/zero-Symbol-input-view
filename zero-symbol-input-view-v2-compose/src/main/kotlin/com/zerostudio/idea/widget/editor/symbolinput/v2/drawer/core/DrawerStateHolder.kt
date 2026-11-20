@@ -86,10 +86,9 @@ class DrawerStateHolder(
                 resolvedAnchors.maxOf { it.heightPx }
             )
         }
+        invalidateAnimation()
         dragging = false
-        animating = false
         dragRemainderPx = 0f
-        targetAnchorId = null
         publish()
     }
 
@@ -113,18 +112,16 @@ class DrawerStateHolder(
         heightPx = (newMin + (newMax - newMin) * oldFraction)
             .toInt()
             .coerceIn(newMin, newMax)
+        invalidateAnimation()
         dragging = false
-        animating = false
         dragRemainderPx = 0f
-        targetAnchorId = null
         publish()
     }
 
     fun beginDrag() {
+        invalidateAnimation()
         dragging = true
-        animating = false
         dragRemainderPx = 0f
-        targetAnchorId = null
         publish()
     }
 
@@ -162,10 +159,9 @@ class DrawerStateHolder(
     fun dragBy(fingerDeltaY: Float): Int {
         require(fingerDeltaY.isFinite()) { "Drag delta must be finite" }
         if (!dragging) {
+            invalidateAnimation()
             dragging = true
-            animating = false
             dragRemainderPx = 0f
-            targetAnchorId = null
         }
         val minimum = resolvedAnchors.minOf { it.heightPx }
         val maximum = resolvedAnchors.maxOf { it.heightPx }
@@ -215,10 +211,9 @@ class DrawerStateHolder(
      * height is retained; the host may subsequently request a semantic target.
      */
     fun cancelDrag(): Int {
+        invalidateAnimation()
         dragging = false
-        animating = false
         dragRemainderPx = 0f
-        targetAnchorId = null
         publish()
         return heightPx
     }
@@ -234,9 +229,8 @@ class DrawerStateHolder(
             resolvedAnchors.maxOf { it.heightPx }
         )
         dragRemainderPx = 0f
+        invalidateAnimation()
         dragging = false
-        animating = false
-        targetAnchorId = null
         publish()
         return heightPx
     }
@@ -317,9 +311,8 @@ class DrawerStateHolder(
         val target = resolvedAnchors.firstOrNull { it.id == anchorId } ?: return null
         heightPx = target.heightPx
         dragRemainderPx = 0f
+        invalidateAnimation()
         dragging = false
-        animating = false
-        targetAnchorId = null
         publish()
         return target
     }
@@ -331,6 +324,13 @@ class DrawerStateHolder(
 
     fun removeStateListener(listener: (DrawerState) -> Unit) {
         listeners = listeners - listener
+    }
+
+    /** Invalidates every callback captured by the previous animation. */
+    private fun invalidateAnimation() {
+        animationGeneration += 1L
+        animating = false
+        targetAnchorId = null
     }
 
     private fun publish() {
