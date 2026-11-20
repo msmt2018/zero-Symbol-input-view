@@ -93,12 +93,21 @@ class DrawerStateHolder(
 
     fun setAnchorStrategy(newStrategy: DrawerAnchorStrategy) {
         require(newStrategy.id.isNotBlank()) { "Anchor strategy ID must not be blank" }
+        val oldMin = resolvedAnchors.minOf { it.heightPx }
+        val oldMax = resolvedAnchors.maxOf { it.heightPx }
+        val oldFraction = if (oldMax > oldMin) {
+            (heightPx - oldMin).toFloat() / (oldMax - oldMin)
+        } else {
+            0f
+        }
+
         strategy = newStrategy
         resolvedAnchors = DrawerAnchorResolver.resolve(newStrategy, input)
-        heightPx = heightPx.coerceIn(
-            resolvedAnchors.minOf { it.heightPx },
-            resolvedAnchors.maxOf { it.heightPx }
-        )
+        val newMin = resolvedAnchors.minOf { it.heightPx }
+        val newMax = resolvedAnchors.maxOf { it.heightPx }
+        heightPx = (newMin + (newMax - newMin) * oldFraction)
+            .toInt()
+            .coerceIn(newMin, newMax)
         dragging = false
         animating = false
         dragRemainderPx = 0f
