@@ -84,6 +84,30 @@ class DrawerNavigationControllerTest {
         assertEquals(listOf(null, "a", "b"), selected)
     }
 
+    @Test
+    fun failingObserverDoesNotBlockOtherNavigationObservers() {
+        val controller = DrawerNavigationController()
+        val observed = mutableListOf<String?>()
+        controller.addListener { snapshot, _ ->
+            if (snapshot.selectedPageId == "a") {
+                throw IllegalStateException("observer failure")
+            }
+        }
+        controller.addListener { snapshot, _ ->
+            if (snapshot.selectedPageId != null) observed += snapshot.selectedPageId
+        }
+
+        try {
+            controller.submitPages(listOf(page("a"), page("b")))
+            throw AssertionError("Expected observer failure to be reported")
+        } catch (expected: IllegalStateException) {
+            assertEquals("observer failure", expected.message)
+        }
+
+        assertEquals(listOf("a"), observed)
+        assertEquals("a", controller.selectedPage()?.id)
+    }
+
     @Test(expected = IllegalArgumentException::class)
     fun rejectsDuplicatePageIds() {
         DrawerNavigationController().submitPages(listOf(page("same"), page("same")))
