@@ -303,6 +303,7 @@ class DrawerStateHolder(
         animating = target.heightPx != heightPx
         dragging = false
         dragRemainderPx = 0f
+        animationGeneration += 1L
         targetAnchorId = target.id.takeIf { animating }
         publish()
         return target
