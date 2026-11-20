@@ -102,6 +102,18 @@ class DrawerNavigationController {
     private fun dispatch() {
         val state = snapshot()
         val index = selectedIndex()
-        listeners.toList().forEach { it.onNavigationChanged(state, index) }
+        var dispatchFailure: RuntimeException? = null
+        listeners.toList().forEach { listener ->
+            try {
+                listener.onNavigationChanged(state, index)
+            } catch (failure: RuntimeException) {
+                val firstFailure = dispatchFailure
+                if (firstFailure == null) dispatchFailure = failure
+                else firstFailure.addSuppressed(failure)
+            }
+        }
+        // Do not let one observer prevent the remaining observers from seeing
+        // the already-committed navigation snapshot.
+        dispatchFailure?.let { throw it }
     }
 }
