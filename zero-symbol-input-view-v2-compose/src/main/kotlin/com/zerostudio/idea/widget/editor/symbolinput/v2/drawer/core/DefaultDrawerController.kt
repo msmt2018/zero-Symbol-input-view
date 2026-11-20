@@ -168,6 +168,8 @@ class DefaultDrawerController(
 
     override fun currentState(): DrawerState = stateHolder.snapshot
 
+    override fun activeAnimationGeneration(): Long? = stateHolder.activeAnimationGeneration
+
     override fun addStateListener(listener: (DrawerState) -> Unit) {
         stateHolder.addStateListener(listener)
     }
