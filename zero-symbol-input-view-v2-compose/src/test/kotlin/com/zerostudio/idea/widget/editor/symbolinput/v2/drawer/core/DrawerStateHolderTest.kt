@@ -100,6 +100,15 @@ class DrawerStateHolderTest {
     }
 
     @Test
+    fun animationFrameWithoutTargetDoesNotCreatePhantomAnimatingState() {
+        val holder = DrawerStateHolder(input(), ThreeStageAnchorStrategy(useAutomaticPeekHeight = false), "half")
+        holder.updateAnimatedHeight(450)
+        assertEquals(450, holder.currentHeightPx)
+        assertFalse(holder.isAnimating)
+        assertEquals(null, holder.snapshot.targetAnchorId)
+    }
+
+    @Test
     fun animationTargetIsDistinctFromNearestCurrentAnchorAndClearedOnFinish() {
         val holder = DrawerStateHolder(
             initialInput = input(),
