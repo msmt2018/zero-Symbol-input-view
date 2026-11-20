@@ -85,6 +85,39 @@ class DrawerNavigationControllerTest {
     }
 
     @Test
+    fun addingSameNavigationListenerTwiceDoesNotDuplicateSubscription() {
+        val controller = DrawerNavigationController()
+        var calls = 0
+        val listener = DrawerNavigationController.Listener { _, _ -> calls++ }
+
+        controller.addListener(listener)
+        controller.addListener(listener)
+        controller.submitPages(listOf(page("a")))
+
+        assertEquals(2, calls)
+    }
+
+    @Test
+    fun listenerRejectingInitialNavigationSnapshotIsNotRegistered() {
+        val controller = DrawerNavigationController()
+        var calls = 0
+        val listener = DrawerNavigationController.Listener { _, _ ->
+            calls++
+            throw IllegalStateException("initial snapshot rejected")
+        }
+
+        try {
+            controller.addListener(listener)
+            throw AssertionError("Expected initial listener failure")
+        } catch (expected: IllegalStateException) {
+            assertEquals("initial snapshot rejected", expected.message)
+        }
+
+        controller.submitPages(listOf(page("a")))
+        assertEquals(1, calls)
+    }
+
+    @Test
     fun failingObserverDoesNotBlockOtherNavigationObservers() {
         val controller = DrawerNavigationController()
         val observed = mutableListOf<String?>()
