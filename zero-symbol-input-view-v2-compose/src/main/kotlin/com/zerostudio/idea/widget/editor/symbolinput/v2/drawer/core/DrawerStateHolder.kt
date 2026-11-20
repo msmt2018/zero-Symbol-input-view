@@ -250,6 +250,10 @@ class DrawerStateHolder(
     }
 
     fun finishAnimation(anchorId: String) {
+        // An animation host may deliver a completion callback after its
+        // animation was interrupted by a newer command or geometry change.
+        // Only the currently active target is allowed to commit its endpoint.
+        if (targetAnchorId != anchorId) return
         val target = resolvedAnchors.firstOrNull { it.id == anchorId }
             ?: return
         heightPx = target.heightPx
@@ -289,6 +293,7 @@ class DrawerStateHolder(
         val target = resolvedAnchors.firstOrNull { it.id == anchorId } ?: return null
         animating = target.heightPx != heightPx
         dragging = false
+        dragRemainderPx = 0f
         targetAnchorId = target.id.takeIf { animating }
         publish()
         return target
