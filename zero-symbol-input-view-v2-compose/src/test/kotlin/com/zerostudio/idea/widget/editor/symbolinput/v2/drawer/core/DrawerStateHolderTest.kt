@@ -61,7 +61,7 @@ class DrawerStateHolderTest {
         val target = holder.endDrag(-500f, 100f)
         assertEquals("expanded", target.id)
         assertTrue(holder.isAnimating)
-        holder.finishAnimation(target.id)
+        holder.finishAnimation(target.id, holder.activeAnimationGeneration!!)
         assertEquals(800, holder.currentHeightPx)
         assertTrue(holder.snapshot.isAtStableAnchor)
     }
@@ -78,11 +78,11 @@ class DrawerStateHolderTest {
 
         assertEquals("expanded", holder.expandToMaxAnchor()?.id)
         assertEquals("expanded", holder.snapshot.targetAnchorId)
-        holder.finishAnimation("expanded")
+        holder.finishAnimation("expanded", holder.activeAnimationGeneration!!)
 
         assertEquals(null, holder.moveToAdjacentAnchor(expand = true))
         assertEquals("peek", holder.collapseToMinAnchor()?.id)
-        holder.finishAnimation("peek")
+        holder.finishAnimation("peek", holder.activeAnimationGeneration!!)
         assertEquals("half", holder.moveToAdjacentAnchor(expand = true)?.id)
     }
 
@@ -122,11 +122,12 @@ class DrawerStateHolderTest {
         assertEquals("half", holder.snapshot.currentAnchorId)
         assertTrue(holder.snapshot.isAnimating)
 
+        val generation = holder.activeAnimationGeneration!!
         holder.updateAnimatedHeight(550)
         assertEquals("expanded", holder.snapshot.targetAnchorId)
         assertEquals("half", holder.snapshot.currentAnchorId)
 
-        holder.finishAnimation("expanded")
+        holder.finishAnimation("expanded", generation)
         assertEquals(null, holder.snapshot.targetAnchorId)
         assertEquals("expanded", holder.snapshot.currentAnchorId)
         assertTrue(holder.snapshot.isAtStableAnchor)
@@ -141,14 +142,16 @@ class DrawerStateHolderTest {
         )
 
         holder.moveToAnchor("expanded")
+        val staleGeneration = holder.activeAnimationGeneration!!
         holder.moveToAnchor("peek")
-        holder.finishAnimation("expanded")
+        val currentGeneration = holder.activeAnimationGeneration!!
+        holder.finishAnimation("expanded", staleGeneration)
 
         assertEquals(400, holder.currentHeightPx)
         assertEquals("peek", holder.snapshot.targetAnchorId)
         assertTrue(holder.isAnimating)
 
-        holder.finishAnimation("peek")
+        holder.finishAnimation("peek", currentGeneration)
         assertEquals(80, holder.currentHeightPx)
         assertFalse(holder.isAnimating)
     }
@@ -341,5 +344,5 @@ class DrawerStateHolderTest {
 
 private fun DrawerStateHolder.collapseToPeekForTest() {
     val peek = anchors.minBy { it.heightPx }
-    finishAnimation(peek.id)
+    snapToAnchor(peek.id)
 }
