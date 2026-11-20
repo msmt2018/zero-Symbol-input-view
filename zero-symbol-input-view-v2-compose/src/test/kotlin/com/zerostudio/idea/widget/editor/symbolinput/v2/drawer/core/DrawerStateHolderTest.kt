@@ -184,6 +184,20 @@ class DrawerStateHolderTest {
     }
 
     @Test
+    fun equivalentAnchorStrategyUpdatePreservesActiveDrag() {
+        val strategy = ThreeStageAnchorStrategy(useAutomaticPeekHeight = false)
+        val holder = DrawerStateHolder(input(), strategy, "half")
+        holder.beginDrag()
+        holder.dragBy(-18f)
+        val heightDuringDrag = holder.currentHeightPx
+
+        holder.setAnchorStrategy(ThreeStageAnchorStrategy(useAutomaticPeekHeight = false))
+
+        assertEquals(heightDuringDrag, holder.currentHeightPx)
+        assertTrue(holder.isDragging)
+    }
+
+    @Test
     fun geometryChangePreservesExpansionFraction() {
         val holder = DrawerStateHolder(
             initialInput = input(),
