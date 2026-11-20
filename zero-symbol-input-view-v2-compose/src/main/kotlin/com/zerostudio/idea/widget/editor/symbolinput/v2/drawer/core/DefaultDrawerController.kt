@@ -39,7 +39,7 @@ class DefaultDrawerController(
     private val anchorInputProvider: () -> DrawerAnchorInput
 ) : DrawerController {
 
-    var config: DrawerConfig by mutableStateOf(DrawerConfig())
+    var config: DrawerConfig by mutableStateOf(DrawerConfig(anchorStrategy = stateHolder.anchorStrategy))
         private set
 
     var title: String? by mutableStateOf(null)
