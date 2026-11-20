@@ -380,6 +380,24 @@ class DrawerStateHolderTest {
     }
 
     @Test
+    fun failingStateListenerDoesNotPreventOtherListenersFromReceivingSnapshot() {
+        val holder = DrawerStateHolder(input())
+        var secondListenerCalls = 0
+        holder.addStateListener { throw IllegalStateException("observer failure") }
+        holder.addStateListener { secondListenerCalls++ }
+
+        try {
+            holder.beginDrag()
+            throw AssertionError("Expected observer failure to be reported")
+        } catch (expected: IllegalStateException) {
+            assertEquals("observer failure", expected.message)
+        }
+
+        assertEquals(2, secondListenerCalls)
+        assertTrue(holder.isDragging)
+    }
+
+    @Test
     fun fractionalDragDeltasAccumulateInsteadOfBeingDiscarded() {
         val holder = DrawerStateHolder(
             initialInput = input(),
