@@ -110,6 +110,15 @@ class DrawerAnchorResolverTest {
         assertEquals(120, anchors.single().heightPx)
     }
 
+    @Test fun zeroVelocitySettlesToNearestAnchorEvenWhenFlingThresholdIsZero() {
+        val anchors = DrawerAnchorResolver.resolve(
+            ThreeStageAnchorStrategy(useAutomaticPeekHeight = false), input
+        )
+        assertEquals("half", DrawerAnchorResolver.flingTarget(anchors, 570, 0f, 0f).id)
+        assertEquals("expanded", DrawerAnchorResolver.flingTarget(anchors, 780, 0f, 0f).id)
+    }
+
+
     @Test fun flingMovesAtMostOneAnchorPerGesture() {
         val anchors = DrawerAnchorResolver.resolve(ThreeStageAnchorStrategy(), input)
         val target = DrawerAnchorResolver.flingTarget(anchors, 500, 1600f, 500f)
