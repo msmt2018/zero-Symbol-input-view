@@ -112,7 +112,7 @@ object DrawerAnchorResolver {
         val ordered = anchors.sortedWith(
             compareBy<DrawerAnchor> { it.heightPx }.thenBy { rank(it.state) }.thenBy { it.id }
         )
-        if (kotlin.math.abs(velocityY) < minimumFlingVelocity) {
+        if (kotlin.math.abs(velocityY) <= minimumFlingVelocity) {
             return nearestAnchor(ordered, currentHeightPx)
         }
 
