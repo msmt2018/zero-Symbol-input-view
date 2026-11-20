@@ -133,6 +133,35 @@ class DrawerStateHolderTest {
     }
 
     @Test
+    fun changingAnchorStrategyPreservesExpansionFraction() {
+        val oldStrategy = CustomAnchorStrategy(
+            listOf(
+                DrawerAnchor("peek", 100, DrawerAnchorState.PEEK),
+                DrawerAnchor("expanded", 500, DrawerAnchorState.EXPANDED)
+            )
+        )
+        val newStrategy = CustomAnchorStrategy(
+            listOf(
+                DrawerAnchor("peek", 200, DrawerAnchorState.PEEK),
+                DrawerAnchor("expanded", 1000, DrawerAnchorState.EXPANDED)
+            )
+        )
+        val holder = DrawerStateHolder(
+            initialInput = input(),
+            initialStrategy = oldStrategy,
+            initialAnchorId = "expanded"
+        )
+        holder.synchronizeHeight(300)
+
+        holder.setAnchorStrategy(newStrategy)
+
+        assertEquals(600, holder.currentHeightPx)
+        assertFalse(holder.isDragging)
+        assertFalse(holder.isAnimating)
+        assertEquals(null, holder.snapshot.targetAnchorId)
+    }
+
+    @Test
     fun geometryChangePreservesExpansionFraction() {
         val holder = DrawerStateHolder(
             initialInput = input(),
