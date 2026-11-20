@@ -55,6 +55,9 @@ class DrawerStateHolder(
         publish()
     }
 
+    /** Strategy currently resolving [anchors]; exposed read-only for controller initialization. */
+    val anchorStrategy: DrawerAnchorStrategy get() = strategy
+
     val currentHeightPx: Int get() = heightPx
     val anchors: List<DrawerAnchor> get() = resolvedAnchors
     val isDragging: Boolean get() = dragging
