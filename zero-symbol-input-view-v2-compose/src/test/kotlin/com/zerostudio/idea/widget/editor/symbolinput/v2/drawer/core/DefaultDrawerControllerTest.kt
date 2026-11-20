@@ -87,4 +87,32 @@ class DefaultDrawerControllerTest {
 
         assertEquals(1000, holder.anchors.maxOf { it.heightPx })
     }
+    @Test
+    fun presentationOnlyConfigUpdateDoesNotCancelActiveDrag() {
+        val controller = controller()
+        controller.stateHolder.beginDrag()
+        controller.stateHolder.dragBy(-24f)
+        val heightDuringDrag = controller.stateHolder.currentHeightPx
+
+        controller.applyConfig(controller.config.copy(enableDrag = false))
+
+        assertEquals(heightDuringDrag, controller.stateHolder.currentHeightPx)
+        assertTrue(controller.stateHolder.isDragging)
+        assertFalse(controller.config.enableDrag)
+    }
+
+    @Test
+    fun reapplyingEquivalentAnchorStrategyDoesNotCancelActiveDrag() {
+        val controller = controller()
+        controller.stateHolder.beginDrag()
+        controller.stateHolder.dragBy(-16f)
+        val heightDuringDrag = controller.stateHolder.currentHeightPx
+        val equivalentStrategy = ThreeStageAnchorStrategy(useAutomaticPeekHeight = false)
+
+        controller.setAnchorStrategy(equivalentStrategy)
+
+        assertEquals(heightDuringDrag, controller.stateHolder.currentHeightPx)
+        assertTrue(controller.stateHolder.isDragging)
+    }
+
 }
