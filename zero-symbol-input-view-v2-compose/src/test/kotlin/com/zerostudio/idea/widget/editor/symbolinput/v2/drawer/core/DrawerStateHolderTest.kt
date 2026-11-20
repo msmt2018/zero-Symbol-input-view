@@ -209,6 +209,26 @@ class DrawerStateHolderTest {
     }
 
     @Test
+    fun listenerCanRemoveItselfDuringStateDispatch() {
+        val holder = DrawerStateHolder(input())
+        var callbackCount = 0
+        lateinit var listener: (DrawerState) -> Unit
+        listener = { state ->
+            callbackCount++
+            if (state.isDragging) {
+                holder.removeStateListener(listener)
+            }
+        }
+
+        holder.addStateListener(listener)
+        holder.beginDrag()
+        holder.dragBy(-1f)
+
+        assertEquals(2, callbackCount)
+        assertTrue(holder.isDragging)
+    }
+
+    @Test
     fun fractionalDragDeltasAccumulateInsteadOfBeingDiscarded() {
         val holder = DrawerStateHolder(
             initialInput = input(),
