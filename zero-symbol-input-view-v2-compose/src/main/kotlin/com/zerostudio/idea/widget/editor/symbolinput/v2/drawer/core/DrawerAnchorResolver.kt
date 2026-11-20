@@ -77,7 +77,10 @@ object DrawerAnchorResolver {
                 unique[candidate.heightPx] = candidate
             }
         }
-        return unique.values.toList()
+        // The resolved anchors are shared by the holder, controller and
+        // immutable state snapshots. Do not leak a mutable backing list through
+        // Kotlin's read-only List interface.
+        return java.util.Collections.unmodifiableList(ArrayList(unique.values))
     }
 
     /**
