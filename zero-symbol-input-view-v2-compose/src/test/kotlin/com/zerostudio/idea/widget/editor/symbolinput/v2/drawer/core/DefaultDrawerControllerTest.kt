@@ -46,6 +46,21 @@ class DefaultDrawerControllerTest {
         assertEquals("peek", controller.currentState()?.targetAnchorId)
     }
 
+
+    @Test
+    fun controllerExposesTheCurrentAnimationGeneration() {
+        val controller = controller()
+        assertEquals(null, controller.activeAnimationGeneration())
+
+        controller.expand(animated = true)
+        val generation = controller.activeAnimationGeneration()
+
+        assertTrue(generation != null)
+        assertEquals(generation, controller.stateHolder.activeAnimationGeneration)
+        assertTrue(controller.stateHolder.finishAnimation("expanded", generation!!))
+        assertEquals(null, controller.activeAnimationGeneration())
+    }
+
     @Test
     fun presentationConfigurationDoesNotMutateGeometryState() {
         val controller = controller()
