@@ -5,6 +5,8 @@
  */
 package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core
 
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.unit.Velocity
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertTrue
@@ -25,6 +27,34 @@ class DrawerNestedScrollConnectionTest {
             initialStrategy = ThreeStageAnchorStrategy(useAutomaticPeekHeight = false),
             initialAnchorId = "half"
         )
+    }
+
+    @Test
+    fun cancelledNestedGestureCannotClaimLaterDirectPointerFling() = runBlocking {
+        val holder = holder()
+        val connection = DrawerNestedScrollConnection(holder)
+
+        // Start a nested-scroll gesture that this connection actually owns.
+        val consumed = connection.onPreScroll(
+            available = Offset(x = 0f, y = -20f),
+            source = NestedScrollSource.UserInput
+        )
+        assertTrue("Drawer should consume upward pre-scroll", consumed.y < 0f)
+
+        // The host reports cancellation before onPostFling can be dispatched.
+        connection.cancelGesture()
+        holder.cancelDrag()
+
+        // A later direct pointer gesture uses the same holder but is not owned
+        // by this nested-scroll connection.
+        holder.beginDrag()
+        holder.dragBy(-25f)
+        connection.onPostFling(
+            consumed = Velocity.Zero,
+            available = Velocity.Zero
+        )
+
+        assertTrue("Unrelated direct drag must remain active", holder.isDragging)
     }
 
     @Test
