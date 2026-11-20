@@ -68,6 +68,9 @@ class DrawerStateHolder(
     val activeAnimationGeneration: Long? get() = animationGeneration.takeIf { targetAnchorId != null }
 
     fun updateGeometry(newInput: DrawerAnchorInput, preserveExpansionFraction: Boolean = true) {
+        // Repeated layout observations with identical measurements are no-op
+        // updates. They must not cancel an active drag or animation.
+        if (newInput == input) return
         val oldMin = resolvedAnchors.minOf { it.heightPx }
         val oldMax = resolvedAnchors.maxOf { it.heightPx }
         val oldFraction = if (oldMax > oldMin) {
