@@ -31,6 +31,8 @@ class DrawerStateHolder(
     private var listeners: Set<(DrawerState) -> Unit> = emptySet()
 
     private var heightPx by mutableStateOf(0)
+    /** Fractional pixel movement retained across successive drag deltas. */
+    private var dragRemainderPx = 0f
     private var dragging by mutableStateOf(false)
     private var animating by mutableStateOf(false)
     private var targetAnchorId by mutableStateOf<String?>(null)
@@ -84,6 +86,7 @@ class DrawerStateHolder(
         }
         dragging = false
         animating = false
+        dragRemainderPx = 0f
         targetAnchorId = null
         publish()
     }
@@ -98,6 +101,7 @@ class DrawerStateHolder(
         )
         dragging = false
         animating = false
+        dragRemainderPx = 0f
         targetAnchorId = null
         publish()
     }
@@ -105,6 +109,7 @@ class DrawerStateHolder(
     fun beginDrag() {
         dragging = true
         animating = false
+        dragRemainderPx = 0f
         targetAnchorId = null
         publish()
     }
@@ -145,12 +150,19 @@ class DrawerStateHolder(
         if (!dragging) {
             dragging = true
             animating = false
+            dragRemainderPx = 0f
             targetAnchorId = null
         }
-        heightPx = (heightPx - fingerDeltaY).toInt().coerceIn(
-            resolvedAnchors.minOf { it.heightPx },
-            resolvedAnchors.maxOf { it.heightPx }
-        )
+        val minimum = resolvedAnchors.minOf { it.heightPx }
+        val maximum = resolvedAnchors.maxOf { it.heightPx }
+        val exactHeight = heightPx.toFloat() - fingerDeltaY + dragRemainderPx
+        val nextHeight = exactHeight.toInt().coerceIn(minimum, maximum)
+        heightPx = nextHeight
+        dragRemainderPx = if (nextHeight == minimum || nextHeight == maximum) {
+            0f
+        } else {
+            exactHeight - nextHeight
+        }
         publish()
         return heightPx
     }
@@ -176,6 +188,7 @@ class DrawerStateHolder(
             minimumFlingVelocity = minimumFlingVelocityPxPerSecond
         )
         dragging = false
+        dragRemainderPx = 0f
         animating = target.heightPx != heightPx
         targetAnchorId = target.id.takeIf { animating }
         publish()
@@ -189,6 +202,7 @@ class DrawerStateHolder(
     fun cancelDrag(): Int {
         dragging = false
         animating = false
+        dragRemainderPx = 0f
         targetAnchorId = null
         publish()
         return heightPx
@@ -204,6 +218,7 @@ class DrawerStateHolder(
             resolvedAnchors.minOf { it.heightPx },
             resolvedAnchors.maxOf { it.heightPx }
         )
+        dragRemainderPx = 0f
         dragging = false
         animating = false
         targetAnchorId = null
@@ -225,6 +240,7 @@ class DrawerStateHolder(
         val target = resolvedAnchors.firstOrNull { it.id == anchorId }
             ?: return
         heightPx = target.heightPx
+        dragRemainderPx = 0f
         dragging = false
         animating = false
         targetAnchorId = null
@@ -272,6 +288,7 @@ class DrawerStateHolder(
     fun snapToAnchor(anchorId: String): DrawerAnchor? {
         val target = resolvedAnchors.firstOrNull { it.id == anchorId } ?: return null
         heightPx = target.heightPx
+        dragRemainderPx = 0f
         dragging = false
         animating = false
         targetAnchorId = null
