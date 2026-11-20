@@ -102,8 +102,8 @@ class DrawerStateHolderTest {
     @Test
     fun animationFrameWithoutTargetDoesNotCreatePhantomAnimatingState() {
         val holder = DrawerStateHolder(input(), ThreeStageAnchorStrategy(useAutomaticPeekHeight = false), "half")
-        holder.updateAnimatedHeight(450)
-        assertEquals(450, holder.currentHeightPx)
+        assertFalse(holder.updateAnimatedHeight(450, 0L))
+        assertEquals(80, holder.currentHeightPx)
         assertFalse(holder.isAnimating)
         assertEquals(null, holder.snapshot.targetAnchorId)
     }
@@ -123,7 +123,8 @@ class DrawerStateHolderTest {
         assertTrue(holder.snapshot.isAnimating)
 
         val generation = holder.activeAnimationGeneration!!
-        holder.updateAnimatedHeight(550)
+        assertTrue(holder.updateAnimatedHeight(550, generation))
+        assertEquals(550, holder.currentHeightPx)
         assertEquals("expanded", holder.snapshot.targetAnchorId)
         assertEquals("half", holder.snapshot.currentAnchorId)
 
@@ -178,6 +179,42 @@ class DrawerStateHolderTest {
 
         assertTrue(holder.finishAnimation("expanded", latestGeneration))
         assertEquals(800, holder.currentHeightPx)
+        assertFalse(holder.isAnimating)
+    }
+
+
+    @Test
+    fun staleAnimationFrameCannotOverwriteNewerAnimation() {
+        val holder = DrawerStateHolder(
+            input(),
+            ThreeStageAnchorStrategy(useAutomaticPeekHeight = false),
+            "half"
+        )
+        holder.moveToAnchor("expanded")
+        val staleGeneration = holder.activeAnimationGeneration!!
+        holder.moveToAnchor("peek")
+        val activeGeneration = holder.activeAnimationGeneration!!
+
+        assertFalse(holder.updateAnimatedHeight(700, staleGeneration))
+        assertEquals(400, holder.currentHeightPx)
+        assertTrue(holder.updateAnimatedHeight(300, activeGeneration))
+        assertEquals(300, holder.currentHeightPx)
+        assertEquals("peek", holder.snapshot.targetAnchorId)
+    }
+
+    @Test
+    fun animationFrameIsRejectedAfterTransitionIsCancelled() {
+        val holder = DrawerStateHolder(
+            input(),
+            ThreeStageAnchorStrategy(useAutomaticPeekHeight = false),
+            "half"
+        )
+        holder.moveToAnchor("expanded")
+        val generation = holder.activeAnimationGeneration!!
+        holder.cancelDrag()
+
+        assertFalse(holder.updateAnimatedHeight(700, generation))
+        assertEquals(400, holder.currentHeightPx)
         assertFalse(holder.isAnimating)
     }
 
