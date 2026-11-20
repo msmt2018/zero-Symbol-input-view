@@ -133,6 +133,27 @@ class DrawerStateHolderTest {
     }
 
     @Test
+    fun staleAnimationCompletionCannotOverrideNewerTarget() {
+        val holder = DrawerStateHolder(
+            initialInput = input(),
+            initialStrategy = ThreeStageAnchorStrategy(useAutomaticPeekHeight = false),
+            initialAnchorId = "half"
+        )
+
+        holder.moveToAnchor("expanded")
+        holder.moveToAnchor("peek")
+        holder.finishAnimation("expanded")
+
+        assertEquals(400, holder.currentHeightPx)
+        assertEquals("peek", holder.snapshot.targetAnchorId)
+        assertTrue(holder.isAnimating)
+
+        holder.finishAnimation("peek")
+        assertEquals(80, holder.currentHeightPx)
+        assertFalse(holder.isAnimating)
+    }
+
+    @Test
     fun changingAnchorStrategyPreservesExpansionFraction() {
         val oldStrategy = CustomAnchorStrategy(
             listOf(
