@@ -36,6 +36,7 @@ class DrawerStateHolder(
     private var dragging by mutableStateOf(false)
     private var animating by mutableStateOf(false)
     private var targetAnchorId by mutableStateOf<String?>(null)
+    private var animationGeneration = 0L
     private var resolvedAnchors by mutableStateOf(
         DrawerAnchorResolver.resolve(initialStrategy, initialInput)
     )
@@ -64,6 +65,7 @@ class DrawerStateHolder(
     val anchors: List<DrawerAnchor> get() = resolvedAnchors
     val isDragging: Boolean get() = dragging
     val isAnimating: Boolean get() = animating
+    val activeAnimationGeneration: Long? get() = animationGeneration.takeIf { targetAnchorId != null }
 
     fun updateGeometry(newInput: DrawerAnchorInput, preserveExpansionFraction: Boolean = true) {
         val oldMin = resolvedAnchors.minOf { it.heightPx }
@@ -202,6 +204,7 @@ class DrawerStateHolder(
         dragging = false
         dragRemainderPx = 0f
         animating = target.heightPx != heightPx
+        animationGeneration += 1L
         targetAnchorId = target.id.takeIf { animating }
         publish()
         return target
@@ -252,19 +255,22 @@ class DrawerStateHolder(
         publish()
     }
 
-    fun finishAnimation(anchorId: String) {
-        // An animation host may deliver a completion callback after its
-        // animation was interrupted by a newer command or geometry change.
-        // Only the currently active target is allowed to commit its endpoint.
-        if (targetAnchorId != anchorId) return
-        val target = resolvedAnchors.firstOrNull { it.id == anchorId }
-            ?: return
+    fun finishAnimation(anchorId: String, generation: Long): Boolean {
+        if (targetAnchorId != anchorId || animationGeneration != generation) return false
+        val target = resolvedAnchors.firstOrNull { it.id == anchorId } ?: return false
         heightPx = target.heightPx
         dragRemainderPx = 0f
         dragging = false
         animating = false
         targetAnchorId = null
+        animationGeneration += 1L
         publish()
+        return true
+    }
+
+    @Deprecated("Capture activeAnimationGeneration and pass it to finishAnimation")
+    fun finishAnimation(anchorId: String) {
+        activeAnimationGeneration?.let { finishAnimation(anchorId, it) }
     }
 
     /** Selects the most expanded resolved anchor without owning animation execution. */
