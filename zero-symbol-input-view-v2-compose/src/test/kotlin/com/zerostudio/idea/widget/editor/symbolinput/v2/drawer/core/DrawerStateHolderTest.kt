@@ -153,6 +153,31 @@ class DrawerStateHolderTest {
         assertFalse(holder.isAnimating)
     }
 
+
+    @Test
+    fun staleCompletionForSameAnchorCannotFinishNewAnimation() {
+        val holder = DrawerStateHolder(
+            input(),
+            ThreeStageAnchorStrategy(useAutomaticPeekHeight = false),
+            "half"
+        )
+
+        holder.moveToAnchor("expanded")
+        val firstGeneration = holder.activeAnimationGeneration!!
+        holder.moveToAnchor("peek")
+        holder.moveToAnchor("expanded")
+        val latestGeneration = holder.activeAnimationGeneration!!
+
+        assertTrue(latestGeneration > firstGeneration)
+        assertFalse(holder.finishAnimation("expanded", firstGeneration))
+        assertEquals("expanded", holder.snapshot.targetAnchorId)
+        assertTrue(holder.isAnimating)
+
+        assertTrue(holder.finishAnimation("expanded", latestGeneration))
+        assertEquals(800, holder.currentHeightPx)
+        assertFalse(holder.isAnimating)
+    }
+
     @Test
     fun changingAnchorStrategyPreservesExpansionFraction() {
         val oldStrategy = CustomAnchorStrategy(
