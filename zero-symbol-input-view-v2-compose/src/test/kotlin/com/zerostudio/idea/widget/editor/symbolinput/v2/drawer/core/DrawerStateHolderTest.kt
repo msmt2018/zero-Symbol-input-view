@@ -272,6 +272,33 @@ class DrawerStateHolderTest {
     }
 
     @Test
+    fun equivalentGeometryUpdatePreservesActiveDragAndAnimation() {
+        val geometry = input()
+        val holder = DrawerStateHolder(
+            geometry,
+            ThreeStageAnchorStrategy(useAutomaticPeekHeight = false),
+            "half"
+        )
+        holder.beginDrag()
+        holder.dragBy(-20f)
+        val draggedHeight = holder.currentHeightPx
+
+        holder.updateGeometry(geometry)
+
+        assertEquals(draggedHeight, holder.currentHeightPx)
+        assertTrue(holder.isDragging)
+
+        holder.cancelDrag()
+        holder.moveToAnchor("expanded")
+        val generation = holder.activeAnimationGeneration
+        holder.updateGeometry(geometry)
+
+        assertEquals("expanded", holder.snapshot.targetAnchorId)
+        assertEquals(generation, holder.activeAnimationGeneration)
+        assertTrue(holder.isAnimating)
+    }
+
+    @Test
     fun equivalentAnchorStrategyUpdatePreservesActiveDrag() {
         val strategy = ThreeStageAnchorStrategy(useAutomaticPeekHeight = false)
         val holder = DrawerStateHolder(input(), strategy, "half")
