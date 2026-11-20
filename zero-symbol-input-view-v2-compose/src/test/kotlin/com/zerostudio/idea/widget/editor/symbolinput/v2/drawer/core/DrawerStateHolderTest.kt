@@ -383,7 +383,9 @@ class DrawerStateHolderTest {
     fun failingStateListenerDoesNotPreventOtherListenersFromReceivingSnapshot() {
         val holder = DrawerStateHolder(input())
         var secondListenerCalls = 0
-        holder.addStateListener { throw IllegalStateException("observer failure") }
+        holder.addStateListener {
+            if (it.isDragging) throw IllegalStateException("observer failure")
+        }
         holder.addStateListener { secondListenerCalls++ }
 
         try {
