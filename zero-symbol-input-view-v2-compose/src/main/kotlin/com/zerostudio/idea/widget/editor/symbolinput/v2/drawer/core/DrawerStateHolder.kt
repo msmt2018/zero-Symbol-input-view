@@ -226,13 +226,17 @@ class DrawerStateHolder(
         return heightPx
     }
 
-    /** Called by the Compose animation host for each animated pixel position. */
+    /**
+     * Called by the Compose animation host for each animated pixel position.
+     * Animation state is derived from the presence of an active semantic target;
+     * unsolicited frame updates must not create a phantom transition.
+     */
     fun updateAnimatedHeight(height: Int) {
         heightPx = height.coerceIn(
             resolvedAnchors.minOf { it.heightPx },
             resolvedAnchors.maxOf { it.heightPx }
         )
-        animating = true
+        animating = targetAnchorId != null
         publish()
     }
 
