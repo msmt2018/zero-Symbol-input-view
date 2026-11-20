@@ -380,6 +380,39 @@ class DrawerStateHolderTest {
     }
 
     @Test
+    fun addingTheSameStateListenerTwiceDoesNotDuplicateSubscription() {
+        val holder = DrawerStateHolder(input())
+        var calls = 0
+        val listener: (DrawerState) -> Unit = { calls++ }
+
+        holder.addStateListener(listener)
+        holder.addStateListener(listener)
+        holder.beginDrag()
+
+        assertEquals(2, calls)
+    }
+
+    @Test
+    fun listenerThatRejectsInitialSnapshotIsNotRegistered() {
+        val holder = DrawerStateHolder(input())
+        var calls = 0
+        val listener: (DrawerState) -> Unit = {
+            calls++
+            throw IllegalStateException("initial snapshot rejected")
+        }
+
+        try {
+            holder.addStateListener(listener)
+            throw AssertionError("Expected initial listener failure")
+        } catch (expected: IllegalStateException) {
+            assertEquals("initial snapshot rejected", expected.message)
+        }
+
+        holder.beginDrag()
+        assertEquals(1, calls)
+    }
+
+    @Test
     fun failingStateListenerDoesNotPreventOtherListenersFromReceivingSnapshot() {
         val holder = DrawerStateHolder(input())
         var secondListenerCalls = 0
