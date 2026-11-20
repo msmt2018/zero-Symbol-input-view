@@ -480,6 +480,50 @@ class DrawerStateHolderTest {
         assertEquals(before, holder.currentHeightPx)
         assertFalse(holder.isDragging)
     }
+
+    @Test
+    fun geometryUpdateRemapsIntermediateExpansionFractionAcrossDifferentBounds() {
+        val holder = DrawerStateHolder(
+            initialInput = input(),
+            initialStrategy = ExistingHeightAnchorStrategy(),
+            initialAnchorId = "expanded"
+        )
+        holder.synchronizeHeight(440)
+
+
+        holder.updateGeometry(
+            input().copy(minHeightPx = 100, maxHeightPx = 1000, existingExpandedHeightPx = 1000),
+            preserveExpansionFraction = true
+        )
+
+
+        // 440 is 50% through 80..800; the new 100..1000 range preserves that fraction.
+        assertEquals(550, holder.currentHeightPx)
+        assertEquals(0.5f, holder.snapshot.expansionFraction, 0.001f)
+        assertFalse(holder.isDragging)
+        assertFalse(holder.isAnimating)
+    }
+
+
+    @Test
+    fun geometryUpdateWithoutFractionPreservationClampsCurrentHeight() {
+        val holder = DrawerStateHolder(
+            initialInput = input(),
+            initialStrategy = ExistingHeightAnchorStrategy(),
+            initialAnchorId = "expanded"
+        )
+
+        holder.updateGeometry(
+            input().copy(minHeightPx = 200, maxHeightPx = 600, existingExpandedHeightPx = 600),
+            preserveExpansionFraction = false
+        )
+
+
+        assertEquals(600, holder.currentHeightPx)
+        assertEquals(1f, holder.snapshot.expansionFraction, 0.001f)
+        assertNotNull(holder.snapshot.currentAnchor)
+    }
+
 }
 
 private fun DrawerStateHolder.collapseToPeekForTest() {
