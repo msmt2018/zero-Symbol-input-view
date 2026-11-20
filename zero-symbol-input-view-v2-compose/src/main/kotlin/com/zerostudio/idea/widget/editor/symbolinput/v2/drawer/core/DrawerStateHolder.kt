@@ -327,7 +327,9 @@ class DrawerStateHolder(
             isAnimating = animating,
             targetAnchorId = targetAnchorId
         )
-        listeners.forEach { it(snapshot) }
+        // A callback may add or remove listeners. Iterate over a stable snapshot
+        // so listener mutations cannot invalidate the active dispatch iterator.
+        listeners.toList().forEach { it(snapshot) }
     }
 
     private fun createSnapshot(
