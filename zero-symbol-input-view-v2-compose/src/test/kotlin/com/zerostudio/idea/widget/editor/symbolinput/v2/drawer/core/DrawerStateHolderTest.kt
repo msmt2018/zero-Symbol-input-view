@@ -221,6 +221,27 @@ class DrawerStateHolderTest {
     }
 
     @Test
+    fun cancelledAnimationGenerationCannotBeReusedBySameTarget() {
+        val holder = DrawerStateHolder(
+            input(),
+            ThreeStageAnchorStrategy(useAutomaticPeekHeight = false),
+            "half"
+        )
+
+        holder.moveToAnchor("expanded")
+        val cancelledGeneration = holder.activeAnimationGeneration!!
+        holder.cancelDrag()
+        holder.moveToAnchor("expanded")
+        val replacementGeneration = holder.activeAnimationGeneration!!
+
+        assertTrue(replacementGeneration > cancelledGeneration)
+        assertFalse(holder.updateAnimatedHeight(700, cancelledGeneration))
+        assertEquals(400, holder.currentHeightPx)
+        assertTrue(holder.updateAnimatedHeight(600, replacementGeneration))
+        assertEquals(600, holder.currentHeightPx)
+    }
+
+    @Test
     fun changingAnchorStrategyPreservesExpansionFraction() {
         val oldStrategy = CustomAnchorStrategy(
             listOf(
