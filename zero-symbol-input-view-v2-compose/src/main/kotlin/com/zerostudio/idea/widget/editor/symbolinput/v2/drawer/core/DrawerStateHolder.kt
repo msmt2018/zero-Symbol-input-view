@@ -321,8 +321,16 @@ class DrawerStateHolder(
     }
 
     fun addStateListener(listener: (DrawerState) -> Unit) {
+        if (listener in listeners) return
         listeners = listeners + listener
-        listener(snapshot)
+        try {
+            listener(snapshot)
+        } catch (failure: RuntimeException) {
+            // A listener that cannot accept its initial snapshot is not a
+            // valid subscriber. Roll back registration before propagating.
+            listeners = listeners - listener
+            throw failure
+        }
     }
 
     fun removeStateListener(listener: (DrawerState) -> Unit) {
