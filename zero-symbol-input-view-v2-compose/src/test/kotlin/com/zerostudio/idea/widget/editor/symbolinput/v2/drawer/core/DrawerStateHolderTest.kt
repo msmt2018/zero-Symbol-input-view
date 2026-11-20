@@ -178,10 +178,10 @@ class DrawerStateHolderTest {
             initialAnchorId = "expanded"
         )
         holder.beginDrag()
-        repeat(4) { holder.dragBy(-0.25f) }
-        assertEquals(1, holder.currentHeightPx - 800)
         repeat(4) { holder.dragBy(0.25f) }
-        assertEquals(0, holder.currentHeightPx - 800)
+        assertEquals(799, holder.currentHeightPx)
+        repeat(4) { holder.dragBy(-0.25f) }
+        assertEquals(800, holder.currentHeightPx)
     }
 
 
