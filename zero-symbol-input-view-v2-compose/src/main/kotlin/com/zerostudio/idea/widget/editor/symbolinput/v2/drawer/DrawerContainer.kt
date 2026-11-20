@@ -45,7 +45,6 @@
 
 package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -156,10 +155,9 @@ fun DrawerContainer(
         label = "drawer-container-height"
     )
 
-    BackHandler(enabled = state.expanded && config.dismissOnBack) {
-        state.expanded = false
-        onDismiss()
-    }
+    // System-back dispatch is intentionally host-owned. The library does not
+    // register lifecycle-bound back callbacks; the host can collapse this
+    // composition-owned state from its own platform integration.
 
     Box(modifier.fillMaxSize()) {
         content()
