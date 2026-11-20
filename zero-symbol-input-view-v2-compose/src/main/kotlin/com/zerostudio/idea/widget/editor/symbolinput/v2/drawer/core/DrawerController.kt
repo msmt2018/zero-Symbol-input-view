@@ -106,6 +106,9 @@ interface DrawerController {
     fun setAccessibilityEnabled(enabled: Boolean)
 
     fun currentState(): DrawerState?
+
+    /** Generation token for the active animation; capture it before awaiting completion. */
+    fun activeAnimationGeneration(): Long?
     fun addStateListener(listener: (DrawerState) -> Unit)
     fun removeStateListener(listener: (DrawerState) -> Unit)
 }
