@@ -176,7 +176,8 @@ class DrawerStateHolderTest {
 
         holder.setAnchorStrategy(newStrategy)
 
-        assertEquals(600, holder.currentHeightPx)
+        // Strategy output is bounded by the measured 800px maximum: 200..800 midpoint = 500.
+        assertEquals(500, holder.currentHeightPx)
         assertFalse(holder.isDragging)
         assertFalse(holder.isAnimating)
         assertEquals(null, holder.snapshot.targetAnchorId)
@@ -277,8 +278,9 @@ class DrawerStateHolderTest {
             phase = DrawerNestedScrollPhase.PRE_SCROLL
         )
         assertEquals(1000, holder.currentHeightPx)
-        assertEquals(-500f, result.consumedDeltaY, 0f)
-        assertEquals(-9_500f, result.remainingDeltaY, 0f)
+        // The half anchor is 400px and the expanded bound is 1000px: 600px can be consumed.
+        assertEquals(-600f, result.consumedDeltaY, 0f)
+        assertEquals(-9_400f, result.remainingDeltaY, 0f)
         assertTrue(holder.isDragging)
     }
 
