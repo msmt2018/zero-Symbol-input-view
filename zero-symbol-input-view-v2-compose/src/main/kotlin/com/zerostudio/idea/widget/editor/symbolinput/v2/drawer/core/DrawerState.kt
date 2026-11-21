@@ -45,7 +45,10 @@
 
 package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core
 
+import androidx.compose.runtime.Immutable
+
 /** Runtime snapshot shared by the container and application-facing controller. */
+@Immutable
 class DrawerState(
     val currentAnchorId: String,
     val currentHeightPx: Int,
