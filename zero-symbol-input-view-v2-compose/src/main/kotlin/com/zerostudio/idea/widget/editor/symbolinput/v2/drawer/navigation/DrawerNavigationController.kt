@@ -63,6 +63,8 @@ class DrawerNavigationController {
     private var pages: List<DrawerPage> = emptyList()
     private var selectedId: String? = null
     private val listeners = LinkedHashSet<Listener>()
+    private val pendingNotifications = java.util.ArrayDeque<Pair<DrawerNavigationSnapshot, Int>>()
+    private var dispatchingNotifications = false
 
     /** Compose-observable immutable navigation snapshot. Reading this property subscribes the caller to updates. */
     var state: DrawerNavigationSnapshot by mutableStateOf(DrawerNavigationSnapshot(null, emptyList()))
@@ -121,19 +123,32 @@ class DrawerNavigationController {
     private fun dispatch() {
         val nextSnapshot = snapshot()
         state = nextSnapshot
-        val index = selectedIndex()
+        pendingNotifications.addLast(nextSnapshot to selectedIndex())
+        if (dispatchingNotifications) return
+
+        // Reentrant listeners may synchronously select another page. Queue that
+        // publication so every observer sees the current snapshot before any
+        // observer receives the newer one.
+        dispatchingNotifications = true
         var dispatchFailure: RuntimeException? = null
-        listeners.toList().forEach { listener ->
-            try {
-                listener.onNavigationChanged(nextSnapshot, index)
-            } catch (failure: RuntimeException) {
-                val firstFailure = dispatchFailure
-                if (firstFailure == null) dispatchFailure = failure
-                else firstFailure.addSuppressed(failure)
+        try {
+            while (pendingNotifications.isNotEmpty()) {
+                val (publishedSnapshot, publishedIndex) = pendingNotifications.removeFirst()
+                listeners.toList().forEach { listener ->
+                    try {
+                        listener.onNavigationChanged(publishedSnapshot, publishedIndex)
+                    } catch (failure: RuntimeException) {
+                        val firstFailure = dispatchFailure
+                        if (firstFailure == null) dispatchFailure = failure
+                        else firstFailure.addSuppressed(failure)
+                    }
+                }
             }
+        } finally {
+            dispatchingNotifications = false
         }
-        // Do not let one observer prevent the remaining observers from seeing
-        // the already-committed navigation snapshot.
+        // Report callback failures only after all observers have received all
+        // queued snapshots; a failure cannot strand a reentrant publication.
         dispatchFailure?.let { throw it }
     }
 }
