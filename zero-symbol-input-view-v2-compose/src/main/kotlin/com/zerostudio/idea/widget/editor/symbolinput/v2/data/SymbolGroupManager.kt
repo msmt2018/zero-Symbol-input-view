@@ -299,6 +299,9 @@ class SymbolGroupManager(
     }
 
     private fun validateSnapshot(snapshot: List<SymbolGroup>) {
+        // Enforce the same size, action-depth, node-budget and action-payload
+        // constraints regardless of which Repository implementation is used.
+        SymbolGroupBundleCodec.validateGroups(snapshot)
         require(snapshot.all { it.id.isNotBlank() && it.title.isNotBlank() }) {
             "Group IDs and titles must not be blank"
         }
