@@ -47,6 +47,7 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.data
 
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
+import java.util.Collections
 import java.util.UUID
 
 /**
@@ -59,7 +60,7 @@ class SymbolGroupManager(
     private val newSymbolId: () -> Long = { UUID.randomUUID().mostSignificantBits }
 ) {
     // Detach the manager snapshot from repositories that reuse a mutable list instance.
-    var groups: List<SymbolGroup> = repository.loadGroups().toList()
+    var groups: List<SymbolGroup> = freezeGroups(repository.loadGroups())
         private set
 
     init {
@@ -69,7 +70,7 @@ class SymbolGroupManager(
     fun reload() {
         // Read and validate before publishing: an external/corrupt repository
         // snapshot must never replace the last known-good in-memory state.
-        val snapshot = repository.loadGroups().toList()
+        val snapshot = freezeGroups(repository.loadGroups())
         validateSnapshot(snapshot)
         groups = snapshot
     }
@@ -102,7 +103,7 @@ class SymbolGroupManager(
         )
         val next = groups.toMutableList().apply { add(index.coerceIn(0, size), duplicate) }
         commit(next)
-        return duplicate
+        return groups.first { it.id == duplicate.id }
     }
 
     fun renameGroup(groupId: String, title: String) {
@@ -315,6 +316,31 @@ class SymbolGroupManager(
         }
     }
 
+    /**
+     * Detach every collection boundary, including nested composite actions.
+     * Kotlin's toList() is only a shallow copy and may still expose mutable
+     * ArrayLists through Java casts; manager snapshots must be immutable all
+     * the way down because they are shared with Compose readers and repositories.
+     */
+    private fun freezeGroups(value: List<SymbolGroup>): List<SymbolGroup> =
+        Collections.unmodifiableList(value.map { group ->
+            group.copy(
+                symbols = Collections.unmodifiableList(group.symbols.map { symbol ->
+                    symbol.copy(
+                        shortAction = freezeAction(symbol.shortAction),
+                        longAction = symbol.longAction?.let(::freezeAction)
+                    )
+                })
+            )
+        })
+
+    private fun freezeAction(action: SymbolAction): SymbolAction = when (action) {
+        is SymbolAction.Composite -> action.copy(
+            actions = Collections.unmodifiableList(action.actions.map(::freezeAction))
+        )
+        else -> action
+    }
+
     private fun commit(next: List<SymbolGroup>) {
         // Treat commands that produce an identical immutable snapshot as no-ops.
         // This avoids redundant disk writes from repeated taps, stale UI events,
@@ -323,7 +349,7 @@ class SymbolGroupManager(
         validateSnapshot(next)
         // Persist first: a failed write must not publish an in-memory snapshot
         // that the repository cannot reproduce after reload.
-        val snapshot = next.toList()
+        val snapshot = freezeGroups(next)
         repository.saveGroups(snapshot)
         groups = snapshot
     }
