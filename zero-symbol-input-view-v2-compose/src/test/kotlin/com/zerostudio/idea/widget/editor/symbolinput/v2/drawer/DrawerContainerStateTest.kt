@@ -56,6 +56,32 @@ class DrawerContainerStateTest {
         assertEquals("peek", state.stateHolder.snapshot.targetAnchorId)
     }
 
+
+    @Test
+    fun controllerAndContainerShareExactlyOneAnchorStateEngine() {
+        val state = DrawerContainerState(initiallyExpanded = false)
+        val strategy = ThreeStageAnchorStrategy()
+        state.synchronizeGeometry(geometry(), strategy)
+
+        assertTrue(state.controller.stateHolder === state.stateHolder)
+        assertEquals(strategy, state.controller.config.anchorStrategy)
+        assertEquals(state.stateHolder.snapshot, state.controller.currentState())
+    }
+
+    @Test
+    fun hostControllerCommandsDriveContainerStateWithoutDuplicatingGeometry() {
+        val state = DrawerContainerState(initiallyExpanded = false)
+        state.synchronizeGeometry(geometry(), ThreeStageAnchorStrategy())
+
+        state.controller.expand(animated = false)
+        assertEquals("expanded", state.stateHolder.snapshot.currentAnchorId)
+        assertTrue(state.expanded)
+
+        state.controller.collapse(animated = false)
+        assertEquals("peek", state.stateHolder.snapshot.currentAnchorId)
+        assertFalse(state.expanded)
+    }
+
     @Test
     fun geometryChangesPreserveExpansionFractionThroughTheCoreEngine() {
         val state = DrawerContainerState(initiallyExpanded = false)
