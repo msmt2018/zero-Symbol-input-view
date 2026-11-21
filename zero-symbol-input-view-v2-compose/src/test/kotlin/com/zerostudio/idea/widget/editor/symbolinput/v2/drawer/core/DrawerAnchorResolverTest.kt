@@ -261,4 +261,48 @@ class DrawerAnchorResolverTest {
         }
     }
 
+
+    @Test fun customStrategyDefensivelySnapshotsConstructorAnchors() {
+        val source = mutableListOf(
+            DrawerAnchor("peek", 120, DrawerAnchorState.PEEK),
+            DrawerAnchor("expanded", 900, DrawerAnchorState.EXPANDED)
+        )
+        val strategy = CustomAnchorStrategy(source)
+
+        source.clear()
+        assertEquals(listOf("peek", "expanded"), strategy.anchors.map { it.id })
+        assertEquals(listOf(120, 900), strategy.resolve(input).map { it.heightPx })
+    }
+
+    @Test fun customStrategyCopyCreatesAnIndependentImmutableSnapshot() {
+        val original = CustomAnchorStrategy(
+            listOf(DrawerAnchor("peek", 120, DrawerAnchorState.PEEK))
+        )
+        val replacement = mutableListOf(
+            DrawerAnchor("expanded", 900, DrawerAnchorState.EXPANDED)
+        )
+        val copied = original.copy(anchors = replacement)
+
+        replacement.clear()
+        assertEquals(listOf("peek"), original.anchors.map { it.id })
+        assertEquals(listOf("expanded"), copied.anchors.map { it.id })
+        assertEquals(original, original.copy())
+    }
+
+    @Test fun resolverDetachesSnapshotsFromThirdPartyMutableStrategyOutput() {
+        val mutableOutput = mutableListOf(
+            DrawerAnchor("peek", 120, DrawerAnchorState.PEEK),
+            DrawerAnchor("expanded", 900, DrawerAnchorState.EXPANDED)
+        )
+        val strategy = object : DrawerAnchorStrategy {
+            override val id = "mutable-output"
+            override fun resolve(input: DrawerAnchorInput): List<DrawerAnchor> = mutableOutput
+        }
+
+        val resolved = DrawerAnchorResolver.resolve(strategy, input)
+        mutableOutput.clear()
+
+        assertEquals(listOf("peek", "expanded"), resolved.map { it.id })
+    }
+
 }
