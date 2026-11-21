@@ -5,16 +5,21 @@
  */
 package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core
 
+import androidx.compose.runtime.Stable
+
 /**
  * Deprecated compatibility facade for the former two-bound interaction API.
  *
- * All runtime state is delegated to [DrawerStateHolder]. This class intentionally
+ * All runtime state is delegated to [DrawerStateHolder]. The stable annotation
+ * exposes the holder-backed observable getters to Compose callers without adding
+ * a second state source. This class intentionally
  * contains no independent height, bounds, or dragging state, preventing legacy
  * integrations from creating a second source of truth beside the anchor engine.
  *
  * New integrations should use DrawerStateHolder directly so intermediate anchors,
  * target-anchor identity, nested scrolling and semantic navigation remain available.
  */
+@Stable
 @Deprecated(
     message = "Use DrawerStateHolder with DrawerAnchorStrategy; this facade is retained for source compatibility.",
     replaceWith = ReplaceWith("DrawerStateHolder")
