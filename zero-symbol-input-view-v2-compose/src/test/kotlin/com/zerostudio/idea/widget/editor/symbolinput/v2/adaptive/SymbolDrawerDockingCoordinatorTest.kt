@@ -25,7 +25,7 @@ class SymbolDrawerDockingCoordinatorTest {
             bottomCollapsedHeightDp = 48f,
             bottomExpandedHeightDp = 240f
         ) { layout ->
-            widths += layout.remainingEditorWidthDp
+            widths += layout.expandedExtentDp
             if (layout.remainingEditorWidthDp == 240f && !updated) {
                 updated = true
                 coordinator.updateWindow(window(800))
