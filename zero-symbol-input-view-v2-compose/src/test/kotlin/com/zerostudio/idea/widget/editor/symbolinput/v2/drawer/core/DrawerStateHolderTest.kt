@@ -22,6 +22,31 @@ class DrawerStateHolderTest {
     )
 
     @Test
+    fun initialAnchorStrategyIsResolvedOnlyOnceDuringConstruction() {
+        var resolveCalls = 0
+        val strategy = object : DrawerAnchorStrategy {
+            override val id: String = "counting"
+            override fun resolve(input: DrawerAnchorInput): List<DrawerAnchor> {
+                resolveCalls++
+                return listOf(
+                    DrawerAnchor("peek", input.minHeightPx, DrawerAnchorState.PEEK),
+                    DrawerAnchor("expanded", input.maxHeightPx, DrawerAnchorState.EXPANDED)
+                )
+            }
+        }
+
+        val holder = DrawerStateHolder(
+            initialInput = input(),
+            initialStrategy = strategy,
+            initialAnchorId = "expanded"
+        )
+
+        assertEquals(1, resolveCalls)
+        assertEquals("expanded", holder.snapshot.currentAnchorId)
+        assertEquals(holder.anchors, holder.snapshot.anchors)
+    }
+
+    @Test
     fun initialStateUsesRequestedAnchor() {
         val holder = DrawerStateHolder(
             initialInput = input(),
