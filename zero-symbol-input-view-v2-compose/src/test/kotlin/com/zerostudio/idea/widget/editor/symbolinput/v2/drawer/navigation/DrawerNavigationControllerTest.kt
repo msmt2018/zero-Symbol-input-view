@@ -165,6 +165,31 @@ class DrawerNavigationControllerTest {
         assertEquals("a", controller.selectedPage()?.id)
     }
 
+    @Test
+    fun reentrantSelectionIsDeliveredAfterCurrentSnapshotToEveryObserver() {
+        val controller = DrawerNavigationController()
+        val firstObserver = mutableListOf<String?>()
+        val secondObserver = mutableListOf<String?>()
+        var reentered = false
+
+        controller.addListener { snapshot, _ ->
+            firstObserver += snapshot.selectedPageId
+            if (snapshot.selectedPageId == "first" && !reentered) {
+                reentered = true
+                assertTrue(controller.selectPage("second"))
+            }
+        }
+        controller.addListener { snapshot, _ ->
+            secondObserver += snapshot.selectedPageId
+        }
+
+        controller.submitPages(listOf(page("first"), page("second")))
+
+        assertEquals(listOf(null, "first", "second"), firstObserver)
+        assertEquals(listOf(null, "first", "second"), secondObserver)
+        assertEquals("second", controller.state.selectedPageId)
+    }
+
     @Test(expected = IllegalArgumentException::class)
     fun rejectsDuplicatePageIds() {
         DrawerNavigationController().submitPages(listOf(page("same"), page("same")))
