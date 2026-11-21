@@ -5,6 +5,7 @@
  */
 package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core
 
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -34,6 +35,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerTypog
  * to supply its latest measured geometry without introducing View or lifecycle
  * dependencies into this API layer.
  */
+@Stable
 class DefaultDrawerController(
     val stateHolder: DrawerStateHolder,
     private val anchorInputProvider: () -> DrawerAnchorInput
