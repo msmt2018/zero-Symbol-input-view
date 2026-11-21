@@ -55,7 +55,6 @@ import androidx.compose.foundation.gestures.DraggableState
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -208,7 +207,7 @@ fun DrawerContainer(
     val dragState = remember(holder) {
         DraggableState { delta -> holder.dragBy(delta) }
     }
-    val expanded = state.expanded
+    val expanded = state.expanded || config.presentationMode == DrawerPresentationMode.FULL_SCREEN
     val displayHeight = with(density) { animatedHeightPx.toDp() }
 
     // System-back dispatch is intentionally host-owned. The library does not
