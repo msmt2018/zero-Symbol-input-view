@@ -29,6 +29,10 @@ class DrawerStateHolder(
     private var input: DrawerAnchorInput = initialInput
     private var strategy: DrawerAnchorStrategy by mutableStateOf(initialStrategy)
     private var listeners: Set<(DrawerState) -> Unit> = emptySet()
+    // Serialize reentrant publications so observers never see nested newer state
+    // followed by an older outer-dispatch snapshot.
+    private val pendingStateNotifications = java.util.ArrayDeque<DrawerState>()
+    private var dispatchingStateNotifications = false
 
     private var heightPx by mutableStateOf(0)
     /** Fractional pixel movement retained across successive drag deltas. */
@@ -373,7 +377,7 @@ class DrawerStateHolder(
     }
 
     private fun publish() {
-        snapshot = DrawerState(
+        val published = DrawerState(
             currentAnchorId = DrawerAnchorResolver.nearestAnchor(resolvedAnchors, heightPx).id,
             currentHeightPx = heightPx,
             anchors = resolvedAnchors,
@@ -381,17 +385,32 @@ class DrawerStateHolder(
             isAnimating = animating,
             targetAnchorId = targetAnchorId
         )
-        // A callback may add or remove listeners. Iterate over a stable snapshot
-        // so listener mutations cannot invalidate the active dispatch iterator.
+        snapshot = published
+        pendingStateNotifications.addLast(published)
+        if (dispatchingStateNotifications) return
+
+        // A listener may synchronously mutate the holder. Queue that newer
+        // publication until every observer has received the current snapshot;
+        // this preserves monotonic notification order under reentrant callbacks.
+        dispatchingStateNotifications = true
         var dispatchFailure: RuntimeException? = null
-        listeners.toList().forEach { listener ->
-            try {
-                listener(snapshot)
-            } catch (failure: RuntimeException) {
-                val firstFailure = dispatchFailure
-                if (firstFailure == null) dispatchFailure = failure
-                else firstFailure.addSuppressed(failure)
+        try {
+            while (pendingStateNotifications.isNotEmpty()) {
+                val nextSnapshot = pendingStateNotifications.removeFirst()
+                // Listener changes take effect on the next publication, while
+                // mutations during this dispatch cannot invalidate its iterator.
+                listeners.toList().forEach { listener ->
+                    try {
+                        listener(nextSnapshot)
+                    } catch (failure: RuntimeException) {
+                        val firstFailure = dispatchFailure
+                        if (firstFailure == null) dispatchFailure = failure
+                        else firstFailure.addSuppressed(failure)
+                    }
+                }
             }
+        } finally {
+            dispatchingStateNotifications = false
         }
         // State publication is complete for every observer before surfacing
         // callback failures to the caller.
