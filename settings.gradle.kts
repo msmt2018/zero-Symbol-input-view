@@ -4,6 +4,22 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {
     includeBuild("build-logic")
+
+    // Resolve the Compose compiler plugin as a regular Kotlin Gradle artifact.
+    // The Plugin Portal has intermittently served its marker/plugin POM while
+    // failing to serve the imported kotlin-gradle-plugins-bom POM from the same
+    // repository. Direct module resolution lets Maven Central provide the
+    // plugin and its complete Kotlin BOM dependency graph consistently.
+    resolutionStrategy {
+        eachPlugin {
+            if (requested.id.id == "org.jetbrains.kotlin.plugin.compose") {
+                useModule(
+                    "org.jetbrains.kotlin:compose-compiler-gradle-plugin:${requested.version}"
+                )
+            }
+        }
+    }
+
     repositories {
         // Resolve Kotlin Gradle plugin transitive BOMs from canonical Maven
         // repositories first. Plugin Portal can serve the plugin POM while a
