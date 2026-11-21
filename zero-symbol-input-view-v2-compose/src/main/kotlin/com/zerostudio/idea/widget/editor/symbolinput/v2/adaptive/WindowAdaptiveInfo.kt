@@ -33,7 +33,7 @@ data class FoldingFeatureInfo(
     val boundsBottomDp: Float = 0f
 ) {
     init {
-        require(boundsLeftDp >= 0f && boundsTopDp >= 0f)
+        require(listOf(boundsLeftDp, boundsTopDp, boundsRightDp, boundsBottomDp).all { it.isFinite() && it >= 0f })
         require(boundsRightDp >= boundsLeftDp && boundsBottomDp >= boundsTopDp)
     }
 
@@ -54,8 +54,9 @@ data class WindowAdaptiveInfo(
     val foldingFeature: FoldingFeatureInfo = FoldingFeatureInfo()
 ) {
     init {
-        require(widthDp >= 0f && heightDp >= 0f)
-        require(density > 0f)
+        require(widthDp.isFinite() && widthDp >= 0f)
+        require(heightDp.isFinite() && heightDp >= 0f)
+        require(density.isFinite() && density > 0f)
     }
 
     val availableWidthDp: Float
@@ -82,7 +83,7 @@ data class WindowAdaptiveInfo(
             insets: WindowInsetsDp = WindowInsetsDp(),
             foldingFeature: FoldingFeatureInfo = FoldingFeatureInfo()
         ): WindowAdaptiveInfo {
-            require(density > 0f)
+            require(density.isFinite() && density > 0f)
             return WindowAdaptiveInfo(
                 widthDp = widthPx.coerceAtLeast(0) / density,
                 heightDp = heightPx.coerceAtLeast(0) / density,
