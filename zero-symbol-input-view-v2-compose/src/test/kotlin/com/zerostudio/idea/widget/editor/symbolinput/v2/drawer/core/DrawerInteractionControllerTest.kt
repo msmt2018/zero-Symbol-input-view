@@ -19,7 +19,7 @@ class DrawerInteractionControllerTest {
         assertEquals(80, controller.minimumHeightPx)
         assertEquals(800, controller.maximumHeightPx)
         assertEquals(400, controller.currentHeightPx)
-        assertEquals(0.5f, controller.expansionFraction, 0.0001f)
+        assertEquals(320f / 720f, controller.expansionFraction, 0.0001f)
         assertFalse(controller.isDragging)
 
         controller.beginDrag()
