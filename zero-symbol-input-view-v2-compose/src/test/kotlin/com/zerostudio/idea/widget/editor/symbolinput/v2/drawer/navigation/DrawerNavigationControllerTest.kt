@@ -54,6 +54,16 @@ import org.junit.Test
 class DrawerNavigationControllerTest {
     private fun page(id: String) = DrawerPage(id, id, DrawerPanelContent { })
 
+    @Test fun composeStatePublishesImmutableNavigationSnapshots() {
+        val controller = DrawerNavigationController()
+        assertEquals(null, controller.state.selectedPageId)
+        controller.submitPages(listOf(page("first"), page("second")))
+        assertEquals(listOf("first", "second"), controller.state.pageIds)
+        assertEquals("first", controller.state.selectedPageId)
+        controller.selectPage("second")
+        assertEquals("second", controller.state.selectedPageId)
+    }
+
     @Test fun selectsPagesAndPreservesSelectionAcrossUpdates() {
         val controller = DrawerNavigationController()
         controller.submitPages(listOf(page("one"), page("two")))
