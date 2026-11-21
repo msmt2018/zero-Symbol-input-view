@@ -19,6 +19,15 @@ import androidx.compose.runtime.setValue
  * animation remains owned by the host's Compose animation scope.
  *
  * The holder retains no Context, View, Activity, Lifecycle, or coroutine scope.
+ *
+ * All mutations and listener registration/removal must be serialized by the
+ * caller on one thread. This holder is intentionally not a cross-thread
+ * synchronization primitive: its Compose snapshot state and the associated
+ * plain Kotlin transition fields form one logical state machine. Compose hosts
+ * should route commands, gesture deltas and animation frames through their
+ * composition/UI dispatcher. Listener callbacks run synchronously on the
+ * publishing thread; reentrant publications are queued until the current
+ * snapshot has been delivered to every listener.
  */
 @Stable
 class DrawerStateHolder(
