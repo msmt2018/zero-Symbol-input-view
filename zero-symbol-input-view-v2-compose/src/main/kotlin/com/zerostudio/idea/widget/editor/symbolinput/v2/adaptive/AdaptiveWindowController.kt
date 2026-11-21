@@ -22,6 +22,9 @@ import androidx.compose.runtime.setValue
 class AdaptiveWindowController(initialSnapshot: WindowAdaptiveInfo) {
     private val lock = Any()
     private val listeners = LinkedHashMap<Long, (WindowAdaptiveInfo) -> Unit>()
+    private val pendingNotifications =
+        java.util.ArrayDeque<Pair<WindowAdaptiveInfo, List<(WindowAdaptiveInfo) -> Unit>>>()
+    private var dispatchingNotifications = false
     private var nextListenerId = 0L
     private var latestSnapshot by mutableStateOf(initialSnapshot)
 
@@ -39,35 +42,64 @@ class AdaptiveWindowController(initialSnapshot: WindowAdaptiveInfo) {
         listener: (WindowAdaptiveInfo) -> Unit
     ): AutoCloseable {
         val id: Long
-        val snapshot: WindowAdaptiveInfo
-        synchronized(lock) {
+        val shouldDrain = synchronized(lock) {
             id = ++nextListenerId
             listeners[id] = listener
-            snapshot = latestSnapshot
+            if (emitCurrent) enqueueLocked(latestSnapshot, listOf(listener)) else false
         }
-        if (emitCurrent) runCatching { listener(snapshot) }
+        if (shouldDrain) drainNotifications()
         return AutoCloseable { synchronized(lock) { listeners.remove(id) } }
     }
 
     fun update(value: WindowAdaptiveInfo) {
-        val callbacks = synchronized(lock) {
+        val shouldDrain = synchronized(lock) {
             if (latestSnapshot == value) return
             latestSnapshot = value
-            listeners.values.toList()
+            enqueueLocked(value, listeners.values.toList())
         }
-        callbacks.forEach { callback -> runCatching { callback(value) } }
+        if (shouldDrain) drainNotifications()
     }
 
     /** Re-emits the current snapshot after host policy changes. */
     fun refresh() {
-        // Capture the value and its subscribers in one critical section. Reading
-        // the snapshot before acquiring the lock could let a concurrent update
-        // dispatch a newer value first and this refresh dispatch an older value
-        // afterwards.
-        val (snapshot, callbacks) = synchronized(lock) {
-            latestSnapshot to listeners.values.toList()
+        // Capture the value and its subscribers in one critical section. Queue
+        // insertion shares that lock, preserving order across concurrent and
+        // reentrant update/refresh calls.
+        val shouldDrain = synchronized(lock) {
+            enqueueLocked(latestSnapshot, listeners.values.toList())
         }
-        callbacks.forEach { callback -> runCatching { callback(snapshot) } }
+        if (shouldDrain) drainNotifications()
+    }
+
+    /** Must be called while [lock] is held. */
+    private fun enqueueLocked(
+        snapshot: WindowAdaptiveInfo,
+        callbacks: List<(WindowAdaptiveInfo) -> Unit>
+    ): Boolean {
+        pendingNotifications.addLast(snapshot to callbacks)
+        if (dispatchingNotifications) return false
+        dispatchingNotifications = true
+        return true
+    }
+
+    private fun drainNotifications() {
+        while (true) {
+            val next = synchronized(lock) {
+                if (pendingNotifications.isEmpty()) {
+                    dispatchingNotifications = false
+                    null
+                } else {
+                    pendingNotifications.removeFirst()
+                }
+            } ?: return
+
+            // Preserve the controller's best-effort observer contract: one
+            // failing callback must not prevent delivery to other observers or
+            // strand notifications queued by a reentrant update.
+            next.second.forEach { callback ->
+                runCatching { callback(next.first) }
+            }
+        }
     }
 }
 
