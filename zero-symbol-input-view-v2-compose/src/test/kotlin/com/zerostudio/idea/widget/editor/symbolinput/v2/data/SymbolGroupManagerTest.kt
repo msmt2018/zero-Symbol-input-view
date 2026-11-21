@@ -252,4 +252,33 @@ class SymbolGroupManagerTest {
         assertFalse(manager.groups.isEmpty())
     }
 
+    @Test
+    fun managerRejectsCyclicCompositeActionWithoutStackOverflow() {
+        val actions = mutableListOf<SymbolAction>()
+        val cyclic = SymbolAction.Composite(actions)
+        actions += cyclic
+        val repository = MemoryRepository(
+            listOf(SymbolGroup("group", "Group", listOf(SymbolEntry(1L, "cycle", cyclic))))
+        )
+
+        val failure = runCatching { SymbolGroupManager(repository) }.exceptionOrNull()
+
+        assertTrue(failure is IllegalArgumentException)
+        assertTrue(failure?.message.orEmpty().contains("Cyclic composite"))
+    }
+
+    @Test
+    fun managerRejectsCompositeActionBeyondSupportedDepth() {
+        var action: SymbolAction = SymbolAction.InsertText("x")
+        repeat(10) { action = SymbolAction.Composite(listOf(action)) }
+        val repository = MemoryRepository(
+            listOf(SymbolGroup("group", "Group", listOf(SymbolEntry(1L, "deep", action))))
+        )
+
+        val failure = runCatching { SymbolGroupManager(repository) }.exceptionOrNull()
+
+        assertTrue(failure is IllegalArgumentException)
+        assertTrue(failure?.message.orEmpty().contains("nesting limit"))
+    }
+
 }
