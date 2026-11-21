@@ -12,8 +12,8 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive
  * Physical layout contract for a docked symbol toolbar.
  *
  * The resolver only computes extents; the host remains responsible for placing
- * the view in its editor container. Bottom-mode extents are passed through
- * unchanged so the established drawer-height/anchor contract is preserved.
+ * the surface in its Compose editor container. Bottom-mode extents are passed
+ * through unchanged so the established drawer-height/anchor contract is preserved.
  */
 data class SymbolDrawerDockingLayoutSpec(
     val docking: SymbolDrawerDocking,
@@ -32,10 +32,6 @@ data class SymbolDrawerDockingLayoutSpec(
 
 /** Resolves dimensions for bottom and edge-docked symbol toolbars. */
 object SymbolDrawerDockingLayoutResolver {
-    /**
-     * Convenience entry point that applies the saved AUTO/BOTTOM/SIDE preference
-     * and left/right edge before resolving dimensions.
-     */
     fun resolve(
         settings: com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings,
         window: WindowAdaptiveInfo,
@@ -73,12 +69,18 @@ object SymbolDrawerDockingLayoutResolver {
         minRemainingEditorWidthDp: Float = MIN_REMAINING_EDITOR_WIDTH_DP,
         sideRailWidthDp: Float = DEFAULT_SIDE_RAIL_WIDTH_DP
     ): SymbolDrawerDockingLayoutSpec {
-        require(bottomCollapsedHeightDp >= 0f)
-        require(bottomExpandedHeightDp >= bottomCollapsedHeightDp)
-        require(collapsedSideWidthDp >= 0f)
-        require(maxExpandedSideWidthDp >= collapsedSideWidthDp)
-        require(minRemainingEditorWidthDp >= 0f)
-        require(sideRailWidthDp >= 0f)
+        requireFiniteNonNegative(bottomCollapsedHeightDp, "bottomCollapsedHeightDp")
+        requireFiniteNonNegative(bottomExpandedHeightDp, "bottomExpandedHeightDp")
+        require(bottomExpandedHeightDp >= bottomCollapsedHeightDp) {
+            "bottomExpandedHeightDp must be >= bottomCollapsedHeightDp"
+        }
+        requireFiniteNonNegative(collapsedSideWidthDp, "collapsedSideWidthDp")
+        requireFiniteNonNegative(maxExpandedSideWidthDp, "maxExpandedSideWidthDp")
+        require(maxExpandedSideWidthDp >= collapsedSideWidthDp) {
+            "maxExpandedSideWidthDp must be >= collapsedSideWidthDp"
+        }
+        requireFiniteNonNegative(minRemainingEditorWidthDp, "minRemainingEditorWidthDp")
+        requireFiniteNonNegative(sideRailWidthDp, "sideRailWidthDp")
 
         if (docking == SymbolDrawerDocking.BOTTOM) {
             return SymbolDrawerDockingLayoutSpec(
@@ -106,5 +108,11 @@ object SymbolDrawerDockingLayoutResolver {
             remainingEditorWidthDp = (availableWidth - expanded).coerceAtLeast(0f),
             sideRailWidthDp = sideRailWidthDp.coerceAtMost(expanded)
         )
+    }
+
+    private fun requireFiniteNonNegative(value: Float, name: String) {
+        require(value.isFinite() && value >= 0f) {
+            "$name must be finite and >= 0"
+        }
     }
 }
