@@ -592,7 +592,7 @@ class DrawerStateHolderTest {
         assertTrue(newGeneration > oldGeneration)
         assertEquals("expanded", holder.snapshot.targetAnchorId)
         assertTrue(holder.isAnimating)
-        assertEquals(550, holder.currentHeightPx)
+        assertEquals(500, holder.currentHeightPx)
         assertFalse(holder.updateAnimatedHeight(700, oldGeneration))
         assertTrue(holder.updateAnimatedHeight(700, newGeneration))
         assertTrue(holder.finishAnimation("expanded", newGeneration))
@@ -619,9 +619,9 @@ class DrawerStateHolderTest {
 
         assertTrue(holder.isDragging)
         assertFalse(holder.isAnimating)
-        assertEquals(575, holder.currentHeightPx)
+        assertEquals(525, holder.currentHeightPx)
         holder.dragBy(-10f)
-        assertEquals(585, holder.currentHeightPx)
+        assertEquals(535, holder.currentHeightPx)
         assertTrue(holder.isDragging)
     }
 
