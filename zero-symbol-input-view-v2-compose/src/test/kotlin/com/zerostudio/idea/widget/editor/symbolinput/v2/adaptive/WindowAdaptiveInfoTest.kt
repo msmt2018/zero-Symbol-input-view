@@ -9,6 +9,26 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class WindowAdaptiveInfoTest {
+    @Test(expected = IllegalArgumentException::class)
+    fun rejectsNonFiniteWindowDimensions() {
+        WindowAdaptiveInfo(Float.POSITIVE_INFINITY, 800f)
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun rejectsNonFiniteDensity() {
+        WindowAdaptiveInfo(400f, 800f, density = Float.POSITIVE_INFINITY)
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun rejectsNonFiniteInsets() {
+        WindowInsetsDp(left = Float.NaN)
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun rejectsNonFiniteFoldingBounds() {
+        FoldingFeatureInfo(boundsRightDp = Float.POSITIVE_INFINITY)
+    }
+
     @Test fun classifiesCurrentWindowWidthAtCanonicalBreakpoints() {
         assertEquals(WindowSizeClass.COMPACT, WindowAdaptiveInfo(599f, 800f).sizeClass)
         assertEquals(WindowSizeClass.MEDIUM, WindowAdaptiveInfo(600f, 800f).sizeClass)
