@@ -463,6 +463,31 @@ class DrawerStateHolderTest {
     }
 
     @Test
+    fun reentrantStateMutationPreservesNotificationOrderForAllListeners() {
+        val holder = DrawerStateHolder(input())
+        val firstObserver = mutableListOf<Int>()
+        val secondObserver = mutableListOf<Int>()
+        var mutated = false
+
+        holder.addStateListener { state ->
+            firstObserver += state.currentHeightPx
+            if (state.isDragging && !mutated) {
+                mutated = true
+                holder.dragBy(-10f)
+            }
+        }
+        holder.addStateListener { state ->
+            secondObserver += state.currentHeightPx
+        }
+
+        holder.beginDrag()
+
+        assertEquals(listOf(80, 80, 90), firstObserver)
+        assertEquals(listOf(80, 90), secondObserver)
+        assertEquals(90, holder.currentHeightPx)
+    }
+
+    @Test
     fun addingTheSameStateListenerTwiceDoesNotDuplicateSubscription() {
         val holder = DrawerStateHolder(input())
         var calls = 0
