@@ -20,7 +20,7 @@ data class WindowInsetsDp(
     val bottom: Float = 0f
 ) {
     init {
-        require(listOf(left, top, right, bottom).all { it >= 0f })
+        require(listOf(left, top, right, bottom).all { it.isFinite() && it >= 0f })
     }
 }
 
