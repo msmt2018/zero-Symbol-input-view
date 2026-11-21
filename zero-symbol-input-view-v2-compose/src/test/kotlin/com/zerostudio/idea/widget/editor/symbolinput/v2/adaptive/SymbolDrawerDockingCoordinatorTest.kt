@@ -21,12 +21,14 @@ class SymbolDrawerDockingCoordinatorTest {
         var updated = false
         coordinator = SymbolDrawerDockingCoordinator(
             initialWindow = window(400),
-            settings = SymbolDrawerSettings(),
+            settings = SymbolDrawerSettings(
+                largeScreenLayoutMode = com.zerostudio.idea.widget.editor.symbolinput.v2.settings.LargeScreenLayoutMode.SIDE
+            ),
             bottomCollapsedHeightDp = 48f,
             bottomExpandedHeightDp = 240f
         ) { layout ->
             widths += layout.expandedExtentDp
-            if (layout.remainingEditorWidthDp == 240f && !updated) {
+            if (layout.remainingEditorWidthDp == 360f && !updated) {
                 updated = true
                 coordinator.updateWindow(window(800))
             }
