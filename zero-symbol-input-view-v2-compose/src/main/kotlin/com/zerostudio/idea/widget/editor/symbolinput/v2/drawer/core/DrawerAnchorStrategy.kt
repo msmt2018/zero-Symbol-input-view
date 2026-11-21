@@ -46,13 +46,22 @@
 package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core
 
 /**
- * Resolves a complete anchor set from measured layout inputs.
+ * Resolves a complete anchor set from immutable, host-measured layout inputs.
  *
- * Implementations must be deterministic and must not read Android Views directly.
- * This makes anchor calculation testable and lets applications supply custom policies.
+ * Implementations are policy-only: they must be deterministic for the same input,
+ * must not read Android Views or Compose layout state, and must not retain mutable
+ * host objects. [id] is a stable, non-blank semantic identifier for the policy.
+ *
+ * A strategy may return any [List] implementation. The central resolver validates,
+ * sorts, clamps, de-duplicates and defensively snapshots its output before it is
+ * shared with runtime state. Callers should therefore consume normalized output
+ * from [DrawerAnchorResolver.resolve], not call this method as a state snapshot API.
  */
 interface DrawerAnchorStrategy {
+    /** Stable semantic identifier; must be non-blank. */
     val id: String
+
+    /** Calculates candidate anchors in pixel coordinates for [input]. */
     fun resolve(input: DrawerAnchorInput): List<DrawerAnchor>
 }
 
