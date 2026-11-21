@@ -92,6 +92,26 @@ class DefaultDrawerControllerTest {
     }
 
     @Test
+    fun stateListenersAreRegisteredAndRemovedThroughTheController() {
+        val controller = controller()
+        val observed = mutableListOf<DrawerState>()
+        val listener: (DrawerState) -> Unit = observed::add
+
+        controller.addStateListener(listener)
+        assertEquals(controller.currentState(), observed.last())
+
+        controller.moveToAnchor("expanded", animated = false)
+        assertEquals("expanded", observed.last().currentAnchorId)
+        val countAfterRemoval = observed.size
+
+        controller.removeStateListener(listener)
+        controller.collapse(animated = false)
+
+        assertEquals(countAfterRemoval, observed.size)
+        assertEquals("peek", controller.currentState().currentAnchorId)
+    }
+
+    @Test
     fun refreshUsesHostSuppliedGeometry() {
         var geometry = input()
         val holder = DrawerStateHolder(geometry)
