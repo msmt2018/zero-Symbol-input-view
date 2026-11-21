@@ -217,6 +217,40 @@ class DrawerAnchorResolverTest {
         }
     }
 
+    @Test fun drawerStateDefensivelyCopiesAndProtectsItsAnchorSnapshot() {
+        val source = mutableListOf(
+            DrawerAnchor("peek", 120, DrawerAnchorState.PEEK),
+            DrawerAnchor("expanded", 900, DrawerAnchorState.EXPANDED)
+        )
+        val state = DrawerState("peek", 120, source)
+
+        source.clear()
+        assertEquals(listOf("peek", "expanded"), state.anchors.map { it.id })
+
+        try {
+            (state.anchors as MutableList<DrawerAnchor>).clear()
+            throw AssertionError("DrawerState anchors must be immutable")
+        } catch (expected: UnsupportedOperationException) {
+            assertEquals(2, state.anchors.size)
+        }
+    }
+
+    @Test fun drawerStateRetainsDataClassCopyDestructuringAndValueSemantics() {
+        val anchors = DrawerAnchorResolver.resolve(ThreeStageAnchorStrategy(), input)
+        val state = DrawerState("half", 500, anchors)
+        val duplicate = state.copy()
+
+        assertEquals(state, duplicate)
+        assertEquals(state.hashCode(), duplicate.hashCode())
+        val (anchorId, height, stateAnchors, dragging, animating, target) = state
+        assertEquals("half", anchorId)
+        assertEquals(500, height)
+        assertEquals(anchors, stateAnchors)
+        assertEquals(false, dragging)
+        assertEquals(false, animating)
+        assertEquals(null, target)
+    }
+
     @Test fun drawerStateRequiresCurrentAnchorToBelongToSnapshot() {
         val anchors = DrawerAnchorResolver.resolve(ThreeStageAnchorStrategy(), input)
         try {
