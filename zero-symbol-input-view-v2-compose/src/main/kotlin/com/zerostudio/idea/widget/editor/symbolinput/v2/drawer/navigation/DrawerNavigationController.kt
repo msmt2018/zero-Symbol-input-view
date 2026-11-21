@@ -46,7 +46,9 @@
 package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation
 
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 
 /**
  * UI-agnostic page selection model. Compose navigation slots observe immutable
