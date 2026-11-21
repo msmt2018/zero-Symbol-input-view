@@ -94,6 +94,46 @@ class DrawerStateHolderTest {
 
 
     @Test
+    fun repeatedMoveToSameAnimationTargetDoesNotRestartGenerationOrRepublish() {
+        val holder = DrawerStateHolder(
+            initialInput = input(),
+            initialStrategy = ThreeStageAnchorStrategy(useAutomaticPeekHeight = false),
+            initialAnchorId = "half"
+        )
+        var notifications = 0
+        holder.addStateListener { notifications++ }
+
+        assertEquals("expanded", holder.moveToAnchor("expanded")?.id)
+        val generation = holder.activeAnimationGeneration
+        val notificationCount = notifications
+
+        assertEquals("expanded", holder.moveToAnchor("expanded")?.id)
+
+        assertEquals(generation, holder.activeAnimationGeneration)
+        assertEquals(notificationCount, notifications)
+        assertTrue(holder.isAnimating)
+    }
+
+    @Test
+    fun movingToCurrentStableAnchorIsANoOp() {
+        val holder = DrawerStateHolder(
+            initialInput = input(),
+            initialStrategy = ThreeStageAnchorStrategy(useAutomaticPeekHeight = false),
+            initialAnchorId = "expanded"
+        )
+        var notifications = 0
+        holder.addStateListener { notifications++ }
+        val generation = holder.activeAnimationGeneration
+
+        assertEquals("expanded", holder.moveToAnchor("expanded")?.id)
+
+        assertEquals(generation, holder.activeAnimationGeneration)
+        assertEquals(1, notifications)
+        assertFalse(holder.isAnimating)
+        assertTrue(holder.snapshot.isAtStableAnchor)
+    }
+
+    @Test
     fun semanticNavigationUsesResolvedAnchorSet() {
         val holder = DrawerStateHolder(
             initialInput = input(),
