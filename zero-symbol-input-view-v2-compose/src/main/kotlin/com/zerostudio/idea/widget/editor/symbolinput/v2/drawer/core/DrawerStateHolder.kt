@@ -43,7 +43,7 @@ class DrawerStateHolder(
 
     var snapshot: DrawerState by mutableStateOf(
         createSnapshot(
-            anchors = DrawerAnchorResolver.resolve(initialStrategy, initialInput),
+            anchors = resolvedAnchors,
             requestedAnchorId = initialAnchorId
         )
     )
