@@ -45,8 +45,8 @@
 
 package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer
 
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -55,6 +55,7 @@ import androidx.compose.foundation.gestures.DraggableState
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -71,10 +72,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -89,15 +87,51 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.Drawer
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.panel.DrawerPanelHost
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.panel.DrawerPanelSlot
 
-/** Composition-owned expansion state for a generic drawer container. */
+/**
+ * Compatibility facade over the shared anchor state engine. No duplicate
+ * expanded, height, drag or animation state is stored in this container.
+ */
 @Stable
-class DrawerContainerState internal constructor(initiallyExpanded: Boolean) {
-    var expanded by mutableStateOf(initiallyExpanded)
-        internal set
+class DrawerContainerState internal constructor(
+    private val initiallyExpanded: Boolean
+) {
+    internal val stateHolder = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerStateHolder(
+        initialInput = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorInput(
+            minHeightPx = 0, maxHeightPx = 0, viewportHeightPx = 0, contentHeightPx = 0
+        ),
+        initialAnchorId = if (initiallyExpanded) "expanded" else "peek"
+    )
+    private var geometryInitialized = false
 
-    fun expand() { expanded = true }
-    fun collapse() { expanded = false }
-    fun toggle() { expanded = !expanded }
+    val expanded: Boolean
+        get() {
+            val anchors = stateHolder.anchors
+            val minimum = anchors.minOf { it.heightPx }
+            val maximum = anchors.maxOf { it.heightPx }
+            val target = stateHolder.snapshot.targetAnchorId
+                ?.let { id -> anchors.firstOrNull { it.id == id } }
+            return target?.heightPx?.let { it > minimum } ?: run {
+                stateHolder.currentHeightPx > minimum + (maximum - minimum) / 2
+            }
+        }
+
+    fun expand() { stateHolder.expandToMaxAnchor() }
+    fun collapse() { stateHolder.collapseToMinAnchor() }
+    fun toggle() { if (expanded) collapse() else expand() }
+
+    internal fun synchronizeGeometry(
+        input: com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorInput,
+        strategy: com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorStrategy
+    ) {
+        stateHolder.setAnchorStrategy(strategy)
+        stateHolder.updateGeometry(input, preserveExpansionFraction = geometryInitialized)
+        if (!geometryInitialized) {
+            val initial = if (initiallyExpanded) stateHolder.anchors.maxByOrNull { it.heightPx }
+                else stateHolder.anchors.minByOrNull { it.heightPx }
+            initial?.let { stateHolder.snapToAnchor(it.id) }
+            geometryInitialized = true
+        }
+    }
 }
 
 @Composable
@@ -127,33 +161,55 @@ fun DrawerContainer(
     val dimensions = config.style.dimensions
     val collapsedHeight = (dimensions.peekHeightDp + dimensions.handleHeightDp + 24f).dp
     val maxExpandedHeight = dimensions.expandedMaxHeightDp.dp
-    val targetHeight = if (config.presentationMode == DrawerPresentationMode.FULL_SCREEN) {
-        maxExpandedHeight
-    } else if (state.expanded) {
-        maxExpandedHeight
-    } else {
-        collapsedHeight
+    val collapsedHeightPx = with(density) { collapsedHeight.roundToPx() }
+    val maxExpandedHeightPx = with(density) { maxExpandedHeight.roundToPx() }
+    val animationSpec = if (config.style.motion.enableSpring) spring<Int>() else
+        androidx.compose.animation.core.tween(
+            durationMillis = config.style.motion.settleDurationMs.coerceIn(0L, 1200L).toInt()
+        )
+
+    val holder = state.stateHolder
+    val snapshot = holder.snapshot
+    val targetAnchor = snapshot.targetAnchorId?.let { id ->
+        snapshot.anchors.firstOrNull { it.id == id }
     }
-    val dragThreshold = with(density) { 32.dp.toPx() }
-    var dragDistance by remember { mutableFloatStateOf(0f) }
-    val dragState = remember(state) {
-        DraggableState { delta ->
-            dragDistance += delta
-            if (dragDistance < -dragThreshold) {
-                state.expanded = true
-                dragDistance = 0f
-            } else if (dragDistance > dragThreshold) {
-                state.expanded = false
-                dragDistance = 0f
-            }
-        }
-    }
-    val animatedHeight by animateDpAsState(
-        targetValue = targetHeight,
-        animationSpec = if (config.style.motion.enableSpring) spring() else
-            tween(config.style.motion.settleDurationMs.coerceIn(0L, 1200L).toInt()),
+    val targetHeightPx = targetAnchor?.heightPx ?: snapshot.currentHeightPx
+    val animatedHeightPx by androidx.compose.animation.core.animateIntAsState(
+        targetValue = if (snapshot.isDragging) snapshot.currentHeightPx else targetHeightPx,
+        animationSpec = if (snapshot.isDragging) snap() else animationSpec,
         label = "drawer-container-height"
     )
+    val generation = holder.activeAnimationGeneration
+
+    LaunchedEffect(state, collapsedHeightPx, maxExpandedHeightPx, config.anchorStrategy, density.density) {
+        val viewportHeightPx = maxExpandedHeightPx.coerceAtLeast(collapsedHeightPx)
+        state.synchronizeGeometry(
+            input = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorInput(
+                minHeightPx = collapsedHeightPx.coerceAtMost(viewportHeightPx),
+                maxHeightPx = viewportHeightPx,
+                viewportHeightPx = viewportHeightPx,
+                contentHeightPx = viewportHeightPx,
+                existingExpandedHeightPx = viewportHeightPx,
+                density = density.density
+            ),
+            strategy = config.anchorStrategy
+        )
+    }
+
+    LaunchedEffect(holder, animatedHeightPx, generation, targetAnchor?.id) {
+        val activeGeneration = generation ?: return@LaunchedEffect
+        if (!holder.updateAnimatedHeight(animatedHeightPx, activeGeneration)) return@LaunchedEffect
+        val activeTarget = targetAnchor ?: return@LaunchedEffect
+        if (animatedHeightPx == activeTarget.heightPx) {
+            holder.finishAnimation(activeTarget.id, activeGeneration)
+        }
+    }
+
+    val dragState = remember(holder) {
+        DraggableState { delta -> holder.dragBy(delta) }
+    }
+    val expanded = state.expanded
+    val displayHeight = with(density) { animatedHeightPx.toDp() }
 
     // System-back dispatch is intentionally host-owned. The library does not
     // register lifecycle-bound back callbacks; the host can collapse this
@@ -162,7 +218,7 @@ fun DrawerContainer(
     Box(modifier.fillMaxSize()) {
         content()
 
-        if (state.expanded && config.style.drawScrim) {
+        if ((expanded || config.presentationMode == DrawerPresentationMode.FULL_SCREEN) && config.style.drawScrim) {
             Box(
                 Modifier
                     .fillMaxSize()
@@ -171,7 +227,7 @@ fun DrawerContainer(
                             ?: Color.Black.copy(alpha = 0.32f)
                     )
                     .clickable(enabled = config.dismissOnScrimTap) {
-                        state.expanded = false
+                        state.collapse()
                         onDismiss()
                     }
             )
@@ -184,17 +240,17 @@ fun DrawerContainer(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .height(animatedHeight)
+                .height(if (config.presentationMode == DrawerPresentationMode.FULL_SCREEN) maxExpandedHeight else displayHeight)
                 .draggable(
                     state = dragState,
                     orientation = Orientation.Vertical,
                     enabled = config.enableDrag,
-                    onDragStarted = { dragDistance = 0f },
+                    onDragStarted = { holder.beginDrag() },
                     onDragStopped = { velocity ->
-                        if (kotlin.math.abs(velocity) >= config.style.motion.minimumFlingVelocityDp * density.density) {
-                            state.expanded = velocity < 0f
-                        }
-                        dragDistance = 0f
+                        holder.endDrag(
+                            fingerVelocityY = velocity,
+                            minimumFlingVelocityPxPerSecond = config.style.motion.minimumFlingVelocityDp * density.density
+                        )
                     }
                 ),
             color = surfaceColor,
@@ -259,7 +315,7 @@ fun DrawerContainer(
                         onPageSelected = onPageSelected,
                         modifier = Modifier.weight(1f)
                     )
-                } else if (state.expanded) {
+                } else if (expanded) {
                     DrawerPanelHost(
                         content = config.expandedContent ?: config.peekContent,
                         modifier = Modifier.weight(1f),
