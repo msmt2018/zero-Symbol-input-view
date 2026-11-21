@@ -77,6 +77,7 @@ class DrawerStateHolder(
             ((heightPx - oldMin).toFloat() / (oldMax - oldMin)).coerceIn(0f, 1f)
         } else 0f
 
+        val retainedTargetId = targetAnchorId.takeIf { animating }
         input = newInput
         resolvedAnchors = DrawerAnchorResolver.resolve(strategy, newInput)
         heightPx = if (preserveExpansionFraction) {
@@ -89,9 +90,21 @@ class DrawerStateHolder(
                 resolvedAnchors.maxOf { it.heightPx }
             )
         }
-        invalidateAnimation()
-        dragging = false
         dragRemainderPx = 0f
+        if (retainedTargetId != null &&
+            resolvedAnchors.any { it.id == retainedTargetId }
+        ) {
+            // Retarget the active semantic destination to its newly resolved
+            // geometry. Incrementing the generation rejects any queued frame
+            // from the pre-resize animation while keeping the transition alive.
+            animationGeneration += 1L
+            targetAnchorId = retainedTargetId
+            animating = true
+        } else {
+            invalidateAnimation()
+        }
+        // A resize during a gesture must not silently terminate ownership.
+        // The next drag delta continues against the newly resolved bounds.
         publish()
     }
 
@@ -108,6 +121,7 @@ class DrawerStateHolder(
             0f
         }
 
+        val retainedTargetId = targetAnchorId.takeIf { animating }
         strategy = newStrategy
         resolvedAnchors = DrawerAnchorResolver.resolve(newStrategy, input)
         val newMin = resolvedAnchors.minOf { it.heightPx }
@@ -115,9 +129,16 @@ class DrawerStateHolder(
         heightPx = (newMin + (newMax - newMin) * oldFraction)
             .toInt()
             .coerceIn(newMin, newMax)
-        invalidateAnimation()
-        dragging = false
         dragRemainderPx = 0f
+        if (retainedTargetId != null &&
+            resolvedAnchors.any { it.id == retainedTargetId }
+        ) {
+            animationGeneration += 1L
+            targetAnchorId = retainedTargetId
+            animating = true
+        } else {
+            invalidateAnimation()
+        }
         publish()
     }
 
