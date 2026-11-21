@@ -53,7 +53,7 @@ class DrawerContainerStateTest {
         assertTrue(state.stateHolder.finishAnimation("expanded", generation))
 
         state.toggle()
-        assertEquals("half", state.stateHolder.snapshot.targetAnchorId)
+        assertEquals("peek", state.stateHolder.snapshot.targetAnchorId)
     }
 
     @Test
