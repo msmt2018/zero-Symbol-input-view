@@ -41,11 +41,14 @@ class AdaptiveWindowController(initialSnapshot: WindowAdaptiveInfo) {
         emitCurrent: Boolean = true,
         listener: (WindowAdaptiveInfo) -> Unit
     ): AutoCloseable {
-        val id: Long
-        val shouldDrain = synchronized(lock) {
-            id = ++nextListenerId
-            listeners[id] = listener
-            if (emitCurrent) enqueueLocked(latestSnapshot, listOf(listener)) else false
+        val (id, shouldDrain) = synchronized(lock) {
+            val newId = ++nextListenerId
+            listeners[newId] = listener
+            newId to if (emitCurrent) {
+                enqueueLocked(latestSnapshot, listOf(listener))
+            } else {
+                false
+            }
         }
         if (shouldDrain) drainNotifications()
         return AutoCloseable { synchronized(lock) { listeners.remove(id) } }
