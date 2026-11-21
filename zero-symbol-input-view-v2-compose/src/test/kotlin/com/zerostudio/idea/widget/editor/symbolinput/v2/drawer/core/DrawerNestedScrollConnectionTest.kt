@@ -58,6 +58,35 @@ class DrawerNestedScrollConnectionTest {
     }
 
     @Test
+    fun sideEffectScrollDoesNotMoveDrawerOrAcquireGestureOwnership() = runBlocking {
+        val holder = holder()
+        val connection = DrawerNestedScrollConnection(holder)
+        val initialHeight = holder.currentHeightPx
+
+        val preConsumed = connection.onPreScroll(
+            available = Offset(x = 0f, y = -120f),
+            source = NestedScrollSource.SideEffect
+        )
+        val postConsumed = connection.onPostScroll(
+            consumed = Offset.Zero,
+            available = Offset(x = 0f, y = 120f),
+            source = NestedScrollSource.SideEffect
+        )
+
+        assertTrue(preConsumed == Offset.Zero)
+        assertTrue(postConsumed == Offset.Zero)
+        assertTrue(holder.currentHeightPx == initialHeight)
+        assertTrue(!holder.isDragging)
+
+        connection.onPostFling(
+            consumed = Velocity.Zero,
+            available = Velocity(y = -2_000f, x = 0f)
+        )
+        assertTrue("Side-effect scrolling must not settle the drawer", !holder.isDragging)
+        assertTrue(holder.currentHeightPx == initialHeight)
+    }
+
+    @Test
     fun unrelatedNestedFlingDoesNotFinishDirectPointerDrag() = runBlocking {
         val holder = holder()
         val connection = DrawerNestedScrollConnection(holder)
