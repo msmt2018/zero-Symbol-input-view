@@ -39,4 +39,26 @@ class AdaptiveWindowControllerTest {
 
         assertEquals(initial, controller.snapshot)
     }
+    @Test
+    fun refreshReemitsLatestSnapshotAndClosedListenersAreNotCalled() {
+        val initial = info(400f, 800f)
+        val updated = info(720f, 540f)
+        val controller = AdaptiveWindowController(initial)
+        val received = mutableListOf<WindowAdaptiveInfo>()
+        val subscription = controller.addListener(emitCurrent = false) {
+            received += it
+        }
+
+        controller.update(updated)
+        controller.refresh()
+
+        assertEquals(listOf(updated, updated), received)
+
+        subscription.close()
+        controller.update(info(900f, 700f))
+        controller.refresh()
+
+        assertEquals(listOf(updated, updated), received)
+    }
+
 }
