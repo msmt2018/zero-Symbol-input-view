@@ -27,7 +27,7 @@ class DrawerStateHolder(
     initialAnchorId: String? = null
 ) {
     private var input: DrawerAnchorInput = initialInput
-    private var strategy: DrawerAnchorStrategy = initialStrategy
+    private var strategy: DrawerAnchorStrategy by mutableStateOf(initialStrategy)
     private var listeners: Set<(DrawerState) -> Unit> = emptySet()
 
     private var heightPx by mutableStateOf(0)
