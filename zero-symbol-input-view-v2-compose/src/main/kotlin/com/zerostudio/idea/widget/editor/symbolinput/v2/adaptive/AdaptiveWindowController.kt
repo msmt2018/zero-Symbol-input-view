@@ -60,8 +60,13 @@ class AdaptiveWindowController(initialSnapshot: WindowAdaptiveInfo) {
 
     /** Re-emits the current snapshot after host policy changes. */
     fun refresh() {
-        val snapshot = latestSnapshot
-        val callbacks = synchronized(lock) { listeners.values.toList() }
+        // Capture the value and its subscribers in one critical section. Reading
+        // the snapshot before acquiring the lock could let a concurrent update
+        // dispatch a newer value first and this refresh dispatch an older value
+        // afterwards.
+        val (snapshot, callbacks) = synchronized(lock) {
+            latestSnapshot to listeners.values.toList()
+        }
         callbacks.forEach { callback -> runCatching { callback(snapshot) } }
     }
 }
