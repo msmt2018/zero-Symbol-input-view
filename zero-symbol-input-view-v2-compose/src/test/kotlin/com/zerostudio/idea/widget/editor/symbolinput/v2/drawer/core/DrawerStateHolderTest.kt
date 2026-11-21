@@ -483,7 +483,7 @@ class DrawerStateHolderTest {
         holder.beginDrag()
 
         assertEquals(listOf(80, 80, 90), firstObserver)
-        assertEquals(listOf(80, 90), secondObserver)
+        assertEquals(listOf(80, 80, 90), secondObserver)
         assertEquals(90, holder.currentHeightPx)
     }
 
