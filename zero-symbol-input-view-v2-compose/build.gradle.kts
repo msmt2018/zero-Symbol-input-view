@@ -30,7 +30,6 @@ dependencies {
     // retained as the migration baseline while their UI adapters are replaced.
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlin.stdlib)
-    implementation("androidx.activity:activity-compose:1.9.3")
     implementation(libs.gson)
     api(libs.androidx.annotation)
 
@@ -148,7 +147,8 @@ val auditComposeMigration by tasks.registering {
         "androidx.recyclerview:recyclerview",
         "androidx.viewpager2:viewpager2",
         "com.google.android.material:material",
-        "androidx.lifecycle:lifecycle-runtime-compose"
+        "androidx.lifecycle:lifecycle-runtime-compose",
+        "androidx.activity:activity-compose"
     )
 
     doLast {
@@ -207,7 +207,8 @@ val verifyComposeArtifactBoundary by tasks.registering {
             "androidx.recyclerview:recyclerview",
             "androidx.viewpager2:viewpager2",
             "com.google.android.material:material",
-            "androidx.lifecycle:lifecycle-runtime-compose"
+            "androidx.lifecycle:lifecycle-runtime-compose",
+            "androidx.activity:activity-compose"
         ).filter { it in file("build.gradle.kts").readText() }
         check(violations.isEmpty() && dependencies.isEmpty()) {
             "Compose artifact boundary is not clean. Run auditComposeMigration for the complete inventory."
