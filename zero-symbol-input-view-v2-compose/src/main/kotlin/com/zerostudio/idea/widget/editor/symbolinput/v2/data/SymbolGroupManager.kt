@@ -328,12 +328,14 @@ class SymbolGroupManager(
         Collections.unmodifiableList(value.map { group ->
             group.copy(
                 symbols = Collections.unmodifiableList(group.symbols.map { symbol ->
-                    // The short and long action trees share one node budget so
-                    // malformed repository data cannot amplify work per action.
-                    val context = ActionFreezeContext()
+                    // Keep the same per-action budget semantics as
+                    // SymbolGroupBundleCodec.validateGroups(): short and long
+                    // action trees are independently bounded.
                     symbol.copy(
-                        shortAction = freezeAction(symbol.shortAction, 0, context),
-                        longAction = symbol.longAction?.let { freezeAction(it, 0, context) }
+                        shortAction = freezeAction(symbol.shortAction, 0, ActionFreezeContext()),
+                        longAction = symbol.longAction?.let {
+                            freezeAction(it, 0, ActionFreezeContext())
+                        }
                     )
                 })
             )
