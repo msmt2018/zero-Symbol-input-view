@@ -40,6 +40,34 @@ class AdaptiveWindowControllerTest {
         assertEquals(initial, controller.snapshot)
     }
     @Test
+    fun reentrantUpdateIsDeliveredAfterCurrentSnapshotToEveryListener() {
+        val initial = info(400f, 800f)
+        val first = info(600f, 800f)
+        val second = info(840f, 800f)
+        val controller = AdaptiveWindowController(initial)
+        val firstObserver = mutableListOf<Float>()
+        val secondObserver = mutableListOf<Float>()
+        var reentered = false
+
+        controller.addListener(emitCurrent = false) { snapshot ->
+            firstObserver += snapshot.widthDp
+            if (snapshot == first && !reentered) {
+                reentered = true
+                controller.update(second)
+            }
+        }
+        controller.addListener(emitCurrent = false) { snapshot ->
+            secondObserver += snapshot.widthDp
+        }
+
+        controller.update(first)
+
+        assertEquals(listOf(600f, 840f), firstObserver)
+        assertEquals(listOf(600f, 840f), secondObserver)
+        assertEquals(second, controller.snapshot)
+    }
+
+    @Test
     fun refreshReemitsLatestSnapshotAndClosedListenersAreNotCalled() {
         val initial = info(400f, 800f)
         val updated = info(720f, 540f)
