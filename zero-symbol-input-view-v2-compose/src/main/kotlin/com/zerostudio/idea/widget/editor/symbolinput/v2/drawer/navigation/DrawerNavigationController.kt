@@ -98,7 +98,10 @@ class DrawerNavigationController {
     fun pages(): List<DrawerPage> = pages.toList()
     fun selectedPage(): DrawerPage? = pages.firstOrNull { it.id == selectedId }
     fun selectedIndex(): Int = pages.indexOfFirst { it.id == selectedId }
-    fun snapshot() = DrawerNavigationSnapshot(selectedId, pages.map { it.id })
+    fun snapshot() = DrawerNavigationSnapshot(
+        selectedPageId = selectedId,
+        pageIds = java.util.Collections.unmodifiableList(pages.map { it.id })
+    )
 
     fun addListener(listener: Listener) {
         if (!listeners.add(listener)) return
