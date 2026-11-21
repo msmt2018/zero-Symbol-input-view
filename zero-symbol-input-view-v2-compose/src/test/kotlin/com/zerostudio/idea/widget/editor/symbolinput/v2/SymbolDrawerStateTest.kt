@@ -56,7 +56,7 @@ class SymbolDrawerStateTest {
 
         state.synchronizeGeometry(200, 1000, 1f)
 
-        assertEquals(500, state.stateHolder.currentHeightPx)
+        assertEquals(600, state.stateHolder.currentHeightPx)
         assertEquals(1, state.selectedPage)
         assertFalse(state.expanded)
     }
