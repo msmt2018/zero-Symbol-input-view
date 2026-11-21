@@ -159,13 +159,15 @@ fun DrawerContainer(
     val density = LocalDensity.current
     val dimensions = config.style.dimensions
     val collapsedHeight = (dimensions.peekHeightDp + dimensions.handleHeightDp + 24f).dp
-    val maxExpandedHeight = dimensions.expandedMaxHeightDp.dp
+    val maxExpandedHeightPx = with(density) { dimensions.expandedMaxHeightDp.dp.roundToPx() }
+    val resolvedExpandedHeightPx = maxExpandedHeightPx.coerceAtLeast(collapsedHeightPx)
+    val resolvedExpandedHeight = with(density) { resolvedExpandedHeightPx.toDp() }
     val collapsedHeightPx = with(density) { collapsedHeight.roundToPx() }
-    val maxExpandedHeightPx = with(density) { maxExpandedHeight.roundToPx() }
-    val animationSpec = if (config.style.motion.enableSpring) spring<Int>() else
-        androidx.compose.animation.core.tween(
-            durationMillis = config.style.motion.settleDurationMs.coerceIn(0L, 1200L).toInt()
-        )
+    val animationSpec: androidx.compose.animation.core.AnimationSpec<Int> =
+        if (config.style.motion.enableSpring) spring() else
+            androidx.compose.animation.core.tween<Int>(
+                durationMillis = config.style.motion.settleDurationMs.coerceIn(0L, 1200L).toInt()
+            )
 
     val holder = state.stateHolder
     val snapshot = holder.snapshot
@@ -181,7 +183,7 @@ fun DrawerContainer(
     val generation = holder.activeAnimationGeneration
 
     LaunchedEffect(state, collapsedHeightPx, maxExpandedHeightPx, config.anchorStrategy, density.density) {
-        val viewportHeightPx = maxExpandedHeightPx.coerceAtLeast(collapsedHeightPx)
+        val viewportHeightPx = resolvedExpandedHeightPx
         state.synchronizeGeometry(
             input = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorInput(
                 minHeightPx = collapsedHeightPx.coerceAtMost(viewportHeightPx),
@@ -250,7 +252,7 @@ fun DrawerContainer(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .height(if (config.presentationMode == DrawerPresentationMode.FULL_SCREEN) maxExpandedHeight else displayHeight)
+                .height(if (config.presentationMode == DrawerPresentationMode.FULL_SCREEN) resolvedExpandedHeight else displayHeight)
                 .then(
                     if (config.enableNestedScroll) Modifier.nestedScroll(nestedScrollConnection)
                     else Modifier
