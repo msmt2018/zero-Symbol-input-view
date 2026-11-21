@@ -47,12 +47,12 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer
 
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.snap
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.DraggableState
 import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -207,6 +207,17 @@ fun DrawerContainer(
     val dragState = remember(holder) {
         DraggableState { delta -> holder.dragBy(delta) }
     }
+    val nestedScrollConnection = remember(
+        holder,
+        config.style.motion.minimumFlingVelocityDp,
+        density.density
+    ) {
+        com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerNestedScrollConnection(
+            stateHolder = holder,
+            minimumFlingVelocityPxPerSecond =
+                config.style.motion.minimumFlingVelocityDp * density.density
+        )
+    }
     val expanded = state.expanded || config.presentationMode == DrawerPresentationMode.FULL_SCREEN
     val displayHeight = with(density) { animatedHeightPx.toDp() }
 
@@ -240,6 +251,10 @@ fun DrawerContainer(
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .height(if (config.presentationMode == DrawerPresentationMode.FULL_SCREEN) maxExpandedHeight else displayHeight)
+                .then(
+                    if (config.enableNestedScroll) Modifier.nestedScroll(nestedScrollConnection)
+                    else Modifier
+                )
                 .draggable(
                     state = dragState,
                     orientation = Orientation.Vertical,
