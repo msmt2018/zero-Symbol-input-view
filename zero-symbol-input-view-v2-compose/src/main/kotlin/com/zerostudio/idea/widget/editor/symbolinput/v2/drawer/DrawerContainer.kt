@@ -26,7 +26,7 @@
  *    distribute this work, subject to its license conditions, including
  *    preservation of notices, inclusion of the license, and marking changes.
  *
- * The SPDX operator "AND" means that all listed license terms apply
+ * The SPDX operator "AND" means that all listed licenses apply
  * cumulatively. It does not mean that recipients may choose only one
  * of the listed licenses.
  *
@@ -80,6 +80,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalDensity
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.config.DrawerConfig
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.config.DrawerPresentationMode
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DefaultDrawerController
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorInput
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorStrategy
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerStateHolder
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerPage
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerPageHost
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerNavigationPlacement
@@ -87,21 +91,36 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.panel.DrawerPanel
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.panel.DrawerPanelSlot
 
 /**
- * Compatibility facade over the shared anchor state engine. No duplicate
- * expanded, height, drag or animation state is stored in this container.
+ * Composition-owned facade over the host-facing controller and its single
+ * shared anchor state engine. Geometry, drag and animation state are never
+ * duplicated in this container.
  */
 @Stable
 class DrawerContainerState internal constructor(
     private val initiallyExpanded: Boolean
 ) {
-    internal val stateHolder = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerStateHolder(
-        initialInput = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorInput(
-            minHeightPx = 0, maxHeightPx = 0, viewportHeightPx = 0, contentHeightPx = 0
-        ),
-        initialAnchorId = if (initiallyExpanded) "expanded" else "peek"
+    private var latestAnchorInput = DrawerAnchorInput(
+        minHeightPx = 0,
+        maxHeightPx = 0,
+        viewportHeightPx = 0,
+        contentHeightPx = 0,
+        existingExpandedHeightPx = 0
     )
+
+    val controller: DefaultDrawerController
+    internal val stateHolder: DrawerStateHolder
+        get() = controller.stateHolder
+
     private var geometryInitialized = false
     internal val isGeometryInitialized: Boolean get() = geometryInitialized
+
+    init {
+        stateHolder = DrawerStateHolder(
+            initialInput = latestAnchorInput,
+            initialAnchorId = if (initiallyExpanded) "expanded" else "peek"
+        )
+        controller = DefaultDrawerController(stateHolder) { latestAnchorInput }
+    }
 
     val expanded: Boolean
         get() {
@@ -115,20 +134,21 @@ class DrawerContainerState internal constructor(
             }
         }
 
-    fun expand() { stateHolder.expandToMaxAnchor() }
-    fun collapse() { stateHolder.collapseToMinAnchor() }
-    fun toggle() { if (expanded) collapse() else expand() }
+    fun expand() { controller.expand() }
+    fun collapse() { controller.collapse() }
+    fun toggle() { if (expanded) controller.collapse() else controller.expand() }
 
     internal fun synchronizeGeometry(
-        input: com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorInput,
-        strategy: com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorStrategy
+        input: DrawerAnchorInput,
+        strategy: DrawerAnchorStrategy
     ) {
-        stateHolder.setAnchorStrategy(strategy)
-        stateHolder.updateGeometry(input, preserveExpansionFraction = geometryInitialized)
+        latestAnchorInput = input
+        controller.setAnchorStrategy(strategy)
+        controller.refreshAnchors()
         if (!geometryInitialized) {
             val initial = if (initiallyExpanded) stateHolder.anchors.maxByOrNull { it.heightPx }
                 else stateHolder.anchors.minByOrNull { it.heightPx }
-            initial?.let { stateHolder.snapToAnchor(it.id) }
+            initial?.let { controller.moveToAnchor(it.id, animated = false) }
             geometryInitialized = true
         }
     }
@@ -170,7 +190,8 @@ fun DrawerContainer(
                 durationMillis = config.style.motion.settleDurationMs.coerceIn(0L, 1200L).toInt()
             )
 
-    val holder = state.stateHolder
+    val controller = state.controller
+    val holder = controller.stateHolder
     val snapshot = holder.snapshot
     val targetAnchor = snapshot.targetAnchorId?.let { id ->
         snapshot.anchors.firstOrNull { it.id == id }
@@ -181,12 +202,12 @@ fun DrawerContainer(
         animationSpec = if (!state.isGeometryInitialized || snapshot.isDragging) snap() else animationSpec,
         label = "drawer-container-height"
     )
-    val generation = holder.activeAnimationGeneration
+    val generation = controller.activeAnimationGeneration()
 
     LaunchedEffect(state, collapsedHeightPx, resolvedExpandedHeightPx, config.anchorStrategy, density.density) {
         val viewportHeightPx = resolvedExpandedHeightPx
         state.synchronizeGeometry(
-            input = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorInput(
+            input = DrawerAnchorInput(
                 minHeightPx = collapsedHeightPx.coerceAtMost(viewportHeightPx),
                 maxHeightPx = viewportHeightPx,
                 viewportHeightPx = viewportHeightPx,
@@ -240,7 +261,7 @@ fun DrawerContainer(
                             ?: Color.Black.copy(alpha = 0.32f)
                     )
                     .clickable(enabled = config.dismissOnScrimTap) {
-                        state.collapse()
+                        controller.collapse()
                         onDismiss()
                     }
             )
