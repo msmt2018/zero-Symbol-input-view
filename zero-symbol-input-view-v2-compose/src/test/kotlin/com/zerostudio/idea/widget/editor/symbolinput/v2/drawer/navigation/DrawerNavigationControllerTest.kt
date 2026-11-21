@@ -64,6 +64,19 @@ class DrawerNavigationControllerTest {
         assertEquals("second", controller.state.selectedPageId)
     }
 
+
+    @Test
+    fun publishedSnapshotPageIdsCannotBeMutatedByConsumers() {
+        val controller = DrawerNavigationController()
+        controller.submitPages(listOf(page("first"), page("second")))
+        val published = controller.state
+
+        assertThrows(UnsupportedOperationException::class.java) {
+            (published.pageIds as MutableList<String>).clear()
+        }
+        assertEquals(listOf("first", "second"), controller.state.pageIds)
+    }
+
     @Test fun selectsPagesAndPreservesSelectionAcrossUpdates() {
         val controller = DrawerNavigationController()
         controller.submitPages(listOf(page("one"), page("two")))
