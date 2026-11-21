@@ -47,6 +47,24 @@ class DrawerStateHolderTest {
     }
 
     @Test
+    fun changingAnchorStrategyPublishesTheNewObservableStrategy() {
+        val first = ThreeStageAnchorStrategy(useAutomaticPeekHeight = false)
+        val second = ExistingHeightAnchorStrategy()
+        val holder = DrawerStateHolder(
+            initialInput = input(),
+            initialStrategy = first,
+            initialAnchorId = "half"
+        )
+
+        assertEquals(first, holder.anchorStrategy)
+
+        holder.setAnchorStrategy(second)
+
+        assertEquals(second, holder.anchorStrategy)
+        assertEquals(second.resolve(input()), holder.anchors)
+    }
+
+    @Test
     fun initialStateUsesRequestedAnchor() {
         val holder = DrawerStateHolder(
             initialInput = input(),
