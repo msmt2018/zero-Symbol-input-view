@@ -51,6 +51,9 @@ class DrawerNestedScrollConnection(
         available: Offset,
         source: NestedScrollSource
     ): Offset {
+        // Programmatic descendant scrolling must not move the drawer. This
+        // connection participates only in user-driven nested gestures.
+        if (source != NestedScrollSource.UserInput) return Offset.Zero
         val result = stateHolder.dispatchNestedScroll(
             availableDeltaY = available.y,
             childCanScrollBackward = false,
@@ -65,6 +68,9 @@ class DrawerNestedScrollConnection(
         available: Offset,
         source: NestedScrollSource
     ): Offset {
+        // Side-effect scroll deltas (for example animateScrollToItem) belong
+        // to the descendant/ancestor scroll chain, not drawer gestures.
+        if (source != NestedScrollSource.UserInput) return Offset.Zero
         val result = stateHolder.dispatchNestedScroll(
             availableDeltaY = available.y,
             childCanScrollBackward = false,
