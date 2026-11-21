@@ -65,3 +65,30 @@ typealias DrawerNestedScrollInput = com.zerostudio.idea.widget.editor.symbolinpu
 typealias DrawerNestedScrollResult = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerNestedScrollResult
 typealias DrawerNestedScrollPolicy = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerNestedScrollPolicy
 typealias DrawerNestedScrollConnection = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerNestedScrollConnection
+
+/** Composition-owned factories exposed from the stable public drawer API. */
+@androidx.compose.runtime.Composable
+fun rememberDrawerStateHolder(
+    initialInput: DrawerAnchorInput,
+    initialStrategy: DrawerAnchorStrategy = ExistingHeightAnchorStrategy(),
+    initialAnchorId: String? = null
+): DrawerStateHolder =
+    com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.rememberDrawerStateHolder(
+        initialInput = initialInput,
+        initialStrategy = initialStrategy,
+        initialAnchorId = initialAnchorId
+    )
+
+@androidx.compose.runtime.Composable
+fun rememberDefaultDrawerController(
+    initialInput: DrawerAnchorInput,
+    anchorInputProvider: () -> DrawerAnchorInput,
+    initialStrategy: DrawerAnchorStrategy = ExistingHeightAnchorStrategy(),
+    initialAnchorId: String? = null
+): com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DefaultDrawerController =
+    com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.rememberDefaultDrawerController(
+        initialInput = initialInput,
+        anchorInputProvider = anchorInputProvider,
+        initialStrategy = initialStrategy,
+        initialAnchorId = initialAnchorId
+    )
