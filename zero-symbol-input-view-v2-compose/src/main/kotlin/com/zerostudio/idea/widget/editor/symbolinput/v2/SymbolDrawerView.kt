@@ -45,7 +45,8 @@
 
 package com.zerostudio.idea.widget.editor.symbolinput.v2
 
-import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
@@ -73,7 +74,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -93,6 +93,9 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSet
 import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.SymbolGroupIndicator
 import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.SymbolPage
 import kotlin.math.abs
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorInput
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerStateHolder
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.ExistingHeightAnchorStrategy
 
 /**
  * Composition-owned state for the symbol drawer.
@@ -103,17 +106,65 @@ import kotlin.math.abs
 @Stable
 class SymbolDrawerState internal constructor(
     initialPage: Int,
-    initiallyExpanded: Boolean
+    private val initiallyExpanded: Boolean
 ) {
     var selectedPage by mutableIntStateOf(initialPage.coerceAtLeast(0))
         internal set
-    var expanded by mutableStateOf(initiallyExpanded)
-        internal set
 
-    fun expand() { expanded = true }
-    fun collapse() { expanded = false }
-    fun toggle() { expanded = !expanded }
+    /** The same anchor engine used by the generic drawer container is authoritative. */
+    internal val stateHolder = DrawerStateHolder(
+        initialInput = DrawerAnchorInput(
+            minHeightPx = 0,
+            maxHeightPx = 0,
+            viewportHeightPx = 0,
+            contentHeightPx = 0,
+            existingExpandedHeightPx = 0
+        ),
+        initialStrategy = ExistingHeightAnchorStrategy(),
+        initialAnchorId = if (initiallyExpanded) "expanded" else "peek"
+    )
+    private var geometryInitialized = false
+
+    val expanded: Boolean
+        get() {
+            val anchors = stateHolder.anchors
+            val minimum = anchors.minOf { it.heightPx }
+            val maximum = anchors.maxOf { it.heightPx }
+            val target = stateHolder.snapshot.targetAnchorId
+                ?.let { id -> anchors.firstOrNull { it.id == id } }
+            return target?.heightPx?.let { it > minimum } ?: run {
+                stateHolder.currentHeightPx > minimum + (maximum - minimum) / 2
+            }
+        }
+
+    fun expand() { stateHolder.expandToMaxAnchor() }
+    fun collapse() { stateHolder.collapseToMinAnchor() }
+    fun toggle() { if (expanded) collapse() else expand() }
     fun selectPage(index: Int) { selectedPage = index.coerceAtLeast(0) }
+
+    internal fun synchronizeGeometry(
+        collapsedHeightPx: Int,
+        expandedHeightPx: Int,
+        density: Float
+    ) {
+        val maximum = expandedHeightPx.coerceAtLeast(collapsedHeightPx)
+        stateHolder.updateGeometry(
+            DrawerAnchorInput(
+                minHeightPx = collapsedHeightPx.coerceAtMost(maximum),
+                maxHeightPx = maximum,
+                viewportHeightPx = maximum,
+                contentHeightPx = maximum,
+                existingExpandedHeightPx = maximum,
+                density = density
+            ),
+            preserveExpansionFraction = geometryInitialized
+        )
+        if (!geometryInitialized) {
+            val initial = if (initiallyExpanded) "expanded" else "peek"
+            stateHolder.snapToAnchor(initial)
+            geometryInitialized = true
+        }
+    }
 }
 
 /** Creates state whose lifetime is the calling Composition. */
@@ -149,13 +200,39 @@ fun SymbolDrawer(
     val density = LocalDensity.current
     val collapsedHeight = (config.collapsedRows * config.cellHeightDp +
         config.indicatorHeightDp + 28).coerceAtLeast(96).dp
-    val expandedHeight = config.maxExpandedHeightDp.dp.coerceAtLeast(collapsedHeight)
-    val targetHeight = if (state.expanded) expandedHeight else collapsedHeight
-    val drawerHeight by animateDpAsState(
-        targetValue = targetHeight,
-        animationSpec = tween(config.animationDurationMs.coerceIn(0L, 1200L).toInt()),
+    val collapsedHeightPx = with(density) { collapsedHeight.roundToPx() }
+    val expandedHeightPx = with(density) {
+        config.maxExpandedHeightDp.dp.roundToPx().coerceAtLeast(collapsedHeightPx)
+    }
+    val holder = state.stateHolder
+    val drawerSnapshot = holder.snapshot
+    val targetAnchor = drawerSnapshot.targetAnchorId?.let { id ->
+        drawerSnapshot.anchors.firstOrNull { it.id == id }
+    }
+    val targetHeightPx = targetAnchor?.heightPx ?: drawerSnapshot.currentHeightPx
+    val animatedHeightPx by animateIntAsState(
+        targetValue = if (drawerSnapshot.isDragging) drawerSnapshot.currentHeightPx else targetHeightPx,
+        animationSpec = if (drawerSnapshot.isDragging) snap() else
+            tween<Int>(config.animationDurationMs.coerceIn(0L, 1200L).toInt()),
         label = "symbol-drawer-height"
     )
+    val animationGeneration = holder.activeAnimationGeneration
+
+    LaunchedEffect(state, collapsedHeightPx, expandedHeightPx, density.density) {
+        state.synchronizeGeometry(collapsedHeightPx, expandedHeightPx, density.density)
+    }
+    LaunchedEffect(holder, animatedHeightPx, animationGeneration, targetAnchor?.id) {
+        val generation = animationGeneration ?: return@LaunchedEffect
+        if (!holder.updateAnimatedHeight(animatedHeightPx, generation)) return@LaunchedEffect
+        val target = targetAnchor ?: return@LaunchedEffect
+        if (animatedHeightPx == target.heightPx) {
+            holder.finishAnimation(target.id, generation)
+        }
+    }
+    val drawerHeight = with(density) { animatedHeightPx.toDp() }
+    val dragState = remember(holder) {
+        DraggableState { delta -> holder.dragBy(delta) }
+    }
 
     val pagerState = rememberPagerState(
         initialPage = state.selectedPage.coerceIn(0, (safeGroups.size - 1).coerceAtLeast(0)),
@@ -176,21 +253,6 @@ fun SymbolDrawer(
         else state.selectedPage = state.selectedPage.coerceIn(0, safeGroups.lastIndex)
     }
 
-    var dragDistance by remember { mutableFloatStateOf(0f) }
-    val dragThresholdPx = with(density) { 28.dp.toPx() }
-    val dragState = remember(state) {
-        DraggableState { delta ->
-            dragDistance += delta
-            if (dragDistance <= -dragThresholdPx) {
-                state.expanded = true
-                dragDistance = 0f
-            } else if (dragDistance >= dragThresholdPx) {
-                state.expanded = false
-                dragDistance = 0f
-            }
-        }
-    }
-
     Surface(
         modifier = modifier
             .fillMaxWidth()
@@ -208,12 +270,12 @@ fun SymbolDrawer(
                     .draggable(
                         state = dragState,
                         orientation = Orientation.Vertical,
-                        onDragStarted = { dragDistance = 0f },
+                        onDragStarted = { holder.beginDrag() },
                         onDragStopped = { velocity ->
-                            if (abs(velocity) > with(density) { 900.dp.toPx() }) {
-                                state.expanded = velocity < 0f
-                            }
-                            dragDistance = 0f
+                            holder.endDrag(
+                                fingerVelocityY = velocity,
+                                minimumFlingVelocityPxPerSecond = with(density) { 900.dp.toPx() }
+                            )
                         }
                     ),
                 contentAlignment = Alignment.Center
