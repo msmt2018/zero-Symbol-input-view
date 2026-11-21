@@ -297,6 +297,13 @@ class DrawerStateHolder(
 
     fun moveToAnchor(anchorId: String): DrawerAnchor? {
         val target = resolvedAnchors.firstOrNull { it.id == anchorId } ?: return null
+
+        // Repeated semantic commands are common when a Compose host re-emits
+        // state-driven intents. Do not restart an animation already travelling
+        // to this exact target, or publish a redundant stable snapshot.
+        if (animating && targetAnchorId == target.id) return target
+        if (!dragging && !animating && heightPx == target.heightPx) return target
+
         animating = target.heightPx != heightPx
         dragging = false
         dragRemainderPx = 0f
