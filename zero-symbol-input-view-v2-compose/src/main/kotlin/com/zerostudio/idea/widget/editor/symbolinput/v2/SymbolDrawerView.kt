@@ -75,7 +75,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -92,7 +91,6 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
 import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.SymbolGroupIndicator
 import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.SymbolPage
-import kotlin.math.abs
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorInput
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerStateHolder
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.ExistingHeightAnchorStrategy
