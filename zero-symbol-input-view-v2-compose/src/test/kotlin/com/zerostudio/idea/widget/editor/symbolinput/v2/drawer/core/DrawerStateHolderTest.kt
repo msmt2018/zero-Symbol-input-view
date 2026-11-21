@@ -571,6 +571,93 @@ class DrawerStateHolderTest {
 
 
     @Test
+    fun geometryChangeRetargetsActiveAnimationAndRejectsOldFrames() {
+        val holder = DrawerStateHolder(
+            initialInput = input(),
+            initialStrategy = ThreeStageAnchorStrategy(useAutomaticPeekHeight = false),
+            initialAnchorId = "half"
+        )
+        holder.moveToAnchor("expanded")
+        val oldGeneration = holder.activeAnimationGeneration!!
+
+        holder.updateGeometry(
+            input().copy(
+                minHeightPx = 100,
+                maxHeightPx = 1000,
+                existingExpandedHeightPx = 1000
+            )
+        )
+
+        val newGeneration = holder.activeAnimationGeneration!!
+        assertTrue(newGeneration > oldGeneration)
+        assertEquals("expanded", holder.snapshot.targetAnchorId)
+        assertTrue(holder.isAnimating)
+        assertEquals(550, holder.currentHeightPx)
+        assertFalse(holder.updateAnimatedHeight(700, oldGeneration))
+        assertTrue(holder.updateAnimatedHeight(700, newGeneration))
+        assertTrue(holder.finishAnimation("expanded", newGeneration))
+        assertEquals(1000, holder.currentHeightPx)
+    }
+
+    @Test
+    fun geometryChangeKeepsActiveDragOwnershipAndContinuesWithNewBounds() {
+        val holder = DrawerStateHolder(
+            initialInput = input(),
+            initialStrategy = ThreeStageAnchorStrategy(useAutomaticPeekHeight = false),
+            initialAnchorId = "half"
+        )
+        holder.beginDrag()
+        holder.dragBy(-20f)
+
+        holder.updateGeometry(
+            input().copy(
+                minHeightPx = 100,
+                maxHeightPx = 1000,
+                existingExpandedHeightPx = 1000
+            )
+        )
+
+        assertTrue(holder.isDragging)
+        assertFalse(holder.isAnimating)
+        assertEquals(575, holder.currentHeightPx)
+        holder.dragBy(-10f)
+        assertEquals(585, holder.currentHeightPx)
+        assertTrue(holder.isDragging)
+    }
+
+    @Test
+    fun strategyChangeRetargetsActiveAnimationWhenSemanticAnchorStillExists() {
+        val oldStrategy = CustomAnchorStrategy(
+            listOf(
+                DrawerAnchor("peek", 100, DrawerAnchorState.PEEK),
+                DrawerAnchor("expanded", 500, DrawerAnchorState.EXPANDED)
+            )
+        )
+        val newStrategy = CustomAnchorStrategy(
+            listOf(
+                DrawerAnchor("peek", 200, DrawerAnchorState.PEEK),
+                DrawerAnchor("expanded", 900, DrawerAnchorState.EXPANDED)
+            )
+        )
+        val holder = DrawerStateHolder(
+            initialInput = input(),
+            initialStrategy = oldStrategy,
+            initialAnchorId = "peek"
+        )
+        holder.moveToAnchor("expanded")
+        val oldGeneration = holder.activeAnimationGeneration!!
+
+        holder.setAnchorStrategy(newStrategy)
+
+        val newGeneration = holder.activeAnimationGeneration!!
+        assertTrue(newGeneration > oldGeneration)
+        assertEquals("expanded", holder.snapshot.targetAnchorId)
+        assertTrue(holder.isAnimating)
+        assertFalse(holder.updateAnimatedHeight(400, oldGeneration))
+        assertTrue(holder.updateAnimatedHeight(600, newGeneration))
+    }
+
+    @Test
     fun geometryUpdateWithoutFractionPreservationClampsCurrentHeight() {
         val holder = DrawerStateHolder(
             initialInput = input(),
