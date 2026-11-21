@@ -122,6 +122,7 @@ class SymbolDrawerState internal constructor(
         initialAnchorId = if (initiallyExpanded) "expanded" else "peek"
     )
     private var geometryInitialized = false
+    internal val isGeometryInitialized: Boolean get() = geometryInitialized
 
     val expanded: Boolean
         get() {
@@ -210,7 +211,7 @@ fun SymbolDrawer(
     val targetHeightPx = targetAnchor?.heightPx ?: drawerSnapshot.currentHeightPx
     val animatedHeightPx by animateIntAsState(
         targetValue = if (drawerSnapshot.isDragging) drawerSnapshot.currentHeightPx else targetHeightPx,
-        animationSpec = if (drawerSnapshot.isDragging) snap() else
+        animationSpec = if (!state.isGeometryInitialized || drawerSnapshot.isDragging) snap() else
             tween<Int>(config.animationDurationMs.coerceIn(0L, 1200L).toInt()),
         label = "symbol-drawer-height"
     )
