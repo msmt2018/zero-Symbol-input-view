@@ -46,26 +46,33 @@
 package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core
 
 /** Runtime snapshot shared by the container and application-facing controller. */
-data class DrawerState(
+class DrawerState(
     val currentAnchorId: String,
     val currentHeightPx: Int,
-    val anchors: List<DrawerAnchor>,
+    anchors: List<DrawerAnchor>,
     val isDragging: Boolean = false,
     val isAnimating: Boolean = false,
     /** Stable destination selected for the active animation, if any. */
     val targetAnchorId: String? = null
 ) {
+    /**
+     * Immutable defensive snapshot. A caller may pass a mutable list to the
+     * constructor, but subsequent mutations cannot alter this published state.
+     */
+    val anchors: List<DrawerAnchor> =
+        java.util.Collections.unmodifiableList(ArrayList(anchors))
+
     init {
         require(currentAnchorId.isNotBlank())
         require(currentHeightPx >= 0)
-        require(anchors.isNotEmpty())
-        require(anchors.map { it.id }.distinct().size == anchors.size) {
+        require(this.anchors.isNotEmpty())
+        require(this.anchors.map { it.id }.distinct().size == this.anchors.size) {
             "Drawer state anchor IDs must be unique"
         }
-        require(targetAnchorId == null || anchors.any { it.id == targetAnchorId }) {
+        require(targetAnchorId == null || this.anchors.any { it.id == targetAnchorId }) {
             "Target anchor '$targetAnchorId' must exist in the state anchor list"
         }
-        require(anchors.any { it.id == currentAnchorId }) {
+        require(this.anchors.any { it.id == currentAnchorId }) {
             "Current anchor '$currentAnchorId' must exist in the state anchor list"
         }
     }
@@ -98,4 +105,54 @@ data class DrawerState(
     val isAtExpandedAnchor: Boolean
         get() = anchors.maxByOrNull { it.heightPx }?.id == currentAnchorId &&
             currentAnchor?.heightPx == currentHeightPx && !isDragging && !isAnimating
+
+    /** Retains the source-level copy contract of the former data class. */
+    fun copy(
+        currentAnchorId: String = this.currentAnchorId,
+        currentHeightPx: Int = this.currentHeightPx,
+        anchors: List<DrawerAnchor> = this.anchors,
+        isDragging: Boolean = this.isDragging,
+        isAnimating: Boolean = this.isAnimating,
+        targetAnchorId: String? = this.targetAnchorId
+    ): DrawerState = DrawerState(
+        currentAnchorId,
+        currentHeightPx,
+        anchors,
+        isDragging,
+        isAnimating,
+        targetAnchorId
+    )
+
+    operator fun component1(): String = currentAnchorId
+    operator fun component2(): Int = currentHeightPx
+    operator fun component3(): List<DrawerAnchor> = anchors
+    operator fun component4(): Boolean = isDragging
+    operator fun component5(): Boolean = isAnimating
+    operator fun component6(): String? = targetAnchorId
+
+    override fun equals(other: Any?): Boolean =
+        this === other || (
+            other is DrawerState &&
+                currentAnchorId == other.currentAnchorId &&
+                currentHeightPx == other.currentHeightPx &&
+                anchors == other.anchors &&
+                isDragging == other.isDragging &&
+                isAnimating == other.isAnimating &&
+                targetAnchorId == other.targetAnchorId
+            )
+
+    override fun hashCode(): Int {
+        var result = currentAnchorId.hashCode()
+        result = 31 * result + currentHeightPx
+        result = 31 * result + anchors.hashCode()
+        result = 31 * result + isDragging.hashCode()
+        result = 31 * result + isAnimating.hashCode()
+        result = 31 * result + (targetAnchorId?.hashCode() ?: 0)
+        return result
+    }
+
+    override fun toString(): String =
+        "DrawerState(currentAnchorId=$currentAnchorId, currentHeightPx=$currentHeightPx, " +
+            "anchors=$anchors, isDragging=$isDragging, isAnimating=$isAnimating, " +
+            "targetAnchorId=$targetAnchorId)"
 }
