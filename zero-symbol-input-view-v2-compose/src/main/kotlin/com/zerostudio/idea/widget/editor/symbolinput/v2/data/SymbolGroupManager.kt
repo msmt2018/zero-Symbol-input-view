@@ -49,6 +49,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import java.util.Collections
+import java.util.IdentityHashMap
 import java.util.UUID
 
 /**
@@ -327,19 +328,48 @@ class SymbolGroupManager(
         Collections.unmodifiableList(value.map { group ->
             group.copy(
                 symbols = Collections.unmodifiableList(group.symbols.map { symbol ->
+                    // The short and long action trees share one node budget so
+                    // malformed repository data cannot amplify work per action.
+                    val context = ActionFreezeContext()
                     symbol.copy(
-                        shortAction = freezeAction(symbol.shortAction),
-                        longAction = symbol.longAction?.let(::freezeAction)
+                        shortAction = freezeAction(symbol.shortAction, 0, context),
+                        longAction = symbol.longAction?.let { freezeAction(it, 0, context) }
                     )
                 })
             )
         })
 
-    private fun freezeAction(action: SymbolAction): SymbolAction = when (action) {
-        is SymbolAction.Composite -> action.copy(
-            actions = Collections.unmodifiableList(action.actions.map(::freezeAction))
-        )
-        else -> action
+    private class ActionFreezeContext {
+        var remainingNodes: Int = 256
+        val activePath = IdentityHashMap<SymbolAction, Boolean>()
+    }
+
+    private fun freezeAction(
+        action: SymbolAction,
+        depth: Int,
+        context: ActionFreezeContext
+    ): SymbolAction {
+        require(depth <= 8) { "Action nesting limit exceeded" }
+        context.remainingNodes--
+        require(context.remainingNodes >= 0) { "Action tree contains too many nested actions" }
+        require(context.activePath.put(action, true) == null) {
+            "Cyclic composite action tree is not supported"
+        }
+        return try {
+            when (action) {
+                is SymbolAction.Composite -> {
+                    require(action.actions.size in 1..64) { "Invalid composite action size" }
+                    action.copy(
+                        actions = Collections.unmodifiableList(
+                            action.actions.map { freezeAction(it, depth + 1, context) }
+                        )
+                    )
+                }
+                else -> action
+            }
+        } finally {
+            context.activePath.remove(action)
+        }
     }
 
     private fun commit(next: List<SymbolGroup>) {
