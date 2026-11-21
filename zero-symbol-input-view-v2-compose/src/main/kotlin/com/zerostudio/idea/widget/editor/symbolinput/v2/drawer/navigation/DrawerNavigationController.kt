@@ -45,10 +45,14 @@
 
 package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation
 
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.mutableStateOf
+
 /**
  * UI-agnostic page selection model. Compose navigation slots observe immutable
  * snapshots; the controller owns no composable, View, adapter or lifecycle.
  */
+@Stable
 class DrawerNavigationController {
     fun interface Listener {
         fun onNavigationChanged(snapshot: DrawerNavigationSnapshot, selectedIndex: Int)
@@ -57,6 +61,10 @@ class DrawerNavigationController {
     private var pages: List<DrawerPage> = emptyList()
     private var selectedId: String? = null
     private val listeners = LinkedHashSet<Listener>()
+
+    /** Compose-observable immutable navigation snapshot. Reading this property subscribes the caller to updates. */
+    var state: DrawerNavigationSnapshot by mutableStateOf(DrawerNavigationSnapshot(null, emptyList()))
+        private set
 
     fun submitPages(value: List<DrawerPage>, preserveSelection: Boolean = true) {
         require(value.map { it.id }.distinct().size == value.size) {
@@ -106,12 +114,13 @@ class DrawerNavigationController {
     }
 
     private fun dispatch() {
-        val state = snapshot()
+        val nextSnapshot = snapshot()
+        state = nextSnapshot
         val index = selectedIndex()
         var dispatchFailure: RuntimeException? = null
         listeners.toList().forEach { listener ->
             try {
-                listener.onNavigationChanged(state, index)
+                listener.onNavigationChanged(nextSnapshot, index)
             } catch (failure: RuntimeException) {
                 val firstFailure = dispatchFailure
                 if (firstFailure == null) dispatchFailure = failure
