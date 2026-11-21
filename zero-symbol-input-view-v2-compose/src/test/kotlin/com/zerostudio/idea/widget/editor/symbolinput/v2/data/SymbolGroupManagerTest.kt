@@ -215,4 +215,41 @@ class SymbolGroupManagerTest {
         assertEquals(listOf(9L, 10L), manager.groups.single().symbols.map { it.id })
     }
 
+    @Test
+    fun managerSnapshotsDetachAndFreezeNestedCallerCollections() {
+        val nestedActions = mutableListOf<SymbolAction>(SymbolAction.InsertText("first"))
+        val composite = SymbolAction.Composite(nestedActions)
+        val symbols = mutableListOf(SymbolEntry(1L, "one", composite))
+        val sourceGroups = mutableListOf(SymbolGroup("group", "Group", symbols))
+        val repository = MemoryRepository(sourceGroups)
+        val manager = SymbolGroupManager(repository)
+
+        nestedActions += SymbolAction.InsertText("late")
+        symbols.clear()
+        sourceGroups.clear()
+
+        assertEquals(1, manager.groups.single().symbols.size)
+        val storedComposite = manager.groups.single().symbols.single().shortAction as SymbolAction.Composite
+        assertEquals(1, storedComposite.actions.size)
+        assertTrue(runCatching { (manager.groups as MutableList<SymbolGroup>).clear() }.isFailure)
+        assertTrue(runCatching { (manager.groups.single().symbols as MutableList<SymbolEntry>).clear() }.isFailure)
+        assertTrue(runCatching { (storedComposite.actions as MutableList<SymbolAction>).clear() }.isFailure)
+    }
+
+    @Test
+    fun reloadPublishesDeeplyDetachedRepositorySnapshot() {
+        val repositorySymbols = mutableListOf(SymbolEntry(3L, "three", SymbolAction.InsertText("3")))
+        val repositoryGroups = mutableListOf(SymbolGroup("group", "Group", repositorySymbols))
+        val repository = MemoryRepository(emptyList())
+        val manager = SymbolGroupManager(repository)
+        repository.stored = repositoryGroups
+
+        manager.reload()
+        repositorySymbols.clear()
+        repositoryGroups.clear()
+
+        assertEquals(3L, manager.groups.single().symbols.single().id)
+        assertFalse(manager.groups.isEmpty())
+    }
+
 }
