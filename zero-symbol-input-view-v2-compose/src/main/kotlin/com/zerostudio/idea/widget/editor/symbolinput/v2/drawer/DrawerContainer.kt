@@ -107,20 +107,15 @@ class DrawerContainerState internal constructor(
         existingExpandedHeightPx = 0
     )
 
-    val controller: DefaultDrawerController
-    internal val stateHolder: DrawerStateHolder
-        get() = controller.stateHolder
+    private val sharedStateHolder = DrawerStateHolder(
+        initialInput = latestAnchorInput,
+        initialAnchorId = if (initiallyExpanded) "expanded" else "peek"
+    )
+    val controller = DefaultDrawerController(sharedStateHolder) { latestAnchorInput }
+    internal val stateHolder: DrawerStateHolder get() = sharedStateHolder
 
     private var geometryInitialized = false
     internal val isGeometryInitialized: Boolean get() = geometryInitialized
-
-    init {
-        stateHolder = DrawerStateHolder(
-            initialInput = latestAnchorInput,
-            initialAnchorId = if (initiallyExpanded) "expanded" else "peek"
-        )
-        controller = DefaultDrawerController(stateHolder) { latestAnchorInput }
-    }
 
     val expanded: Boolean
         get() {
