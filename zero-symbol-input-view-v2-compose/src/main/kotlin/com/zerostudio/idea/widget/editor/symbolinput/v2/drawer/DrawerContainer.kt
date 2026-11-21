@@ -101,6 +101,7 @@ class DrawerContainerState internal constructor(
         initialAnchorId = if (initiallyExpanded) "expanded" else "peek"
     )
     private var geometryInitialized = false
+    internal val isGeometryInitialized: Boolean get() = geometryInitialized
 
     val expanded: Boolean
         get() {
@@ -177,7 +178,7 @@ fun DrawerContainer(
     val targetHeightPx = targetAnchor?.heightPx ?: snapshot.currentHeightPx
     val animatedHeightPx by androidx.compose.animation.core.animateIntAsState(
         targetValue = if (snapshot.isDragging) snapshot.currentHeightPx else targetHeightPx,
-        animationSpec = if (snapshot.isDragging) snap() else animationSpec,
+        animationSpec = if (!state.isGeometryInitialized || snapshot.isDragging) snap() else animationSpec,
         label = "drawer-container-height"
     )
     val generation = holder.activeAnimationGeneration
