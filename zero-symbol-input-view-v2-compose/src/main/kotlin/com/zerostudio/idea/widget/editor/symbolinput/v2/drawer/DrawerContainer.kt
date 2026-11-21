@@ -159,10 +159,10 @@ fun DrawerContainer(
     val density = LocalDensity.current
     val dimensions = config.style.dimensions
     val collapsedHeight = (dimensions.peekHeightDp + dimensions.handleHeightDp + 24f).dp
+    val collapsedHeightPx = with(density) { collapsedHeight.roundToPx() }
     val maxExpandedHeightPx = with(density) { dimensions.expandedMaxHeightDp.dp.roundToPx() }
     val resolvedExpandedHeightPx = maxExpandedHeightPx.coerceAtLeast(collapsedHeightPx)
     val resolvedExpandedHeight = with(density) { resolvedExpandedHeightPx.toDp() }
-    val collapsedHeightPx = with(density) { collapsedHeight.roundToPx() }
     val animationSpec: androidx.compose.animation.core.AnimationSpec<Int> =
         if (config.style.motion.enableSpring) spring() else
             androidx.compose.animation.core.tween<Int>(
@@ -182,7 +182,7 @@ fun DrawerContainer(
     )
     val generation = holder.activeAnimationGeneration
 
-    LaunchedEffect(state, collapsedHeightPx, maxExpandedHeightPx, config.anchorStrategy, density.density) {
+    LaunchedEffect(state, collapsedHeightPx, resolvedExpandedHeightPx, config.anchorStrategy, density.density) {
         val viewportHeightPx = resolvedExpandedHeightPx
         state.synchronizeGeometry(
             input = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorInput(
