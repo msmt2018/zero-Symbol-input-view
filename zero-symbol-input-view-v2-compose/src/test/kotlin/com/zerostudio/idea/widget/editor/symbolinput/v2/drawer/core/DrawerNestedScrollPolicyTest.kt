@@ -6,6 +6,7 @@
 package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class DrawerNestedScrollPolicyTest {
@@ -123,4 +124,70 @@ class DrawerNestedScrollPolicyTest {
         assertEquals(0f, result.consumedDeltaY, 0f)
         assertEquals(-50f, result.remainingDeltaY, 0f)
     }
+
+    @Test
+    fun consumptionAlwaysConservesTheIncomingDeltaAcrossDirectionsAndPhases() {
+        val deltas = listOf(-2_000f, -240f, -0.5f, 0f, 0.5f, 180f, 2_000f)
+        val heights = listOf(100, 101, 400, 899, 900)
+        val phases = DrawerNestedScrollPhase.entries
+
+        for (delta in deltas) {
+            for (height in heights) {
+                for (phase in phases) {
+                    val result = DrawerNestedScrollPolicy.resolve(
+                        input(delta, height, phase = phase)
+                    )
+                    assertEquals(
+                        "Delta must be conserved for delta=$delta height=$height phase=$phase",
+                        delta,
+                        result.consumedDeltaY + result.remainingDeltaY,
+                        0.0001f
+                    )
+                    assertEquals(
+                        "Consumed delta must not reverse direction",
+                        true,
+                        result.consumedDeltaY == 0f ||
+                            kotlin.math.sign(result.consumedDeltaY) == kotlin.math.sign(delta)
+                    )
+                    assertEquals(
+                        "Consumed magnitude must not exceed available magnitude",
+                        true,
+                        kotlin.math.abs(result.consumedDeltaY) <= kotlin.math.abs(delta)
+                    )
+                }
+            }
+        }
+    }
+
+    @Test
+    fun childScrollDiagnosticFlagDoesNotOverrideActualPostScrollRemainder() {
+        val childCanScroll = DrawerNestedScrollPolicy.resolve(
+            input(
+                delta = 120f,
+                height = 600,
+                childCanScrollBackward = true,
+                phase = DrawerNestedScrollPhase.POST_SCROLL
+            )
+        )
+        val childAtBoundary = DrawerNestedScrollPolicy.resolve(
+            input(
+                delta = 120f,
+                height = 600,
+                childCanScrollBackward = false,
+                phase = DrawerNestedScrollPhase.POST_SCROLL
+            )
+        )
+
+        assertEquals(childAtBoundary, childCanScroll)
+        assertEquals(120f, childCanScroll.consumedDeltaY, 0f)
+    }
+
+    @Test
+    fun veryLargeFiniteDeltaLeavesFiniteUnconsumedRemainder() {
+        val result = DrawerNestedScrollPolicy.resolve(input(Float.MAX_VALUE, 700))
+        assertEquals(0f, result.consumedDeltaY, 0f)
+        assertEquals(Float.MAX_VALUE, result.remainingDeltaY, 0f)
+        assertTrue(result.remainingDeltaY.isFinite())
+    }
+
 }
