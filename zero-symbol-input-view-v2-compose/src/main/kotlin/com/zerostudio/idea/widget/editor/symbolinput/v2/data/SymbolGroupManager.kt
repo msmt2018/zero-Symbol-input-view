@@ -45,6 +45,7 @@
 
 package com.zerostudio.idea.widget.editor.symbolinput.v2.data
 
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import java.util.Collections
