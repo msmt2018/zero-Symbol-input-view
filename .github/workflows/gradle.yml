@@ -142,6 +142,9 @@ jobs:
       - name: Grant Permissions for Gradle
         run: chmod +x gradlew
 
+      - name: Audit Compose migration inventory
+        run: ./gradlew :zero-symbol-input-view-v2-compose:auditComposeMigration
+
       - name: Build Compose V2 debug and release variants
         run: ./gradlew :zero-symbol-input-view-v2-compose:assembleDebug :zero-symbol-input-view-v2-compose:assembleRelease
 
