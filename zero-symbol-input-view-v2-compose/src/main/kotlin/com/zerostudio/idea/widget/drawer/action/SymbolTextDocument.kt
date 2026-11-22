@@ -101,6 +101,7 @@ interface SymbolTextDocument {
         val originalSelectionStart = selectionStart.coerceIn(0, textLength)
         val originalSelectionEnd = selectionEnd.coerceIn(0, textLength)
         beginEditTransaction()
+        var transactionFinalized = false
 
         fun rollback(cause: Throwable? = null): Throwable? {
             var failure = cause
@@ -134,6 +135,7 @@ interface SymbolTextDocument {
                 val originalText = textBetween(edit.start, edit.end)
                 if (!replace(edit.start, edit.end, edit.replacement)) {
                     val rollbackFailure = rollback()
+                    transactionFinalized = true
                     try {
                         endEditTransaction(false)
                     } catch (transactionError: Throwable) {
@@ -156,14 +158,18 @@ interface SymbolTextDocument {
                 applied += AppliedEdit(edit, originalText)
             }
             endEditTransaction(true)
+            transactionFinalized = true
             return true
         } catch (error: Throwable) {
-            val rollbackFailure = rollback(error)
-            try {
-                endEditTransaction(false)
-            } catch (transactionError: Throwable) {
-                rollbackFailure?.addSuppressed(transactionError)
-                    ?: error.addSuppressed(transactionError)
+            if (!transactionFinalized) {
+                val rollbackFailure = rollback(error)
+                try {
+                    endEditTransaction(false)
+                } catch (transactionError: Throwable) {
+                    rollbackFailure?.addSuppressed(transactionError)
+                        ?: error.addSuppressed(transactionError)
+                }
+                transactionFinalized = true
             }
             throw error
         }
