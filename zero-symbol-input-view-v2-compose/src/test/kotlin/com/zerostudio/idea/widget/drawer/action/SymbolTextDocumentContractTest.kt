@@ -186,6 +186,15 @@ class SymbolTextDocumentContractTest {
         assertEquals("𐐀", document.selectedText())
     }
 
+    @Test fun rejectsBatchEditsThatSplitSurrogatePairsBeforeMutatingDocument() {
+        val document = Buffer("a𐐀b")
+
+        assertFalse(document.applyEdits(listOf(TextDocumentEdit(2, 3, "x"))))
+        assertEquals("a𐐀b", document.value)
+        assertFalse(document.applyEdits(listOf(TextDocumentEdit(1, 2, "x"))))
+        assertEquals("a𐐀b", document.value)
+    }
+
     @Test fun rejectsOverlappingEditsBeforeMutatingDocument() {
         val document = Buffer("abcdef")
         assertFalse(document.applyEdits(listOf(
