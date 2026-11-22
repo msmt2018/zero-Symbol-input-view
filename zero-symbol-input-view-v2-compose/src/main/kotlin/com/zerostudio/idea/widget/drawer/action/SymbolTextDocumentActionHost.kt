@@ -271,30 +271,8 @@ class SymbolTextDocumentActionHost(
      * A collapsed caret inside a pair is moved to its start, preserving the
      * established insertion semantics without replacing the character.
      */
-    private fun normalizedSelectionRange(): SymbolTextRange {
-        val length = document.textLength
-        var start = minOf(document.selectionStart, document.selectionEnd).coerceIn(0, length)
-        var end = maxOf(document.selectionStart, document.selectionEnd).coerceIn(start, length)
-        if (start == end) {
-            if (start > 0 && start < length &&
-                Character.isHighSurrogate(document.charAt(start - 1)) &&
-                Character.isLowSurrogate(document.charAt(start))
-            ) {
-                start--
-                end--
-            }
-            return SymbolTextRange(start, end)
-        }
-        if (start > 0 && start < length &&
-            Character.isHighSurrogate(document.charAt(start - 1)) &&
-            Character.isLowSurrogate(document.charAt(start))
-        ) start--
-        if (end > 0 && end < length &&
-            Character.isHighSurrogate(document.charAt(end - 1)) &&
-            Character.isLowSurrogate(document.charAt(end))
-        ) end++
-        return SymbolTextRange(start, end)
-    }
+    private fun normalizedSelectionRange(): TextDocumentRange =
+        document.codePointSafeSelectionRange()
 
     /**
      * Reads at most two UTF-16 code units around the caret. Cursor movement and
