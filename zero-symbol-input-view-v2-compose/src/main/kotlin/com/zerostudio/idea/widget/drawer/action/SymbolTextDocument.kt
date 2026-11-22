@@ -65,6 +65,17 @@ interface SymbolTextDocument {
     }
 
     /**
+     * Returns whether a UTF-16 offset is a code-point boundary.
+     * Offsets between a valid high/low surrogate pair are rejected by batch edits.
+     */
+    fun isCodePointBoundary(offset: Int): Boolean {
+        if (offset !in 0..textLength) return false
+        return offset == 0 || offset == textLength ||
+            !(Character.isHighSurrogate(charAt(offset - 1)) &&
+                Character.isLowSurrogate(charAt(offset)))
+    }
+
+    /**
      * True only when [endEditTransaction] with commit=false atomically restores
      * both document text and selection to the state at [beginEditTransaction].
      * Hosts that do not provide that guarantee must leave this false; the
@@ -124,7 +135,8 @@ interface SymbolTextDocument {
             val sameOffsetInsertionsConflict =
                 edit.start == previousStart && (edit.start == edit.end || previousWasInsertion)
             if (edit.start < 0 || edit.end < edit.start || edit.end > textLength ||
-                edit.end > previousStart || sameOffsetInsertionsConflict
+                edit.end > previousStart || sameOffsetInsertionsConflict ||
+                !isCodePointBoundary(edit.start) || !isCodePointBoundary(edit.end)
             ) return false
             previousStart = edit.start
             previousWasInsertion = edit.start == edit.end
