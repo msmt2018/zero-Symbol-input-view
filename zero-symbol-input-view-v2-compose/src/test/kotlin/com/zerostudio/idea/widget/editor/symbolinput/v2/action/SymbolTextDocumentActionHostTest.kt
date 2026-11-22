@@ -134,7 +134,7 @@ class SymbolTextDocumentActionHostTest {
         val host = SymbolTextDocumentActionHost(document)
 
         assertTrue(host.insertText("[\$W]"))
-        assertEquals("[𐐀alpha] tail", document.value)
+        assertEquals("Supplementary-plane letters must remain part of the macro word", "[𐐀alpha] tail", document.value)
     }
 
     @Test fun currentWordMacroNormalizesCaretInsideSurrogatePair() {
