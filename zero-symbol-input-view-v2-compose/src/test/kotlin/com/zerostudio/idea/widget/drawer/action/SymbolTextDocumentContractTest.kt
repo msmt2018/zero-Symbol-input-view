@@ -174,6 +174,13 @@ class SymbolTextDocumentContractTest {
         assertEquals(listOf(true, false), document.transactionEvents)
     }
 
+
+    @Test fun selectedTextExpandsSplitSurrogateBoundaries() {
+        val document = Buffer("a𐐀b")
+        document.setSelection(2, 3)
+        assertEquals("𐐀", document.selectedText())
+    }
+
     @Test fun rejectsOverlappingEditsBeforeMutatingDocument() {
         val document = Buffer("abcdef")
         assertFalse(document.applyEdits(listOf(
