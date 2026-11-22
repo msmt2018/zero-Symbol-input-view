@@ -78,17 +78,63 @@ class SymbolTextDocumentActionHost(
     }
 
     private fun currentWordAtCursor(cursorOffset: Int): String {
-        if (document.textLength == 0) return ""
-        var pivot = cursorOffset.coerceIn(0, document.textLength)
-        fun isWord(offset: Int): Boolean =
-            offset in 0 until document.textLength &&
-                (document.charAt(offset).isLetterOrDigit() || document.charAt(offset) == '_')
-        if (!isWord(pivot) && isWord(pivot - 1)) pivot--
-        if (!isWord(pivot)) return ""
+        val length = document.textLength
+        if (length == 0) return ""
+
+        fun codePointAt(offset: Int): Int {
+            val first = document.charAt(offset)
+            if (Character.isHighSurrogate(first) && offset + 1 < length) {
+                val second = document.charAt(offset + 1)
+                if (Character.isLowSurrogate(second)) {
+                    return Character.toCodePoint(first, second)
+                }
+            }
+            return first.code
+        }
+
+        fun previousCodePointStart(offset: Int): Int {
+            var start = offset - 1
+            if (start > 0 && Character.isLowSurrogate(document.charAt(start)) &&
+                Character.isHighSurrogate(document.charAt(start - 1))
+            ) {
+                start--
+            }
+            return start
+        }
+
+        fun isWord(codePoint: Int): Boolean =
+            Character.isUnicodeIdentifierPart(codePoint)
+
+        var pivot = cursorOffset.coerceIn(0, length)
+        // A host may place the caret between the two UTF-16 units of a
+        // supplementary character. Normalize it to that code point's start.
+        if (pivot > 0 && pivot < length &&
+            Character.isHighSurrogate(document.charAt(pivot - 1)) &&
+            Character.isLowSurrogate(document.charAt(pivot))
+        ) {
+            pivot--
+        }
+
+        if (pivot == length || !isWord(codePointAt(pivot))) {
+            if (pivot == 0) return ""
+            val previousStart = previousCodePointStart(pivot)
+            if (!isWord(codePointAt(previousStart))) return ""
+            pivot = previousStart
+        }
+
         var start = pivot
-        var end = pivot + 1
-        while (start > 0 && isWord(start - 1)) start--
-        while (end < document.textLength && isWord(end)) end++
+        while (start > 0) {
+            val previousStart = previousCodePointStart(start)
+            if (!isWord(codePointAt(previousStart))) break
+            start = previousStart
+        }
+
+        var end = pivot + Character.charCount(codePointAt(pivot))
+        while (end < length) {
+            val codePoint = codePointAt(end)
+            if (!isWord(codePoint)) break
+            end += Character.charCount(codePoint)
+        }
         return document.textBetween(start, end)
     }
 
