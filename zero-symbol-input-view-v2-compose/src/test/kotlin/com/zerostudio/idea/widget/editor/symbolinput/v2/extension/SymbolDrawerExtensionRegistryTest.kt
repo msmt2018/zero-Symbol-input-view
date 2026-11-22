@@ -169,4 +169,72 @@ class SymbolDrawerExtensionRegistryTest {
             SymbolDrawerActionExtension("bad id", "Bad", handler = { _, _ -> true })
         )
     }
+
+    @Test fun reentrantMutationPreservesNotificationOrderForEveryObserver() {
+        val registry = SymbolDrawerExtensionRegistry()
+        val observedBySecondListener = mutableListOf<List<String>>()
+        var reentered = false
+
+        registry.observe(emitCurrent = false) { snapshot ->
+            if (!reentered && snapshot.actions.any { it.id == "first.action" }) {
+                reentered = true
+                registry.registerAction(
+                    SymbolDrawerActionExtension(
+                        "second.action",
+                        "Second",
+                        handler = { _, _ -> true }
+                    )
+                )
+            }
+        }
+        registry.observe(emitCurrent = false) { snapshot ->
+            observedBySecondListener += snapshot.actions.map { it.id }
+        }
+
+        registry.registerAction(
+            SymbolDrawerActionExtension(
+                "first.action",
+                "First",
+                handler = { _, _ -> true }
+            )
+        )
+
+        assertEquals(
+            listOf(
+                listOf("first.action"),
+                listOf("first.action", "second.action")
+            ),
+            observedBySecondListener
+        )
+    }
+
+    @Test fun observerAddedDuringDispatchDoesNotReceiveOlderQueuedSnapshots() {
+        val registry = SymbolDrawerExtensionRegistry()
+        val lateObserverRevisions = mutableListOf<Long>()
+        var subscribed = false
+
+        registry.observe(emitCurrent = false) { snapshot ->
+            if (!subscribed && snapshot.actions.any { it.id == "first.action" }) {
+                subscribed = true
+                registry.observe { current -> lateObserverRevisions += current.revision }
+                registry.registerAction(
+                    SymbolDrawerActionExtension(
+                        "second.action",
+                        "Second",
+                        handler = { _, _ -> true }
+                    )
+                )
+            }
+        }
+
+        registry.registerAction(
+            SymbolDrawerActionExtension(
+                "first.action",
+                "First",
+                handler = { _, _ -> true }
+            )
+        )
+
+        assertEquals(listOf(registry.revision()), lateObserverRevisions)
+    }
 }
