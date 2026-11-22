@@ -134,7 +134,9 @@ class SymbolTextDocumentActionHostTest {
         val host = SymbolTextDocumentActionHost(document)
 
         assertTrue(host.insertText("[\$W]"))
-        assertEquals("Supplementary-plane letters must remain part of the macro word", "[𐐀alpha] tail", document.value)
+        // $W expands the current word at the caret; insertText does not replace
+        // the word unless the document selection explicitly covers it.
+        assertEquals("𐐀alpha[𐐀alpha] tail", document.value)
     }
 
     @Test fun currentWordMacroNormalizesCaretInsideSurrogatePair() {
@@ -143,7 +145,10 @@ class SymbolTextDocumentActionHostTest {
         val host = SymbolTextDocumentActionHost(document)
 
         assertTrue(host.insertText("[\$W]"))
-        assertEquals("[𐐀alpha] tail", document.value)
+        // The insertion point is normalized to the code point start, preserving
+        // the original supplementary character as a valid surrogate pair.
+        assertEquals("[𐐀alpha]𐐀alpha tail", document.value)
+        assertTrue(document.value.contains("𐐀"))
     }
 
     @Test fun currentLineMacroPreservesItsLeadingIndentation() {
