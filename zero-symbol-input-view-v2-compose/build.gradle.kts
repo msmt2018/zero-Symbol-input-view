@@ -142,7 +142,7 @@ val auditComposeMigration by tasks.registering {
             Regex("""^\s*import\s+(?:android\.app\.(?:Activity|Fragment)|androidx\.activity\.|androidx\.fragment\.|androidx\.lifecycle\.|androidx\.savedstate\.)""")
     )
     val forbiddenQualifiedReferences = listOf(
-        Regex("""\\b(?:android\\.(?:view|widget|graphics)|androidx\\.(?:recyclerview|viewpager2|activity|fragment|lifecycle|savedstate)|com\\.google\\.android\\.material)\\.[A-Z][A-Za-z0-9_]*(?:\\.[A-Z][A-Za-z0-9_]*)*\\b""")
+        Regex("""\b(?:android\.(?:view|widget|graphics)|androidx\.(?:recyclerview|viewpager2|activity|fragment|lifecycle|savedstate)|com\.google\.android\.material)\.[A-Z][A-Za-z0-9_]*(?:\.[A-Z][A-Za-z0-9_]*)*\b""")
     )
     val forbiddenReferences = listOf(
         Regex("""\bAndroidView(?:Binding)?\s*\("""),
@@ -216,7 +216,7 @@ val verifyComposeArtifactBoundary by tasks.registering {
             .flatMap { root -> root.walkTopDown().filter { it.isFile && it.extension in setOf("kt", "java") }.toList() }
         val forbiddenImports = Regex("""^\s*import\s+(android\.view\.|android\.widget\.|android\.graphics\.|androidx\.recyclerview\.|androidx\.viewpager2\.|com\.google\.android\.material\.|android\.app\.(Activity|Fragment)|androidx\.activity\.|androidx\.fragment\.|androidx\.lifecycle\.|androidx\.savedstate\.)""")
         val forbiddenReferences = Regex("""\b(AndroidView(?:Binding)?|SymbolDrawerView|ViewGroup|MotionEvent|RecyclerView|ViewPager2|Activity|Fragment|Lifecycle|LifecycleOwner|LifecycleRegistry|LocalLifecycleOwner|ViewModel|ViewModelStoreOwner|ViewModelProvider|SavedStateHandle|SavedStateRegistryOwner|LifecycleEventObserver|rememberLauncherForActivityResult)\b""")
-        val forbiddenQualifiedReferences = Regex("""\\b(?:android\\.(?:view|widget|graphics)|androidx\\.(?:recyclerview|viewpager2|activity|fragment|lifecycle|savedstate)|com\\.google\\.android\\.material)\\.[A-Z][A-Za-z0-9_]*(?:\\.[A-Z][A-Za-z0-9_]*)*\\b""")
+        val forbiddenQualifiedReferences = Regex("""\b(?:android\.(?:view|widget|graphics)|androidx\.(?:recyclerview|viewpager2|activity|fragment|lifecycle|savedstate)|com\.google\.android\.material)\.[A-Z][A-Za-z0-9_]*(?:\.[A-Z][A-Za-z0-9_]*)*\b""")
         val violations = files.flatMap { file ->
             file.readLines().mapIndexedNotNull { index, line ->
                 val trimmed = line.trimStart()
