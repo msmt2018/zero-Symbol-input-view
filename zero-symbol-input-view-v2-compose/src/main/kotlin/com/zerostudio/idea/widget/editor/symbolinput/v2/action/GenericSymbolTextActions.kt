@@ -70,8 +70,9 @@ object GenericSymbolTextActions {
             if (!document.isEditable) {
                 false
             } else {
-                val start = minOf(document.selectionStart, document.selectionEnd)
-                val end = maxOf(document.selectionStart, document.selectionEnd)
+                val range = document.codePointSafeSelectionRange()
+                val start = range.start
+                val end = range.end
                 val replacement = payload.orEmpty()
                 if (!document.replace(start, end, replacement)) {
                     false
@@ -299,11 +300,12 @@ object GenericSymbolTextActions {
 
     private fun toggleLineComments(document: PublicSymbolTextDocument, marker: String): Boolean {
         if (!document.isEditable || marker.isEmpty()) return false
-        val firstLine = document.lineForOffset(document.selectionStart).coerceIn(0, document.lineCount - 1)
-        var lastLine = document.lineForOffset(document.selectionEnd).coerceIn(0, document.lineCount - 1)
-        if (document.selectionStart != document.selectionEnd &&
+        val selection = document.codePointSafeSelectionRange()
+        val firstLine = document.lineForOffset(selection.start).coerceIn(0, document.lineCount - 1)
+        var lastLine = document.lineForOffset(selection.end).coerceIn(0, document.lineCount - 1)
+        if (selection.start != selection.end &&
             lastLine > firstLine &&
-            document.selectionEnd == document.lineStartOffset(lastLine)
+            selection.end == document.lineStartOffset(lastLine)
         ) lastLine--
         for (line in lastLine downTo firstLine) {
             val content = document.lineText(line)
@@ -351,17 +353,19 @@ object GenericSymbolTextActions {
     }
 
     private fun deleteSelection(document: PublicSymbolTextDocument): Boolean {
-        if (!document.isEditable || document.selectionStart == document.selectionEnd) return false
-        val start = document.selectionStart
-        if (!document.replace(start, document.selectionEnd, "")) return false
+        val range = document.codePointSafeSelectionRange()
+        if (!document.isEditable || range.start == range.end) return false
+        val start = range.start
+        if (!document.replace(start, range.end, "")) return false
         document.setSelection(start, start)
         return true
     }
 
     private fun duplicateSelection(document: PublicSymbolTextDocument): Boolean {
-        if (!document.isEditable || document.selectionStart == document.selectionEnd) return false
-        val start = document.selectionStart
-        val end = document.selectionEnd
+        val range = document.codePointSafeSelectionRange()
+        if (!document.isEditable || range.start == range.end) return false
+        val start = range.start
+        val end = range.end
         val selected = document.textBetween(start, end)
         if (!document.replace(end, end, selected)) return false
         document.setSelection(end, end + selected.length)
@@ -372,9 +376,10 @@ object GenericSymbolTextActions {
         document: PublicSymbolTextDocument,
         transform: (String) -> String
     ): Boolean {
-        if (!document.isEditable || document.selectionStart == document.selectionEnd) return false
-        val start = document.selectionStart
-        val end = document.selectionEnd
+        val range = document.codePointSafeSelectionRange()
+        if (!document.isEditable || range.start == range.end) return false
+        val start = range.start
+        val end = range.end
         val result = transform(document.textBetween(start, end))
         if (!document.replace(start, end, result)) return false
         document.setSelection(start, start + result.length)
@@ -382,9 +387,10 @@ object GenericSymbolTextActions {
     }
 
     private fun wrapSelection(document: PublicSymbolTextDocument, prefix: String, suffix: String): Boolean {
-        if (!document.isEditable || document.selectionStart == document.selectionEnd) return false
-        val start = document.selectionStart
-        val end = document.selectionEnd
+        val range = document.codePointSafeSelectionRange()
+        if (!document.isEditable || range.start == range.end) return false
+        val start = range.start
+        val end = range.end
         val selected = document.textBetween(start, end)
         if (!document.replace(start, end, prefix + selected + suffix)) return false
         document.setSelection(start + prefix.length, start + prefix.length + selected.length)
@@ -452,8 +458,9 @@ object GenericSymbolTextActions {
     }
 
     private fun selectedLineRange(document: PublicSymbolTextDocument): IntRange? {
-        val start = document.selectionStart
-        val end = document.selectionEnd
+        val selection = document.codePointSafeSelectionRange()
+        val start = selection.start
+        val end = selection.end
         if (start == end) return null
         val first = document.lineForOffset(start).coerceIn(0, document.lineCount - 1)
         var last = document.lineForOffset(end).coerceIn(0, document.lineCount - 1)
@@ -464,8 +471,9 @@ object GenericSymbolTextActions {
     private fun indentSelectedLines(document: PublicSymbolTextDocument, indent: String): Boolean {
         if (!document.isEditable || indent.isEmpty()) return false
         val range = selectedLineRange(document) ?: return false
-        val oldStart = document.selectionStart
-        val oldEnd = document.selectionEnd
+        val selection = document.codePointSafeSelectionRange()
+        val oldStart = selection.start
+        val oldEnd = selection.end
         for (line in range.last downTo range.first) {
             val start = document.lineStartOffset(line)
             if (!document.replace(start, start, indent)) return false
@@ -477,8 +485,9 @@ object GenericSymbolTextActions {
     private fun unindentSelectedLines(document: PublicSymbolTextDocument): Boolean {
         if (!document.isEditable) return false
         val range = selectedLineRange(document) ?: return false
-        val oldStart = document.selectionStart
-        val oldEnd = document.selectionEnd
+        val selection = document.codePointSafeSelectionRange()
+        val oldStart = selection.start
+        val oldEnd = selection.end
         val firstStart = document.lineStartOffset(range.first)
         var firstRemoved = 0
         var totalRemoved = 0
@@ -533,8 +542,9 @@ object GenericSymbolTextActions {
         if (!document.isEditable || document.textLength > MAX_DOCUMENT_WIDE_CHARS ||
             document.lineCount > MAX_DOCUMENT_WIDE_LINES
         ) return false
-        val oldStart = document.selectionStart
-        val oldEnd = document.selectionEnd
+        val selection = document.codePointSafeSelectionRange()
+        val oldStart = selection.start
+        val oldEnd = selection.end
         var startShift = 0
         var endShift = 0
         var changed = false
@@ -567,8 +577,9 @@ object GenericSymbolTextActions {
             else -> "\n"
         }
         val oldLength = document.textLength
-        val oldStart = document.selectionStart
-        val oldEnd = document.selectionEnd
+        val selection = document.codePointSafeSelectionRange()
+        val oldStart = selection.start
+        val oldEnd = selection.end
         if (!document.replace(oldLength, oldLength, separator)) return false
         document.setSelection(
             if (oldStart == oldLength) oldLength + separator.length else oldStart,
