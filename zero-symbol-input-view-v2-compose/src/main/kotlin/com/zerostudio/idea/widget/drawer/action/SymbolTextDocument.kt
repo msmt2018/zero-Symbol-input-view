@@ -77,9 +77,8 @@ interface SymbolTextDocument {
     fun endEditTransaction(commit: Boolean) = Unit
 
     fun selectedText(): String {
-        val start = minOf(selectionStart, selectionEnd).coerceIn(0, textLength)
-        val end = maxOf(selectionStart, selectionEnd).coerceIn(start, textLength)
-        return textBetween(start, end)
+        val range = codePointSafeSelectionRange()
+        return textBetween(range.start, range.end)
     }
 
     fun positionForOffset(offset: Int): TextDocumentPosition {
