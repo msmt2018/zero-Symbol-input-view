@@ -208,6 +208,43 @@ class SymbolTextDocumentActionHostTest {
         assertTrue(host.moveCursor(CursorTarget.LEFT))
         assertEquals(1, document.cursorOffset)
     }
+    @Test fun replaceSelectionExpandsSurrogatePairSplitBySelection() {
+        val document = Document("a𐐀b")
+        document.setSelection(2, 3)
+        val host = SymbolTextDocumentActionHost(document)
+
+        assertTrue(host.replaceSelection("x"))
+        assertEquals("axb", document.value)
+    }
+
+    @Test fun surroundSelectionExpandsSurrogatePairSplitBySelection() {
+        val document = Document("a𐐀b")
+        document.setSelection(2, 3)
+        val host = SymbolTextDocumentActionHost(document)
+
+        assertTrue(host.surroundSelection("<", ">"))
+        assertEquals("a<𐐀>b", document.value)
+        assertEquals("𐐀", document.value.substring(document.selectionStart, document.selectionEnd))
+    }
+
+    @Test fun transformSelectionExpandsSurrogatePairSplitBySelection() {
+        val document = Document("𐐨x")
+        document.setSelection(0, 1)
+        val host = SymbolTextDocumentActionHost(document)
+
+        assertTrue(host.transformSelection(SelectionTransform.UPPERCASE))
+        assertEquals("𐐀x", document.value)
+    }
+
+    @Test fun deleteSelectionExpandsSurrogatePairSplitBySelection() {
+        val document = Document("a𐐀b")
+        document.setSelection(2, 3)
+        val host = SymbolTextDocumentActionHost(document)
+
+        assertTrue(host.delete(com.zerostudio.idea.widget.editor.symbolinput.v2.model.DeleteKind.BACKWARD))
+        assertEquals("ab", document.value)
+    }
+
     @Test fun backwardDeleteRemovesWholeSupplementaryCodePoint() {
         val document = Document("a😀b")
         document.setSelection(3, 3)
