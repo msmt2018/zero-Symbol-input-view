@@ -56,12 +56,34 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.*
  * construct an arbitrarily large action tree before execution validation.
  */
 object SymbolActionJsonCodec {
-    fun encode(action: SymbolAction): JsonObject {
+    fun encode(action: SymbolAction): JsonObject =
+        encodeInternal(action, depth = 0, budget = EncodeBudget())
+
+    private fun encodeInternal(
+        action: SymbolAction,
+        depth: Int,
+        budget: EncodeBudget
+    ): JsonObject {
+        require(depth in 0..MAX_NESTING_DEPTH) { "Action JSON nesting limit exceeded" }
+        budget.consumeNode()
         val json = JsonObject().apply { addProperty("schemaVersion", CURRENT_SCHEMA_VERSION) }
         when (action) {
-            is SymbolAction.InsertText -> { json.addProperty("kind", "insertText"); json.addProperty("template", action.template) }
-            is SymbolAction.ReplaceSelection -> { json.addProperty("kind", "replaceSelection"); json.addProperty("text", action.text) }
+            is SymbolAction.InsertText -> {
+                requireBoundedText(action.template, "template")
+                json.addProperty("kind", "insertText")
+                json.addProperty("template", action.template)
+            }
+            is SymbolAction.ReplaceSelection -> {
+                requireBoundedText(action.text, "text")
+                json.addProperty("kind", "replaceSelection")
+                json.addProperty("text", action.text)
+            }
             is SymbolAction.SurroundSelection -> {
+                requireBoundedText(action.prefix, "prefix")
+                requireBoundedText(action.suffix, "suffix")
+                require(action.prefix.length.toLong() + action.suffix.length <= MAX_TEXT_LENGTH) {
+                    "Surround template exceeds the size limit"
+                }
                 json.addProperty("kind", "surroundSelection")
                 json.addProperty("prefix", action.prefix)
                 json.addProperty("suffix", action.suffix)
@@ -70,6 +92,8 @@ object SymbolActionJsonCodec {
             is SymbolAction.Delete -> { json.addProperty("kind", "delete"); json.addProperty("deleteKind", action.kind.name) }
             is SymbolAction.TransformSelection -> { json.addProperty("kind", "transformSelection"); json.addProperty("transform", action.transform.name) }
             is SymbolAction.EditorCommand -> {
+                require(COMMAND_ID.matches(action.commandId)) { "Invalid editor command ID" }
+                action.payload?.let { requireBoundedText(it, "payload") }
                 json.addProperty("kind", "editorCommand")
                 json.addProperty("commandId", action.commandId)
                 action.payload?.let { json.addProperty("payload", it) }
@@ -77,16 +101,32 @@ object SymbolActionJsonCodec {
             is SymbolAction.Clipboard -> { json.addProperty("kind", "clipboard"); json.addProperty("operation", action.operation.name) }
             SymbolAction.OpenManager -> json.addProperty("kind", "openManager")
             is SymbolAction.Composite -> {
+                require(action.actions.size in 1..64) { "Invalid composite action size" }
                 json.addProperty("kind", "composite")
-                json.add("actions", JsonArray().also { array -> action.actions.forEach { array.add(encode(it)) } })
+                json.add("actions", JsonArray().also { array ->
+                    action.actions.forEach { array.add(encodeInternal(it, depth + 1, budget)) }
+                })
             }
             is SymbolAction.Extension -> {
+                require(EXTENSION_ID.matches(action.extensionId)) { "Invalid extension ID" }
+                action.payload?.let { requireBoundedText(it, "payload") }
                 json.addProperty("kind", "extension")
                 json.addProperty("extensionId", action.extensionId)
                 action.payload?.let { json.addProperty("payload", it) }
             }
         }
         return json
+    }
+
+    private fun requireBoundedText(value: String, field: String) {
+        require(value.length <= MAX_TEXT_LENGTH) { "Action field $field exceeds the size limit" }
+    }
+
+    private class EncodeBudget(var nodesRemaining: Int = MAX_ACTION_NODES) {
+        fun consumeNode() {
+            nodesRemaining--
+            require(nodesRemaining >= 0) { "Action JSON contains too many nested actions" }
+        }
     }
 
     fun decode(json: JsonObject, depth: Int = 0): SymbolAction {
