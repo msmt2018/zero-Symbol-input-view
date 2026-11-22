@@ -150,7 +150,12 @@ class SymbolActionExecutor(
         budget: ActionBudget
     ): SymbolActionResult {
         if (depth > maxNestingDepth) return SymbolActionResult.Invalid("Composite action nesting limit exceeded")
-        if (cancellation.isCancelled()) return SymbolActionResult.Cancelled(progress.completedActions)
+        val cancelled = try {
+            cancellation.isCancelled()
+        } catch (error: Exception) {
+            return SymbolActionResult.Failed(error)
+        }
+        if (cancelled) return SymbolActionResult.Cancelled(progress.completedActions)
         if (!budget.consume()) return SymbolActionResult.Invalid("Composite action total action limit exceeded")
         return try {
             val result = when (action) {
