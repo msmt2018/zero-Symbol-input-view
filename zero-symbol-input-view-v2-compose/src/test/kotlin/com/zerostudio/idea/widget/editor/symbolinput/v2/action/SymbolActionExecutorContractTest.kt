@@ -247,6 +247,27 @@ class SymbolActionExecutorContractTest {
     }
 
 
+    @Test fun cancellationCallbackExceptionsBecomeFailedResults() {
+        val failure = IllegalStateException("cancellation source unavailable")
+        val result = executor.execute(
+            SymbolAction.OpenManager,
+            Host(),
+            SymbolActionCancellation { throw failure }
+        )
+        assertTrue(result is com.zerostudio.idea.widget.drawer.action.SymbolActionResult.Failed)
+        assertSame(failure, (result as com.zerostudio.idea.widget.drawer.action.SymbolActionResult.Failed).cause)
+    }
+
+    @Test fun fatalErrorsFromCancellationCallbacksStillPropagate() {
+        val fatal = AssertionError("fatal cancellation failure")
+        try {
+            executor.execute(SymbolAction.OpenManager, Host(), SymbolActionCancellation { throw fatal })
+            fail("Fatal JVM errors must propagate")
+        } catch (actual: AssertionError) {
+            assertSame(fatal, actual)
+        }
+    }
+
     @Test fun cancellationBeforeExecutionPreventsHostCalls() {
         val host = Host()
         val result = executor.execute(SymbolAction.OpenManager, host, SymbolActionCancellation { true })
