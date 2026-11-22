@@ -128,6 +128,22 @@ class SymbolTextEditingTest {
         assertNull(SymbolTextEditing.codePointDeletionRange(emoji, emoji.length, backwards = false))
     }
 
+    @Test fun reverseMacroPreservesSupplementaryCodePoints() {
+        assertEquals("B😀A", SymbolTextEditing.expandMacro("$" + "R", "A😀B").text)
+        assertEquals("B😀A", SymbolTextEditing.expandMacro("$" + "REV", "A😀B").text)
+    }
+
+    @Test fun duplicateLineInsertionPreservesHostLineSeparator() {
+        assertEquals(
+            SymbolTextInsertion(0, 3, "\r\nabc"),
+            SymbolTextEditing.duplicateLineInsertion(0, 1, 3, "abc", "\r\n")
+        )
+        assertEquals(
+            SymbolTextInsertion(1, 0, "abc\r\n"),
+            SymbolTextEditing.duplicateLineInsertion(0, 2, 3, "abc", "\r\n")
+        )
+    }
+
     @Test fun duplicateLineInsertionHandlesFinalAndNonFinalLines() {
         assertEquals(
             SymbolTextInsertion(0, 3, "\nabc"),
