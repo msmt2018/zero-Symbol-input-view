@@ -15,6 +15,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.legacy.SymbolItem
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
+import java.util.ArrayDeque
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -41,6 +42,12 @@ class SymbolDrawerExtensionRegistry {
     private val themes = LinkedHashMap<String, Registered<SymbolDrawerThemeExtension>>()
     private val builtInVisibility = LinkedHashMap<String, Boolean>()
     private val listeners = CopyOnWriteArrayList<(SymbolDrawerExtensionSnapshot) -> Unit>()
+    private data class PendingNotification(
+        val snapshot: SymbolDrawerExtensionSnapshot,
+        val targets: List<(SymbolDrawerExtensionSnapshot) -> Unit>
+    )
+    private val pendingNotifications = ArrayDeque<PendingNotification>()
+    private var dispatchingNotifications = false
     @Volatile private var revision: Long = 0L
     @Volatile var onExtensionErrorListener: ((extensionId: String, error: Throwable) -> Unit)? = null
 
@@ -54,8 +61,22 @@ class SymbolDrawerExtensionRegistry {
         emitCurrent: Boolean = true,
         listener: (SymbolDrawerExtensionSnapshot) -> Unit
     ): AutoCloseable {
-        listeners += listener
-        if (emitCurrent) runCatching { listener(snapshot()) }
+        val shouldDrain = synchronized(notificationLock) {
+            listeners += listener
+            if (!emitCurrent) {
+                false
+            } else {
+                val current = synchronized(lock) { snapshot() }
+                pendingNotifications.addLast(PendingNotification(current, listOf(listener)))
+                if (dispatchingNotifications) {
+                    false
+                } else {
+                    dispatchingNotifications = true
+                    true
+                }
+            }
+        }
+        if (shouldDrain) drainNotifications()
         return AutoCloseable { listeners.remove(listener) }
     }
 
@@ -73,12 +94,48 @@ class SymbolDrawerExtensionRegistry {
         )
     }
 
-    private fun notifyChanged() = synchronized(notificationLock) {
-        val next = synchronized(lock) {
-            revision += 1
-            snapshot()
+    /**
+     * Enqueues snapshots under one lock and drains them outside all registry
+     * locks. Reentrant mutations append behind the snapshot currently being
+     * delivered, so every observer sees revisions in the same order.
+     */
+    private fun notifyChanged() {
+        val shouldDrain = synchronized(notificationLock) {
+            val next = synchronized(lock) {
+                revision += 1
+                snapshot()
+            }
+            pendingNotifications.addLast(PendingNotification(next, listeners.toList()))
+            if (dispatchingNotifications) {
+                false
+            } else {
+                dispatchingNotifications = true
+                true
+            }
         }
-        listeners.forEach { callback -> runCatching { callback(next) } }
+        if (shouldDrain) drainNotifications()
+    }
+
+    private fun drainNotifications() {
+        while (true) {
+            val pending = synchronized(notificationLock) {
+                if (pendingNotifications.isEmpty()) {
+                    dispatchingNotifications = false
+                    null
+                } else {
+                    pendingNotifications.removeFirst()
+                }
+            } ?: return
+
+            pending.targets.forEach { callback ->
+                // A listener removed while a notification was queued must not
+                // receive that stale callback. Newly added listeners are not
+                // included in snapshots queued before their subscription.
+                if (listeners.contains(callback)) {
+                    runCatching { callback(pending.snapshot) }
+                }
+            }
+        }
     }
 
     val actionHandlers = SymbolActionRegistry<SymbolActionHost>()
