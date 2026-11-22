@@ -70,8 +70,15 @@ interface SymbolTextDocument {
 
     /**
      * Applies non-overlapping edits from right to left so earlier offsets remain
-     * stable. The default implementation is best-effort; hosts needing atomic
-     * semantics should override this method or implement transaction hooks.
+     * stable. Successfully applied edits are journaled and reversed if a later
+     * replacement is rejected or throws. The journal stores only replaced
+     * ranges, not a duplicate of the complete document, so memory use scales
+     * with the edited content rather than the document size.
+     *
+     * Hosts with native edit transactions should override the transaction hooks
+     * to provide observer/buffer atomicity. The default rollback restores text
+     * and selection through [replace]; if a host rejects rollback, this method
+     * throws because the document may be left partially modified.
      */
     fun applyEdits(edits: List<TextDocumentEdit>): Boolean {
         if (!isEditable) return false
@@ -88,23 +95,76 @@ interface SymbolTextDocument {
             previousStart = edit.start
             previousWasInsertion = edit.start == edit.end
         }
+
+        data class AppliedEdit(val edit: TextDocumentEdit, val originalText: String)
+        val applied = ArrayList<AppliedEdit>(ordered.size)
+        val originalSelectionStart = selectionStart.coerceIn(0, textLength)
+        val originalSelectionEnd = selectionEnd.coerceIn(0, textLength)
         beginEditTransaction()
-        var finished = false
-        return try {
-            for (edit in ordered) {
-                if (!replace(edit.start, edit.end, edit.replacement)) {
-                    // Mark the transaction as finalized before invoking host code:
-                    // if rollback itself throws, the catch block must not call it twice.
-                    finished = true
-                    endEditTransaction(false)
-                    return false
+
+        fun rollback(cause: Throwable? = null): Throwable? {
+            var failure = cause
+            // Edits were applied from right to left. Undo them from left to right
+            // so restoring an earlier range cannot invalidate a later offset.
+            for (entry in applied.asReversed()) {
+                val edit = entry.edit
+                val changedEnd = edit.start + edit.replacement.length
+                try {
+                    if (!replace(edit.start, changedEnd, entry.originalText)) {
+                        throw IllegalStateException(
+                            "Host rejected rollback for edit at ${edit.start}"
+                        )
+                    }
+                } catch (rollbackError: Throwable) {
+                    if (failure == null) failure = rollbackError
+                    else failure.addSuppressed(rollbackError)
                 }
             }
+            try {
+                setSelection(originalSelectionStart, originalSelectionEnd)
+            } catch (selectionError: Throwable) {
+                if (failure == null) failure = selectionError
+                else failure.addSuppressed(selectionError)
+            }
+            return failure
+        }
+
+        try {
+            for (edit in ordered) {
+                val originalText = textBetween(edit.start, edit.end)
+                if (!replace(edit.start, edit.end, edit.replacement)) {
+                    val rollbackFailure = rollback()
+                    try {
+                        endEditTransaction(false)
+                    } catch (transactionError: Throwable) {
+                        if (rollbackFailure == null) {
+                            throw IllegalStateException(
+                                "Edit batch was rejected and transaction rollback failed",
+                                transactionError
+                            )
+                        }
+                        rollbackFailure.addSuppressed(transactionError)
+                    }
+                    if (rollbackFailure != null) {
+                        throw IllegalStateException(
+                            "Edit batch was rejected and document rollback was incomplete",
+                            rollbackFailure
+                        )
+                    }
+                    return false
+                }
+                applied += AppliedEdit(edit, originalText)
+            }
             endEditTransaction(true)
-            finished = true
-            true
+            return true
         } catch (error: Throwable) {
-            if (!finished) runCatching { endEditTransaction(false) }
+            val rollbackFailure = rollback(error)
+            try {
+                endEditTransaction(false)
+            } catch (transactionError: Throwable) {
+                rollbackFailure?.addSuppressed(transactionError)
+                    ?: error.addSuppressed(transactionError)
+            }
             throw error
         }
     }
