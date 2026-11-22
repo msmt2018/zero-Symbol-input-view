@@ -203,10 +203,15 @@ class SymbolTextDocumentActionHost(
         val selection = normalizedSelectionRange()
         val selectionStart = selection.start
         val selectionEnd = selection.end
-        // Use the normalized selection start for a collapsed caret. A host may
-        // report a UTF-16 offset inside a surrogate pair; line-boundary deletes
-        // must not use that raw offset and split the code point.
-        val cursor = selectionStart
+        // Backward/forward deletion deliberately receive the raw caret so
+        // adjacentCodePointRange can detect and repair a caret inside a pair.
+        // Line-based deletion uses the normalized caret to avoid splitting it.
+        val rawCursor = document.cursorOffset.coerceIn(0, length)
+        val cursor = if (kind == DeleteKind.BACKWARD || kind == DeleteKind.FORWARD) {
+            rawCursor
+        } else {
+            selectionStart
+        }
         val range = when {
             selectionStart != selectionEnd -> SymbolTextRange(selection.start, selection.end)
             kind == DeleteKind.BACKWARD -> adjacentCodePointRange(cursor, backwards = true)
