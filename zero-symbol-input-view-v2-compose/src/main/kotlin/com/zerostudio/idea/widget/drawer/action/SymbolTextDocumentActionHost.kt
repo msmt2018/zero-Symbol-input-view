@@ -203,7 +203,10 @@ class SymbolTextDocumentActionHost(
         val selection = normalizedSelectionRange()
         val selectionStart = selection.start
         val selectionEnd = selection.end
-        val cursor = document.cursorOffset.coerceIn(0, length)
+        // Use the normalized selection start for a collapsed caret. A host may
+        // report a UTF-16 offset inside a surrogate pair; line-boundary deletes
+        // must not use that raw offset and split the code point.
+        val cursor = selectionStart
         val range = when {
             selectionStart != selectionEnd -> SymbolTextRange(selection.start, selection.end)
             kind == DeleteKind.BACKWARD -> adjacentCodePointRange(cursor, backwards = true)
