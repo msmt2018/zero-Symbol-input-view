@@ -72,6 +72,36 @@ class SymbolActionJsonCodecTest {
     }
 
     @Test(expected = IllegalArgumentException::class)
+    fun rejectsCyclicCompositeDuringEncoding() {
+        val children = mutableListOf<SymbolAction>()
+        val composite = SymbolAction.Composite(children)
+        children += composite
+
+        SymbolActionJsonCodec.encode(composite)
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun rejectsActionTreesBeyondAggregateNodeLimitDuringEncoding() {
+        val action = SymbolAction.Composite(
+            List(64) {
+                SymbolAction.Composite(List(4) { SymbolAction.OpenManager })
+            }
+        )
+
+        SymbolActionJsonCodec.encode(action)
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun rejectsOversizedTextDuringEncoding() {
+        SymbolActionJsonCodec.encode(SymbolAction.InsertText("x".repeat(1_048_577)))
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun rejectsInvalidExtensionIdentifiersDuringEncoding() {
+        SymbolActionJsonCodec.encode(SymbolAction.Extension("../invalid"))
+    }
+
+    @Test(expected = IllegalArgumentException::class)
     fun rejectsUnknownDiscriminator() {
         SymbolActionJsonCodec.decode(com.google.gson.JsonParser.parseString("""{"kind":"unknown"}""").asJsonObject)
     }
