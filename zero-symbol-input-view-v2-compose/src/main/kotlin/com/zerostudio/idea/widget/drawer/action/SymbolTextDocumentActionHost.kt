@@ -205,7 +205,7 @@ class SymbolTextDocumentActionHost(
         val selectionEnd = selection.end
         val cursor = document.cursorOffset.coerceIn(0, length)
         val range = when {
-            selectionStart != selectionEnd -> selection
+            selectionStart != selectionEnd -> SymbolTextRange(selection.start, selection.end)
             kind == DeleteKind.BACKWARD -> adjacentCodePointRange(cursor, backwards = true)
             kind == DeleteKind.FORWARD -> adjacentCodePointRange(cursor, backwards = false)
             else -> {
