@@ -78,11 +78,15 @@ interface SymbolTextDocument {
         if (edits.isEmpty()) return true
         val ordered = edits.sortedByDescending { it.start }
         var previousStart = textLength + 1
+        var previousWasInsertion = false
         for (edit in ordered) {
+            val sameOffsetInsertionsConflict =
+                edit.start == previousStart && (edit.start == edit.end || previousWasInsertion)
             if (edit.start < 0 || edit.end < edit.start || edit.end > textLength ||
-                edit.end > previousStart || edit.start == previousStart
+                edit.end > previousStart || sameOffsetInsertionsConflict
             ) return false
             previousStart = edit.start
+            previousWasInsertion = edit.start == edit.end
         }
         beginEditTransaction()
         var finished = false
