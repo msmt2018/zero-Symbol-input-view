@@ -220,6 +220,40 @@ class GenericSymbolTextActionsTest {
         assertFalse(run("document.ensureFinalNewline", finalNewline))
     }
 
+    @Test fun supplementaryUnicodeWordsRemainWholeDuringNavigationAndDeletion() {
+        val value = "a𐐀b x"
+
+        val selected = FakeDocument(value, cursor = 2)
+        assertTrue(run("cursor.selectWord", selected))
+        assertEquals("a𐐀b", selected.text.substring(selected.selectionStart, selected.selectionEnd))
+        assertEquals(0, selected.selectionStart)
+        assertEquals(4, selected.selectionEnd)
+
+        val left = FakeDocument(value, cursor = 4)
+        assertTrue(run("cursor.wordLeft", left))
+        assertEquals(0, left.cursorOffset)
+
+        val right = FakeDocument(value, cursor = 0)
+        assertTrue(run("cursor.wordRight", right))
+        assertEquals(4, right.cursorOffset)
+
+        val backward = FakeDocument(value, cursor = 4)
+        assertTrue(run("cursor.deleteWordBackward", backward))
+        assertEquals(" x", backward.text)
+
+        val forward = FakeDocument(value, cursor = 0)
+        assertTrue(run("cursor.deleteWordForward", forward))
+        assertEquals(" x", forward.text)
+    }
+
+    @Test fun toggleCaseHandlesSupplementaryPlaneLetters() {
+        val document = FakeDocument("𐐀x", cursor = 2).apply { setSelection(0, 2) }
+        assertTrue(run("selection.toggleCase", document))
+        assertEquals("𐐨x", document.text)
+        assertEquals(0, document.selectionStart)
+        assertEquals(2, document.selectionEnd)
+    }
+
     private fun run(id: String, document: FakeDocument): Boolean =
         GenericSymbolTextActions.createRegistry().execute(
             SymbolActionId("builtin", id), document
