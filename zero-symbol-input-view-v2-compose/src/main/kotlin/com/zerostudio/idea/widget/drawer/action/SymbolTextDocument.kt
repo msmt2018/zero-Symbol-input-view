@@ -39,6 +39,32 @@ interface SymbolTextDocument {
     fun setSelection(start: Int, end: Int)
 
     /**
+     * Returns a selection range whose boundaries never split a UTF-16 surrogate pair.
+     * A collapsed caret inside a pair snaps to its leading boundary; a non-empty
+     * selection expands to include every code point touched by either endpoint.
+     */
+    fun codePointSafeSelectionRange(): TextDocumentRange {
+        val rawStart = minOf(selectionStart, selectionEnd).coerceIn(0, textLength)
+        val rawEnd = maxOf(selectionStart, selectionEnd).coerceIn(rawStart, textLength)
+        if (rawStart == rawEnd) {
+            val caret = if (rawStart > 0 && rawStart < textLength &&
+                Character.isHighSurrogate(charAt(rawStart - 1)) &&
+                Character.isLowSurrogate(charAt(rawStart))
+            ) rawStart - 1 else rawStart
+            return TextDocumentRange(caret, caret)
+        }
+        val start = if (rawStart > 0 && rawStart < textLength &&
+            Character.isHighSurrogate(charAt(rawStart - 1)) &&
+            Character.isLowSurrogate(charAt(rawStart))
+        ) rawStart - 1 else rawStart
+        val end = if (rawEnd > 0 && rawEnd < textLength &&
+            Character.isHighSurrogate(charAt(rawEnd - 1)) &&
+            Character.isLowSurrogate(charAt(rawEnd))
+        ) rawEnd + 1 else rawEnd
+        return TextDocumentRange(start, end)
+    }
+
+    /**
      * True only when [endEditTransaction] with commit=false atomically restores
      * both document text and selection to the state at [beginEditTransaction].
      * Hosts that do not provide that guarantee must leave this false; the
@@ -149,12 +175,7 @@ interface SymbolTextDocument {
                     try {
                         endEditTransaction(false)
                     } catch (transactionError: Throwable) {
-                        if (rollbackFailure == null) {
-                            throw IllegalStateException(
-                                "Edit batch was rejected and transaction rollback failed",
-                                transactionError
-                            )
-                        }
+                        if (rollbackFailure == null) throw transactionError
                         rollbackFailure.addSuppressed(transactionError)
                     }
                     if (rollbackFailure != null) {
@@ -184,6 +205,10 @@ interface SymbolTextDocument {
             throw error
         }
     }
+}
+
+data class TextDocumentRange(val start: Int, val end: Int) {
+    init { require(start >= 0 && end >= start) }
 }
 
 data class TextDocumentPosition(val line: Int, val column: Int) {
