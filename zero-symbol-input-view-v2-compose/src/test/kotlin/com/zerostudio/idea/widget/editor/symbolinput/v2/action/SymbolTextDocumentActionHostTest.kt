@@ -127,6 +127,25 @@ class SymbolTextDocumentActionHostTest {
         assertEquals("    val va[value]\n\t    valuelue = 1", document.value)
     }
 
+    @Test fun currentWordMacroIncludesSupplementaryUnicodeLetters() {
+        val word = "𐐀alpha"
+        val document = Document("$word tail")
+        document.setSelection(word.length, word.length)
+        val host = SymbolTextDocumentActionHost(document)
+
+        assertTrue(host.insertText("[\$W]"))
+        assertEquals("[𐐀alpha] tail", document.value)
+    }
+
+    @Test fun currentWordMacroNormalizesCaretInsideSurrogatePair() {
+        val document = Document("𐐀alpha tail")
+        document.setSelection(1, 1)
+        val host = SymbolTextDocumentActionHost(document)
+
+        assertTrue(host.insertText("[\$W]"))
+        assertEquals("[𐐀alpha] tail", document.value)
+    }
+
     @Test fun currentLineMacroPreservesItsLeadingIndentation() {
         val document = Document("    val value = 1")
         document.setSelection(10, 10)
