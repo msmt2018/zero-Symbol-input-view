@@ -148,6 +148,17 @@ jobs:
       - name: Run Compose V2 unit tests
         run: ./gradlew :zero-symbol-input-view-v2-compose:testDebugUnitTest
 
+      - name: Upload Compose V2 unit test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: compose-v2-unit-test-diagnostics
+          if-no-files-found: warn
+          path: |
+            zero-symbol-input-view-v2-compose/build/reports/tests/testDebugUnitTest/**
+            zero-symbol-input-view-v2-compose/build/test-results/testDebugUnitTest/**
+            zero-symbol-input-view-v2-compose/build/reports/problems/**
+
       - name: Compile Compose V2 instrumentation tests
         run: ./gradlew :zero-symbol-input-view-v2-compose:assembleDebugAndroidTest
 
