@@ -235,6 +235,6 @@ class SymbolDrawerExtensionRegistryTest {
             )
         )
 
-        assertEquals(listOf(registry.revision()), lateObserverRevisions)
+        assertEquals(listOf(registry.revision() - 1, registry.revision()), lateObserverRevisions)
     }
 }
