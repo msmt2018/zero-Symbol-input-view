@@ -195,7 +195,10 @@ class SymbolTextDocumentActionHost(
                     .coerceIn(0, document.lineCount - 1)
                 val targetStart = document.lineStartOffset(targetLine).coerceIn(0, length)
                 val targetEnd = document.lineEndOffset(targetLine).coerceIn(targetStart, length)
-                (targetStart + (cursor - lineStart)).coerceAtMost(targetEnd)
+                normalizeCodePointBoundary(
+                    (targetStart + (cursor - lineStart)).coerceAtMost(targetEnd),
+                    preferForward = false
+                )
             }
         }
         document.setSelection(targetOffset, targetOffset)
@@ -251,13 +254,19 @@ class SymbolTextDocumentActionHost(
         val transformed = when (transform) {
             SelectionTransform.UPPERCASE -> selected.uppercase()
             SelectionTransform.LOWERCASE -> selected.lowercase()
-            SelectionTransform.TOGGLE_CASE -> selected.map { char ->
-                when {
-                    char.isUpperCase() -> char.lowercaseChar()
-                    char.isLowerCase() -> char.uppercaseChar()
-                    else -> char
+            SelectionTransform.TOGGLE_CASE -> buildString {
+                var offset = 0
+                while (offset < selected.length) {
+                    val codePoint = selected.codePointAt(offset)
+                    val toggled = when {
+                        Character.isUpperCase(codePoint) -> Character.toLowerCase(codePoint)
+                        Character.isLowerCase(codePoint) -> Character.toUpperCase(codePoint)
+                        else -> codePoint
+                    }
+                    appendCodePoint(toggled)
+                    offset += Character.charCount(codePoint)
                 }
-            }.joinToString("")
+            }
         }
         if (!document.replace(start, end, transformed)) return false
         document.setSelection(start, start + transformed.length)
@@ -268,8 +277,26 @@ class SymbolTextDocumentActionHost(
      * Reads at most two UTF-16 code units around the caret. Cursor movement and
      * backspace/delete therefore remain O(1) and never materialize the document.
      */
+    private fun normalizeCodePointBoundary(offset: Int, preferForward: Boolean): Int {
+        val safe = offset.coerceIn(0, document.textLength)
+        if (safe <= 0 || safe >= document.textLength) return safe
+        val splitsPair = Character.isHighSurrogate(document.charAt(safe - 1)) &&
+            Character.isLowSurrogate(document.charAt(safe))
+        if (!splitsPair) return safe
+        return if (preferForward) safe + 1 else safe - 1
+    }
+
     private fun adjacentCodePointRange(cursorOffset: Int, backwards: Boolean): SymbolTextRange? {
         val cursor = cursorOffset.coerceIn(0, document.textLength)
+        // Repair an invalid caret in the middle of a surrogate pair as one
+        // complete code point. Both backspace and forward-delete must never
+        // remove only one UTF-16 unit.
+        if (cursor > 0 && cursor < document.textLength &&
+            Character.isHighSurrogate(document.charAt(cursor - 1)) &&
+            Character.isLowSurrogate(document.charAt(cursor))
+        ) {
+            return SymbolTextRange(cursor - 1, cursor + 1)
+        }
         if (backwards) {
             if (cursor == 0) return null
             var start = cursor - 1
