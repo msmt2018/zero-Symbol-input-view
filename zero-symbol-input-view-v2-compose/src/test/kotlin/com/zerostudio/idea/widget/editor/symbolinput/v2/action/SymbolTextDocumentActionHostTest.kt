@@ -224,4 +224,45 @@ class SymbolTextDocumentActionHostTest {
         assertEquals("first", document.value)
     }
 
+
+    @Test fun horizontalCursorMovementRepairsCaretInsideSurrogatePair() {
+        val document = Document("𐐀x")
+        val host = SymbolTextDocumentActionHost(document)
+
+        document.setSelection(1, 1)
+        assertTrue(host.moveCursor(CursorTarget.LEFT))
+        assertEquals(0, document.cursorOffset)
+
+        document.setSelection(1, 1)
+        assertTrue(host.moveCursor(CursorTarget.RIGHT))
+        assertEquals(2, document.cursorOffset)
+    }
+
+    @Test fun backwardDeleteAtSurrogatePairInteriorRemovesWholeCodePoint() {
+        val document = Document("a𐐀b")
+        document.setSelection(2, 2)
+        val host = SymbolTextDocumentActionHost(document)
+
+        assertTrue(host.delete(com.zerostudio.idea.widget.editor.symbolinput.v2.model.DeleteKind.BACKWARD))
+        assertEquals("ab", document.value)
+    }
+
+    @Test fun forwardDeleteAtSurrogatePairInteriorRemovesWholeCodePoint() {
+        val document = Document("a𐐀b")
+        document.setSelection(2, 2)
+        val host = SymbolTextDocumentActionHost(document)
+
+        assertTrue(host.delete(com.zerostudio.idea.widget.editor.symbolinput.v2.model.DeleteKind.FORWARD))
+        assertEquals("ab", document.value)
+    }
+
+    @Test fun toggleCasePreservesSupplementaryPlaneLetters() {
+        val document = Document("𐐀x")
+        document.setSelection(0, 2)
+        val host = SymbolTextDocumentActionHost(document)
+
+        assertTrue(host.transformSelection(SelectionTransform.TOGGLE_CASE))
+        assertEquals("𐐨x", document.value)
+        assertEquals("𐐨", document.value.substring(0, 2))
+    }
 }
