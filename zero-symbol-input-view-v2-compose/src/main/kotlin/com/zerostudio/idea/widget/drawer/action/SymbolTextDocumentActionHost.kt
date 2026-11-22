@@ -37,22 +37,11 @@ class SymbolTextDocumentActionHost(
 
     override fun insertText(template: String): Boolean {
         if (!document.isEditable || document.lineCount <= 0) return false
-        var start = minOf(document.selectionStart, document.selectionEnd).coerceIn(0, document.textLength)
-        var end = maxOf(document.selectionStart, document.selectionEnd).coerceIn(start, document.textLength)
-        var cursor = document.cursorOffset.coerceIn(0, document.textLength)
-
-        // A collapsed caret can be reported between the UTF-16 units of a
-        // supplementary character. Normalize the insertion range as well as
-        // the macro scan pivot; otherwise replace(start, end, ...) would split
-        // the surrogate pair even though $W correctly reads the full code point.
-        if (start == end && start > 0 && start < document.textLength &&
-            Character.isHighSurrogate(document.charAt(start - 1)) &&
-            Character.isLowSurrogate(document.charAt(start))
-        ) {
-            start--
-            end--
-            cursor = start
-        }
+        val range = normalizedSelectionRange()
+        val start = range.start
+        val end = range.end
+        val rawCursor = document.cursorOffset.coerceIn(0, document.textLength)
+        val cursor = if (start == end) start else rawCursor
 
         val selected = document.textBetween(start, end)
         val line = document.lineForOffset(cursor).coerceIn(0, document.lineCount - 1)
@@ -157,8 +146,9 @@ class SymbolTextDocumentActionHost(
 
     override fun replaceSelection(text: String): Boolean {
         if (!document.isEditable) return false
-        val start = minOf(document.selectionStart, document.selectionEnd).coerceIn(0, document.textLength)
-        val end = maxOf(document.selectionStart, document.selectionEnd).coerceIn(start, document.textLength)
+        val range = normalizedSelectionRange()
+        val start = range.start
+        val end = range.end
         if (!document.replace(start, end, text)) return false
         val caret = start + text.length
         document.setSelection(caret, caret)
@@ -167,8 +157,9 @@ class SymbolTextDocumentActionHost(
 
     override fun surroundSelection(prefix: String, suffix: String): Boolean {
         if (!document.isEditable) return false
-        val start = minOf(document.selectionStart, document.selectionEnd).coerceIn(0, document.textLength)
-        val end = maxOf(document.selectionStart, document.selectionEnd).coerceIn(start, document.textLength)
+        val range = normalizedSelectionRange()
+        val start = range.start
+        val end = range.end
         if (start == end) return false
         val selected = document.textBetween(start, end)
         if (!document.replace(start, end, prefix + selected + suffix)) return false
@@ -209,11 +200,12 @@ class SymbolTextDocumentActionHost(
         if (!document.isEditable) return false
         if (document.lineCount <= 0) return false
         val length = document.textLength
-        val selectionStart = minOf(document.selectionStart, document.selectionEnd).coerceIn(0, length)
-        val selectionEnd = maxOf(document.selectionStart, document.selectionEnd).coerceIn(selectionStart, length)
+        val selection = normalizedSelectionRange()
+        val selectionStart = selection.start
+        val selectionEnd = selection.end
         val cursor = document.cursorOffset.coerceIn(0, length)
         val range = when {
-            selectionStart != selectionEnd -> SymbolTextRange(selectionStart, selectionEnd)
+            selectionStart != selectionEnd -> selection
             kind == DeleteKind.BACKWARD -> adjacentCodePointRange(cursor, backwards = true)
             kind == DeleteKind.FORWARD -> adjacentCodePointRange(cursor, backwards = false)
             else -> {
@@ -247,8 +239,9 @@ class SymbolTextDocumentActionHost(
 
     override fun transformSelection(transform: SelectionTransform): Boolean {
         if (!document.isEditable) return false
-        val start = minOf(document.selectionStart, document.selectionEnd).coerceIn(0, document.textLength)
-        val end = maxOf(document.selectionStart, document.selectionEnd).coerceIn(start, document.textLength)
+        val range = normalizedSelectionRange()
+        val start = range.start
+        val end = range.end
         if (start == end) return false
         val selected = document.textBetween(start, end)
         val transformed = when (transform) {
@@ -271,6 +264,36 @@ class SymbolTextDocumentActionHost(
         if (!document.replace(start, end, transformed)) return false
         document.setSelection(start, start + transformed.length)
         return true
+    }
+
+    /**
+     * Expands non-collapsed selection endpoints that split a surrogate pair.
+     * A collapsed caret inside a pair is moved to its start, preserving the
+     * established insertion semantics without replacing the character.
+     */
+    private fun normalizedSelectionRange(): SymbolTextRange {
+        val length = document.textLength
+        var start = minOf(document.selectionStart, document.selectionEnd).coerceIn(0, length)
+        var end = maxOf(document.selectionStart, document.selectionEnd).coerceIn(start, length)
+        if (start == end) {
+            if (start > 0 && start < length &&
+                Character.isHighSurrogate(document.charAt(start - 1)) &&
+                Character.isLowSurrogate(document.charAt(start))
+            ) {
+                start--
+                end--
+            }
+            return SymbolTextRange(start, end)
+        }
+        if (start > 0 && start < length &&
+            Character.isHighSurrogate(document.charAt(start - 1)) &&
+            Character.isLowSurrogate(document.charAt(start))
+        ) start--
+        if (end > 0 && end < length &&
+            Character.isHighSurrogate(document.charAt(end - 1)) &&
+            Character.isLowSurrogate(document.charAt(end))
+        ) end++
+        return SymbolTextRange(start, end)
     }
 
     /**
