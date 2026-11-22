@@ -54,7 +54,7 @@ dependencies {
 /**
  * Enforce a Compose-only UI source boundary across the complete library module.
  *
- * This is intentionally a package-scoped guard: it does not pretend that the
+ * This is intentionally a source-root-scoped guard: it does not pretend that the
  * entire artifact is already free of transitional View sources.
  */
 val verifyComposeUiBoundary by tasks.registering {
@@ -120,8 +120,8 @@ tasks.named("check") {
 
 /**
  * Whole-artifact migration inventory. This is intentionally informational while
- * legacy View sources are being replaced; it is not wired into check yet.
- * Once the inventory is empty, verifyComposeArtifactBoundary can become a check gate.
+ * legacy View sources are being replaced. The strict artifact boundary task
+ * is already attached to check below.
  */
 val auditComposeMigration by tasks.registering {
     group = "verification"
@@ -140,6 +140,9 @@ val auditComposeMigration by tasks.registering {
         Regex("""^\s*import\s+androidx\.viewpager2\."""),
         Regex("""^\s*import\s+com\.google\.android\.material\."""),
             Regex("""^\s*import\s+(?:android\.app\.(?:Activity|Fragment)|androidx\.activity\.|androidx\.fragment\.|androidx\.lifecycle\.|androidx\.savedstate\.)""")
+    )
+    val forbiddenQualifiedReferences = listOf(
+        Regex("""\\b(?:android\\.(?:view|widget|graphics)|androidx\\.(?:recyclerview|viewpager2|activity|fragment|lifecycle|savedstate)|com\\.google\\.android\\.material)\\.[A-Z][A-Za-z0-9_]*(?:\\.[A-Z][A-Za-z0-9_]*)*\\b""")
     )
     val forbiddenReferences = listOf(
         Regex("""\bAndroidView(?:Binding)?\s*\("""),
@@ -169,7 +172,8 @@ val auditComposeMigration by tasks.registering {
                 val trimmed = line.trimStart()
                 val comment = trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed.startsWith("/*")
                 if (!comment && (forbiddenImports.any { it.containsMatchIn(line) } ||
-                        forbiddenReferences.any { it.containsMatchIn(line) })) {
+                        forbiddenReferences.any { it.containsMatchIn(line) } ||
+                        forbiddenQualifiedReferences.any { it.containsMatchIn(line) })) {
                     "${source.relativeTo(projectDir)}:${index + 1}: ${line.trim()}"
                 } else null
             }
@@ -197,7 +201,7 @@ val auditComposeMigration by tasks.registering {
     }
 }
 
-/** Strict gate, intentionally not attached to check until all migration phases finish. */
+/** Strict artifact-wide gate, attached to check after the migration inventory task. */
 val verifyComposeArtifactBoundary by tasks.registering {
     group = "verification"
     description = "Fails while any View UI source or View-only dependency remains."
@@ -212,11 +216,13 @@ val verifyComposeArtifactBoundary by tasks.registering {
             .flatMap { root -> root.walkTopDown().filter { it.isFile && it.extension in setOf("kt", "java") }.toList() }
         val forbiddenImports = Regex("""^\s*import\s+(android\.view\.|android\.widget\.|android\.graphics\.|androidx\.recyclerview\.|androidx\.viewpager2\.|com\.google\.android\.material\.|android\.app\.(Activity|Fragment)|androidx\.activity\.|androidx\.fragment\.|androidx\.lifecycle\.|androidx\.savedstate\.)""")
         val forbiddenReferences = Regex("""\b(AndroidView(?:Binding)?|SymbolDrawerView|ViewGroup|MotionEvent|RecyclerView|ViewPager2|Activity|Fragment|Lifecycle|LifecycleOwner|LifecycleRegistry|LocalLifecycleOwner|ViewModel|ViewModelStoreOwner|ViewModelProvider|SavedStateHandle|SavedStateRegistryOwner|LifecycleEventObserver|rememberLauncherForActivityResult)\b""")
+        val forbiddenQualifiedReferences = Regex("""\\b(?:android\\.(?:view|widget|graphics)|androidx\\.(?:recyclerview|viewpager2|activity|fragment|lifecycle|savedstate)|com\\.google\\.android\\.material)\\.[A-Z][A-Za-z0-9_]*(?:\\.[A-Z][A-Za-z0-9_]*)*\\b""")
         val violations = files.flatMap { file ->
             file.readLines().mapIndexedNotNull { index, line ->
                 val trimmed = line.trimStart()
                 val comment = trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed.startsWith("/*")
-                if (!comment && (forbiddenImports.containsMatchIn(line) || forbiddenReferences.containsMatchIn(line))) {
+                if (!comment && (forbiddenImports.containsMatchIn(line) || forbiddenReferences.containsMatchIn(line) ||
+                        forbiddenQualifiedReferences.containsMatchIn(line))) {
                     "${file.relativeTo(projectDir)}:${index + 1}: $line"
                 } else null
             }
