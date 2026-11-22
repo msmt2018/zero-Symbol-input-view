@@ -52,8 +52,9 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.*
 /**
  * Versioned, bounded action codec. Missing schemaVersion is accepted as V1 for
  * compatibility with early V2 snapshots; all newly written actions declare V1.
- * Decoding is bounded independently of the executor so imported data cannot
- * construct an arbitrarily large action tree before execution validation.
+ * Encoding and decoding enforce independent depth, node-count, composite-size,
+ * and text-size limits so cyclic or oversized action trees cannot exhaust the
+ * stack or memory before execution validation.
  */
 object SymbolActionJsonCodec {
     fun encode(action: SymbolAction): JsonObject =
