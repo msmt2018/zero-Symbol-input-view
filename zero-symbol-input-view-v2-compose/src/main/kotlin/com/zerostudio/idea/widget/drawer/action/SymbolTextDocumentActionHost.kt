@@ -102,8 +102,11 @@ class SymbolTextDocumentActionHost(
             return start
         }
 
+        // Preserve the original macro word contract (letter/digit/underscore),
+        // but evaluate the full Unicode code point rather than an individual
+        // UTF-16 Char so supplementary-plane letters are not split or discarded.
         fun isWord(codePoint: Int): Boolean =
-            Character.isUnicodeIdentifierPart(codePoint)
+            Character.isLetterOrDigit(codePoint) || codePoint == '_'.code
 
         var pivot = cursorOffset.coerceIn(0, length)
         // A host may place the caret between the two UTF-16 units of a
