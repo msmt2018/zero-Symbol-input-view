@@ -254,6 +254,31 @@ class GenericSymbolTextActionsTest {
         assertEquals(2, document.selectionEnd)
     }
 
+
+    @Test fun selectionActionsNeverSplitSupplementaryCodePoints() {
+        val source = "a𐐀b"
+
+        val deleted = FakeDocument(source).apply { setSelection(2, 3) }
+        assertTrue(run("selection.delete", deleted))
+        assertEquals("ab", deleted.text)
+
+        val duplicated = FakeDocument(source).apply { setSelection(2, 3) }
+        assertTrue(run("selection.duplicate", duplicated))
+        assertEquals("a𐐀𐐀b", duplicated.text)
+
+        val wrapped = FakeDocument(source).apply { setSelection(2, 3) }
+        assertTrue(run("selection.wrapParentheses", wrapped))
+        assertEquals("a(𐐀)b", wrapped.text)
+        assertEquals(2, wrapped.selectionStart)
+        assertEquals(4, wrapped.selectionEnd)
+
+        val payload = FakeDocument(source).apply { setSelection(2, 3) }
+        assertTrue(GenericSymbolTextActions.createRegistry().execute(
+            SymbolActionId("builtin", "insert_payload"), payload, "X"
+        )!!)
+        assertEquals("aXb", payload.text)
+    }
+
     private fun run(id: String, document: FakeDocument): Boolean =
         GenericSymbolTextActions.createRegistry().execute(
             SymbolActionId("builtin", id), document
