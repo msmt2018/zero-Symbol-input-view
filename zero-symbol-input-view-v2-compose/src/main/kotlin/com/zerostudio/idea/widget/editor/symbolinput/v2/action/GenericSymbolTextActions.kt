@@ -585,21 +585,18 @@ object GenericSymbolTextActions {
     }
 
     private fun moveWord(document: PublicSymbolTextDocument, backwards: Boolean): Boolean {
-        var offset = document.cursorOffset.coerceIn(0, document.textLength)
-        if (backwards) {
-            while (offset > 0 && !isWordCharacter(document.charAt(offset - 1))) offset--
-            while (offset > 0 && isWordCharacter(document.charAt(offset - 1))) offset--
-        } else {
-            while (offset < document.textLength && !isWordCharacter(document.charAt(offset))) offset++
-            while (offset < document.textLength && isWordCharacter(document.charAt(offset))) offset++
-        }
+        val offset = wordBoundary(
+            document,
+            normalizeCaretToCodePointStart(document, document.cursorOffset),
+            backwards
+        )
         document.setSelection(offset, offset)
         return true
     }
 
     private fun deleteWord(document: PublicSymbolTextDocument, backwards: Boolean): Boolean {
         if (!document.isEditable) return false
-        val caret = document.cursorOffset.coerceIn(0, document.textLength)
+        val caret = normalizeCaretToCodePointStart(document, document.cursorOffset)
         val boundary = wordBoundary(document, caret, backwards)
         val start = minOf(caret, boundary)
         val end = maxOf(caret, boundary)
@@ -610,31 +607,103 @@ object GenericSymbolTextActions {
     }
 
     private fun selectWord(document: PublicSymbolTextDocument): Boolean {
-        if (document.textLength == 0) return false
-        var caret = document.cursorOffset.coerceIn(0, document.textLength)
-        if (caret == document.textLength || (caret < document.textLength && !isWordCharacter(document.charAt(caret)))) {
-            if (caret == 0 || !isWordCharacter(document.charAt(caret - 1))) return false
-            caret--
+        val length = document.textLength
+        if (length == 0) return false
+        var caret = normalizeCaretToCodePointStart(document, document.cursorOffset)
+        if (caret == length || !isWordAt(document, caret)) {
+            val previous = previousCodePointStart(document, caret) ?: return false
+            if (!isWordAt(document, previous)) return false
+            caret = previous
         }
-        if (!isWordCharacter(document.charAt(caret))) return false
         var start = caret
-        var end = caret + 1
-        while (start > 0 && isWordCharacter(document.charAt(start - 1))) start--
-        while (end < document.textLength && isWordCharacter(document.charAt(end))) end++
+        var end = caret + codePointLengthAt(document, caret)
+        while (start > 0) {
+            val previous = previousCodePointStart(document, start) ?: break
+            if (!isWordAt(document, previous)) break
+            start = previous
+        }
+        while (end < length && isWordAt(document, end)) {
+            end += codePointLengthAt(document, end)
+        }
         document.setSelection(start, end)
         return true
     }
 
-    private fun wordBoundary(document: PublicSymbolTextDocument, caret: Int, backwards: Boolean): Int {
-        var offset = caret
+    /**
+     * Word navigation uses Unicode code points while document offsets remain
+     * UTF-16. Every cursor result is therefore a valid code-point boundary.
+     */
+    private fun wordBoundary(
+        document: PublicSymbolTextDocument,
+        caret: Int,
+        backwards: Boolean
+    ): Int {
+        var offset = caret.coerceIn(0, document.textLength)
         if (backwards) {
-            while (offset > 0 && !isWordCharacter(document.charAt(offset - 1))) offset--
-            while (offset > 0 && isWordCharacter(document.charAt(offset - 1))) offset--
+            while (offset > 0) {
+                val previous = previousCodePointStart(document, offset) ?: break
+                if (isWordAt(document, previous)) break
+                offset = previous
+            }
+            while (offset > 0) {
+                val previous = previousCodePointStart(document, offset) ?: break
+                if (!isWordAt(document, previous)) break
+                offset = previous
+            }
         } else {
-            while (offset < document.textLength && !isWordCharacter(document.charAt(offset))) offset++
-            while (offset < document.textLength && isWordCharacter(document.charAt(offset))) offset++
+            while (offset < document.textLength && !isWordAt(document, offset)) {
+                offset += codePointLengthAt(document, offset)
+            }
+            while (offset < document.textLength && isWordAt(document, offset)) {
+                offset += codePointLengthAt(document, offset)
+            }
         }
         return offset
+    }
+
+    private fun normalizeCaretToCodePointStart(
+        document: PublicSymbolTextDocument,
+        offset: Int
+    ): Int {
+        val safe = offset.coerceIn(0, document.textLength)
+        if (safe <= 0 || safe >= document.textLength) return safe
+        return if (Character.isHighSurrogate(document.charAt(safe - 1)) &&
+            Character.isLowSurrogate(document.charAt(safe))
+        ) safe - 1 else safe
+    }
+
+    private fun previousCodePointStart(
+        document: PublicSymbolTextDocument,
+        offset: Int
+    ): Int? {
+        if (offset <= 0) return null
+        var start = offset - 1
+        if (start > 0 && Character.isLowSurrogate(document.charAt(start)) &&
+            Character.isHighSurrogate(document.charAt(start - 1))
+        ) start--
+        return start
+    }
+
+    private fun codePointLengthAt(document: PublicSymbolTextDocument, offset: Int): Int {
+        if (offset !in 0 until document.textLength) return 0
+        return if (Character.isHighSurrogate(document.charAt(offset)) &&
+            offset + 1 < document.textLength &&
+            Character.isLowSurrogate(document.charAt(offset + 1))
+        ) 2 else 1
+    }
+
+    private fun codePointAt(document: PublicSymbolTextDocument, offset: Int): Int {
+        val first = document.charAt(offset)
+        return if (Character.isHighSurrogate(first) &&
+            offset + 1 < document.textLength &&
+            Character.isLowSurrogate(document.charAt(offset + 1))
+        ) Character.toCodePoint(first, document.charAt(offset + 1)) else first.code
+    }
+
+    private fun isWordAt(document: PublicSymbolTextDocument, offset: Int): Boolean {
+        if (offset !in 0 until document.textLength) return false
+        val codePoint = codePointAt(document, offset)
+        return Character.isLetterOrDigit(codePoint) || codePoint == '_'.code
     }
 
     private fun trimDocument(document: PublicSymbolTextDocument): Boolean {
@@ -677,11 +746,16 @@ object GenericSymbolTextActions {
     }
 
     private fun toggleCase(value: String): String = buildString(value.length) {
-        value.forEach { character ->
-            append(if (character.isLowerCase()) character.uppercaseChar() else character.lowercaseChar())
+        var offset = 0
+        while (offset < value.length) {
+            val codePoint = value.codePointAt(offset)
+            val toggled = when {
+                Character.isUpperCase(codePoint) -> Character.toLowerCase(codePoint)
+                Character.isLowerCase(codePoint) -> Character.toUpperCase(codePoint)
+                else -> codePoint
+            }
+            appendCodePoint(toggled)
+            offset += Character.charCount(codePoint)
         }
     }
-
-    private fun isWordCharacter(character: Char): Boolean =
-        character.isLetterOrDigit() || character == '_'
 }
