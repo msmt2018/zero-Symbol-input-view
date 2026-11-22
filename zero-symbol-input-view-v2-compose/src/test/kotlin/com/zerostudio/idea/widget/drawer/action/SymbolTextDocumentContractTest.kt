@@ -132,8 +132,31 @@ class SymbolTextDocumentContractTest {
                 return super.replace(start, end, replacement)
             }
         }
+        rejected.setSelection(2, 4)
         assertFalse(rejected.applyEdits(listOf(TextDocumentEdit(1, 2, "X"), TextDocumentEdit(4, 5, "Y"))))
+        assertEquals("abcdef", rejected.value)
+        assertEquals(4, rejected.cursorOffset)
         assertEquals(listOf(true, false), rejected.transactionEvents)
+    }
+
+    @Test fun restoresEarlierEditsWhenLaterReplacementThrows() {
+        val document = object : Buffer("abcdef") {
+            override fun replace(start: Int, end: Int, replacement: String): Boolean {
+                if (start == 1) error("host replace failed")
+                return super.replace(start, end, replacement)
+            }
+        }
+        document.setSelection(1, 3)
+        val failure = runCatching {
+            document.applyEdits(listOf(
+                TextDocumentEdit(1, 2, "X"),
+                TextDocumentEdit(4, 5, "Y")
+            ))
+        }.exceptionOrNull()
+        assertEquals("host replace failed", failure?.message)
+        assertEquals("abcdef", document.value)
+        assertEquals(3, document.cursorOffset)
+        assertEquals(listOf(true, false), document.transactionEvents)
     }
 
     @Test fun rollbackCallbackFailureIsNotInvokedTwice() {
