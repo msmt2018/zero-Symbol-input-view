@@ -124,6 +124,11 @@ class SymbolTextEditingTest {
             SymbolTextEditing.codePointDeletionRange(emoji, 1, backwards = true))
         assertEquals(SymbolTextRange(3, 4),
             SymbolTextEditing.codePointDeletionRange(emoji, 3, backwards = false))
+        // An interior UTF-16 caret snaps to the pair's leading boundary.
+        assertEquals(SymbolTextRange(0, 1),
+            SymbolTextEditing.codePointDeletionRange(emoji, 2, backwards = true))
+        assertEquals(SymbolTextRange(1, 3),
+            SymbolTextEditing.codePointDeletionRange(emoji, 2, backwards = false))
         assertNull(SymbolTextEditing.codePointDeletionRange(emoji, 0, backwards = true))
         assertNull(SymbolTextEditing.codePointDeletionRange(emoji, emoji.length, backwards = false))
     }
