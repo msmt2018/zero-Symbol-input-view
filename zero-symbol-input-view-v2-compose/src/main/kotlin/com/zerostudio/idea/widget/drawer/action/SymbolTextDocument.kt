@@ -38,7 +38,15 @@ interface SymbolTextDocument {
     /** Set a selection using UTF-16 offsets; equal offsets place the caret. */
     fun setSelection(start: Int, end: Int)
 
-    /** Optional host transaction hooks. Override when the editor supports atomic batches. */
+    /**
+     * True only when [endEditTransaction] with commit=false atomically restores
+     * both document text and selection to the state at [beginEditTransaction].
+     * Hosts that do not provide that guarantee must leave this false; the
+     * default edit journal will then restore the changed ranges itself.
+     */
+    val supportsAtomicEditTransactions: Boolean get() = false
+
+    /** Optional host transaction hooks. */
     fun beginEditTransaction() = Unit
     fun endEditTransaction(commit: Boolean) = Unit
 
@@ -75,10 +83,11 @@ interface SymbolTextDocument {
      * ranges, not a duplicate of the complete document, so memory use scales
      * with the edited content rather than the document size.
      *
-     * Hosts with native edit transactions should override the transaction hooks
-     * to provide observer/buffer atomicity. The default rollback restores text
-     * and selection through [replace]; if a host rejects rollback, this method
-     * throws because the document may be left partially modified.
+     * Hosts with native edit transactions may set [supportsAtomicEditTransactions]
+     * to true only when endEditTransaction(false) restores both text and selection.
+     * Otherwise the default rollback restores changed ranges through [replace];
+     * if a host rejects rollback, this method throws because the document may
+     * be left partially modified.
      */
     fun applyEdits(edits: List<TextDocumentEdit>): Boolean {
         if (!isEditable) return false
@@ -104,6 +113,7 @@ interface SymbolTextDocument {
         var transactionFinalized = false
 
         fun rollback(cause: Throwable? = null): Throwable? {
+            if (supportsAtomicEditTransactions) return cause
             var failure = cause
             // Edits were applied from right to left. Undo them from left to right
             // so restoring an earlier range cannot invalidate a later offset.
