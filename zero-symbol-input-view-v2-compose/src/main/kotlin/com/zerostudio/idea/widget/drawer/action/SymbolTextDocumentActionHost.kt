@@ -37,10 +37,24 @@ class SymbolTextDocumentActionHost(
 
     override fun insertText(template: String): Boolean {
         if (!document.isEditable || document.lineCount <= 0) return false
-        val start = minOf(document.selectionStart, document.selectionEnd).coerceIn(0, document.textLength)
-        val end = maxOf(document.selectionStart, document.selectionEnd).coerceIn(start, document.textLength)
+        var start = minOf(document.selectionStart, document.selectionEnd).coerceIn(0, document.textLength)
+        var end = maxOf(document.selectionStart, document.selectionEnd).coerceIn(start, document.textLength)
+        var cursor = document.cursorOffset.coerceIn(0, document.textLength)
+
+        // A collapsed caret can be reported between the UTF-16 units of a
+        // supplementary character. Normalize the insertion range as well as
+        // the macro scan pivot; otherwise replace(start, end, ...) would split
+        // the surrogate pair even though $W correctly reads the full code point.
+        if (start == end && start > 0 && start < document.textLength &&
+            Character.isHighSurrogate(document.charAt(start - 1)) &&
+            Character.isLowSurrogate(document.charAt(start))
+        ) {
+            start--
+            end--
+            cursor = start
+        }
+
         val selected = document.textBetween(start, end)
-        val cursor = document.cursorOffset.coerceIn(0, document.textLength)
         val line = document.lineForOffset(cursor).coerceIn(0, document.lineCount - 1)
         val lineText = document.lineText(line)
         val lineStart = document.lineStartOffset(line).coerceIn(0, document.textLength)
