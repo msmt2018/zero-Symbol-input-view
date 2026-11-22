@@ -253,6 +253,26 @@ class SymbolTextDocumentActionHostTest {
         assertEquals("ab", document.value)
     }
 
+    @Test fun deleteToLineStartNormalizesCaretInsideSurrogatePair() {
+        val document = Document("a𐐀b")
+        document.setSelection(2, 2)
+        val host = SymbolTextDocumentActionHost(document)
+
+        assertTrue(host.delete(com.zerostudio.idea.widget.editor.symbolinput.v2.model.DeleteKind.TO_LINE_START))
+        assertEquals("𐐀b", document.value)
+        assertEquals(0, document.selectionStart)
+    }
+
+    @Test fun deleteToLineEndNormalizesCaretInsideSurrogatePair() {
+        val document = Document("a𐐀b")
+        document.setSelection(2, 2)
+        val host = SymbolTextDocumentActionHost(document)
+
+        assertTrue(host.delete(com.zerostudio.idea.widget.editor.symbolinput.v2.model.DeleteKind.TO_LINE_END))
+        assertEquals("a𐐀", document.value)
+        assertEquals(3, document.selectionStart)
+    }
+
     @Test fun deletingFinalCrLfLineRemovesWholeSeparator() {
         val document = Document("first\r\nlast")
         document.setSelection(document.value.length, document.value.length)
