@@ -18,17 +18,7 @@ data class SymbolTextRange(val start: Int, val end: Int) {
         require(start >= 0 && end >= start)
     }
 
-    /** Reverses Unicode code points without reversing surrogate code units. */
-    private fun reverseCodePoints(value: String): String {
-        val result = StringBuilder(value.length)
-        var offset = value.length
-        while (offset > 0) {
-            val codePoint = Character.codePointBefore(value, offset)
-            result.appendCodePoint(codePoint)
-            offset -= Character.charCount(codePoint)
-        }
-        return result.toString()
-    }
+    
 }
 
 /** Position and content for inserting a duplicate line into a UTF-16 text document. */
@@ -43,6 +33,18 @@ data class SymbolTextInsertion(
  * operate on CharSequence and offsets rather than Sora Content or CodeEditor.
  */
 object SymbolTextEditing {
+    /** Reverses Unicode code points without reversing surrogate code units. */
+    private fun reverseCodePoints(value: String): String {
+        val result = StringBuilder(value.length)
+        var offset = value.length
+        while (offset > 0) {
+            val codePoint = Character.codePointBefore(value, offset)
+            result.appendCodePoint(codePoint)
+            offset -= Character.charCount(codePoint)
+        }
+        return result.toString()
+    }
+
     /**
      * Expands $S/$E/$T/$$ while recording marker offsets against the actual
      * expanded output, including text substituted for $T.
