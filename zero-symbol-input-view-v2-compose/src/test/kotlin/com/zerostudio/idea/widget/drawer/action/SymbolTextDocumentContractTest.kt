@@ -103,6 +103,15 @@ class SymbolTextDocumentContractTest {
     }
 
 
+    @Test fun allowsAdjacentNonOverlappingEdits() {
+        val document = Buffer("abcd")
+        assertTrue(document.applyEdits(listOf(
+            TextDocumentEdit(2, 4, "Y"),
+            TextDocumentEdit(0, 2, "X")
+        )))
+        assertEquals("XY", document.value)
+    }
+
     @Test fun rejectsMultipleInsertionsAtSameOffsetAsAmbiguous() {
         val document = Buffer("abcd")
         assertFalse(document.applyEdits(listOf(
