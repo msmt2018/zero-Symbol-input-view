@@ -49,15 +49,16 @@ import org.junit.Test
 
 class SymbolTextDocumentContractTest {
     private open class Buffer(var value: String) : SymbolTextDocument {
-        private var caret = 0
+        private var selectionAnchor = 0
+        private var selectionActive = 0
         val transactionEvents = mutableListOf<Boolean>()
         var failRollback = false
         override val isEditable = true
         override val textLength get() = value.length
         override val lineCount get() = value.split("\n").size
-        override val cursorOffset get() = caret
-        override val selectionStart get() = caret
-        override val selectionEnd get() = caret
+        override val cursorOffset get() = selectionActive
+        override val selectionStart get() = selectionAnchor
+        override val selectionEnd get() = selectionActive
         private fun starts(): List<Int> = buildList {
             add(0)
             value.forEachIndexed { index, char -> if (char == '\n') add(index + 1) }
@@ -75,10 +76,14 @@ class SymbolTextDocumentContractTest {
         override fun charAt(offset: Int) = value[offset]
         override open fun replace(start: Int, end: Int, replacement: String): Boolean {
             value = value.replaceRange(start, end, replacement)
-            caret = start + replacement.length
+            selectionAnchor = start + replacement.length
+            selectionActive = selectionAnchor
             return true
         }
-        override fun setSelection(start: Int, end: Int) { caret = end }
+        override fun setSelection(start: Int, end: Int) {
+            selectionAnchor = start
+            selectionActive = end
+        }
         override fun beginEditTransaction() { transactionEvents += true }
         override open fun endEditTransaction(commit: Boolean) {
             transactionEvents += commit
