@@ -17,6 +17,18 @@ data class SymbolTextRange(val start: Int, val end: Int) {
     init {
         require(start >= 0 && end >= start)
     }
+
+    /** Reverses Unicode code points without reversing surrogate code units. */
+    private fun reverseCodePoints(value: String): String {
+        val result = StringBuilder(value.length)
+        var offset = value.length
+        while (offset > 0) {
+            val codePoint = Character.codePointBefore(value, offset)
+            result.appendCodePoint(codePoint)
+            offset -= Character.charCount(codePoint)
+        }
+        return result.toString()
+    }
 }
 
 /** Position and content for inserting a duplicate line into a UTF-16 text document. */
@@ -44,7 +56,7 @@ object SymbolTextEditing {
         lineSeparator: String = "\n",
         currentIndent: String = currentLineText.takeWhile { it == ' ' || it == '\t' }
     ): SymbolTextMacroExpansion {
-        val output = StringBuilder(template.length + selectedText.length + currentLineText.length)
+        val output = StringBuilder()
         var insertionOffset: Int? = null
         var selectionEndOffset: Int? = null
         var index = 0
@@ -64,7 +76,7 @@ object SymbolTextEditing {
                     "\$CAP" -> selectedText.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
                     "\$LOW" -> selectedText.lowercase()
                     "\$UP" -> selectedText.uppercase()
-                    "\$REV" -> selectedText.reversed()
+                    "\$REV" -> reverseCodePoints(selectedText)
                     else -> "\t"
                 }
                 output.append(transformed)
@@ -105,7 +117,7 @@ object SymbolTextEditing {
                     index += 2
                 }
                 'R' -> {
-                    output.append(selectedText.reversed())
+                    output.append(reverseCodePoints(selectedText))
                     index += 2
                 }
                 'N' -> {
@@ -176,14 +188,15 @@ object SymbolTextEditing {
         line: Int,
         lineCount: Int,
         lineLength: Int,
-        lineContent: String
+        lineContent: String,
+        lineSeparator: String = "\n"
     ): SymbolTextInsertion {
         require(lineCount > 0 && line in 0 until lineCount)
         require(lineLength >= 0)
         return if (line + 1 < lineCount) {
-            SymbolTextInsertion(line + 1, 0, "$lineContent\n")
+            SymbolTextInsertion(line + 1, 0, "$lineContent$lineSeparator")
         } else {
-            SymbolTextInsertion(line, lineLength, "\n$lineContent")
+            SymbolTextInsertion(line, lineLength, "$lineSeparator$lineContent")
         }
     }
 }
