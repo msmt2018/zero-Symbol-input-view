@@ -158,24 +158,31 @@ object SymbolTextEditing {
         backwards: Boolean
     ): SymbolTextRange? {
         require(cursorOffset in 0..text.length)
+        // A caret reported between a high/low surrogate is normalized to the
+        // leading boundary before applying directional deletion semantics.
+        val safeCursor = if (
+            cursorOffset > 0 && cursorOffset < text.length &&
+            Character.isHighSurrogate(text[cursorOffset - 1]) &&
+            Character.isLowSurrogate(text[cursorOffset])
+        ) cursorOffset - 1 else cursorOffset
         if (backwards) {
-            if (cursorOffset == 0) return null
-            var start = cursorOffset - 1
+            if (safeCursor == 0) return null
+            var start = safeCursor - 1
             if (Character.isLowSurrogate(text[start]) &&
                 start > 0 && Character.isHighSurrogate(text[start - 1])
             ) {
                 start--
             }
-            return SymbolTextRange(start, cursorOffset)
+            return SymbolTextRange(start, safeCursor)
         }
-        if (cursorOffset == text.length) return null
-        var end = cursorOffset + 1
-        if (Character.isHighSurrogate(text[cursorOffset]) &&
+        if (safeCursor == text.length) return null
+        var end = safeCursor + 1
+        if (Character.isHighSurrogate(text[safeCursor]) &&
             end < text.length && Character.isLowSurrogate(text[end])
         ) {
             end++
         }
-        return SymbolTextRange(cursorOffset, end)
+        return SymbolTextRange(safeCursor, end)
     }
 
     /**
