@@ -174,9 +174,17 @@ val auditComposeMigration by tasks.registering {
                 } else null
             }
         }
-        val dependencyViolations = viewOnlyDependencies.filter { dependency ->
-            Regex("""["']""" + Regex.escape(dependency) + """(?::[^"']*)?["']""")
-                .containsMatchIn(file("build.gradle.kts").readText())
+        // Match only actual Gradle dependency declarations. Searching the whole
+        // script also matches the audit's own forbidden-dependency inventory and
+        // makes this report permanently noisy.
+        val dependencyDeclarations = file("build.gradle.kts").readLines()
+        val dependencyViolations = dependencyDeclarations.mapNotNull { line ->
+            val declaration = Regex(
+                """^\\s*(?:api|implementation|compileOnly|runtimeOnly|testImplementation|androidTestImplementation|debugImplementation|releaseImplementation)\\s*\\(\\s*["']([^"']+)["']"""
+            ).find(line)?.groupValues?.getOrNull(1) ?: return@mapNotNull null
+            viewOnlyDependencies.firstOrNull { dependency ->
+                declaration == dependency || declaration.startsWith("$dependency:")
+            }?.let { dependency -> "$dependency <- ${line.trim()}" }
         }
         logger.lifecycle("Compose migration audit: ${sourceFiles.size} source files scanned")
         logger.lifecycle("Remaining View UI source findings: ${violations.size}")
@@ -213,21 +221,29 @@ val verifyComposeArtifactBoundary by tasks.registering {
                 } else null
             }
         }
-        val dependencies = listOf(
-            "androidx.recyclerview:recyclerview",
-            "androidx.viewpager2:viewpager2",
-            "com.google.android.material:material",
-            "androidx.lifecycle:lifecycle-runtime-compose",
-            "androidx.activity:activity-compose",
-            "androidx.activity:activity",
-            "androidx.fragment:fragment",
-            "androidx.lifecycle:lifecycle-runtime",
-            "androidx.lifecycle:lifecycle-viewmodel",
-            "androidx.lifecycle:lifecycle-viewmodel-compose",
-            "androidx.lifecycle:lifecycle-viewmodel-savedstate",
-            "androidx.lifecycle:lifecycle-common",
-            "androidx.savedstate:savedstate"
-        ).filter { it in file("build.gradle.kts").readText() }
+        val dependencyDeclarations = file("build.gradle.kts").readLines()
+        val dependencies = dependencyDeclarations.mapNotNull { line ->
+            val declaration = Regex(
+                """^\\s*(?:api|implementation|compileOnly|runtimeOnly|testImplementation|androidTestImplementation|debugImplementation|releaseImplementation)\\s*\\(\\s*["']([^"']+)["']"""
+            ).find(line)?.groupValues?.getOrNull(1) ?: return@mapNotNull null
+            listOf(
+                "androidx.recyclerview:recyclerview",
+                "androidx.viewpager2:viewpager2",
+                "com.google.android.material:material",
+                "androidx.lifecycle:lifecycle-runtime-compose",
+                "androidx.activity:activity-compose",
+                "androidx.activity:activity",
+                "androidx.fragment:fragment",
+                "androidx.lifecycle:lifecycle-runtime",
+                "androidx.lifecycle:lifecycle-viewmodel",
+                "androidx.lifecycle:lifecycle-viewmodel-compose",
+                "androidx.lifecycle:lifecycle-viewmodel-savedstate",
+                "androidx.lifecycle:lifecycle-common",
+                "androidx.savedstate:savedstate"
+            ).firstOrNull { dependency ->
+                declaration == dependency || declaration.startsWith("$dependency:")
+            }?.let { dependency -> "$dependency <- ${line.trim()}" }
+        }
         check(violations.isEmpty() && dependencies.isEmpty()) {
             "Compose artifact boundary is not clean. Run auditComposeMigration for the complete inventory."
         }
