@@ -269,8 +269,8 @@ class SymbolTextDocumentActionHostTest {
         val host = SymbolTextDocumentActionHost(document)
 
         assertTrue(host.delete(com.zerostudio.idea.widget.editor.symbolinput.v2.model.DeleteKind.TO_LINE_END))
-        assertEquals("a𐐀", document.value)
-        assertEquals(3, document.selectionStart)
+        assertEquals("a", document.value)
+        assertEquals(1, document.selectionStart)
     }
 
     @Test fun deletingFinalCrLfLineRemovesWholeSeparator() {
