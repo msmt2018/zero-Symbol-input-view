@@ -180,7 +180,7 @@ val auditComposeMigration by tasks.registering {
         val dependencyDeclarations = file("build.gradle.kts").readLines()
         val dependencyViolations = dependencyDeclarations.mapNotNull { line ->
             val declaration = Regex(
-                """^\\s*(?:api|implementation|compileOnly|runtimeOnly|testImplementation|androidTestImplementation|debugImplementation|releaseImplementation)\\s*\\(\\s*["']([^"']+)["']"""
+                """^\s*(?:api|implementation|compileOnly|runtimeOnly|testImplementation|androidTestImplementation|debugImplementation|releaseImplementation)\s*\(\s*["']([^"']+)["']"""
             ).find(line)?.groupValues?.getOrNull(1) ?: return@mapNotNull null
             viewOnlyDependencies.firstOrNull { dependency ->
                 declaration == dependency || declaration.startsWith("$dependency:")
@@ -224,7 +224,7 @@ val verifyComposeArtifactBoundary by tasks.registering {
         val dependencyDeclarations = file("build.gradle.kts").readLines()
         val dependencies = dependencyDeclarations.mapNotNull { line ->
             val declaration = Regex(
-                """^\\s*(?:api|implementation|compileOnly|runtimeOnly|testImplementation|androidTestImplementation|debugImplementation|releaseImplementation)\\s*\\(\\s*["']([^"']+)["']"""
+                """^\s*(?:api|implementation|compileOnly|runtimeOnly|testImplementation|androidTestImplementation|debugImplementation|releaseImplementation)\s*\(\s*["']([^"']+)["']"""
             ).find(line)?.groupValues?.getOrNull(1) ?: return@mapNotNull null
             listOf(
                 "androidx.recyclerview:recyclerview",
