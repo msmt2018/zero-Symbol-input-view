@@ -74,7 +74,7 @@ val verifyComposeUiBoundary by tasks.registering {
             Regex("""^\s*import\s+androidx\.recyclerview\."""),
             Regex("""^\s*import\s+androidx\.viewpager2\."""),
             Regex("""^\s*import\s+com\.google\.android\.material\."""),
-            Regex("""^\s*import\s+(?:android\.app\.Activity|androidx\.activity\.|androidx\.fragment\.|androidx\.lifecycle\.(?:Lifecycle|LifecycleOwner|LifecycleRegistry|compose\.LocalLifecycleOwner))""")
+            Regex("""^\s*import\s+(?:android\.app\.(?:Activity|Fragment)|androidx\.activity\.|androidx\.fragment\.|androidx\.lifecycle\.|androidx\.savedstate\.)""")
         )
         val forbiddenCalls = listOf(
             Regex("""\bAndroidView\s*\("""),
@@ -139,11 +139,11 @@ val auditComposeMigration by tasks.registering {
         Regex("""^\s*import\s+androidx\.recyclerview\."""),
         Regex("""^\s*import\s+androidx\.viewpager2\."""),
         Regex("""^\s*import\s+com\.google\.android\.material\."""),
-            Regex("""^\s*import\s+(?:android\.app\.Activity|androidx\.activity\.|androidx\.fragment\.|androidx\.lifecycle\.(?:Lifecycle|LifecycleOwner|LifecycleRegistry|compose\.LocalLifecycleOwner))""")
+            Regex("""^\s*import\s+(?:android\.app\.(?:Activity|Fragment)|androidx\.activity\.|androidx\.fragment\.|androidx\.lifecycle\.|androidx\.savedstate\.)""")
     )
     val forbiddenReferences = listOf(
         Regex("""\bAndroidView(?:Binding)?\s*\("""),
-        Regex("""\b(SymbolDrawerView|ViewGroup|MotionEvent|RecyclerView|ViewPager2|Activity|Fragment|LifecycleOwner|LifecycleRegistry|LocalLifecycleOwner|rememberLauncherForActivityResult)\b""")
+        Regex("""\b(SymbolDrawerView|ViewGroup|MotionEvent|RecyclerView|ViewPager2|Activity|Fragment|Lifecycle|LifecycleOwner|LifecycleRegistry|LocalLifecycleOwner|ViewModel|ViewModelStoreOwner|ViewModelProvider|SavedStateHandle|SavedStateRegistryOwner|LifecycleEventObserver|rememberLauncherForActivityResult)\b""")
     )
     val viewOnlyDependencies = listOf(
         "androidx.recyclerview:recyclerview",
@@ -153,7 +153,12 @@ val auditComposeMigration by tasks.registering {
         "androidx.activity:activity-compose",
         "androidx.activity:activity",
         "androidx.fragment:fragment",
-        "androidx.lifecycle:lifecycle-runtime"
+        "androidx.lifecycle:lifecycle-runtime",
+        "androidx.lifecycle:lifecycle-viewmodel",
+        "androidx.lifecycle:lifecycle-viewmodel-compose",
+        "androidx.lifecycle:lifecycle-viewmodel-savedstate",
+        "androidx.lifecycle:lifecycle-common",
+        "androidx.savedstate:savedstate"
     )
 
     doLast {
@@ -197,8 +202,8 @@ val verifyComposeArtifactBoundary by tasks.registering {
         ).map { layout.projectDirectory.dir(it).asFile }
         val files = sourceRoots.filter { it.exists() }
             .flatMap { root -> root.walkTopDown().filter { it.isFile && it.extension in setOf("kt", "java") }.toList() }
-        val forbiddenImports = Regex("""^\s*import\s+(android\.view\.|android\.widget\.|android\.graphics\.|androidx\.recyclerview\.|androidx\.viewpager2\.|com\.google\.android\.material\.|android\.app\.Activity|androidx\.activity\.|androidx\.fragment\.|androidx\.lifecycle\.(Lifecycle|LifecycleOwner|LifecycleRegistry|compose\.LocalLifecycleOwner))""")
-        val forbiddenReferences = Regex("""\b(AndroidView(?:Binding)?|SymbolDrawerView|ViewGroup|MotionEvent|RecyclerView|ViewPager2|Activity|Fragment|LifecycleOwner|LifecycleRegistry|LocalLifecycleOwner|rememberLauncherForActivityResult)\b""")
+        val forbiddenImports = Regex("""^\s*import\s+(android\.view\.|android\.widget\.|android\.graphics\.|androidx\.recyclerview\.|androidx\.viewpager2\.|com\.google\.android\.material\.|android\.app\.(Activity|Fragment)|androidx\.activity\.|androidx\.fragment\.|androidx\.lifecycle\.|androidx\.savedstate\.)""")
+        val forbiddenReferences = Regex("""\b(AndroidView(?:Binding)?|SymbolDrawerView|ViewGroup|MotionEvent|RecyclerView|ViewPager2|Activity|Fragment|Lifecycle|LifecycleOwner|LifecycleRegistry|LocalLifecycleOwner|ViewModel|ViewModelStoreOwner|ViewModelProvider|SavedStateHandle|SavedStateRegistryOwner|LifecycleEventObserver|rememberLauncherForActivityResult)\b""")
         val violations = files.flatMap { file ->
             file.readLines().mapIndexedNotNull { index, line ->
                 val trimmed = line.trimStart()
@@ -216,7 +221,12 @@ val verifyComposeArtifactBoundary by tasks.registering {
             "androidx.activity:activity-compose",
             "androidx.activity:activity",
             "androidx.fragment:fragment",
-            "androidx.lifecycle:lifecycle-runtime"
+            "androidx.lifecycle:lifecycle-runtime",
+            "androidx.lifecycle:lifecycle-viewmodel",
+            "androidx.lifecycle:lifecycle-viewmodel-compose",
+            "androidx.lifecycle:lifecycle-viewmodel-savedstate",
+            "androidx.lifecycle:lifecycle-common",
+            "androidx.savedstate:savedstate"
         ).filter { it in file("build.gradle.kts").readText() }
         check(violations.isEmpty() && dependencies.isEmpty()) {
             "Compose artifact boundary is not clean. Run auditComposeMigration for the complete inventory."
