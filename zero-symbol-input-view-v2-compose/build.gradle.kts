@@ -137,7 +137,7 @@ tasks.named("check") {
  */
 val verifyComposeResolvedDependencyBoundary by tasks.registering {
     group = "verification"
-    description = "Rejects transitive Android View and AndroidX Lifecycle runtime dependencies."
+    description = "Rejects transitive legacy View widget and layout runtime dependencies."
 
     doLast {
         val runtimeConfigurations = listOf("debugRuntimeClasspath", "releaseRuntimeClasspath")
@@ -146,11 +146,14 @@ val verifyComposeResolvedDependencyBoundary by tasks.registering {
                     ?: error("Required runtime configuration '$name' was not created")
             }
 
+        // Compose's Android backend legitimately brings lifecycle/runtime,
+        // activity and saved-state artifacts transitively (for example through
+        // ui-android and material3-android). Their presence is not evidence that
+        // this library owns an Activity/Fragment/View lifecycle. Source-level
+        // guards above reject those APIs; this resolved-graph guard rejects the
+        // legacy View widget/toolkit stacks that Compose does not require.
         val forbiddenGroups = setOf(
-            "androidx.lifecycle",
-            "androidx.activity",
             "androidx.fragment",
-            "androidx.savedstate",
             "androidx.recyclerview",
             "androidx.viewpager2",
             "com.google.android.material",
@@ -198,8 +201,8 @@ val verifyComposeResolvedDependencyBoundary by tasks.registering {
                 appendLine("Compose runtime dependency boundary violation(s):")
                 violations.forEach { appendLine(" - $it") }
                 appendLine(
-                    "Remove the transitive View/Lifecycle dependency or replace the integration " +
-                        "with a Composition-owned, lifecycle-neutral API."
+                    "Remove the transitive legacy View toolkit dependency or replace the integration " +
+                        "with a Compose-native API."
                 )
             }
         }
