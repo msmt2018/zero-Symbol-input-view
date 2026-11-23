@@ -115,7 +115,74 @@ val verifyComposeUiBoundary by tasks.registering {
 }
 
 tasks.named("check") {
-    dependsOn(verifyComposeUiBoundary, "verifyComposeArtifactBoundary")
+    dependsOn(
+        verifyComposeUiBoundary,
+        "verifyComposeArtifactBoundary",
+        "verifyComposeResolvedDependencyBoundary"
+    )
+}
+
+/**
+ * Inspect the resolved production runtime graph, not only dependency strings
+ * declared in this module. This catches View/lifecycle artifacts introduced
+ * transitively by another library.
+ *
+ * Compose runtime itself remains the UI runtime. This module intentionally
+ * does not use Android Lifecycle, Activity, Fragment, SavedState, RecyclerView,
+ * ViewPager2, or View-based Material integration APIs.
+ */
+val verifyComposeResolvedDependencyBoundary by tasks.registering {
+    group = "verification"
+    description = "Rejects transitive Android View and AndroidX Lifecycle runtime dependencies."
+
+    doLast {
+        val runtimeConfigurations = listOf("debugRuntimeClasspath", "releaseRuntimeClasspath")
+            .map { name ->
+                configurations.findByName(name)
+                    ?: error("Required runtime configuration '$name' was not created")
+            }
+
+        val forbiddenGroups = setOf(
+            "androidx.lifecycle",
+            "androidx.activity",
+            "androidx.fragment",
+            "androidx.savedstate",
+            "androidx.recyclerview",
+            "androidx.viewpager2",
+            "com.google.android.material",
+            "androidx.appcompat",
+            "androidx.constraintlayout",
+            "androidx.coordinatorlayout",
+            "androidx.drawerlayout"
+        )
+
+        val violations = runtimeConfigurations.flatMap { configuration ->
+            configuration.incoming.resolutionResult.allComponents.mapNotNull { component ->
+                val module = component.id as? org.gradle.api.artifacts.component.ModuleComponentIdentifier
+                    ?: return@mapNotNull null
+                if (module.group in forbiddenGroups) {
+                    "${configuration.name}: ${module.group}:${module.module}:${module.version}"
+                } else {
+                    null
+                }
+            }
+        }.distinct().sorted()
+
+        check(violations.isEmpty()) {
+            buildString {
+                appendLine("Compose runtime dependency boundary violation(s):")
+                violations.forEach { appendLine(" - $it") }
+                appendLine(
+                    "Remove the transitive View/Lifecycle dependency or replace the integration " +
+                        "with a Composition-owned, lifecycle-neutral API."
+                )
+            }
+        }
+        logger.lifecycle(
+            "Compose runtime dependency boundary clean: " +
+                "${runtimeConfigurations.size} production runtime configurations inspected."
+        )
+    }
 }
 
 /**
