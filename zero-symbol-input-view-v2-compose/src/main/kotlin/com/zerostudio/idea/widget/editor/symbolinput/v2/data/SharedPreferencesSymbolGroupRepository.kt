@@ -48,9 +48,9 @@ class SharedPreferencesSymbolGroupRepository(
             val groups = SymbolGroupStorageCodec.decode(json)
             val canonical = SymbolGroupStorageCodec.encode(groups)
             if (canonical != json) {
-                check(preferences.edit().putString(KEY_GROUPS, canonical).commit()) {
-                    "Unable to canonicalize stored symbol groups"
-                }
+                // Canonicalization is best-effort: a failed repair write must not
+                // turn valid, successfully decoded user data into a corruption case.
+                preferences.edit().putString(KEY_GROUPS, canonical).commit()
             }
             groups
         }.getOrElse { error ->
