@@ -126,9 +126,16 @@ val verifyComposeUiBoundary by tasks.registering {
  */
 val verifyCoreStateEngineBoundary by tasks.registering {
     group = "verification"
-    description = "Rejects Compose/Android imports in the platform-neutral drawer state engine."
+    description = "Rejects Compose/Android imports in platform-neutral action APIs, navigation, and drawer state engines."
 
     val coreFiles = listOf(
+        // Editor-neutral action execution contracts and adapters.
+        "src/main/kotlin/com/zerostudio/idea/widget/drawer/action/SymbolActionExecutionApi.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/drawer/action/SymbolActionRegistry.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/drawer/action/SymbolTextDocument.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/drawer/action/SymbolTextDocumentActionHost.kt",
+        // Drawer geometry, state and navigation engines.
+        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/drawer/navigation/DrawerNavigationController.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/drawer/core/DrawerStateHolder.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/drawer/core/DrawerAnchor.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/drawer/core/DrawerAnchorResolver.kt",

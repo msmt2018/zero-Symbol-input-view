@@ -7,19 +7,21 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core
 
 
 /**
- * Composition-observable runtime state for the generic drawer engine.
+ * Listener-observable runtime state for the platform-neutral drawer engine.
  *
  * Geometry and anchor resolution are kept independent from layout. A Compose
- * host measures its content, supplies [DrawerAnchorInput], and renders
- * [snapshot]. Gesture modifiers forward pixel deltas to this state holder;
- * animation remains owned by the host's Compose animation scope.
+ * host measures its content, supplies [DrawerAnchorInput], observes immutable
+ * snapshots through [addStateListener], and renders them. Gesture modifiers
+ * forward pixel deltas to this state holder; animation remains owned by the
+ * host's Compose animation scope.
  *
- * The holder retains no Context, View, Activity, Lifecycle, or coroutine scope.
+ * The holder retains no Compose Runtime state, Context, View, Activity,
+ * Lifecycle, or coroutine scope.
  *
  * All mutations and listener registration/removal must be serialized by the
  * caller on one thread. This holder is intentionally not a cross-thread
- * synchronization primitive: its Compose snapshot state and the associated
- * plain Kotlin transition fields form one logical state machine. Compose hosts
+ * synchronization primitive: its published snapshots and associated plain
+ * Kotlin transition fields form one logical state machine. Compose hosts
  * should route commands, gesture deltas and animation frames through their
  * composition/UI dispatcher. Listener callbacks run synchronously on the
  * publishing thread; reentrant publications are queued until the current
