@@ -47,8 +47,9 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation
 
 
 /**
- * UI-agnostic page selection model. Compose navigation slots observe immutable
- * snapshots; the controller owns no composable, View, adapter or lifecycle.
+ * Page identity and selection model. It owns no Compose Runtime state, View,
+ * adapter or lifecycle object; DrawerPage values carry the Composable content
+ * slots that the Compose page host renders.
  */
 class DrawerNavigationController {
     fun interface Listener {

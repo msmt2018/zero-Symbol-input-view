@@ -134,7 +134,7 @@ class ComposeMigrationContractTest {
     @Test fun adaptiveWindowControllerPublishesThroughCompositionAdapter() {
         val controller = AdaptiveWindowController(WindowAdaptiveInfo(widthDp = 500f, heightDp = 700f))
         compose.setContent {
-            val snapshot by rememberAdaptiveWindowSnapshot(controller)
+            val snapshot = rememberAdaptiveWindowSnapshot(controller)
             Text("adaptive-controller-width-${snapshot.widthDp.toInt()}")
         }
         compose.onNodeWithText("adaptive-controller-width-500").assertIsDisplayed()
@@ -153,7 +153,7 @@ class ComposeMigrationContractTest {
             )
         )
         compose.setContent {
-            val snapshot by rememberDrawerNavigationSnapshot(controller)
+            val snapshot = rememberDrawerNavigationSnapshot(controller)
             Text("navigation-page-${snapshot.selectedPageId}")
         }
         compose.onNodeWithText("navigation-page-first").assertIsDisplayed()
@@ -174,7 +174,7 @@ class ComposeMigrationContractTest {
             initialAnchorId = "peek"
         )
         compose.setContent {
-            val snapshot by rememberDrawerStateSnapshot(holder)
+            val snapshot = rememberDrawerStateSnapshot(holder)
             Text("engine-height-${snapshot.currentHeightPx}")
         }
         compose.onNodeWithText("engine-height-100").assertIsDisplayed()

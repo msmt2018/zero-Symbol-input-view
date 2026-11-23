@@ -64,6 +64,7 @@ DrawerPanelContent 持有 @Composable ColumnScope.() -> Unit，不是 View 工�
 - DrawerAnchorResolver：校验、clamp、排序、重复高度归并和 fling 目标。
 - DrawerStateHolder：纯 Kotlin 唯一状态源，负责拖动、动画代次和稳定锚点；不导入 Compose Runtime。
 - DrawerNestedScrollPolicy：纯 Kotlin 嵌套滚动仲裁。
+- DrawerInteractionController：旧双锚点 API 的纯 Kotlin 兼容 facade。
 - rememberDrawerStateSnapshot：Composition 适配器，通过 DisposableEffect 订阅并释放状态监听。
 - DrawerNestedScrollConnection：Compose NestedScrollConnection 适配器。
 - DefaultDrawerController / DrawerControllerComposition：面向 Compose 宿主的控制层。

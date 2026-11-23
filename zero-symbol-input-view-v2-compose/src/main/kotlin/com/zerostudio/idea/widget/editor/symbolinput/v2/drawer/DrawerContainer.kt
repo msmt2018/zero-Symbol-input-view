@@ -188,7 +188,7 @@ fun DrawerContainer(
 
     val controller = state.controller
     val holder = controller.stateHolder
-    val snapshot by rememberDrawerStateSnapshot(holder)
+    val snapshot = rememberDrawerStateSnapshot(holder)
     val targetAnchor = snapshot.targetAnchorId?.let { id ->
         snapshot.anchors.firstOrNull { it.id == id }
     }

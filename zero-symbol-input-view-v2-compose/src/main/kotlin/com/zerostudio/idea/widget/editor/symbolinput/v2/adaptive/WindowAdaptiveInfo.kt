@@ -43,8 +43,8 @@ data class FoldingFeatureInfo(
 
 /**
  * Immutable snapshot of the usable app window. Hosts can construct it from
- * View bounds, WindowMetrics or AndroidX WindowManager without coupling this
- * core API to a particular window-management dependency.
+ * Compose layout bounds, WindowMetrics or platform window metrics without
+ * coupling this core API to a particular window-management dependency.
  */
 data class WindowAdaptiveInfo(
     val widthDp: Float,

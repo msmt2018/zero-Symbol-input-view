@@ -140,7 +140,12 @@ val verifyCoreStateEngineBoundary by tasks.registering {
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/adaptive/AdaptiveLayoutResolver.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/adaptive/AdaptiveGridResolver.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/adaptive/SymbolDrawerDockingPolicy.kt",
-        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/adaptive/SymbolDrawerDockingLayoutResolver.kt"
+        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/adaptive/SymbolDrawerDockingLayoutResolver.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/adaptive/SymbolDrawerDockingCoordinator.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/adaptive/AdaptiveDimensions.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/drawer/core/DrawerState.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/drawer/core/DrawerInteractionController.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/drawer/navigation/DrawerNavigationConfig.kt"
     ).map { layout.projectDirectory.file(it).asFile }
 
     doLast {

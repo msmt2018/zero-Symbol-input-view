@@ -19,13 +19,9 @@ class AdaptiveWindowController(initialSnapshot: WindowAdaptiveInfo) {
         java.util.ArrayDeque<Pair<WindowAdaptiveInfo, List<(WindowAdaptiveInfo) -> Unit>>>()
     private var dispatchingNotifications = false
     private var nextListenerId = 0L
-    private var latestSnapshot: WindowAdaptiveInfo = initialSnapshot
+    @Volatile private var latestSnapshot: WindowAdaptiveInfo = initialSnapshot
 
-    /**
-     * Observable immutable snapshot. Reading this property from a Composable
-     * subscribes that composition to adaptive-window updates without registering
-     * a callback or managing a disposable listener.
-     */
+    /** Latest immutable snapshot; Composables should use rememberAdaptiveWindowSnapshot. */
     val snapshot: WindowAdaptiveInfo get() = latestSnapshot
 
     fun latest(): WindowAdaptiveInfo = latestSnapshot

@@ -11,7 +11,7 @@
 | 文本 | SymbolTextDocument、SymbolTextDocumentActionHost、GenericSymbolTextActions | 编辑器中立的 UTF-16 文本操作 |
 | 数据 | SymbolGroupRepository、SymbolGroupManager、StorageCodec、BundleCodec、Migration | 持久化、事务式快照更新、导入迁移 |
 | 设置 | SymbolDrawerSettings、SettingsRepository、SettingsCodec | 不可变设置与版本化存储 |
-| 抽屉核心 | DrawerAnchor、DrawerAnchorResolver、DrawerStateHolder、DrawerNestedScrollPolicy | 纯 Kotlin 锚点、几何、拖动状态机与嵌套滚动策略 |
+| 抽屉核心 | DrawerAnchor、DrawerAnchorResolver、DrawerState、DrawerStateHolder、DrawerInteractionController、DrawerNestedScrollPolicy | 纯 Kotlin 锚点、几何、拖动状态机与嵌套滚动策略 |
 | Compose 状态适配 | rememberDrawerStateSnapshot、DefaultDrawerController、DrawerControllerComposition | 将纯状态引擎桥接到 Composition 并驱动界面 |
 | Compose 适配 | DrawerContainer、DrawerPageHost、DrawerPanelHost、AdaptiveWindowObserver、rememberDrawerStateSnapshot、rememberDrawerNavigationSnapshot、rememberAdaptiveWindowSnapshot | Compose 布局、分页、面板和状态/窗口快照桥接 |
 | 扩展 | SymbolDrawerExtensionRegistry 及 Composable 扩展接口 | 动作、指示器、单元格和设置贡献 |

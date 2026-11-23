@@ -205,7 +205,7 @@ fun SymbolDrawer(
         config.maxExpandedHeightDp.dp.roundToPx().coerceAtLeast(collapsedHeightPx)
     }
     val holder = state.stateHolder
-    val drawerSnapshot by rememberDrawerStateSnapshot(holder)
+    val drawerSnapshot = rememberDrawerStateSnapshot(holder)
     val targetAnchor = drawerSnapshot.targetAnchorId?.let { id ->
         drawerSnapshot.anchors.firstOrNull { it.id == id }
     }

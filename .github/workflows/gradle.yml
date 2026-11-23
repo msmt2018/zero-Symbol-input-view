@@ -145,10 +145,11 @@ jobs:
       - name: Audit Compose migration inventory
         run: ./gradlew :zero-symbol-input-view-v2-compose:auditComposeMigration
 
-      - name: Enforce Compose source, artifact, and runtime dependency boundaries
+      - name: Enforce Compose source, core-state, artifact, and runtime dependency boundaries
         run: >-
           ./gradlew
           :zero-symbol-input-view-v2-compose:verifyComposeUiBoundary
+          :zero-symbol-input-view-v2-compose:verifyCoreStateEngineBoundary
           :zero-symbol-input-view-v2-compose:verifyComposeArtifactBoundary
           :zero-symbol-input-view-v2-compose:verifyComposeResolvedDependencyBoundary
 

@@ -5,7 +5,6 @@
  */
 package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core
 
-import androidx.compose.runtime.Stable
 
 /**
  * Deprecated compatibility facade for the former two-bound interaction API.
@@ -19,7 +18,6 @@ import androidx.compose.runtime.Stable
  * New integrations should use DrawerStateHolder directly so intermediate anchors,
  * target-anchor identity, nested scrolling and semantic navigation remain available.
  */
-@Stable
 @Deprecated(
     message = "Use DrawerStateHolder with DrawerAnchorStrategy; this facade is retained for source compatibility.",
     replaceWith = ReplaceWith("DrawerStateHolder")
