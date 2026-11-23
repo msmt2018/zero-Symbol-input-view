@@ -157,14 +157,34 @@ val verifyComposeResolvedDependencyBoundary by tasks.registering {
         )
 
         val violations = runtimeConfigurations.flatMap { configuration ->
-            configuration.incoming.resolutionResult.allComponents.mapNotNull { component ->
+            val resolution = configuration.incoming.resolutionResult
+            val components = resolution.allComponents
+            val paths = linkedMapOf<String, List<String>>()
+            val queue = java.util.ArrayDeque<Pair<org.gradle.api.artifacts.result.ResolvedComponentResult, List<String>>>()
+            queue.add(
+                resolution.rootComponent.get() to
+                    listOf(configuration.name, resolution.rootComponent.get().id.displayName)
+            )
+            val visited = mutableSetOf<String>()
+            while (queue.isNotEmpty()) {
+                val (component, path) = queue.removeFirst()
+                val componentKey = component.id.displayName
+                if (!visited.add(componentKey)) continue
                 val module = component.id as? org.gradle.api.artifacts.component.ModuleComponentIdentifier
-                    ?: return@mapNotNull null
-                if (module.group in forbiddenGroups) {
-                    "${configuration.name}: ${module.group}:${module.module}:${module.version}"
-                } else {
-                    null
+                if (module != null && module.group in forbiddenGroups) {
+                    paths.putIfAbsent(
+                        "${configuration.name}: ${module.group}:${module.module}:${module.version}",
+                        path
+                    )
                 }
+                component.dependencies
+                    .filterIsInstance<org.gradle.api.artifacts.result.ResolvedDependencyResult>()
+                    .forEach { dependency ->
+                        queue.add(dependency.selected to (path + dependency.selected.id.displayName))
+                    }
+            }
+            paths.map { (artifact, path) ->
+                "$artifact\\n      via " + path.joinToString(" -> ")
             }
         }.distinct().sorted()
 
