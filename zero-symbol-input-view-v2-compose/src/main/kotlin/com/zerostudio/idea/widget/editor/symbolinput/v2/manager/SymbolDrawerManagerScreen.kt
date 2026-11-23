@@ -118,10 +118,11 @@ fun SymbolDrawerManagerScreen(
         val validIds = currentGroup?.symbols?.mapTo(mutableSetOf()) { it.id }.orEmpty()
         selectedSymbolIds = selectedSymbolIds.intersect(validIds)
     }
-    fun runCommand(command: () -> Unit) {
-        runCatching(command).onSuccess { refresh() }.onFailure {
-            errorMessage = it.message ?: "Unknown error"
-        }
+    fun runCommand(command: () -> Unit): Boolean {
+        return runCatching(command)
+            .onSuccess { refresh() }
+            .onFailure { errorMessage = it.message ?: "Unknown error" }
+            .isSuccess
     }
 
     val selectedGroup = groups.firstOrNull { it.id == selectedGroupId }
@@ -226,8 +227,9 @@ fun SymbolDrawerManagerScreen(
                     TextButton(
                         enabled = selectedSymbolIds.isNotEmpty(),
                         onClick = {
-                            runCommand { manager.removeSymbols(selectedGroup.id, selectedSymbolIds) }
-                            selectedSymbolIds = emptySet()
+                            if (runCommand { manager.removeSymbols(selectedGroup.id, selectedSymbolIds) }) {
+                                selectedSymbolIds = emptySet()
+                            }
                         }
                     ) { Text(stringResource(R.string.compose_manager_delete_selected)) }
                 }
@@ -292,7 +294,7 @@ fun SymbolDrawerManagerScreen(
                             modifier = Modifier.fillMaxWidth(),
                             onClick = {
                                 val operation = targetDialogOperation
-                                runCommand {
+                                val completed = runCommand {
                                     if (operation == "copy") {
                                         manager.copySymbols(
                                             selectedGroup.id,
@@ -307,8 +309,10 @@ fun SymbolDrawerManagerScreen(
                                         )
                                     }
                                 }
-                                selectedSymbolIds = emptySet()
-                                targetDialogOperation = null
+                                if (completed) {
+                                    selectedSymbolIds = emptySet()
+                                    targetDialogOperation = null
+                                }
                             }
                         ) {
                             Text(target.title, modifier = Modifier.fillMaxWidth())

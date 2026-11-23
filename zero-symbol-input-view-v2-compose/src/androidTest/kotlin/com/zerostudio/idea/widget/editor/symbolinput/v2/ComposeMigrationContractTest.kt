@@ -18,10 +18,19 @@ import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.AdaptiveWindowObserver
+import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.AdaptiveWindowController
+import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowAdaptiveInfo
+import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.rememberAdaptiveWindowSnapshot
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.DrawerContainer
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorInput
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerStateHolder
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.ExistingHeightAnchorStrategy
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.rememberDrawerStateSnapshot
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.rememberDrawerContainerState
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerPage
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerPageHost
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerNavigationController
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.rememberDrawerNavigationSnapshot
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.panel.DrawerPanelContent
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
@@ -120,6 +129,57 @@ class ComposeMigrationContractTest {
         compose.onNodeWithText("Page one").assertIsDisplayed().performTouchInput { swipeLeft() }
         compose.waitForIdle()
         compose.onNodeWithText("Page two").assertIsDisplayed()
+    }
+
+    @Test fun adaptiveWindowControllerPublishesThroughCompositionAdapter() {
+        val controller = AdaptiveWindowController(WindowAdaptiveInfo(widthDp = 500f, heightDp = 700f))
+        compose.setContent {
+            val snapshot by rememberAdaptiveWindowSnapshot(controller)
+            Text("adaptive-controller-width-${snapshot.widthDp.toInt()}")
+        }
+        compose.onNodeWithText("adaptive-controller-width-500").assertIsDisplayed()
+        compose.runOnIdle {
+            controller.update(WindowAdaptiveInfo(widthDp = 900f, heightDp = 700f))
+        }
+        compose.onNodeWithText("adaptive-controller-width-900").assertIsDisplayed()
+    }
+
+    @Test fun navigationControllerPublishesThroughCompositionAdapter() {
+        val controller = DrawerNavigationController()
+        controller.submitPages(
+            listOf(
+                DrawerPage("first", "First", DrawerPanelContent { Text("Page one") }),
+                DrawerPage("second", "Second", DrawerPanelContent { Text("Page two") })
+            )
+        )
+        compose.setContent {
+            val snapshot by rememberDrawerNavigationSnapshot(controller)
+            Text("navigation-page-${snapshot.selectedPageId}")
+        }
+        compose.onNodeWithText("navigation-page-first").assertIsDisplayed()
+        compose.runOnIdle { controller.selectPage("second") }
+        compose.onNodeWithText("navigation-page-second").assertIsDisplayed()
+    }
+
+    @Test fun pureDrawerStateEnginePublishesThroughCompositionAdapter() {
+        val holder = DrawerStateHolder(
+            initialInput = DrawerAnchorInput(
+                minHeightPx = 100,
+                maxHeightPx = 300,
+                viewportHeightPx = 300,
+                contentHeightPx = 300,
+                existingExpandedHeightPx = 300
+            ),
+            initialStrategy = ExistingHeightAnchorStrategy(),
+            initialAnchorId = "peek"
+        )
+        compose.setContent {
+            val snapshot by rememberDrawerStateSnapshot(holder)
+            Text("engine-height-${snapshot.currentHeightPx}")
+        }
+        compose.onNodeWithText("engine-height-100").assertIsDisplayed()
+        compose.runOnIdle { holder.snapToAnchor("expanded") }
+        compose.onNodeWithText("engine-height-300").assertIsDisplayed()
     }
 
     @Test fun adaptiveObserverReportsComposeLayoutBounds() {

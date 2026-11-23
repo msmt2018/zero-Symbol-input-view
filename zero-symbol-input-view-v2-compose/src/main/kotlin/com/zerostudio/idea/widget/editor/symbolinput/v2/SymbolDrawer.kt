@@ -93,6 +93,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.SymbolGroupIndicator
 import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.SymbolPage
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorInput
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerStateHolder
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.rememberDrawerStateSnapshot
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.ExistingHeightAnchorStrategy
 
 /**
@@ -204,7 +205,7 @@ fun SymbolDrawer(
         config.maxExpandedHeightDp.dp.roundToPx().coerceAtLeast(collapsedHeightPx)
     }
     val holder = state.stateHolder
-    val drawerSnapshot = holder.snapshot
+    val drawerSnapshot by rememberDrawerStateSnapshot(holder)
     val targetAnchor = drawerSnapshot.targetAnchorId?.let { id ->
         drawerSnapshot.anchors.firstOrNull { it.id == id }
     }
@@ -295,8 +296,7 @@ fun SymbolDrawer(
                     .fillMaxWidth()
                     .height(config.indicatorHeightDp.coerceAtLeast(0).dp),
                 settings = settings,
-                onSettingsClick = onOpenSettings,
-                onManagerClick = onOpenManager
+                onSettingsClick = onOpenSettings
             )
 
             if (safeGroups.isEmpty()) {

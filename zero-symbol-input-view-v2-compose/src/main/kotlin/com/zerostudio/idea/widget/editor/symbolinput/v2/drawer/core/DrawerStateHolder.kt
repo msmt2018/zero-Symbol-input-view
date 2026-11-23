@@ -5,10 +5,6 @@
  */
 package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core
 
-import androidx.compose.runtime.Stable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 
 /**
  * Composition-observable runtime state for the generic drawer engine.
@@ -29,36 +25,31 @@ import androidx.compose.runtime.setValue
  * publishing thread; reentrant publications are queued until the current
  * snapshot has been delivered to every listener.
  */
-@Stable
 class DrawerStateHolder(
     initialInput: DrawerAnchorInput,
     initialStrategy: DrawerAnchorStrategy = ExistingHeightAnchorStrategy(),
     initialAnchorId: String? = null
 ) {
     private var input: DrawerAnchorInput = initialInput
-    private var strategy: DrawerAnchorStrategy by mutableStateOf(initialStrategy)
+    private var strategy: DrawerAnchorStrategy = initialStrategy
     private var listeners: Set<(DrawerState) -> Unit> = emptySet()
     // Serialize reentrant publications so observers never see nested newer state
     // followed by an older outer-dispatch snapshot.
     private val pendingStateNotifications = java.util.ArrayDeque<DrawerState>()
     private var dispatchingStateNotifications = false
 
-    private var heightPx by mutableStateOf(0)
+    private var heightPx = 0
     /** Fractional pixel movement retained across successive drag deltas. */
     private var dragRemainderPx = 0f
-    private var dragging by mutableStateOf(false)
-    private var animating by mutableStateOf(false)
-    private var targetAnchorId by mutableStateOf<String?>(null)
+    private var dragging = false
+    private var animating = false
+    private var targetAnchorId: String? = null
     private var animationGeneration = 0L
-    private var resolvedAnchors by mutableStateOf(
-        DrawerAnchorResolver.resolve(initialStrategy, initialInput)
-    )
+    private var resolvedAnchors = DrawerAnchorResolver.resolve(initialStrategy, initialInput)
 
-    var snapshot: DrawerState by mutableStateOf(
-        createSnapshot(
-            anchors = resolvedAnchors,
-            requestedAnchorId = initialAnchorId
-        )
+    var snapshot: DrawerState = createSnapshot(
+        anchors = resolvedAnchors,
+        requestedAnchorId = initialAnchorId
     )
         private set
 

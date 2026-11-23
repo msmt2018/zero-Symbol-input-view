@@ -118,9 +118,53 @@ val verifyComposeUiBoundary by tasks.registering {
     }
 }
 
+/**
+ * Keep the drawer state and adaptive resolution engines below the Compose adapter layer.
+ *
+ * DrawerStateHolder, adaptive snapshot publishers and immutable anchor/geometry policies must remain
+ * plain Kotlin so they can be exercised without Composition or Android UI.
+ */
+val verifyCoreStateEngineBoundary by tasks.registering {
+    group = "verification"
+    description = "Rejects Compose/Android imports in the platform-neutral drawer state engine."
+
+    val coreFiles = listOf(
+        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/drawer/core/DrawerStateHolder.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/drawer/core/DrawerAnchor.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/drawer/core/DrawerAnchorResolver.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/drawer/core/DrawerAnchorStrategy.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/drawer/core/DrawerNestedScrollPolicy.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/state/DrawerGeometry.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/adaptive/AdaptiveWindowController.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/adaptive/WindowAdaptiveInfo.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/adaptive/AdaptiveLayoutResolver.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/adaptive/AdaptiveGridResolver.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/adaptive/SymbolDrawerDockingPolicy.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/adaptive/SymbolDrawerDockingLayoutResolver.kt"
+    ).map { layout.projectDirectory.file(it).asFile }
+
+    doLast {
+        val forbidden = Regex("""^\s*import\s+(?:android\.|androidx\.compose\.)""")
+        val violations = coreFiles.flatMap { source ->
+            check(source.isFile) { "Required core state source is missing: $source" }
+            source.readLines().mapIndexedNotNull { index, line ->
+                if (forbidden.containsMatchIn(line)) {
+                    "${source.relativeTo(projectDir)}:${index + 1}: $line"
+                } else null
+            }
+        }
+        check(violations.isEmpty()) {
+            "Platform-neutral drawer state engine imports Compose/Android APIs:\n" +
+                violations.joinToString("\n")
+        }
+        logger.lifecycle("Platform-neutral drawer state engine boundary clean: ${coreFiles.size} files inspected.")
+    }
+}
+
 tasks.named("check") {
     dependsOn(
         verifyComposeUiBoundary,
+        verifyCoreStateEngineBoundary,
         "verifyComposeArtifactBoundary",
         "verifyComposeResolvedDependencyBoundary"
     )

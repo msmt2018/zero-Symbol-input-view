@@ -45,16 +45,11 @@
 
 package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation
 
-import androidx.compose.runtime.Stable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 
 /**
  * UI-agnostic page selection model. Compose navigation slots observe immutable
  * snapshots; the controller owns no composable, View, adapter or lifecycle.
  */
-@Stable
 class DrawerNavigationController {
     fun interface Listener {
         fun onNavigationChanged(snapshot: DrawerNavigationSnapshot, selectedIndex: Int)
@@ -66,9 +61,8 @@ class DrawerNavigationController {
     private val pendingNotifications = java.util.ArrayDeque<Pair<DrawerNavigationSnapshot, Int>>()
     private var dispatchingNotifications = false
 
-    /** Compose-observable immutable navigation snapshot. Reading this property subscribes the caller to updates. */
-    var state: DrawerNavigationSnapshot by mutableStateOf(DrawerNavigationSnapshot(null, emptyList()))
-        private set
+    /** Latest immutable navigation snapshot. Compose callers should use rememberDrawerNavigationSnapshot. */
+    val state: DrawerNavigationSnapshot get() = snapshot()
 
     fun submitPages(value: List<DrawerPage>, preserveSelection: Boolean = true) {
         require(value.map { it.id }.distinct().size == value.size) {
@@ -122,7 +116,6 @@ class DrawerNavigationController {
 
     private fun dispatch() {
         val nextSnapshot = snapshot()
-        state = nextSnapshot
         pendingNotifications.addLast(nextSnapshot to selectedIndex())
         if (dispatchingNotifications) return
 

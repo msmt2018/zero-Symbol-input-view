@@ -84,6 +84,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DefaultDrawe
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorInput
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorStrategy
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerStateHolder
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.rememberDrawerStateSnapshot
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerPage
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerPageHost
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerNavigationPlacement
@@ -187,7 +188,7 @@ fun DrawerContainer(
 
     val controller = state.controller
     val holder = controller.stateHolder
-    val snapshot = holder.snapshot
+    val snapshot by rememberDrawerStateSnapshot(holder)
     val targetAnchor = snapshot.targetAnchorId?.let { id ->
         snapshot.anchors.firstOrNull { it.id == id }
     }

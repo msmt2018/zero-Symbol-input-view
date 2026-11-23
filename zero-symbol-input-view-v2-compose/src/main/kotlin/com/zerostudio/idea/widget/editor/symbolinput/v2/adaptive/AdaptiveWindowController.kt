@@ -5,12 +5,6 @@
  */
 package com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Stable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 
 /**
  * Optional platform-neutral adaptive-window snapshot publisher.
@@ -18,7 +12,6 @@ import androidx.compose.runtime.setValue
  * Android/Compose hosts supply immutable measurements; this model never
  * observes a View or owns window/listener lifecycle.
  */
-@Stable
 class AdaptiveWindowController(initialSnapshot: WindowAdaptiveInfo) {
     private val lock = Any()
     private val listeners = LinkedHashMap<Long, (WindowAdaptiveInfo) -> Unit>()
@@ -26,7 +19,7 @@ class AdaptiveWindowController(initialSnapshot: WindowAdaptiveInfo) {
         java.util.ArrayDeque<Pair<WindowAdaptiveInfo, List<(WindowAdaptiveInfo) -> Unit>>>()
     private var dispatchingNotifications = false
     private var nextListenerId = 0L
-    private var latestSnapshot by mutableStateOf(initialSnapshot)
+    private var latestSnapshot: WindowAdaptiveInfo = initialSnapshot
 
     /**
      * Observable immutable snapshot. Reading this property from a Composable
@@ -106,16 +99,3 @@ class AdaptiveWindowController(initialSnapshot: WindowAdaptiveInfo) {
     }
 }
 
-
-/**
- * Remembers an adaptive-window state publisher for the calling Composition.
- *
- * The initial value is used only when the controller is first created. New
- * measurements should be delivered through [AdaptiveWindowController.update].
- */
-@Composable
-fun rememberAdaptiveWindowController(
-    initialSnapshot: WindowAdaptiveInfo
-): AdaptiveWindowController = remember {
-    AdaptiveWindowController(initialSnapshot)
-}

@@ -16,7 +16,7 @@
                 ├── DrawerAnchorResolver
                 └── interaction / nested-scroll policy
 
-几何、锚点、状态转换和手势策略位于 UI 中立的 core 层；Compose 容器负责将状态映射到布局、拖动和动画。
+锚点解析、几何计算、DrawerStateHolder 状态转换和 DrawerNestedScrollPolicy 仲裁位于纯 Kotlin core 层。rememberDrawerStateSnapshot 将状态快照桥接到 Composition；DrawerNestedScrollConnection、DefaultDrawerController 和容器布局属于 Compose 适配层。
 
 ## 2. DrawerContainer
 
@@ -62,10 +62,13 @@ DrawerPanelContent 持有 @Composable ColumnScope.() -> Unit，不是 View 工�
 - DrawerAnchor / DrawerAnchorInput：稳定 ID、高度和几何输入。
 - DrawerAnchorStrategy：纯计算策略。
 - DrawerAnchorResolver：校验、clamp、排序、重复高度归并和 fling 目标。
-- DrawerStateHolder：唯一状态源，负责拖动、动画代次和稳定锚点。
-- DrawerInteractionController / DrawerNestedScrollConnection：输入仲裁与嵌套滚动策略。
+- DrawerStateHolder：纯 Kotlin 唯一状态源，负责拖动、动画代次和稳定锚点；不导入 Compose Runtime。
+- DrawerNestedScrollPolicy：纯 Kotlin 嵌套滚动仲裁。
+- rememberDrawerStateSnapshot：Composition 适配器，通过 DisposableEffect 订阅并释放状态监听。
+- DrawerNestedScrollConnection：Compose NestedScrollConnection 适配器。
+- DefaultDrawerController / DrawerControllerComposition：面向 Compose 宿主的控制层。
 
-核心 API 不应依赖 Compose UI 类型或传统 Android View 事件；Compose adapter 负责把 pointer / drag / nested-scroll 事件转换为核心命令。
+底层锚点、几何和状态引擎不依赖 Android 或 Compose UI。页面/面板契约本身使用 Composable slot，因此 DrawerController 并不是纯 Kotlin/JVM API；它属于 Compose 控制层。
 
 ## 7. Back、Insets 和宿主职责
 

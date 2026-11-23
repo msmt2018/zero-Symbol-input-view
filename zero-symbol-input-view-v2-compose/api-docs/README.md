@@ -1,50 +1,61 @@
-# Zero Symbol Input View V2 — Compose API 文档
+# Zero Symbol Input View V2 — Compose API 文档中心
 
-本文档对应 `zero-symbol-input-view-v2-compose` 模块。所有 UI 示例和扩展点均以 Compose API 为准；旧版 `zero-symbol-input-view-v2` 是独立的传统 View 兼容模块，不属于 Compose 模块。
+本目录只描述 zero-symbol-input-view-v2-compose 模块。仓库中的旧 zero-symbol-input-view-v2 模块仍是独立的传统 View 兼容构建产物，不属于 Compose UI 运行时。
 
-## 语言
+## 模块
 
-- [简体中文](README.md)
-- [English](en/README.md)
+- Gradle module：zero-symbol-input-view-v2-compose
+- Namespace：com.zerostudio.idea.widget.editor.symbolinput.v2
+- UI：Jetpack Compose Runtime、UI、Foundation、Material 3
+- 数据/动作：SymbolGroupRepository、SymbolGroupManager、SymbolActionExecutor、SymbolTextDocument
+- 主要页面：SymbolDrawer、SymbolDrawerSettingsScreen、SymbolDrawerManagerScreen
+- 通用容器：DrawerContainer、DrawerPageHost、DrawerPanelHost
 
-## 文档索引
+本模块不创建 Android View，不使用 AndroidView/AndroidViewBinding 包装旧控件，也不要求 Activity、Fragment、ViewModel 或 LifecycleOwner 作为组件状态容器。Compose 仍有 Composition、重组和 effect 生命周期；“无传统 View 生命周期耦合”不等于“完全没有生命周期”。
 
-| 文档 | 主题 |
+## 文档地图
+
+| 文档 | 内容 |
 |---|---|
-| [01 快速开始](01-quick-start.md) | 模块接入与最小 Compose 用法 |
-| [02 SymbolDrawer Compose API](02-symbol-drawer-view.md) | 抽屉入口与核心参数 |
-| [03 模型与动作](03-models-and-actions.md) | 领域数据模型 |
-| [04 动作执行](04-action-runtime.md) | Host、Executor、Registry、事务编辑 |
-| [05 数据与管理](05-data-and-management.md) | Repository、Manager、迁移与批量操作 |
-| [06 设置](06-settings.md) | 设置模型、仓储和 Composable 页面 |
-| [07 通用 Drawer](07-universal-drawer.md) | DrawerContainer、锚点、手势和状态 |
-| [08 页面与面板](08-navigation-panels-style.md) | Compose pager、内容 slot、样式 |
-| [09 自适应窗口](09-adaptive-window.md) | Compose 布局尺寸、Insets、大屏断点 |
-| [10 API 索引](10-api-index-compatibility.md) | 分层 API 与兼容性边界 |
-| [11 内置交互](11-interaction-and-builtins.md) | 手势和内置动作 |
-| [12 扩展注册](12-extension-framework.md) | Composable 扩展点与注册句柄 |
-| [13 公共包与编辑器中立 API](13-public-package-and-editor-neutral-actions.md) | 包路径与文本编辑契约 |
-| [14 Drawer 公共 API](14-drawer-public-api-reference.md) | Drawer 公共接口 |
-| [15 扩展实战](15-symbol-control-extension-api.md) | Compose 扩展示例 |
-| [16 测试与发布](16-testing-release-troubleshooting.md) | 测试、CI 与排错 |
+| 01 — 快速开始 | 模块依赖、Composable 入口、编辑器动作适配 |
+| 02 — SymbolDrawer Compose API | 符号抽屉状态、页面、动作回调 |
+| 03 — 数据模型与动作类型 | 分组、符号、typed action 和 legacy 元数据 |
+| 04 — 动作注册与执行 | Host、Executor、Registry、取消和结果 |
+| 05 — 仓储、管理器与迁移 | Repository、Manager、codec、V1 数据迁移 |
+| 06 — 设置中心 | 设置快照、Repository、codec 和 Compose 设置页 |
+| 07 — 通用 Drawer 框架 | 容器、锚点、状态机、手势和 Compose slots |
+| 08 — 页面导航、面板与样式 | DrawerPage、HorizontalPager、Composable panel、主题 |
+| 09 — 自适应窗口 | WindowAdaptiveInfo、Insets、布局解析和停靠策略 |
+| 10 — API 索引与兼容性 | 模块分层、公共包和 Kotlin/Java ABI |
+| 11 — 手势与内置文本动作 | 嵌套滚动策略、动作目录、通用文本命令 |
+| 12 — 扩展注册框架 | Composable renderer、indicator、settings 与 action 扩展 |
+| 13 — 公共包与编辑器中立文档契约 | UTF-16 文档 API、事务和宿主 adapter |
+| 14 — Drawer 公共 API 参考 | 通用 Compose Drawer 对外 API |
+| 15 — 符号控件扩展实战 | 注册、Composable 内容和扩展约束 |
+| 16 — 测试、发布与排错 | Compose 测试、边界审计和 CI |
 
-## 架构边界
+## 本地集成
 
-Compose 模块按底层到 UI 分层：
+在宿主工程 settings.gradle.kts 中包含本仓库的 Compose module，并在应用模块依赖中引用：
 
-1. 编辑器中立文本/动作契约
-2. 领域模型、验证和动作运行时
-3. Repository、Codec 和迁移
-4. Drawer 状态、几何、锚点和交互策略
-5. 导航、面板、自适应布局和扩展
-6. Compose UI 与 screens
+implementation(project(":zero-symbol-input-view-v2-compose"))
 
-不要从 UI 控件反向驱动底层 API 重构。数据和动作 API 不应为了 Compose 而全部变成 `@Composable`。
+不要把旧模块 zero-symbol-input-view-v2 当作 Compose 依赖。远程 Maven 发布坐标是否可用，应以该 Compose module 实际发布配置和成功发布记录为准；仓库中旧 View 模块的 Maven 验证不能替代 Compose artifact 发布验证。
 
-## 生命周期语义
+## 推荐阅读路径
 
-Compose 页面不依赖 Activity、Fragment、ViewModel 或 LifecycleOwner 作为 UI 状态模型，也不通过 AndroidView 包装传统 View。Compose 自身仍有 Composition、recomposition、remember state 作用域和 effect cancellation；因此“零生命周期”只能理解为不依赖传统 View/页面生命周期，不能理解为运行时没有任何生命周期语义。
+- 集成符号抽屉：01 → 02 → 04 → 06
+- 编辑器适配：03 → 04 → 11 → 13
+- 扩展 Composable 内容：12 → 15
+- 复用通用 Drawer：07 → 08 → 09 → 14
+- 维护与发布：10 → 16
 
-## 旧版兼容模块
+## 关键边界
 
-`zero-symbol-input-view-v2` 保持原有 View API 与兼容测试。不要将旧模块的 View、RecyclerView、ViewPager2、Fragment 集成示例复制到 Compose 模块。
+1. 数据模型、Repository 和文本动作不持有 UI View 或 Activity/Fragment。
+2. UI 使用 Composable slot；页面身份使用稳定 ID，不使用列表 index 作为身份。
+3. 文本 offset 使用 UTF-16 code unit，范围为左闭右开。
+4. 运行时扩展 handler/Composable 不序列化；只持久化稳定 ID 和 payload。
+5. Kotlin typealias 不生成 Java 可见的独立 JVM 类。
+6. CI 必须检查源码、发布产物和 runtimeClasspath；不得通过排除依赖或禁用任务掩盖边界问题。
+

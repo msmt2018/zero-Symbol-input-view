@@ -1,65 +1,86 @@
-# 08 — 页面导航、面板与样式 API
+# 08 — Compose 页面导航、面板与样式 API
 
-本页只描述 Compose 模块当前实现。页面内容是 Composable slot，不创建 View，不维护 View attach/detach 回调。
+本页以当前 Compose 模块源码为准。页面和面板内容是可组合内容，不提供传统 View factory、attach/detach 回调或手动缓存 API。
 
 ## 1. DrawerPage
 
-包：`com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation`
+包：drawer.navigation。
 
-```kotlin
-data class DrawerPage(
-    val id: String,
-    val title: String,
-    val content: DrawerPanelContent,
-    val icon: (@Composable () -> Unit)? = null
-)
-```
+DrawerPage 是不可变页面描述，字段如下：
 
-- `id` 必须非空且稳定；用于 pager key 和选择同步，不要用 index 作为身份。
-- `title` 必须非空。
-- `content` 是 Compose 面板内容。
-- `icon` 是可选 Composable slot，不是 Drawable 或 View。
+- id：稳定且非空的页面 ID；同一导航集合中必须唯一。
+- title：非空标题。
+- content：DrawerPanelContent，封装 ColumnScope.() -> Unit 的 Composable 内容。
+- icon：可选的 Composable 图标 lambda。
+
+页面身份必须使用 id，不应把列表 index 当作持久身份。页面内容在 Pager 对应页面进入 Composition 时组合；页面离开 Composition 后，其 remember 状态和副作用按 Compose 规则处理。
 
 ## 2. DrawerNavigationController
 
-这是 UI 中立的页面选择状态模型。它负责页面 ID、顺序和选中项，不创建页面、不保存 Activity/Context，也不接管 Composition。
+这是页面选择与稳定 ID 管理器。Controller 自身不导入 Compose Runtime；它通过不可变 state/snapshot getter 和 listener 发布更新。DrawerPage 的 content/icon 是 Composable 契约，因此该导航 API 属于 Compose 模块，但状态控制器不直接持有 Compose snapshot state。
 
-核心操作：
-- `submitPages(pages, preserveSelection)`：校验 ID 唯一并提交页面集合。
-- `selectPage(id)` / `selectPage(index)`：按稳定 ID 或有效索引选择。
-- `pages()`、`selectedPage()`、`selectedIndex()`：读取当前快照。
-- `snapshot()`：取得 `DrawerNavigationSnapshot(selectedPageId, pageIds)`。
+主要操作：
+
+- submitPages(value, preserveSelection)：提交页面列表，校验 ID 唯一；尽可能保留原选择，否则选择第一项。
+- selectPage(id) / selectPage(index)：选择页面；目标不存在或索引越界返回 false。
+- pages()：返回页面列表快照。
+- selectedPage()：返回当前页面或 null。
+- selectedIndex()：返回当前索引；无选择时为 -1。
+- state / snapshot()：读取当前 selectedPageId 和 pageIds 快照。
+- addListener(listener) / removeListener(listener)：注册和移除同步状态监听；新增监听时立即收到当前快照。
+
+DrawerNavigationController 本身不依赖 Compose Runtime；rememberDrawerNavigationSnapshot(controller) 是 Composition 适配器，负责订阅状态并在 DisposableEffect 结束时移除 listener。
+
+Controller 对重入通知进行排队，避免监听器在通知过程中再次切页造成观察顺序倒置。监听器异常会在完成当前通知队列后向调用方传播。
+
+注意：当前实现的 Controller 使用 Compose Runtime 的 mutableStateOf，因此它属于 Compose 模块的状态 API，不应被描述为纯 Kotlin/JVM 模型。
 
 ## 3. DrawerPageHost
 
-`DrawerPageHost(pages, selectedPageId, onPageSelected, modifier)` 使用 Compose Foundation `HorizontalPager` 呈现页面。它以 page ID 作为 key，并将外部选择同步到 pager；只在 pager settled 后回传用户切页结果。
+DrawerPageHost 是 Composable 页面承载器，内部使用 Foundation HorizontalPager 和 rememberPagerState。
 
-Pager 的页面组合、离屏页面处置与状态作用域由 Compose 管理。不要再套一层 ViewPager2，也不要在宿主保存第二份 index 真值。
+- 以 DrawerPage.id 作为 Pager key，保持页面重排时的身份稳定。
+- selectedPageId 改变时将 Pager 滚动到对应页面。
+- 用户翻页 settled 后回调 onPageSelected。
+- 页面列表为空时渲染空容器。
+- 不提供 Context、View 缓存、measureCurrentContentHeight、attach/detach 或 dispose 方法。
 
-## 4. DrawerPanelContent / DrawerPanelHost
+宿主应在自己的 Compose 导航层管理页面选择和 Back 行为；DrawerPageHost 不接管应用导航栈。
 
-包：`drawer.panel`
+## 4. DrawerPanelContent 与 DrawerPanelHost
 
-```kotlin
-data class DrawerPanelContent(
-    val content: @Composable ColumnScope.() -> Unit
-)
-enum class DrawerPanelSlot { PEEK, EXPANDED }
-```
+DrawerPanelContent 是一个 Composable slot：
 
-使用 `drawerPanelContent { ... }` 创建 slot。 `DrawerPanelHost(content, modifier, slot)` 将内容放入 Compose Column；当前 host 不定义 View factory、attach/detach 回调或传统页面生命周期。
+- content：ColumnScope.() -> Unit。
 
-## 5. DrawerContainer 集成
+drawerPanelContent { ... } 是便捷工厂。
 
-`DrawerContainer` 提供抽屉容器、锚点状态和内容 slot。页面导航由调用方传入 `pages`、`selectedPageId` 和 `onPageSelected`。Back 导航/关闭由宿主导航策略处理；不要假定容器内部安装 Activity BackHandler。
+DrawerPanelSlot 有 PEEK 和 EXPANDED 两种语义。DrawerPanelHost 接收 content、modifier 和 slot，在当前 Composition 中组合内容。slot 用于区分调用场景；面板内容的状态与副作用仍由 Compose Composition 管理。
 
-## 6. 样式与主题
+## 5. 样式模型
 
-样式模型位于 `drawer.style`，包括 `DrawerStyle`、`DrawerColors`、`DrawerDimensions`、`DrawerTypography`、`DrawerMotion`、`DrawerShape` 和 `DrawerThemeResolver`。这些类型表达外观参数，不创建 Android View 或包装 Activity Context。
+包：drawer.style。
 
-## 7. Compose 状态边界
+DrawerStyle 聚合以下不可变配置：
 
-- 可保存的业务状态应放在 UI 中立模型/Repository 中。
-- 短期交互状态可由 Compose state 承载。
-- `LaunchedEffect` 等 effect 只在对应 Composition 存在期间运行，离开 Composition 时会取消；这不是 Android View 生命周期。
-- 不要将“Compose-native”误称为字面上的“没有任何生命周期”。
+- DrawerThemeMode：FOLLOW_HOST、LIGHT、DARK。
+- DrawerColorAttributes：宿主语义颜色属性名称。
+- DrawerColors：surface、primaryText、secondaryText、accent、outline、scrim；overlay 只覆盖非 null 角色。
+- DrawerDimensions：peek/expanded 高度、圆角、内边距、面板间距和 handle 尺寸，单位 dp。
+- DrawerTypography：标题/正文/说明字号、字重和可选字体族名称。
+- DrawerMotion：settle 时长、拖动阻尼、fling 速度范围和 spring 开关。
+- DrawerShape：四角圆角和描边宽度。
+- elevationDp、drawScrim、clipContentToShape。
+
+配置构造会校验有限数值和合法范围。DrawerThemeResolver 根据当前 Material 3 主题和 DrawerStyle 解析 Compose 绘制所需的颜色/样式；不创建主题 Context，也不持有 Activity。
+
+## 6. 集成边界
+
+- DrawerContainer 负责 Compose 容器、布局、拖动和内容槽位。
+- DrawerNavigationController 负责页面身份与选择状态。
+- DrawerPageHost 负责 Compose Pager 展示。
+- DrawerPanelContent 负责声明页面/面板 Composable。
+- 宿主负责应用导航、系统 Back、窗口 Insets 和编辑器布局。
+- 不要使用 AndroidView、AndroidViewBinding、FrameLayout、RecyclerView 或 ViewPager2 包装旧实现。
+
+Compose 有 Composition、重组和 effect 启停语义；这里没有传统 View/Fragment 页面生命周期回调，不代表 Compose 完全没有生命周期。

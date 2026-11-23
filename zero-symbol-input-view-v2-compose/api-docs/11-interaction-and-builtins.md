@@ -1,199 +1,67 @@
-# 11 — 手势交互控制器与通用内置文本动作
+# 11 — Compose 手势适配与通用内置文本动作
 
-## 1. DrawerInteractionController
+本页描述当前 Compose 模块的交互 API。旧版 ViewGroup 拦截触摸、ValueAnimator 和 onAttached/onDetached 接口不属于本模块。
 
-包：`drawer.core`。
+## 1. DrawerNestedScrollPolicy
 
-这是 UI 布局无关的连续拖动/settle 引擎。它不创建 View、不测量内容、不决定符号网格几何；功能 View 传入 min/max/current height，并在回调中更新自己的布局。
+包：drawer.core。
 
-构造：
+DrawerNestedScrollPolicy 是纯 Kotlin 的嵌套滚动仲裁策略，不依赖 Compose UI，也不修改抽屉状态。
 
-```kotlin
-DrawerInteractionController(
-    context: Context,
-    density: Float = context.resources.displayMetrics.density,
-    onHeightChanged: (heightPx: Int, isDragging: Boolean, isAnimating: Boolean) -> Unit,
-    onDisallowInterceptChanged: (Boolean) -> Unit = {}
-)
-```
+输入 DrawerNestedScrollInput 包含 availableDeltaY、currentHeightPx、minimumHeightPx、maximumHeightPx、childCanScrollBackward 和 phase。输出 DrawerNestedScrollResult 包含 consumedDeltaY 与 remainingDeltaY，保证不超额消费。
 
-回调：
-- `onHeightChanged`：高度或拖动/动画状态变化时通知宿主。
-- `onDisallowInterceptChanged`：请求父容器允许/禁止拦截当前手势。
+- PRE_SCROLL：抽屉尚未展开到最大高度时，可先消费向上滚动。
+- POST_SCROLL：子内容消费后剩余的向下滚动可用于收起抽屉。
+- 输入尺寸、当前高度和 delta 必须有效。
 
-只读属性：
-- `currentHeightPx`：当前高度。
-- `isDragging`：是否正在直接拖动。
-- `isAnimating`：settle 动画是否运行。
-- `isGestureAxisLocked`：触摸方向是否已锁定。
-- `isHorizontalGestureLocked`：当前是否锁定为横向手势。
+Compose DrawerNestedScrollConnection 负责把 Compose NestedScrollConnection 回调转换为该策略/状态机输入。Compose 的 pointer input 与 nested scroll 适配层不应反向污染纯策略。
 
-### setBounds(minimumHeightPx, maximumHeightPx, currentHeightPx, animationDurationMs, flingVelocityDpPerSecond)
+## 2. DrawerStateHolder 与 DrawerInteractionController
 
-更新宿主几何和交互参数，不改变当前高度之外的展开比例语义。要求 min >= 0、max >= min、动画时长非负、fling 速度有限且非负。
+DrawerStateHolder 是纯 Kotlin 状态引擎，不依赖 Compose Runtime。它管理锚点、当前高度、拖动、动画目标和状态快照，并通过 addStateListener/removeStateListener 发布不可变状态。它提供几何更新、开始/更新/结束拖动、取消拖动、同步高度和锚点移动等操作。
 
-### synchronizeHeight(heightPx)
+rememberDrawerStateSnapshot(holder) 是 Compose 适配层：在当前 Composition 中订阅状态，并在 DisposableEffect 离开 Composition 时释放 listener。Compose UI 应通过该适配器读取快照，不应把 mutableStateOf 放回底层状态引擎。
 
-取消当前动画并将内部高度同步到宿主已恢复/已测量的高度，同时通知高度变化回调。
+DrawerInteractionController 是旧双锚点 API 的弃用兼容 facade，内部委托 DrawerStateHolder。新集成应使用 DrawerStateHolder 和 DrawerAnchorStrategy，以支持多个语义锚点。
 
-### onAttached() / onDetached()
+SymbolDrawerDragPolicy 是内部纯策略辅助类，用于判断纵向拖动是否可由抽屉接管。
 
-宿主 View attach/detach 时调用。detach 会取消动画并重置手势；不要把 controller 绑定到已销毁 View 后继续使用。
+## 3. 锚点策略
 
-### onInterceptTouchEvent(event, childCanScrollUp): Boolean
+DrawerAnchorStrategy 与 DrawerAnchorResolver 定义锚点身份、像素高度和语义状态。ExistingHeight、ThreeStage、ContentBased 和 Custom 策略由 resolver 统一规范化。页面容器只提交测量数据和策略，不应另建第二份高度真值。
 
-在 ViewGroup 的拦截阶段调用。内部按 touch slop 判断横向/纵向：
-- 横向锁定后不拦截，交给子 Pager。
-- 纵向锁定后根据高度边界和子滚动容器是否还能向上滚动判断是否接管。
-- 当接管发生时返回 true，后续事件由 drawer 接收。
-- ACTION_UP/CANCEL 会重置手势状态。
+## 4. Compose 手势与嵌套滚动
 
-childCanScrollUp(x,y) 应针对触摸坐标对应的子 View 返回其是否还能向上滚动。
+DrawerContainer 使用 Compose pointer input、nested scroll 和动画 API 协调抽屉交互：
 
-### onTouchEvent(event): Boolean
+- 横向手势留给横向分页。
+- 向上拖动优先展开抽屉，达到最大高度后由子内容继续滚动。
+- 向下滚动先让子内容消费；剩余向下 delta 才交给抽屉收起。
+- 触摸取消、手势结束和动画目标由 Compose 输入作用域协调。
+- 宿主不要再叠加第二套 GestureDetector 或传统 View 拦截逻辑。
 
-仅用于处理已被控制器接管的触摸序列。MOVE 更新高度；UP 根据速度或当前展开比例 settle；CANCEL 按展开比例 settle。不要在未接管时强行把事件传给它以取代子控件正常触摸流程。
+## 5. BuiltinSymbolActionCatalog
 
-### expand(animated = true) / collapse(animated = true)
+BuiltinSymbolActionOption 描述 Manager 可选的内置动作，字段为 commandId、label、payloadHint 和 hasPayload。BuiltinSymbolActionCatalog 提供稳定命令目录；命令能否执行仍取决于宿主是否实现相应 Host 能力。
 
-分别移动到 max/min height。
+目录中包含行、选区、光标、文档及通用插入命令。不要把目录项存在误认为所有编辑器都实现了该命令。
 
-### settleToHeight(heightPx, animated = true)
+## 6. GenericSymbolTextActions
 
-将目标高度 clamp 到 min/max 后 settle。
+GenericSymbolTextActions 通过 SymbolTextDocument 执行通用文本操作：
 
-### cancelAnimation()
+- 行：复制、删除、清空、替换、插入空行、合并、移动、选择、大小写、空白清理、注释和缩进。
+- 选区：删除、复制、大小写、包围、缩进/反缩进、反转/排序行、注释。
+- 光标：单词移动/删除、选择单词/行、行首/行尾、文档首尾和扩展选择。
+- 文档：全选、空白清理、末尾换行、删除空白行、注释。
+- 通用插入：insert_payload。
 
-取消当前 ValueAnimator；若动画正在运行，会通知状态更新。
+createRegistry() 创建独立的 SymbolActionRegistry；supportedCommandIds() 返回当前实现支持的 ID 快照。文档级全量操作限制为 32 MiB 和 200,000 行，超过限制时拒绝执行。
 
-### resetGesture()
+## 7. SymbolTextEditing
 
-清理 VelocityTracker、方向锁定和 dragging 标志，并允许父容器重新拦截。
+纯文本计算辅助 API，包括宏展开、Unicode code point 删除范围和复制行插入计算。它不持有 Android View，也不负责直接更新 UI；宿主通过 SymbolTextDocument 或自己的文档事务提交计算结果。
 
-### shouldInterceptVerticalDrag(...)
+## 8. UTF-16 与编辑边界
 
-静态共享策略：
-
-```kotlin
-DrawerInteractionController.shouldInterceptVerticalDrag(
-    fingerDeltaY,
-    currentHeightPx,
-    collapsedHeightPx,
-    expandedHeightPx,
-    childCanScrollUp
-)
-```
-
-- 没有有效高度范围或 finger delta 为 0：false。
-- 手指向上拖（负 delta）：只要当前未到最大高度即可由 Drawer 接管。
-- 手指向下拖（正 delta）：只有 Drawer 高于折叠高度且子 View 已不能向上滚动时才接管。
-
-## 2. SymbolDrawerDragPolicy
-
-符号抽屉的兼容策略入口，内部用于判定纵向拖动能否被抽屉接管。新宿主一般不需要直接调用；如需独立测试，请优先使用 `DrawerInteractionController.shouldInterceptVerticalDrag` 共享策略。
-
-## 3. SymbolDrawerAnchorAdapter
-
-见 [07 — 通用 Drawer 框架](07-universal-drawer.md)。它把符号抽屉现有像素几何转成锚点 API，但不改变符号抽屉内部布局。
-
-## 4. BuiltinSymbolActionCatalog
-
-包：`action`。
-
-`BuiltinSymbolActionOption` 描述一个可由 Manager 选择的内置命令：
-- `commandId`：稳定命令字符串。
-- `label`：用户可见名称。
-- `payloadHint`：可选参数输入提示。
-- `hasPayload`：是否需要/允许 payload（以 option 实际声明为准）。
-
-`BuiltinSymbolActionCatalog.find(commandId)` 根据稳定命令 ID 返回 option；未找到返回 null。目录项包括编辑器常用撤销、重做、缩进、反缩进、格式化，以及 GenericSymbolTextActions 所支持的行/选区/光标/文档命令。Catalog 是 Manager 的选择器目录，不保证每个宿主都实现所有命令。
-
-## 5. GenericSymbolTextActions
-
-通用文本命令集，通过 `SymbolTextDocument` 工作，不依赖具体编辑器。
-
-### createRegistry(): SymbolActionRegistry<SymbolTextDocument>
-
-创建一份新的注册表并注册所有通用命令。每次调用返回独立注册表，不共享 handler 生命周期。
-
-### supportedCommandIds(): Set<String>
-
-返回当前通用命令 ID 集合的只读视图/快照。宿主可用于能力展示或测试。
-
-### 命令 ID 清单
-
-以下 ID 在当前实现中由通用文本动作处理器注册。是否可用还取决于文档是否可编辑、是否有选区、是否处于文件边界以及操作所需的 payload。
-
-**行操作**
-- `line.duplicate`：复制当前行。
-- `line.delete`：删除当前行。
-- `line.clear`：清空当前行。
-- `line.replace`：用 payload 替换当前行。
-- `line.insertAbove` / `line.insertBelow`：在当前行上方/下方插入空行。
-- `line.joinNext`：与下一行合并。
-- `line.moveUp` / `line.moveDown`：移动当前行。
-- `line.select`：选择当前行。
-- `line.uppercase` / `line.lowercase` / `line.toggleCase`：转换当前行大小写。
-- `line.trimTrailingWhitespace` / `line.trimLeadingWhitespace`：清理当前行行尾/行首空白。
-- `line.duplicateAbove`：在当前行上方复制。
-- `line.toggleComment`：注释/取消注释当前行或选中行；payload 为注释标记，默认 `//`。
-- `editor.toggleLineComment`：同类注释命令别名。
-- `line.indent`：当前行缩进；payload 默认 Tab。
-- `line.unindent`：当前行反缩进。
-
-**选区操作**
-- `selection.delete`、`selection.duplicate`。
-- `selection.uppercase`、`selection.lowercase`、`selection.toggleCase`。
-- `selection.wrapParentheses`、`selection.wrapBrackets`、`selection.wrapBraces`。
-- `selection.wrapQuotes`、`selection.wrapSingleQuotes`、`selection.wrapBackticks`。
-- `selection.wrapAngleBrackets`、`selection.wrapAsterisks`、`selection.wrapUnderscores`。
-- `selection.wrapHtmlTag`：payload 为合法标签名。
-- `selection.indentLines`：payload 为缩进字符串，默认 Tab。
-- `selection.unindentLines`。
-- `selection.reverseLines`、`selection.sortLines`。
-- `selection.comment`：payload 为注释标记，默认 `//`。
-
-**光标/单词操作**
-- `cursor.wordLeft` / `cursor.wordRight`。
-- `cursor.deleteWordBackward` / `cursor.deleteWordForward`。
-- `cursor.selectWord` / `cursor.selectLine`。
-- `cursor.lineStart` / `cursor.lineEnd`。
-- `cursor.selectToLineStart` / `cursor.selectToLineEnd`。
-- `cursor.selectToDocumentStart` / `cursor.selectToDocumentEnd`。
-- `cursor.documentStart` / `cursor.documentEnd`。
-
-**文档操作**
-- `document.selectAll`。
-- `document.trimTrailingWhitespace` / `document.trimLeadingWhitespace`。
-- `document.ensureFinalNewline`：payload 可指定 `\n`、`\r` 或 `\r\n`，默认 LF。
-- `document.removeBlankLines`。
-- `document.toggleComment`：payload 为注释标记，默认 `//`。
-
-**通用插入**
-- `insert_payload`：把 payload 插入/替换当前选区。
-
-### 文档大小保护
-
-文档级全量遍历操作限制：
-- 最大文本长度 32 MiB。
-- 最大行数 200,000。
-
-超过限制时相关操作返回 false，不会尝试无限制全量处理。行级/选区级命令是否受限取决于具体命令实现。
-
-## 6. SymbolTextEditing
-
-纯文本计算工具，不直接持有 Android View：
-- `expandMacro(template, selectedText)`：解析模板宏并返回展开信息。
-- `codePointDeletionRange(text, cursorOffset, backwards)`：计算 Unicode code point 删除区间。
-- `duplicateLineInsertion(text, cursorOffset)`：计算复制行插入结果。
-
-具体返回数据类型为 `SymbolTextMacroExpansion`、`SymbolTextRange`、`SymbolTextInsertion`。调用方负责把计算结果写回自己的文档模型。
-
-## 7. 实现自定义文本 adapter 的约束
-
-1. offset 统一使用 Kotlin String UTF-16 索引语义。
-2. `lineStartOffset`、`lineEndOffset`、`lineForOffset` 的边界定义必须一致。
-3. `replace` 返回 false 表示拒绝/失败，不应悄悄吞掉半次替换。
-4. 每次 replace 后由动作实现显式设置 selection/caret。
-5. 对只读文档，所有修改方法应返回 false。
-6. 大文档遍历操作应遵守 32 MiB / 200,000 行保护策略，或提供等价的安全限制。
+所有文档 offset 使用 Kotlin String UTF-16 code unit 索引，范围为左闭右开。适配器必须正确处理 surrogate pair、CRLF、反向选区和只读文档。批量编辑按右到左顺序应用，避免较早替换改变后续 offset。

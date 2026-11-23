@@ -412,4 +412,5 @@
     <string name="compose_manager_error">操作失败</string>
     <string name="compose_manager_ok">确定</string>
     <string name="compose_manager_delete_selected">批量删除</string>
+    <string name="compose_manager_bulk_delete">批量删除</string>
 </resources>
