@@ -25,3 +25,11 @@ fun DrawerPageHost(
     onPageSelected = onPageSelected,
     modifier = modifier
 )
+
+
+/** Subscribes the current Composition to page selection updates. */
+@androidx.compose.runtime.Composable
+fun rememberDrawerNavigationSnapshot(
+    controller: DrawerNavigationController
+): DrawerNavigationSnapshot =
+    com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.rememberDrawerNavigationSnapshot(controller)

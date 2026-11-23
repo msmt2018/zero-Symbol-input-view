@@ -92,3 +92,9 @@ fun rememberDefaultDrawerController(
         initialStrategy = initialStrategy,
         initialAnchorId = initialAnchorId
     )
+
+
+/** Subscribes the current Composition to the pure drawer state engine. */
+@androidx.compose.runtime.Composable
+fun rememberDrawerStateSnapshot(holder: DrawerStateHolder): DrawerState =
+    com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.rememberDrawerStateSnapshot(holder)

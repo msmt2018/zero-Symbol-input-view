@@ -42,3 +42,11 @@ fun AdaptiveWindowObserver(
 fun rememberAdaptiveWindowController(
     initialSnapshot: WindowAdaptiveInfo
 ): AdaptiveWindowController = rememberInternalAdaptiveWindowController(initialSnapshot)
+
+
+/** Subscribes the current Composition to adaptive-window snapshot updates. */
+@Composable
+fun rememberAdaptiveWindowSnapshot(
+    controller: AdaptiveWindowController
+): WindowAdaptiveInfo =
+    com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.rememberAdaptiveWindowSnapshot(controller)
