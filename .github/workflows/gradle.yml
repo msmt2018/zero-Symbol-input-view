@@ -142,6 +142,29 @@ jobs:
       - name: Grant Permissions for Gradle
         run: chmod +x gradlew
 
+      # The native Oniguruma submodule requires this exact NDK. Install it
+      # before Gradle configuration so a transient/corrupt SDK download can
+      # be retried independently instead of failing the entire Compose job.
+      - name: Install required NDK with retry
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Android/Sdk}}"
+          SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          test -x "$SDKMANAGER"
+          for attempt in 1 2 3; do
+            if "$SDKMANAGER" --install "ndk;27.1.12297006" &&
+              test -x "$SDK_ROOT/ndk/27.1.12297006/ndk-build"; then
+              echo "NDK 27.1.12297006 is installed and verified."
+              exit 0
+            fi
+            echo "::warning::NDK installation attempt $attempt failed; cleaning the incomplete package before retry."
+            rm -rf "$SDK_ROOT/ndk/27.1.12297006"
+            sleep $((attempt * 15))
+          done
+          echo "::error::Unable to install NDK 27.1.12297006 after three attempts."
+          exit 1
+
       - name: Audit Compose migration inventory
         run: ./gradlew :zero-symbol-input-view-v2-compose:auditComposeMigration
 
