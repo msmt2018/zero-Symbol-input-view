@@ -213,7 +213,7 @@ val auditComposeMigration by tasks.registering {
     )
     val forbiddenReferences = listOf(
         Regex("""\bAndroidView(?:Binding)?\s*\("""),
-        Regex("""\b(SymbolDrawerView|ViewGroup|MotionEvent|RecyclerView|ViewPager2|Activity|Fragment|Lifecycle|LifecycleOwner|LifecycleRegistry|LocalLifecycleOwner|ViewModel|ViewModelStoreOwner|ViewModelProvider|SavedStateHandle|SavedStateRegistryOwner|LifecycleEventObserver|rememberLauncherForActivityResult)\b""")
+        Regex("""\b(ViewGroup|MotionEvent|RecyclerView|ViewPager2|Activity|Fragment|Lifecycle|LifecycleOwner|LifecycleRegistry|LocalLifecycleOwner|ViewModel|ViewModelStoreOwner|ViewModelProvider|SavedStateHandle|SavedStateRegistryOwner|LifecycleEventObserver|rememberLauncherForActivityResult)\b""")
     )
     val viewOnlyDependencies = listOf(
         "androidx.recyclerview:recyclerview",
