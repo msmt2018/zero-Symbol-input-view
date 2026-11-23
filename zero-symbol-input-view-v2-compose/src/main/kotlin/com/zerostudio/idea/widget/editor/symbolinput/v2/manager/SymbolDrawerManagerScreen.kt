@@ -59,6 +59,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -106,11 +107,16 @@ fun SymbolDrawerManagerScreen(
     var importDialog by remember { mutableStateOf(false) }
     var importJson by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var selectedSymbolIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
+    var targetDialogOperation by remember { mutableStateOf<String?>(null) }
     val clipboard = LocalClipboardManager.current
 
     fun refresh() {
         groups = manager.groups.toList()
         if (groups.none { it.id == selectedGroupId }) selectedGroupId = groups.firstOrNull()?.id
+        val currentGroup = groups.firstOrNull { it.id == selectedGroupId }
+        val validIds = currentGroup?.symbols?.mapTo(mutableSetOf()) { it.id }.orEmpty()
+        selectedSymbolIds = selectedSymbolIds.intersect(validIds)
     }
     fun runCommand(command: () -> Unit) {
         runCatching(command).onSuccess { refresh() }.onFailure {
@@ -133,6 +139,10 @@ fun SymbolDrawerManagerScreen(
                 groupName = ""
                 groupDialog = true
             }) { Text(stringResource(R.string.compose_manager_add_group)) }
+            OutlinedButton(
+                enabled = selectedGroup != null,
+                onClick = { selectedGroup?.let { group -> runCommand { manager.duplicateGroup(group.id) } } }
+            ) { Text(stringResource(R.string.symbol_drawer_071)) }
             OutlinedButton(onClick = {
                 clipboard.setText(AnnotatedString(SymbolGroupBundleCodec.encode(groups)))
             }) { Text(stringResource(R.string.compose_manager_export)) }
@@ -153,7 +163,10 @@ fun SymbolDrawerManagerScreen(
                         Modifier.fillMaxWidth().padding(8.dp),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        TextButton(onClick = { selectedGroupId = group.id }, modifier = Modifier.weight(1f)) {
+                        TextButton(onClick = {
+                            selectedGroupId = group.id
+                            selectedSymbolIds = emptySet()
+                        }, modifier = Modifier.weight(1f)) {
                             Text(
                                 text = if (selectedGroupId == group.id) "● ${group.title}" else group.title,
                                 color = if (selectedGroupId == group.id) MaterialTheme.colorScheme.primary
@@ -191,6 +204,34 @@ fun SymbolDrawerManagerScreen(
         if (selectedGroup == null) {
             Text(stringResource(R.string.compose_manager_create_group_hint))
         } else {
+            if (selectedGroup.symbols.isNotEmpty()) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        stringResource(R.string.symbol_drawer_102, selectedSymbolIds.size.toString()),
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    TextButton(
+                        enabled = selectedSymbolIds.isNotEmpty(),
+                        onClick = { targetDialogOperation = "copy" }
+                    ) { Text(stringResource(R.string.symbol_drawer_070)) }
+                    TextButton(
+                        enabled = selectedSymbolIds.isNotEmpty() &&
+                            groups.any { it.id != selectedGroup.id },
+                        onClick = { targetDialogOperation = "move" }
+                    ) { Text(stringResource(R.string.symbol_drawer_183)) }
+                    TextButton(
+                        enabled = selectedSymbolIds.isNotEmpty(),
+                        onClick = {
+                            runCommand { manager.removeSymbols(selectedGroup.id, selectedSymbolIds) }
+                            selectedSymbolIds = emptySet()
+                        }
+                    ) { Text("批量删除") }
+                }
+            }
             LazyColumn(
                 modifier = Modifier.fillMaxWidth().weight(0.58f),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -201,6 +242,13 @@ fun SymbolDrawerManagerScreen(
                             Modifier.fillMaxWidth().padding(8.dp),
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
+                            Checkbox(
+                                checked = symbol.id in selectedSymbolIds,
+                                onCheckedChange = { checked ->
+                                    selectedSymbolIds = if (checked) selectedSymbolIds + symbol.id
+                                        else selectedSymbolIds - symbol.id
+                                }
+                            )
                             Column(Modifier.weight(1f)) {
                                 Text(symbol.label, style = MaterialTheme.typography.bodyLarge)
                                 Text(
@@ -229,6 +277,51 @@ fun SymbolDrawerManagerScreen(
                 }
             }
         }
+    }
+
+    if (targetDialogOperation != null && selectedGroup != null) {
+        AlertDialog(
+            onDismissRequest = { targetDialogOperation = null },
+            title = {
+                Text(if (targetDialogOperation == "copy") stringResource(R.string.symbol_drawer_070) else stringResource(R.string.symbol_drawer_183))
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    groups.filter { it.id != selectedGroup.id }.forEach { target ->
+                        TextButton(
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = {
+                                val operation = targetDialogOperation
+                                runCommand {
+                                    if (operation == "copy") {
+                                        manager.copySymbols(
+                                            selectedGroup.id,
+                                            selectedSymbolIds,
+                                            target.id
+                                        )
+                                    } else {
+                                        manager.moveSymbolsToGroup(
+                                            selectedGroup.id,
+                                            selectedSymbolIds,
+                                            target.id
+                                        )
+                                    }
+                                }
+                                selectedSymbolIds = emptySet()
+                                targetDialogOperation = null
+                            }
+                        ) {
+                            Text(target.title, modifier = Modifier.fillMaxWidth())
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { targetDialogOperation = null }) {
+                    Text(stringResource(R.string.compose_manager_cancel))
+                }
+            }
+        )
     }
 
     if (groupDialog) {

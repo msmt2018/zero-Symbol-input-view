@@ -53,7 +53,7 @@ import java.util.IdentityHashMap
 import java.util.UUID
 
 /**
- * Repository-backed command model for a future manager UI.
+ * Repository-backed command model consumed by the Compose symbol manager screen.
  * All operations produce new immutable snapshots and persist once per command.
  */
 class SymbolGroupManager(

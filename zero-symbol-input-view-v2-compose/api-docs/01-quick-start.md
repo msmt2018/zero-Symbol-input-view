@@ -1,218 +1,84 @@
-# 01 — 快速开始与集成
+# 01 — Jetpack Compose 快速开始
 
 ## 1. 模块定位
 
-V2 是 Android View 组件库，提供符号输入抽屉、分组分页、动作模型、管理 UI、设置 UI、持久化和独立通用 Drawer API。它不依赖某一种编辑器实现；宿主应用负责把动作桥接到自己的编辑器。
+本模块是 Compose 原生实现。符号抽屉、通用 Drawer、分页、面板、管理页和设置页均使用 Jetpack Compose Foundation / Material 3。模块源码不创建传统 Android View；组件 API 不要求宿主提供 Activity、Fragment、ViewModel 或 LifecycleOwner。
 
-核心包：
-
-```kotlin
-com.zerostudio.idea.widget.editor.symbolinput.v2
-```
-
-主要类型位于子包 `model`、`action`、`data`、`settings`、`drawer` 和 `adaptive`。
+Compose 仍具有 Composition、重组和副作用管理语义。这里的“无页面生命周期耦合”指组件不依赖传统 View / Activity / Fragment 生命周期回调，并非声称 Compose 完全没有生命周期。
 
 ## 2. Gradle 依赖
 
-### 同仓库集成
+同仓库集成：
 
-```kotlin
-dependencies {
-    implementation(project(":zero-symbol-input-view-v2"))
-}
-```
-
-### JitPack 集成
-
-若项目使用集中式仓库管理，在根目录 `settings.gradle.kts` 的 `dependencyResolutionManagement.repositories` 中添加：
-
-```kotlin
-dependencyResolutionManagement {
-    repositories {
-        google()
-        mavenCentral()
-        maven("https://jitpack.io")
+    dependencies {
+        implementation(project(":zero-symbol-input-view-v2-compose"))
     }
-}
-```
 
-然后在 app 模块添加：
+外部 Maven 集成请使用 Compose 模块实际发布的坐标和已发布版本。不要把旧 View 模块的 Maven 坐标误认为 Compose 版本；发布配置以仓库根目录发布工作流为准。
 
-```kotlin
-dependencies {
-    implementation("com.github.msmt2018.zero-Symbol-input-view:zero-symbol-input-view-v2:<published-version>")
-}
-```
+## 3. 符号抽屉
 
-Groovy DSL 可使用 `maven { url 'https://jitpack.io' }`。若启用了 `FAIL_ON_PROJECT_REPOS`，必须在 settings 文件配置仓库。请使用已发布且 JitPack 构建成功的 Git Tag；分支源码快照不代表已发布。
+    @Composable
+    fun EditorSymbolTools(
+        groups: List<SymbolGroup>,
+        onInsert: (SymbolEntry) -> Unit
+    ) {
+        val state = rememberSymbolDrawerState()
+        SymbolDrawer(
+            groups = groups,
+            state = state,
+            onSymbolClick = onInsert,
+            onSymbolLongClick = { entry ->
+                // 将长按动作交给宿主动作适配器
+            },
+            onOpenManager = { /* 宿主导航 */ },
+            onOpenSettings = { /* 宿主导航 */ }
+        )
+    }
 
-## 3. 布局中放置组件
+SymbolDrawer 负责分组分页、符号单元格、展开/折叠手势和动画。SymbolDrawerState 只保存 Compose 展示状态，不持有 View、Context、Activity、Fragment、Adapter 或 Lifecycle 对象。
 
-```xml
-<com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawerView
-    android:id="@+id/symbol_drawer_v2"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content" />
-```
+## 4. 通用 Drawer
 
-也可以在代码中创建：
-
-```kotlin
-val drawer = SymbolDrawerView(context)
-container.addView(
-    drawer,
-    ViewGroup.LayoutParams(
-        ViewGroup.LayoutParams.MATCH_PARENT,
-        ViewGroup.LayoutParams.WRAP_CONTENT
-    )
-)
-```
-
-该 View 自己负责内部指示器、ViewPager2 和符号页面布局。宿主不需要再创建一套分页 RecyclerView 来替代其内部结构。
-
-## 4. 准备符号数据
-
-```kotlin
-val groups = listOf(
-    SymbolGroup(
-        id = "kotlin",
-        title = "Kotlin",
-        symbols = listOf(
-            SymbolEntry(
-                id = 1001L,
-                label = "fun",
-                shortAction = SymbolAction.InsertText("fun ")
-            ),
-            SymbolEntry(
-                id = 1002L,
-                label = "=>",
-                shortAction = SymbolAction.InsertText(" -> "),
-                longAction = SymbolAction.InsertText(" => ")
+    @Composable
+    fun EditorToolDrawer() {
+        val state = rememberDrawerContainerState()
+        val pages = listOf(
+            DrawerPage(
+                id = "symbols",
+                title = "Symbols",
+                content = drawerPanelContent { Text("Symbol tools") }
             )
         )
-    ),
-    SymbolGroup(
-        id = "punctuation",
-        title = "标点",
-        symbols = listOf(
-            SymbolEntry(
-                id = 2001L,
-                label = "()",
-                shortAction = SymbolAction.InsertText("()")
-            )
-        )
-    )
-)
-
-drawer.submitGroups(groups)
-drawer.saveGroups()
-```
-
-约束：
-
-- 分组 ID 必须非空且唯一。
-- 每个分组内部的符号 ID 必须唯一；使用 `SymbolGroupManager` 时，符号 ID 还必须在整个仓储中全局唯一。
-- 持久化仓储要求符号 ID 非零，建议始终使用正数或稳定生成的 Long。
-- `submitGroups` 会校验分组 ID 和每个分组内的符号 ID；不满足条件会抛出 `IllegalArgumentException`。
-- 不要把可变 List 在提交后继续修改；以新快照再次提交。
-
-## 5. 连接编辑器动作
-
-`SymbolDrawerView` 的回调只负责把用户选择的符号交给宿主，不会自行操作 Sora、EditText 或其他编辑器。
-
-```kotlin
-drawer.onSymbolActionListener =
-    SymbolDrawerView.OnSymbolActionListener { symbol, isLongPress ->
-        val action = if (isLongPress) symbol.longAction else symbol.shortAction
-        if (action != null) {
-            val result = actionExecutor.execute(action, editorActionHost)
-            // 根据 result 展示错误或记录不支持的动作
+        DrawerContainer(
+            state = state,
+            title = "Editor tools",
+            pages = pages,
+            selectedPageId = "symbols",
+            onPageSelected = { /* 更新选中的稳定 page ID */ },
+            onDismiss = { state.collapse() }
+        ) {
+            EditorContent()
         }
     }
-```
 
-宿主应实现 `SymbolActionHost`，并将每个方法映射到实际编辑器能力。详见 [04 — 动作注册与执行 API](04-action-runtime.md)。
+主内容、页面内容和面板内容都是可组合 lambda。分页由 Compose HorizontalPager 承载；没有 View factory、手动 attach/detach 或手动 dispose 契约。
 
-## 6. 连接管理器入口
+## 5. 管理页与设置页
 
-```kotlin
-drawer.onOpenManagerListener = {
-    // 使用宿主自己的导航打开管理页
-}
-drawer.onOpenSettingsListener = {
-    // 可选：宿主自己导航到设置页
-}
-```
+SymbolDrawerManagerScreen 接收 SymbolGroupRepository；SymbolDrawerSettingsScreen 接收不可变设置快照和更新回调。Repository、Codec、SymbolGroupManager 等数据能力位于 UI 之下，Composable 不应直接执行阻塞磁盘 I/O。
 
-若不设置 `onOpenSettingsListener`，当前符号抽屉会创建内置设置界面并显示对话框。设置入口回调和管理入口回调是两个独立职责。
+管理页支持分组和符号 CRUD、排序、JSON 导入导出，以及批量复制、移动、删除等操作。持久化命令由 SymbolGroupManager 执行。
 
-## 7. 常用控制
+## 6. 动作执行边界
 
-```kotlin
-drawer.reloadGroups()                 // 从当前 repository 重新读取
-drawer.setExpanded(true, animate = true)
-drawer.setExpanded(false, animate = true)
-drawer.selectGroup(1, smoothScroll = true)
-val currentIndex = drawer.getCurrentGroupIndex()
-val expanded = drawer.isExpanded()
-val currentGroups = drawer.getGroups()
-```
+符号 UI 不依赖特定编辑器。宿主实现 SymbolActionHost 或使用编辑器中立的文本 API，再由 SymbolActionExecutor 执行 SymbolAction。动作执行与 Compose 绘制分离；不要把编辑器 View 或 Activity 引入数据/动作层。
 
-这些方法均作用于当前 View 实例。调用 View 更新/动画相关方法时，应在主线程调用。
+## 7. 迁移约束
 
-## 8. 自定义 Repository
-
-```kotlin
-class AppSymbolRepository : SymbolGroupRepository {
-    override fun loadGroups(): List<SymbolGroup> {
-        // 从应用数据库或自己的数据层加载快照
-        return emptyList()
-    }
-
-    override fun saveGroups(groups: List<SymbolGroup>) {
-        // 持久化整个快照；建议在事务中完成
-    }
-}
-
-drawer.setRepository(AppSymbolRepository(), reload = true)
-```
-
-`setRepository` 替换当前实例使用的数据源。传入 `reload = false` 时不会自动刷新当前显示数据；随后可显式调用 `reloadGroups()`。
-
-## 9. 管理界面和设置界面
-
-```kotlin
-val manager = SymbolDrawerManagerScreen(context)
-manager.onGroupsChanged = drawer::submitGroups
-manager.onError = { error -> /* 显示错误 */ }
-manager.bindToDrawer(drawer).use {
-    // 在管理页可见期间保持绑定；退出时自动解除监听
-}
-```
-
-```kotlin
-val settings = SymbolDrawerSettingsScreen(context)
-settings.onSettingsChanged = drawer::applySettings
-settings.onError = { error -> /* 显示错误 */ }
-```
-
-管理界面和设置界面都是程序化 Android View，可放入 Activity、Fragment 或宿主自己的容器。不要在 Activity 销毁后继续持有旧 Context 或 View。
-
-## 10. 生命周期建议
-
-- 创建 View 后设置回调，再提交数据，避免首次交互前缺少动作宿主。
-- Activity/Fragment 结束时解除宿主自己注册的观察者、动作注册句柄和 Manager 绑定。
-- `SymbolDrawerView` 在 attach 时注册设置变化监听，在 detach 时注销；它还会在配置变更时刷新宿主主题。
-- 如果宿主从管理界面返回并修改了数据，可调用 `onHostResume()` 或 `reloadGroups()`。
-- 不要在每帧或每次触摸 MOVE 时重新调用 `submitGroups`；数据更新应按业务事务批量提交。
-- 如果宿主编辑器有线程限制，必须在该编辑器要求的线程调用动作执行器。
-
-## 11. 最小集成检查表
-
-1. 依赖指向 V2 模块/已发布版本。
-2. 布局中只放一个需要的 `SymbolDrawerView`。
-3. 为每个组和符号分配稳定 ID。
-4. 实现并接入动作宿主。
-5. 为管理、设置入口设置宿主回调（或使用内置屏幕）。
-6. 验证折叠、展开、横向分页、长按、编辑器插入、配置变化和进程重建。
-7. 验证自定义 Repository 的写入失败、空数据和损坏数据恢复策略。
+- UI 使用 Compose Foundation / Material 3。
+- 禁止 AndroidView、AndroidViewBinding、ViewGroup、RecyclerView、ViewPager2 和传统 View 控件。
+- 不把 Activity / Fragment / LifecycleOwner / ViewModel 作为组件状态容器。
+- 底层模型、动作、仓储、校验、锚点和交互策略保持 UI 中立，不应无理由标注为 @Composable。
+- 页面副作用使用 Compose effect API，并确保 key 与取消语义正确。
+- Composition 生命周期仍然存在；不能将其描述为完全没有任何生命周期。

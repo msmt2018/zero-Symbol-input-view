@@ -58,7 +58,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerStyle
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerThemeMode
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerTypography
 
-/** Declarative, feature-neutral configuration consumed by a future DrawerContainer. */
+/** Declarative, feature-neutral configuration consumed by the Compose DrawerContainer. */
 data class DrawerConfig(
     val anchorStrategy: DrawerAnchorStrategy = DrawerAnchorStrategies.existingHeight(),
     val style: DrawerStyle = DrawerStyle(),
