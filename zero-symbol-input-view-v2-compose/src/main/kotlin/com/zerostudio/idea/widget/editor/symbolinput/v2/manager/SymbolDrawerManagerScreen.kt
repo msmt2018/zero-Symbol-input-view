@@ -67,6 +67,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -79,6 +80,7 @@ import androidx.compose.ui.unit.dp
 import com.zerostudio.idea.widget.editor.symbolinput.v2.R
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupBundleCodec
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupManager
+import com.zerostudio.idea.widget.editor.symbolinput.v2.data.ObservableSymbolGroupRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
@@ -123,6 +125,19 @@ fun SymbolDrawerManagerScreen(
             .onSuccess { refresh() }
             .onFailure { errorMessage = it.message ?: "Unknown error" }
             .isSuccess
+    }
+
+    // Keep an open manager screen coherent with writes performed by another
+    // manager or host sharing this repository. The subscription belongs to
+    // this Composition only; it does not require Activity/Fragment lifecycle APIs.
+    DisposableEffect(repository, manager) {
+        val observable = repository as? ObservableSymbolGroupRepository
+        val handle = observable?.observeGroups {
+            runCatching { manager.reload() }
+                .onSuccess { refresh() }
+                .onFailure { errorMessage = it.message ?: "Unable to reload symbol groups" }
+        }
+        onDispose { handle?.close() }
     }
 
     val selectedGroup = groups.firstOrNull { it.id == selectedGroupId }
