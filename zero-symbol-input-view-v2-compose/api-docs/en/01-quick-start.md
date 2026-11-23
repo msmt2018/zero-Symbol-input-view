@@ -1,113 +1,29 @@
-# 01 — Quick Start and Integration
+# 01 — Quick start
 
-## What the library provides
+The Compose artifact exposes Composable UI and UI-neutral data/action APIs. Create repositories outside Composable bodies and pass immutable snapshots into screens.
 
-V2 is an Android View library for a symbol-input drawer, grouped paging, typed actions, management UI, settings, persistence and a reusable generic Drawer API. It does not depend on a specific editor engine. The host application adapts actions to its own editor.
-
-## Gradle
-
-Same repository:
-```kotlin
-dependencies {
-    implementation(project(":zero-symbol-input-view-v2"))
-}
-```
-
-JitPack:
-```kotlin
-// settings.gradle.kts
-dependencyResolutionManagement {
-    repositories {
-        google()
-        mavenCentral()
-        maven("https://jitpack.io")
-    }
-}
-
-// app/build.gradle.kts
-dependencies {
-    implementation("com.github.msmt2018.zero-Symbol-input-view:zero-symbol-input-view-v2:<published-tag>")
-}
-```
-Use an existing Git tag whose JitPack build succeeded. A branch name is not a release.
-
-## Add the View
-
-```xml
-<com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawerView
-    android:id="@+id/symbol_drawer"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content" />
-```
-
-The View owns its internal group indicator, ViewPager2 and symbol-page adapter. Do not create a competing pager for the same groups.
-
-## Submit data
+## Symbol drawer
 
 ```kotlin
-val groups = listOf(
-    SymbolGroup(
-        id = "kotlin",
-        title = "Kotlin",
-        symbols = listOf(
-            SymbolEntry(
-                id = 1001L,
-                label = "fun",
-                shortAction = SymbolAction.InsertText("fun ")
-            )
-        )
-    )
+val state = rememberSymbolDrawerState()
+SymbolDrawer(
+    groups = groups,
+    state = state,
+    settings = settings,
+    onSymbolClick = { entry -> editorActions.execute(entry) },
+    onSymbolLongClick = { entry -> /* optional host action */ }
 )
-drawer.submitGroups(groups)
-drawer.saveGroups()
 ```
 
-Group IDs must be nonblank and unique. Symbol IDs must be unique within each group for submission; manager/storage operations require IDs to be globally unique and nonzero. Submit a new snapshot instead of mutating a previously submitted list.
+`SymbolDrawer` uses Compose Foundation paging and Material 3 layout. `rememberSymbolDrawerState` owns short-lived presentation state in the calling Composition. It does not retain a View, Context, Activity or LifecycleOwner.
 
-## Connect an editor
+## Manager and settings screens
 
-```kotlin
-drawer.onSymbolActionListener =
-    SymbolDrawerView.OnSymbolActionListener { symbol, isLongPress ->
-        val action = if (isLongPress) symbol.longAction else symbol.shortAction
-        if (action != null) {
-            when (val result = SymbolActionExecutor().execute(action, editorHost)) {
-                SymbolActionResult.Executed -> Unit
-                is SymbolActionResult.Unsupported -> showUnsupported()
-                is SymbolActionResult.Invalid -> showError(result.reason)
-                is SymbolActionResult.Failed -> report(result.cause)
-                is SymbolActionResult.Cancelled -> Unit
-                is SymbolActionResult.PartialFailure -> reportPartial(result)
-            }
-        }
-    }
-```
+- `SymbolDrawerManagerScreen(repository, onClose)` uses the UI-neutral `SymbolGroupManager` and repository.
+- `SymbolDrawerSettingsScreen(settings, onSettingsChange, onReset)` emits immutable settings snapshots. The host persists them through `SymbolDrawerSettingsRepository`.
 
-Implement `SymbolActionHost` for the active editor. The callback only reports a selected symbol; it does not prove that the editor accepted the edit.
+## Host responsibilities
 
-## Management and settings entry points
+The host owns editor integration, persistence instances, navigation and system Back dispatch. The library does not install lifecycle-bound Activity callbacks. Keep I/O and irreversible work out of Composable bodies.
 
-```kotlin
-drawer.onOpenManagerListener = { navigateToSymbolManager() }
-drawer.onOpenSettingsListener = { navigateToSymbolSettings() }
-```
-
-If no settings listener is supplied, the View displays its built-in settings screen in a dialog. Manager and settings navigation are separate callbacks.
-
-## Common methods
-
-```kotlin
-drawer.reloadGroups()
-drawer.setExpanded(true, animate = true)
-drawer.setExpanded(false, animate = true)
-drawer.selectGroup(0, smoothScroll = true)
-val index = drawer.getCurrentGroupIndex()
-val expanded = drawer.isExpanded()
-val groups = drawer.getGroups()
-```
-
-Call View and animation methods on the main thread.
-
-## Lifecycle
-
-Set listeners before enabling interaction. Release host-owned listeners, extension handles and manager bindings when the Fragment View or editor session ends. Do not retain an Activity Context or View after destruction. Validate rotation, process recreation, empty/corrupt data, write failures, paging and long-press behavior in the host application.
+See [architecture layers](../README.md) and [Drawer API](14-drawer-public-api-reference.md).

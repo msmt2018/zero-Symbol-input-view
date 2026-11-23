@@ -1,225 +1,58 @@
-# 05 — 仓储、符号管理与迁移 API
+# 05 — 分组仓储、领域管理与数据迁移
 
 包：`com.zerostudio.idea.widget.editor.symbolinput.v2.data`
 
 ## 1. SymbolGroupRepository
 
+`SymbolGroupRepository` 是分组数据的持久化边界：
+
 ```kotlin
 interface SymbolGroupRepository {
     fun loadGroups(): List<SymbolGroup>
     fun saveGroups(groups: List<SymbolGroup>)
-    fun isLegacyMigrationComplete(): Boolean = loadGroups().isNotEmpty()
-    fun markLegacyMigrationComplete() = Unit
+    fun isLegacyMigrationComplete(): Boolean
+    fun markLegacyMigrationComplete()
 }
 ```
 
-### loadGroups()
-
-读取完整分组快照。建议返回新 List，且不要向调用方暴露数据库内部可变对象。
-
-### saveGroups(groups)
-
-保存完整快照。默认实现使用同步 SharedPreferences commit；若失败会抛异常。自定义实现应保证“成功返回”意味着后续读取可观察到已保存快照。
-
-### isLegacyMigrationComplete()
-
-迁移状态查询。默认实现以当前组数据非空作为判断；具体仓储可覆盖。
-
-### markLegacyMigrationComplete()
-
-记录迁移已完成。默认实现不执行操作；需要迁移标记的仓储应覆盖。
+`ObservableSymbolGroupRepository` 额外提供 `observeGroups(listener): AutoCloseable`，用于共享仓储变更通知。通知句柄由订阅方显式关闭。
 
 ## 2. SharedPreferencesSymbolGroupRepository
 
-```kotlin
-SharedPreferencesSymbolGroupRepository(
-    context: Context,
-    preferencesName: String = "symbol_drawer_v2"
-)
-```
+默认实现将版本化 JSON 保存到应用级 SharedPreferences。它使用 applicationContext，读入时解码并规范化旧存储；损坏数据会保留备份与错误原因，不会在首次读取失败时静默覆盖原始 JSON。
 
-默认 V2 仓储。数据 key 为 `groups_json_v2`，迁移标记为 `legacy_migration_complete`。
-
-行为：
-
-- 从版本化 JSON 读取分组和 typed actions。
-- 读取旧版 V1/早期 V2 数据后可规范化并写回当前格式。
-- 若数据解码失败，尽可能先保留原始 JSON 到损坏备份 key，再返回空列表。
-- `saveGroups` 编码后同步 commit；写入失败抛出异常。
-- 不修改旧版 `advanced_symbol_prefs`。
-
-损坏数据备份不是“自动修复原数据”；应用应在检测到恢复状态时告知用户并提供备份/重置入口。
+仓储同步读写；大型或高频写入场景可实现自定义 Repository，但必须保持校验、持久化成功后再发布快照的语义。
 
 ## 3. SymbolGroupManager
 
-Manager 是仓储之上的命令模型。每个成功命令创建新快照，校验后持久化一次，再更新内存 `groups`。写入失败时旧快照仍保留。
+这是 UI 中立的命令/领域层，不是页面或 ViewModel。它读取 Repository 快照，校验数据，并对每条命令生成不可变快照；先成功持久化，再更新内存状态。
 
-构造：
+主要命令：
+- 分组：`addGroup`、`duplicateGroup`、`renameGroup`、`removeGroup`、`moveGroup`、`replaceAll`、`reload`。
+- 符号：`addSymbol`、`updateSymbol`、`removeSymbol`、`moveSymbol`、`copySymbol`。
+- 批量：`copySymbols`、`removeSymbols`、`moveSymbolsToGroup`、`reorderSymbols`。
 
-```kotlin
-SymbolGroupManager(
-    repository: SymbolGroupRepository,
-    newId: () -> String = UUID,
-    newSymbolId: () -> Long = UUID-derived
-)
-```
+批量命令先验证所选 ID 与目标分组，再以单次 commit 写入。符号 ID 在整个仓储范围内唯一；复制时生成新 ID，移动时在冲突情况下重新分配 ID。
 
-可注入 ID 生成器用于测试或业务 ID 体系。生成器必须提供足够随机/唯一性；Manager 最多尝试 32 次生成唯一 ID，失败会抛异常。
+## 4. 编码与迁移
 
-### groups
+- `SymbolGroupStorageCodec`：当前仓储 envelope 的编码/解码和结构校验。
+- `SymbolGroupBundleCodec`：备份/导入 bundle 编解码及大小、动作树限制。
+- `LegacySymbolDataCodec` / `LegacySymbolDataMigration`：读取旧数据并迁移到当前领域模型。
+- `LegacySymbolActionAdapter` / `LegacySymbolActionCatalog`：适配旧数字动作 ID 与动作 payload。
 
-只读属性，当前 Manager 内存快照。不能直接赋值。
+外部 JSON 必须完整解码和校验后才能替换现有数据。导入失败不能先清空现有分组。
 
-### reload()
+## 5. Compose Manager UI
 
-从仓储重新读取并校验；只有验证通过才替换内存快照。仓储读取或校验失败时不会发布坏快照。
+`SymbolDrawerManagerScreen(repository, modifier, onClose)` 是纯 Compose 页面。它使用 `SymbolGroupManager` 提交命令，并通过 Compose state 展示分组/符号快照。UI 不拥有存储格式或迁移逻辑；不需要传入 Context、Activity、Fragment 或 View。
 
-### addGroup(title, index = groups.size): SymbolGroup
+当前界面提供分组增删改、复制、排序、符号增删改、批量复制/移动/删除和 JSON 剪贴板导入导出。需要文件选择器或云同步时，由宿主在页面外提供相应能力，不应把文件 IO 混入领域管理器。
 
-新增空分组。标题不能空白；index 会 clamp 到合法插入位置。返回新建组。
+## 6. 事务与失败语义
 
-### replaceAll(value)
-
-用完整快照替换全部分组。执行全量验证后一次性持久化。
-
-### duplicateGroup(groupId, index = groups.size): SymbolGroup
-
-复制指定分组，标题追加 ` copy`，并为新组及每个复制符号分配新 ID。源组不存在时抛异常。
-
-### renameGroup(groupId, title)
-
-重命名分组。标题不可空白；分组不存在或标题非法时抛异常。
-
-### removeGroup(groupId)
-
-删除分组。若组已不存在则幂等 no-op，不执行冗余写入。
-
-### moveGroup(fromIndex, toIndex)
-
-在分组列表内移动位置。两个 index 必须有效，否则抛异常。
-
-### addSymbol(groupId, symbol, index = null)
-
-向指定组添加符号。若 symbol.id 为 0，Manager 自动分配新 ID；否则检查它不能与其他组符号 ID 冲突。index 默认追加，越界时 clamp。
-
-### updateSymbol(groupId, symbol)
-
-按 symbol.id 更新现有符号。要求该组已存在该 ID，且该 ID 不与其他组冲突。不能用此方法把一个组的符号“移动”到另一个组。
-
-### removeSymbol(groupId, symbolId)
-
-删除单个符号。组或符号不存在时抛异常。
-
-### moveSymbol(groupId, fromIndex, toIndex)
-
-在同一分组内调整顺序。索引必须有效。
-
-### copySymbol(sourceGroupId, symbolId, targetGroupId): SymbolEntry
-
-复制单个符号到目标组，生成新 ID，返回副本。
-
-### copySymbols(sourceGroupId, symbolIds, targetGroupId): List<SymbolEntry>
-
-批量复制。要求选择集合非空、源/目标组存在、所有被选 ID 仍存在。单次事务提交；返回新建符号。
-
-### removeSymbols(groupId, symbolIds): Int
-
-批量删除。集合非空且所有 ID 均存在，否则拒绝整个操作。返回删除数量。
-
-### moveSymbolsToGroup(sourceGroupId, symbolIds, targetGroupId)
-
-批量跨组移动。源目标必须不同，集合非空，所有 ID 必须存在。移动时保留可用 ID；若发现冲突则重新分配。单次提交。
-
-### moveSymbolToGroup(sourceGroupId, symbolId, targetGroupId)
-
-单个跨组移动的便捷方法，内部委托批量移动。
-
-### reorderSymbols(groupId, orderedIds)
-
-按稳定 ID 重排。传入列表必须包含该组全部符号 ID，且每个 ID 恰好一次；缺少、多余或重复 ID 都会抛异常。
-
-## 4. 事务与错误语义
-
-Manager 的 commit 顺序：
-
-1. 比较新旧快照；完全相同则 no-op。
-2. 验证组 ID、标题、符号 ID 和 label。
-3. 将新快照写入 Repository。
-4. 写入成功后替换内存 `groups`。
-
-因此：
-- Repository 写入失败：抛异常，内存快照不更新。
-- 参数错误/目标不存在/重复 ID：抛 `IllegalArgumentException` 或 `IllegalStateException`（取决于具体检查）。
-- 删除不存在的 group 是特例：静默 no-op。
-- 批量方法要求所有选择项仍存在，防止部分成功。
-
-## 5. SymbolDrawerDefaults
-
-`SymbolDrawerDefaults.createGroups()` 提供默认符号分组数据，用于首次初始化。调用者可复制返回值后按业务需求修改；默认数据不是永久锁定的系统保留数据。
-
-## 6. JSON Codec
-
-### SymbolGroupStorageCodec
-
-对分组、符号、typed action 和 legacy metadata 执行版本化 JSON 编解码。由默认仓储调用；直接使用时应把解码异常当作不可信/损坏输入处理。
-
-### SymbolGroupBundleCodec
-
-用于便携式备份包导入导出：
-
-- `encode(groups)`：生成 JSON bundle。
-- `decode(json)`：解析并校验 bundle，返回分组快照。
-
-Manager Screen 的 `exportBundle()` / `importBundle(json)` 是面向 UI 的入口；Codec 是纯数据边界。
-
-## 7. 旧版迁移
-
-### LegacySymbolDataMigration
-
-`importIfV2Empty(context, repository)` 在 V2 仓储为空时尝试读取旧版偏好数据并转换。迁移是单向复制：
-
-- 源：旧版 `advanced_symbol_prefs/symbol_json_data`。
-- 目标：V2 Repository。
-- 旧版数据不会被删除或改写。
-- 旧 schema 没有稳定 ID，因此迁移时会分配确定性/生成的 ID。
-- 动作 ID 和 payload 作为兼容元数据保留。
-
-不要在每次页面刷新时手动重复执行迁移；默认 `SymbolDrawerView` 初始化流程会调用迁移适配器。
-
-### LegacySymbolActionAdapter
-
-负责将旧数字动作模型转换成 typed `SymbolAction`。未知数字动作应保留为扩展/兼容动作，不要把未知值映射成一个猜测的内置动作。
-
-### LegacySymbolActionCatalog
-
-旧动作 ID、名称和 payload 行为目录。主要供迁移及 Manager 的 V1 风格选择器使用。ID 顺序是兼容合同，不可随意重排或复用。
-
-## 8. 自定义数据库仓储建议
-
-- 将 `saveGroups` 包装在数据库事务中。
-- 保存成功后再返回。
-- 使用唯一约束保证组 ID 和符号 ID。
-- JSON 导入前先完整 decode/validate，再执行替换事务。
-- 保留失败导入的原始备份。
-- 避免在主线程进行大型数据库写入；如需异步仓储，应在 View 更新前协调结果，避免旧快照覆盖新快照。
-
-## 旧版 / MT 管理器 JSON 互通
-
-`SymbolDrawerManagerScreen.exportMtManagerJson(): String` 使用 `LegacySymbolDataCodec` 输出 V1 紧凑数组结构（分组 `n/d`，项目 `a/b/c/d/e`）。只有能由旧数字动作目录表示的动作可导出；V2-only Composite / Extension 等动作不能无损转换时会抛出异常，不会静默丢失。
-
-`importMtManagerJson(json: String)` 严格解码该旧格式，完整校验后替换分组，并提供与普通备份导入相同的撤销恢复。`importBundle(json)` 也能自动识别符合 V1 compact schema 的数组格式。此兼容性针对采用上述字段结构的 MT Manager/V1 导出文件；不符合该 schema 的其它 JSON 变体需要单独适配。
-
-
-### 实时工具栏绑定构造参数
-
-`SymbolDrawerManagerScreen` 可选参数名为 `liveDrawer`（不是 `drawer`）：
-
-```kotlin
-val manager = SymbolDrawerManagerScreen(
-    context = context,
-    repository = repository,
-    liveDrawer = toolbar
-)
-```
-
-传入后，管理器会在初始化及重新 attach 时绑定原工具栏实例；detach 时释放绑定句柄，避免管理页面销毁后继续持有工具栏。也可以不传入该参数，在宿主生命周期内显式调用 `bindToDrawer(toolbar)` 并关闭返回的 `AutoCloseable`。
+- 输入先校验，再构建下一份快照。
+- 持久化成功后才发布新快照。
+- 校验或写入失败时保留原内存状态。
+- 相同快照是 no-op，不产生冗余写入。
+- 对共享 Repository 的外部更新，调用方可重新加载并同步 Compose state。

@@ -1,46 +1,11 @@
-# 08 — Navigation, Panels and Style
+# 08 — Navigation, panels and style
 
-## Pages and navigation
+`DrawerPage` contains a stable ID, non-empty title, `DrawerPanelContent` and optional Composable icon. Do not use the current list index as page identity.
 
-`DrawerPage` has a stable ID, title, content provider and optional icon. Do not use list indices as persistent identity.
+`DrawerPageHost` renders pages with Compose Foundation `HorizontalPager`, keys pages by ID, synchronizes the external selected ID and reports settled user navigation. Compose owns page composition and disposal.
 
-`DrawerNavigationController` is a UI-independent selection model. It supports submitting pages, selecting by ID/index, retrieving page snapshots and observing selection. It does not draw tabs or create Views.
+`DrawerPanelContent` is a Composable `ColumnScope` content slot. `DrawerPanelHost` renders it in a Compose Column; there is no View factory or attach/detach callback.
 
-`DrawerNavigationConfig` controls enabled state, placement (TOP/BOTTOM/HIDDEN), indicator, scrolling, titles/icons, item dimensions and selected-page visibility.
+Style contracts live in `drawer.style`: `DrawerStyle`, `DrawerColors`, `DrawerDimensions`, `DrawerTypography`, `DrawerMotion`, `DrawerShape` and `DrawerThemeResolver`. They describe appearance and motion without owning Activity Context.
 
-## DrawerPageHost
-
-`DrawerPageHost` creates, caches, attaches and disposes page Views. It can:
-- submit pages while preserving selection;
-- change the Context used for page creation;
-- select by ID or index;
-- measure the current page;
-- notify panel visibility;
-- dispose cached Views and listeners.
-
-A disposed host rejects further selection. A page may remain cached while hidden; use hidden callbacks to pause work and detached/dispose callbacks to release resources.
-
-## Panels
-
-`DrawerPanelContent` describes a panel and its lifecycle. `DrawerPanelSlot` distinguishes Peek and Expanded content. `DrawerPanelHost` owns the View for a panel. Do not assume hidden means destroyed.
-
-## Style
-
-The style package includes:
-- `DrawerColors` and `DrawerColorAttributes`;
-- `DrawerDimensions`;
-- `DrawerTypography`;
-- `DrawerMotion`;
-- `DrawerShape`;
-- aggregate `DrawerStyle`;
-- `DrawerThemeMode` and `DrawerThemeResolver`.
-
-Style setters replace their corresponding immutable style snapshots. Null color roles may inherit host theme colors where supported.
-
-## Presets
-
-`DrawerPreset` and `DrawerPresets` provide reusable configurations. Treat presets as starting points; apply host-specific dimensions, theme and Insets policy.
-
-## Lifecycle rules
-
-Create page Views using the current themed Context. Release listeners, animations and resources in the matching lifecycle callback. Do not retain destroyed Activity/View instances in cached pages. Test Context recreation and disposal.
+The host owns system Back dispatch. Compose effects are cancelled when their Composition leaves; this is not an Android View lifecycle.

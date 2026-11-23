@@ -411,4 +411,5 @@
     <string name="compose_manager_json">JSON</string>
     <string name="compose_manager_error">Operation failed</string>
     <string name="compose_manager_ok">OK</string>
+    <string name="compose_manager_delete_selected">Delete selected</string>
 </resources>

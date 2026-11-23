@@ -295,7 +295,8 @@ fun SymbolDrawer(
                     .fillMaxWidth()
                     .height(config.indicatorHeightDp.coerceAtLeast(0).dp),
                 settings = settings,
-                onSettingsClick = onOpenSettings
+                onSettingsClick = onOpenSettings,
+                onManagerClick = onOpenManager
             )
 
             if (safeGroups.isEmpty()) {

@@ -1,50 +1,37 @@
-# 17 — Source Audit Notes and Known API Boundaries
+# 17 — Compose 源码审计记录与已知边界
 
-This note records findings from the repository tree inventory and targeted review of the V2 module's public API facade, action runtime, extension registry, widget entry point, Maven publication configuration, documentation index and existing tests. It is not a claim that every Android runtime path has been executed on a device.
+本页记录 Compose 模块的架构边界与审计方法。它不是设备运行测试报告，也不把旧 View 模块的兼容性结果当作 Compose 迁移结果。
 
-## Scope inspected
+## 审计范围
 
-The V2 module tree contains 164 tracked files in the inspected main-branch tree, including 141 Kotlin/Java/Gradle/XML source and test/resource files and 17 Markdown API documentation files. Production API files reviewed in detail include:
-- `build.gradle.kts`;
-- public Drawer facade files under `com.zerostudio.idea.widget.drawer.*`;
-- `SymbolActionExecutionApi.kt`;
-- `SymbolDrawerView.kt`;
-- `SymbolDrawerExtensionRegistry.kt`;
-- the editor-neutral action/document API and relevant API documentation.
+目标模块：`zero-symbol-input-view-v2-compose/`
 
-The repository also contains JVM tests, Java compile fixtures and Android instrumentation tests. Static repository inspection cannot replace running the Gradle build and device tests.
+按依赖方向审计：
+1. 编辑器中立文本/动作合同。
+2. 领域模型、验证与动作执行。
+3. Repository、Codec、迁移和持久化。
+4. Drawer 锚点、几何、状态和交互策略。
+5. 导航、面板、自适应布局和扩展注册。
+6. Compose screens 与符号抽屉 UI。
 
-## Confirmed API boundary: Kotlin typealias vs Java ABI
+## 关键边界
 
-Most generic Drawer facade entries are Kotlin `typealias` declarations pointing to implementation classes in the historical `com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.*` packages. This is valid for Kotlin source imports but does not emit new JVM classes under the facade package. Java consumers must use the actual JVM class package unless the API is physically migrated or wrapped in real public JVM declarations.
+- 领域/数据/核心状态 API 不应为了 UI 被全部标记为 `@Composable`。
+- Compose 页面不使用 Android View 树作为 UI 实现，不通过 `AndroidView` / `AndroidViewBinding` 包装旧控件。
+- Compose 页面状态不依赖 Activity、Fragment、ViewModel 或 LifecycleOwner。
+- Compose 自身仍具有 Composition、recomposition、remember state scope 和 effect cancellation 语义。
+- Kotlin `typealias` 不生成 Java ABI facade class。
+- SharedPreferences Repository 可以使用 applicationContext 做持久化；这不等于页面依赖 Activity 生命周期。
 
-The extension facade contains real JVM declarations for selected entry points such as `SymbolDrawerBuiltInFeatures`; theme extension types also have Java-facing declarations and compile fixtures. Do not generalize those exceptions to every typealias.
+## 验证方式
 
-## Confirmed design constraints
+- 源码扫描：检查生产源码和测试源码中的传统 View、Activity/Fragment 页面状态及 AndroidView 包装。
+- 依赖审计：检查 Compose artifact 的 runtime classpath，不仅检查直接依赖。
+- 构建验证：Compose Debug/Release、单元测试和 instrumentation test 编译。
+- 行为验证：Drawer 状态、编辑事务、数据迁移、页面稳定 ID、扩展注册顺序和错误路径。
 
-- The V2 Maven publication is declared by the V2 module's own `maven-publish` configuration with artifact ID `zero-symbol-input-view-v2`.
-- The action host is synchronous and does not switch threads. Host implementations must obey the editor's threading contract.
-- Composite actions are sequential and may partially complete; they are not automatically transactional.
-- The generic document API uses UTF-16 offsets and end-exclusive ranges. Default transaction hooks do not provide atomic rollback unless the host overrides them.
-- The extension registry stores runtime providers/handlers. Registrations and observers require explicit lifecycle cleanup.
-- The custom theme provider currently has a limited consumer scope; registration alone does not imply that all manager/settings/cell surfaces are recolored.
-- The generic Drawer facade is transitional; its Kotlin aliases are not a physical package relocation.
+静态扫描不能代替运行时测试；编译成功也不能单独证明所有交互行为正确。
 
-## Documentation synchronization actions in this branch
+## 兼容模块
 
-- Added an English companion API documentation set under `api-docs/en/` (README plus pages 01–17).
-- Added bilingual API documentation links to the V2 module README and API documentation index.
-- Kept the Chinese documentation as the detailed source reference; no runtime source code was modified in this documentation branch.
-
-## Remaining validation required before release
-
-Run the repository's CI and, where available:
-1. `./gradlew :zero-symbol-input-view-v2:compileDebugKotlin`
-2. `./gradlew :zero-symbol-input-view-v2:test`
-3. `./gradlew :zero-symbol-input-view-v2:assembleRelease`
-4. `./gradlew :zero-symbol-input-view-v2:connectedDebugAndroidTest` on an emulator/device
-5. Java compile fixtures for the intended public Java surface
-6. Maven publication verification of the V2 POM, AAR and sources JAR
-7. Host integration tests for editor thread affinity, undo/transaction behavior, clipboard and Fragment recreation
-
-A green JVM test suite alone does not establish correct gesture arbitration, Insets, nested scrolling, accessibility or editor integration on real Android devices.
+`zero-symbol-input-view-v2/` 是独立的旧 View 模块。其 Android 设备测试失败必须单独报告，不应与 Compose 模块的源码边界和构建结果混为一谈。

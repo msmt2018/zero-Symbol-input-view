@@ -1,31 +1,23 @@
-# 06 — Settings API
+# 06 — Compose settings
 
-## Settings snapshot
+`SymbolDrawerSettings` is an immutable settings snapshot. Use `copy(...)` to create updates.
 
-`SymbolDrawerSettings` is an immutable validated snapshot. The current schema version documented by the source is 3. It covers theme mode, columns, collapsed rows, cell dimensions/spacing, indicator height/style, labels, expansion memory, animation, fling, long-press, haptics, page caching, adjacent prefetch, touch target, search behavior and large-screen docking.
+## Persistence
 
-Constructor validation rejects out-of-range values with `IllegalArgumentException`. Use `toDrawerConfig()` to map symbol-drawer geometry/interaction settings to the symbol-input `model.DrawerConfig`; it is not the generic Drawer config.
+`SymbolDrawerSettingsRepository` provides `load()`, `save(settings)`, `reset()` and `hasStoredSettings()`. `SharedPreferencesSymbolDrawerSettingsRepository` is the Android persistence implementation and should be created outside Composable bodies.
 
-## Enums
+`SymbolDrawerSettingsCodec` provides `encode`, `decode` and strict backup decoding via `decodeStrict`. Strict decoding rejects unknown/missing fields and invalid schema versions rather than silently discarding data.
 
-- `ThemeMode`: SYSTEM, LIGHT, DARK.
-- `GroupIndicatorStyle`: text tabs, text, pill, dots, underline and additional visual styles. The enum identifies a renderer strategy; actual rendering depends on the indicator implementation.
-- `HapticMode`: OFF, SELECTION, ALL.
-- `LargeScreenLayoutMode`: AUTO, BOTTOM, SIDE.
-- `SideDockEdge`: LEFT, RIGHT.
+## Compose screen
 
-## Repository
+```kotlin
+@Composable
+fun SymbolDrawerSettingsScreen(
+    settings: SymbolDrawerSettings,
+    onSettingsChange: (SymbolDrawerSettings) -> Unit,
+    modifier: Modifier = Modifier,
+    onReset: (() -> Unit)? = null
+)
+```
 
-`SymbolDrawerSettingsRepository` provides `load()`, `save(settings)`, `reset()` and `hasStoredSettings()`. `SettingsLoadResult` reports the loaded snapshot and recovery state. `SharedPreferencesSymbolDrawerSettingsRepository` is the default implementation.
-
-## Codec
-
-`SymbolDrawerSettingsCodec` supports lenient `decode` for recovery and strict `decodeStrict` for validation. Do not bypass the codec or write unversioned JSON directly into the repository.
-
-## Settings screen
-
-`SymbolDrawerSettingsScreen` is a programmatic Android View. It can report changes to the host, which should apply the resulting snapshot with `drawer.applySettings(settings)`. When using extension tabs/items, pass the same drawer-session extension registry.
-
-## Runtime behavior
-
-Settings persistence and runtime application are separate concerns. A saved setting does not guarantee every existing View has refreshed; apply the snapshot or observe repository changes. Avoid retaining an old Activity Context across configuration changes. Test reset, corrupt settings, migration, range validation and runtime updates.
+The screen edits local Compose state and emits immutable snapshots. The host persists successful changes and applies them to the drawer. The screen does not accept Context, Activity, Fragment, View or LifecycleOwner.

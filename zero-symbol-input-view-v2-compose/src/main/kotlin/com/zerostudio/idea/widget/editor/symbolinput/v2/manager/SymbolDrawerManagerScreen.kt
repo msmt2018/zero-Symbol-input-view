@@ -229,7 +229,7 @@ fun SymbolDrawerManagerScreen(
                             runCommand { manager.removeSymbols(selectedGroup.id, selectedSymbolIds) }
                             selectedSymbolIds = emptySet()
                         }
-                    ) { Text("批量删除") }
+                    ) { Text(stringResource(R.string.compose_manager_delete_selected)) }
                 }
             }
             LazyColumn(

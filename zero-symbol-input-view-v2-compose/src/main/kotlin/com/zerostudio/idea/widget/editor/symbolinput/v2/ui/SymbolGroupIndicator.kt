@@ -58,6 +58,9 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.res.stringResource
+import com.zerostudio.idea.widget.editor.symbolinput.v2.R
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -90,7 +93,8 @@ fun SymbolGroupIndicator(
     onGroupSelected: (Int) -> Unit,
     modifier: Modifier = Modifier,
     settings: SymbolDrawerSettings = SymbolDrawerSettings(),
-    onSettingsClick: (() -> Unit)? = null
+    onSettingsClick: (() -> Unit)? = null,
+    onManagerClick: (() -> Unit)? = null
 ) {
     val selected = selectedIndex.coerceIn(0, (groups.size - 1).coerceAtLeast(0))
     val primaryColor = MaterialTheme.colorScheme.primary
@@ -254,6 +258,11 @@ fun SymbolGroupIndicator(
                         }
                     }
                 }
+            }
+        }
+        if (onManagerClick != null) {
+            TextButton(onClick = onManagerClick) {
+                Text(stringResource(R.string.compose_manager_title))
             }
         }
         if (onSettingsClick != null) {

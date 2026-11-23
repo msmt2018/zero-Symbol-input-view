@@ -163,7 +163,7 @@ fun interface SymbolActionHandler<C> {
 }
 ```
 
-泛型 `C` 是注册表使用者提供的执行上下文。handler 不应持有比其注册生命周期更长的 Activity/View 引用。
+泛型 `C` 是注册表使用者提供的执行上下文。handler 应只持有执行所需的最小上下文，不应把 Activity、View 或其他 UI 对象放入长期注册表。
 
 ## 8. SymbolActionRegistry
 
@@ -175,7 +175,7 @@ fun interface SymbolActionHandler<C> {
 
 - 同一个 ID 再注册会替换当前 handler。
 - 返回句柄 close 时，仅当该注册仍是当前版本才删除，避免旧句柄误删后来注册的 handler。
-- 建议把句柄保存在 Activity/Fragment/EditorSession 生命周期中，并在结束时 close。
+- 调用方应由明确的业务会话/注册所有者持有句柄，并在该会话结束时显式 close；不要依赖 Fragment View 生命周期管理该注册表。
 
 ### register(legacyNumericId, handler)
 

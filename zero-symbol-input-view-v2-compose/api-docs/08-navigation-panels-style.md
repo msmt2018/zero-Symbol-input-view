@@ -1,241 +1,65 @@
-# 08 — 页面导航、面板、主题与样式 API
+# 08 — 页面导航、面板与样式 API
 
-## 1. 页面导航模型
+本页只描述 Compose 模块当前实现。页面内容是 Composable slot，不创建 View，不维护 View attach/detach 回调。
 
-包：`drawer.navigation`
+## 1. DrawerPage
 
-### DrawerPage
+包：`com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation`
 
 ```kotlin
 data class DrawerPage(
     val id: String,
-    val title: CharSequence,
+    val title: String,
     val content: DrawerPanelContent,
-    val icon: Drawable? = null
+    val icon: (@Composable () -> Unit)? = null
 )
 ```
 
-- `id`：稳定且非空页面 ID。
-- `title`：非空标题。
-- `content`：页面内容提供者。
-- `icon`：可选 Drawable。
+- `id` 必须非空且稳定；用于 pager key 和选择同步，不要用 index 作为身份。
+- `title` 必须非空。
+- `content` 是 Compose 面板内容。
+- `icon` 是可选 Composable slot，不是 Drawable 或 View。
 
-页面 ID 用于保存/恢复选择和 Diff，不应使用当前 index 代替。
+## 2. DrawerNavigationController
 
-### DrawerNavigationSnapshot
+这是 UI 中立的页面选择状态模型。它负责页面 ID、顺序和选中项，不创建页面、不保存 Activity/Context，也不接管 Composition。
 
-包含 `selectedPageId: String?` 和 `pageIds: List<String>`。用于观察当前选择与页面 ID 顺序，不包含 View 或内容对象。
+核心操作：
+- `submitPages(pages, preserveSelection)`：校验 ID 唯一并提交页面集合。
+- `selectPage(id)` / `selectPage(index)`：按稳定 ID 或有效索引选择。
+- `pages()`、`selectedPage()`、`selectedIndex()`：读取当前快照。
+- `snapshot()`：取得 `DrawerNavigationSnapshot(selectedPageId, pageIds)`。
 
-### DrawerNavigationController
+## 3. DrawerPageHost
 
-UI 无关的页面选择模型。
+`DrawerPageHost(pages, selectedPageId, onPageSelected, modifier)` 使用 Compose Foundation `HorizontalPager` 呈现页面。它以 page ID 作为 key，并将外部选择同步到 pager；只在 pager settled 后回传用户切页结果。
 
-- `submitPages(value, preserveSelection = true)`：提交页面；ID 必须唯一。若原选择仍存在且 preserveSelection 为 true，则保留；否则选择第一项。
-- `selectPage(id): Boolean`：按 ID 选择；不存在返回 false。
-- `selectPage(index): Boolean`：按索引选择；越界返回 false。
-- `pages(): List<DrawerPage>`：返回当前页面快照。
-- `selectedPage(): DrawerPage?`：当前页面；无页面时 null。
-- `selectedIndex(): Int`：当前索引；无选择时 -1。
-- `snapshot(): DrawerNavigationSnapshot`：返回 ID 状态快照。
-- `addListener(listener)`：添加监听并立即以当前状态回调一次。
-- `removeListener(listener)`：移除监听。
+Pager 的页面组合、离屏页面处置与状态作用域由 Compose 管理。不要再套一层 ViewPager2，也不要在宿主保存第二份 index 真值。
 
-监听器回调参数为快照和选中索引。Controller 不负责绘制 Tab 或创建 View。
-
-### DrawerNavigationConfig
-
-页面导航视觉/布局配置：
-
-- `enabled`：是否显示导航。
-- `placement`：TOP / BOTTOM / HIDDEN。
-- `indicator`：指示器样式。
-- `scrollable`：导航是否横向滚动。
-- `showTitles`、`showIcons`。
-- `itemMinWidthDp`、横/纵 padding。
-- `titleTextSizeSp`、`selectedTitleTextSizeSp`、`selectedTitleBold`。
-- `keepSelectedPageVisible`、`showInPeekPanel`。
-
-构造时检查尺寸有限且非负、字体尺寸大于 0。
-
-### DrawerNavigationPlacement
-
-`TOP`、`BOTTOM`、`HIDDEN`。
-
-### DrawerIndicatorStyle
-
-字段：`shape`、`heightDp`、`widthFraction`、`cornerRadiusDp`、`color`、`animate`。
-
-### DrawerIndicatorShape
-
-`LINE`、`PILL`、`NONE`。
-
-## 2. DrawerPageHost
-
-继承 FrameLayout，管理页面 View 的创建、缓存、挂载和可见生命周期。
-
-构造：
-
-```kotlin
-DrawerPageHost(
-    context: Context,
-    navigationController: DrawerNavigationController = DrawerNavigationController()
-)
-```
-
-公开属性：`navigationController`。
-
-### setPages(pages, preserveSelection = true)
-
-校验页面 ID 唯一后提交。校验失败不会先触发生命周期回调或清除当前页面。
-
-### setContentContext(value, recreateCachedViews = false)
-
-更换创建页面 View 使用的 Context。recreateCachedViews 为 true 时，先对当前可见页面触发 hidden，再对缓存页面触发 detached，移除旧 View 并按新 Context 重建选中页面。用于主题 Context 改变等需要重建页面 View 的场景。
-
-### selectPage(id) / selectPage(index)
-
-选择页面；host 已 dispose 时抛 IllegalStateException；无效 ID/index 返回 false。
-
-### currentPage()
-
-返回当前选中 DrawerPage。
-
-### measureCurrentContentHeight(maxWidthPx, maxHeightPx)
-
-对当前缓存页面 View 执行宽度 EXACTLY、高度 AT_MOST 测量并返回 measuredHeight；无当前页面/缓存 View 时返回 0。
-
-### setPanelVisible(visible)
-
-通知当前页面面板是否可见。仅在宿主已 attach 时派发生命周期回调。
-
-### dispose()
-
-释放页面缓存、解除 Controller 监听、隐藏当前页面并对缓存内容触发 detached。幂等；dispose 后不应继续提交页面或更换 Context。
-
-### 生命周期顺序
-
-- 首次创建页面 View：`createView(context)`。
-- 页面首次进入 host：`onPanelAttached()`。
-- 面板可见：`onPanelVisible()`。
-- 切换/隐藏：`onPanelHidden()`。
-- 缓存淘汰、Context 重建或 dispose：`onPanelDetached()`。
-
-缓存页面被切换时，View 可能暂时从容器移除，但内容对象不一定立即 detached；不要把“当前不可见”当作“资源已释放”。
-
-## 3. DrawerPanelContent
+## 4. DrawerPanelContent / DrawerPanelHost
 
 包：`drawer.panel`
 
 ```kotlin
-interface DrawerPanelContent {
-    fun createView(): View
-    fun createView(context: Context): View = createView()
-    fun onPanelAttached() = Unit
-    fun onPanelVisible() = Unit
-    fun onPanelHidden() = Unit
-    fun onPanelDetached() = Unit
-}
-```
-
-实现者可以只覆盖无参 createView，也可覆盖带 Context 的主题感知版本。生命周期回调默认空实现。
-
-建议：
-- 不要在构造时就把 View 添加到父容器。
-- createView 每次需要创建新 View 时返回未挂载 View。
-- onPanelHidden 暂停动画/传感器/高频任务。
-- onPanelDetached 释放页面独占资源。
-- 不要在 onPanelHidden 中永久销毁仍会缓存复用的对象。
-
-### DrawerPanelSlot
-
-`PEEK` 与 `EXPANDED`，区分紧凑面板和展开面板。
-
-### DrawerPanelHost
-
-负责一个 slot 的内容实例和 View 管理。
-
-- `setContent(content)`：使用 host Context 设置内容。
-- `setContent(content, viewContext)`：使用指定主题 Context 创建内容。
-- `refreshContentContext(viewContext)`：刷新 Context 并按实现策略重建内容 View。
-- `measureContentHeight(maxWidthPx, maxHeightPx)`：测量内容高度。
-- `content()`：返回当前内容对象。
-- `dispatchPanelVisible(visible)`：分发可见/隐藏状态。
-
-## 4. 样式 API（drawer.style）
-
-### DrawerThemeMode
-
-- `FOLLOW_HOST`：跟随宿主主题。
-- `LIGHT`：浅色。
-- `DARK`：深色。
-
-### DrawerColors
-
-颜色角色包含 surface、primaryText、secondaryText、accent、outline、scrim 等。null 表示不覆盖该角色，由主题解析器继承宿主/主题颜色。
-
-`overlay(override)`：将非空 override 角色覆盖到当前颜色集，未指定角色保留原值。
-
-### DrawerColorAttributes
-
-声明从主题属性解析颜色的属性映射。用于主题集成，不是像素颜色本身。
-
-### DrawerDimensions
-
-控制 Peek 高度、展开最大高度、圆角、水平/垂直 padding、面板间距、handle 宽高等尺寸。尺寸单位为 dp；构造值应为有限且非负数（以具体字段验证为准）。
-
-### DrawerTypography
-
-控制标题/正文/说明字体尺寸、字体族和文字样式。字体大小以 sp 为单位。
-
-### DrawerMotion
-
-控制最小/最大 fling 速度、spring 开关、settle 动画时长和拖动阻尼等运动参数。拖动阻尼应保持在实现允许范围内，避免异常跳变。
-
-### DrawerShape
-
-控制四角圆角和 outline 宽度；FullScreen 呈现会覆盖圆角/阴影，使面板占满容器视口。
-
-### DrawerStyle
-
-聚合 `themeMode`、`colors`、`colorAttributes`、`dimensions`、`typography`、`motion`、`shape`、`elevationDp`、`drawScrim` 和 `clipContentToShape`。
-
-### DrawerThemeResolver
-
-负责将 FOLLOW_HOST/LIGHT/DARK 转为用于创建内容的主题 Context，并解析最终颜色。若使用自定义 ContextThemeWrapper，应避免跨 Activity 长期持有旧 Context。
-
-## 5. DrawerPresets
-
-`DrawerPreset` 枚举：
-
-- `STANDARD`
-- `COMPACT`
-- `FULL_SCREEN`
-- `SPLIT_PANEL`
-
-`DrawerPresets.config(preset): DrawerConfig` 返回相应预设配置。预设是可修改的初始配置，不是运行时强制限制；调用者可用 Builder 或 data class copy 覆盖。
-
-## 6. 示例：自定义页面和面板
-
-```kotlin
-val pageContent = object : DrawerPanelContent {
-    override fun createView(context: Context): View =
-        TextView(context).apply { text = "自定义页面" }
-
-    override fun onPanelVisible() {
-        // 开始当前页可见期间的工作
-    }
-
-    override fun onPanelHidden() {
-        // 暂停可见期间任务
-    }
-
-    override fun onPanelDetached() {
-        // 释放资源
-    }
-}
-
-val drawer = DrawerContainer(context)
-drawer.setPages(
-    listOf(DrawerPage("overview", "概览", pageContent))
+data class DrawerPanelContent(
+    val content: @Composable ColumnScope.() -> Unit
 )
+enum class DrawerPanelSlot { PEEK, EXPANDED }
 ```
+
+使用 `drawerPanelContent { ... }` 创建 slot。 `DrawerPanelHost(content, modifier, slot)` 将内容放入 Compose Column；当前 host 不定义 View factory、attach/detach 回调或传统页面生命周期。
+
+## 5. DrawerContainer 集成
+
+`DrawerContainer` 提供抽屉容器、锚点状态和内容 slot。页面导航由调用方传入 `pages`、`selectedPageId` 和 `onPageSelected`。Back 导航/关闭由宿主导航策略处理；不要假定容器内部安装 Activity BackHandler。
+
+## 6. 样式与主题
+
+样式模型位于 `drawer.style`，包括 `DrawerStyle`、`DrawerColors`、`DrawerDimensions`、`DrawerTypography`、`DrawerMotion`、`DrawerShape` 和 `DrawerThemeResolver`。这些类型表达外观参数，不创建 Android View 或包装 Activity Context。
+
+## 7. Compose 状态边界
+
+- 可保存的业务状态应放在 UI 中立模型/Repository 中。
+- 短期交互状态可由 Compose state 承载。
+- `LaunchedEffect` 等 effect 只在对应 Composition 存在期间运行，离开 Composition 时会取消；这不是 Android View 生命周期。
+- 不要将“Compose-native”误称为字面上的“没有任何生命周期”。

@@ -69,6 +69,21 @@ class ComposeMigrationContractTest {
         compose.runOnIdle { assertEquals(1, clicks) }
     }
 
+    @Test fun symbolDrawerExposesManagerEntryPoint() {
+        var opened = 0
+        compose.setContent {
+            MaterialTheme {
+                SymbolDrawer(
+                    groups = emptyList(),
+                    onSymbolClick = {},
+                    onOpenManager = { opened++ }
+                )
+            }
+        }
+        compose.onNodeWithText("Symbol manager").assertIsDisplayed().performClick()
+        compose.runOnIdle { assertEquals(1, opened) }
+    }
+
     @Test fun drawerContainerUsesCompositionOwnedExpansionState() {
         var state: com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.DrawerContainerState? = null
         compose.setContent {
