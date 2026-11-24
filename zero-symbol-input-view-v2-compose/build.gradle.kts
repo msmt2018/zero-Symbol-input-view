@@ -1,3 +1,7 @@
+        Regex("""^\\s*import\\s+androidx\\.compose\\.ui\\.viewinterop\\."""),
+        Regex("""^\\s*import\\s+androidx\\.appcompat\\."""),
+        Regex("""^\\s*import\\s+androidx\\.viewbinding\\."""),
+        Regex("""^\\s*import\\s+androidx\\.customview\\."""),
 /*
  * This file is part of zero-Symbol-input-view-V2 Compose.
  * Copyright (C) 2026 android_zero
