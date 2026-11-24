@@ -42,7 +42,10 @@ object SymbolDrawerAnchorAdapter {
         val collapsed = DrawerGeometry.collapsedHeightPx(config, density)
         val expandedGrid = DrawerGeometry.expandedHeightPx(groups, config, density)
         val indicator = (config.indicatorHeightDp * density).let { kotlin.math.round(it).toInt() }
-        val expanded = maxOf(collapsed, expandedGrid) + indicator
+        // Keep the legacy geometry while preventing Int overflow at extreme, finite densities.
+        val expanded = (maxOf(collapsed, expandedGrid).toLong() + indicator.toLong())
+            .coerceAtMost(Int.MAX_VALUE.toLong())
+            .toInt()
 
         val anchors = DrawerAnchorResolver.resolve(
             DrawerAnchorStrategies.existingHeight(),

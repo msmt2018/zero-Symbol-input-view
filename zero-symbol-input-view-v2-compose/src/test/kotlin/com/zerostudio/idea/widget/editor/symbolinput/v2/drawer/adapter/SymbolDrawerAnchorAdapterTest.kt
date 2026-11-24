@@ -74,6 +74,19 @@ class SymbolDrawerAnchorAdapterTest {
         assertEquals(anchors.collapsedHeightPx + 78, anchors.expandedHeightPx)
     }
 
+    @Test
+    fun extremeFiniteDensitySaturatesAllAnchorsInsteadOfOverflowing() {
+        val anchors = SymbolDrawerAnchorAdapter.resolve(
+            groups = listOf(group("extreme", 1)),
+            config = DrawerConfig(columns = 4, collapsedRows = 2, cellHeightDp = 30),
+            density = Float.MAX_VALUE
+        )
+
+        assertEquals(Int.MAX_VALUE, anchors.collapsedHeightPx)
+        assertEquals(Int.MAX_VALUE, anchors.expandedGridHeightPx)
+        assertEquals(Int.MAX_VALUE, anchors.expandedHeightPx)
+    }
+
     private fun group(id: String, count: Int) = SymbolGroup(
         id = id,
         title = id,

@@ -41,7 +41,10 @@ object DrawerGeometry {
         return saturatingInt(totalPx)
     }
 
-    fun indicatorReveal(expansion: Float): Float = expansion.coerceIn(0f, 1f)
+    fun indicatorReveal(expansion: Float): Float {
+        require(expansion.isFinite()) { "expansion must be finite" }
+        return expansion.coerceIn(0f, 1f)
+    }
 
     private fun requireValidDensity(density: Float) {
         require(density.isFinite() && density > 0f) {

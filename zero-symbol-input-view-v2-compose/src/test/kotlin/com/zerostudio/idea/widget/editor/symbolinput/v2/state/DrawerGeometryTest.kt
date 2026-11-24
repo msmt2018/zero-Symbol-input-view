@@ -70,6 +70,14 @@ class DrawerGeometryTest {
         assertEquals(1f, DrawerGeometry.indicatorReveal(1f), 0.0001f)
     }
 
+    @Test fun indicatorRevealRejectsNonFiniteValues() {
+        listOf(Float.NaN, Float.POSITIVE_INFINITY, Float.NEGATIVE_INFINITY).forEach { value ->
+            assertTrue("Expected non-finite expansion $value to be rejected", runCatching {
+                DrawerGeometry.indicatorReveal(value)
+            }.isFailure)
+        }
+    }
+
     private fun group(id: String, count: Int) = SymbolGroup(
         id = id,
         title = id,
