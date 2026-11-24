@@ -737,17 +737,45 @@ object GenericSymbolTextActions {
 
     private fun removeBlankLines(document: PublicSymbolTextDocument): Boolean {
         if (!document.isEditable || document.textLength > MAX_DOCUMENT_WIDE_CHARS ||
-            document.lineCount > MAX_DOCUMENT_WIDE_LINES
+            document.lineCount > MAX_DOCUMENT_WIDE_LINES || document.lineCount <= 1
         ) return false
-        var changed = false
-        for (line in document.lineCount - 1 downTo 0) {
-            if (document.lineCount <= 1) break
-            if (document.lineText(line).isBlank()) {
-                if (!deleteLine(document, line)) return false
-                changed = true
-            }
+
+        val lineCount = document.lineCount
+        val blankLines = BooleanArray(lineCount) { line ->
+            document.lineText(line).isBlank()
         }
-        return changed
+        val lastNonBlankLine = blankLines.indexOfLast { !it }
+        val edits = ArrayList<TextDocumentEdit>()
+        var earliestDeleteStart = document.textLength
+
+        // Match the original bottom-up deleteLine semantics. A trailing run of
+        // blank lines collapses into one suffix edit because its first line
+        // becomes the final line after all following blank lines are removed.
+        val firstTrailingBlank = (lastNonBlankLine + 1).coerceAtLeast(1)
+        if (firstTrailingBlank < lineCount) {
+            val lineStart = document.lineStartOffset(firstTrailingBlank)
+            val previousLineEnd = document.lineEndOffset(firstTrailingBlank - 1)
+            val separatorLength = lineStart - previousLineEnd
+            if (separatorLength <= 0) return false
+            val deleteStart = lineStart - separatorLength
+            edits += TextDocumentEdit(deleteStart, document.textLength, "")
+            earliestDeleteStart = minOf(earliestDeleteStart, deleteStart)
+        }
+
+        // Blank lines before the final non-blank line are independent ranges.
+        for (line in 1..lastNonBlankLine.coerceAtLeast(0)) {
+            if (!blankLines[line]) continue
+            val start = document.lineStartOffset(line)
+            val end = document.lineStartOffset(line + 1)
+            if (end <= start) return false
+            edits += TextDocumentEdit(start, end, "")
+            earliestDeleteStart = minOf(earliestDeleteStart, start)
+        }
+
+        if (edits.isEmpty()) return false
+        if (!document.applyEdits(edits)) return false
+        document.setSelection(earliestDeleteStart, earliestDeleteStart)
+        return true
     }
 
     private fun setCaret(document: PublicSymbolTextDocument, offset: Int): Boolean {

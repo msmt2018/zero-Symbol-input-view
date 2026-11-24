@@ -280,6 +280,41 @@ class GenericSymbolTextActionsTest {
     }
 
     @Test
+    fun removeBlankLinesBatchesMiddleAndTrailingRunsWithoutBreakingSeparators() {
+        val lf = FakeDocument("alpha\n\n\nbeta\n\n", cursor = 4)
+        assertTrue(run("document.removeBlankLines", lf))
+        assertEquals("alpha\nbeta", lf.text)
+        assertEquals(6, lf.cursorOffset)
+
+        val crlf = FakeDocument("alpha\r\n\r\nbeta\r\n", cursor = 2)
+        assertTrue(run("document.removeBlankLines", crlf))
+        assertEquals("alpha\r\nbeta", crlf.text)
+        assertEquals(7, crlf.cursorOffset)
+
+        val allBlank = FakeDocument("\n\n", cursor = 1)
+        assertTrue(run("document.removeBlankLines", allBlank))
+        assertEquals("", allBlank.text)
+
+        val singleBlank = FakeDocument("   ")
+        assertFalse(run("document.removeBlankLines", singleBlank))
+        assertEquals("   ", singleBlank.text)
+    }
+
+    @Test
+    fun removeBlankLinesRollsBackWhenASeparatedRunIsRejected() {
+        val document = FakeDocument(
+            "alpha\n\nbeta\n\ngamma",
+            cursor = 5,
+            failOnReplaceCall = 2
+        ).apply { setSelection(1, 14) }
+
+        assertFalse(run("document.removeBlankLines", document))
+        assertEquals("alpha\n\nbeta\n\ngamma", document.text)
+        assertEquals(1, document.selectionStart)
+        assertEquals(14, document.selectionEnd)
+    }
+
+    @Test
     fun multiLineCommandsRollBackWhenAnEditIsRejected() {
         val comment = FakeDocument(
             "alpha\nbeta",
