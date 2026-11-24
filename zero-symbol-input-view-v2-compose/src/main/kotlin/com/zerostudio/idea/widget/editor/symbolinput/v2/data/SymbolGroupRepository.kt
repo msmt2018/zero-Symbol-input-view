@@ -34,6 +34,9 @@ interface SymbolGroupRepository {
 /**
  * Optional live-change observation for repositories shared by a manager and a
  * visible drawer. Implementations notify after a successful durable write.
+ *
+ * The callback may run on any thread. Consumers that update thread-confined
+ * state must marshal the notification to that state's owning thread.
  */
 interface ObservableSymbolGroupRepository : SymbolGroupRepository {
     fun observeGroups(listener: () -> Unit): AutoCloseable

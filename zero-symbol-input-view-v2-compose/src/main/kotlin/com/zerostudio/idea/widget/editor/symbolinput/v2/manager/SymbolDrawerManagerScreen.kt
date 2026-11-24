@@ -45,6 +45,10 @@
 
 package com.zerostudio.idea.widget.editor.symbolinput.v2.manager
 
+import android.os.Handler
+import android.os.Looper
+import java.util.concurrent.atomic.AtomicBoolean
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -97,6 +101,7 @@ fun SymbolDrawerManagerScreen(
     onClose: (() -> Unit)? = null
 ) {
     val manager = remember(repository) { SymbolGroupManager(repository) }
+    val mainThreadHandler = remember { Handler(Looper.getMainLooper()) }
     var groups by remember(repository) { mutableStateOf(manager.groups) }
     var selectedGroupId by remember(repository) { mutableStateOf(groups.firstOrNull()?.id) }
     var groupDialog by remember { mutableStateOf(false) }
@@ -130,14 +135,26 @@ fun SymbolDrawerManagerScreen(
     // Keep an open manager screen coherent with writes performed by another
     // manager or host sharing this repository. The subscription belongs to
     // this Composition only; it does not require Activity/Fragment lifecycle APIs.
-    DisposableEffect(repository, manager) {
+    DisposableEffect(repository, manager, mainThreadHandler) {
         val observable = repository as? ObservableSymbolGroupRepository
+        val active = AtomicBoolean(true)
         val handle = observable?.observeGroups {
-            runCatching { manager.reload() }
-                .onSuccess { refresh() }
-                .onFailure { errorMessage = it.message ?: "Unable to reload symbol groups" }
+            // Repository implementations may notify from arbitrary threads.
+            // Compose state and this screen's manager are confined to the main thread.
+            if (active.get()) {
+                mainThreadHandler.post {
+                    if (active.get()) {
+                        runCatching { manager.reload() }
+                            .onSuccess { refresh() }
+                            .onFailure { errorMessage = it.message ?: "Unable to reload symbol groups" }
+                    }
+                }
+            }
         }
-        onDispose { handle?.close() }
+        onDispose {
+            active.set(false)
+            handle?.close()
+        }
     }
 
     val selectedGroup = groups.firstOrNull { it.id == selectedGroupId }
