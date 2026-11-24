@@ -29,11 +29,11 @@ DrawerPage 是不可变页面描述，字段如下：
 - state / snapshot()：读取当前 selectedPageId 和 pageIds 快照。
 - addListener(listener) / removeListener(listener)：注册和移除同步状态监听；新增监听时立即收到当前快照。
 
-DrawerNavigationController 本身不依赖 Compose Runtime；rememberDrawerNavigationSnapshot(controller) 是 Composition 适配器，负责订阅状态并在 DisposableEffect 结束时移除 listener。
+**线程契约：** DrawerNavigationController 是单线程约束对象，不是线程安全对象。调用方必须在同一个线程串行执行所有操作，包括读取状态、提交页面、切换页面、注册监听器和移除监听器。状态变化通知在发布操作所在的线程同步执行；addListener 注册时的初始快照也在注册线程同步回调。Compose 宿主必须在 UI/Composition dispatcher 上调用控制器操作，使同步监听回调能够安全更新 Compose 状态。Controller 不会自行切换线程，也不会持有线程或 dispatcher。
 
 Controller 对重入通知进行排队，避免监听器在通知过程中再次切页造成观察顺序倒置。监听器异常会在完成当前通知队列后向调用方传播。
 
-注意：当前实现的 Controller 使用 Compose Runtime 的 mutableStateOf，因此它属于 Compose 模块的状态 API，不应被描述为纯 Kotlin/JVM 模型。
+DrawerNavigationController 本身不依赖 Compose Runtime；rememberDrawerNavigationSnapshot(controller) 是 Composition 适配器，负责订阅状态并在 DisposableEffect 结束时移除 listener。Controller 不持有 Compose snapshot state；但 DrawerPage 页面描述包含 Composable 内容槽，因此该类型仍属于 Compose 模块 API，而不是完全独立的 Kotlin/JVM API。
 
 ## 3. DrawerPageHost
 

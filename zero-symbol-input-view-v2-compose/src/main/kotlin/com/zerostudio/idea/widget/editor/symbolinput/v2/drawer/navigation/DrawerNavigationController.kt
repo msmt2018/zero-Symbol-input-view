@@ -50,6 +50,15 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation
  * Page identity and selection model. It owns no Compose Runtime state, View,
  * adapter or lifecycle object; DrawerPage values carry the Composable content
  * slots that the Compose page host renders.
+ *
+ * Threading contract: this controller is single-thread-confined, not
+ * thread-safe. Callers must serialize every operation (including reads,
+ * listener registration and listener removal) on one thread. Listener
+ * callbacks run synchronously on the thread that publishes the change; the
+ * initial callback from [addListener] runs on the registering thread.
+ * Compose hosts must perform controller operations on their UI/composition
+ * dispatcher so synchronous notifications can safely update composition
+ * state. This class does not dispatch to, or retain, a thread or dispatcher.
  */
 class DrawerNavigationController {
     fun interface Listener {

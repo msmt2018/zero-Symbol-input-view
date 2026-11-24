@@ -65,7 +65,6 @@ class DrawerNavigationControllerTest {
         assertEquals("second", controller.state.selectedPageId)
     }
 
-
     @Test
     fun publishedSnapshotPageIdsCannotBeMutatedByConsumers() {
         val controller = DrawerNavigationController()
@@ -106,6 +105,21 @@ class DrawerNavigationControllerTest {
         controller.selectPage("b")
         controller.removeListener(listener)
         assertEquals(listOf(null, "a", "b"), selected)
+    }
+
+    @Test
+    fun listenerCallbacksRunSynchronouslyOnTheCallingThread() {
+        val controller = DrawerNavigationController()
+        val caller = Thread.currentThread()
+        val callbackThreads = mutableListOf<Thread>()
+        val listener = DrawerNavigationController.Listener { _, _ ->
+            callbackThreads += Thread.currentThread()
+        }
+
+        controller.addListener(listener)
+        controller.submitPages(listOf(page("a")))
+
+        assertEquals(listOf(caller, caller), callbackThreads)
     }
 
     @Test
