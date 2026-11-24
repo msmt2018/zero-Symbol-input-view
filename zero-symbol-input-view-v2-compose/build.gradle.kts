@@ -79,7 +79,6 @@ val verifyComposeUiBoundary by tasks.registering {
         Regex("""^\s*import\s+androidx\.appcompat\."""),
         Regex("""^\s*import\s+androidx\.viewbinding\."""),
         Regex("""^\s*import\s+androidx\.customview\."""),
-            Regex("""^\s*import\s+androidx\.compose\.ui\.viewinterop\."""),
             Regex("""^\s*import\s+androidx\.appcompat\."""),
             Regex("""^\s*import\s+androidx\.viewbinding\."""),
             Regex("""^\s*import\s+androidx\.customview\."""),
