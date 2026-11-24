@@ -75,6 +75,10 @@ val verifyComposeUiBoundary by tasks.registering {
             Regex("""^\s*import\s+android\.view\."""),
             Regex("""^\s*import\s+android\.widget\."""),
             Regex("""^\s*import\s+android\.graphics\."""),
+        Regex("""^\s*import\s+androidx\.compose\.ui\.viewinterop\."""),
+        Regex("""^\s*import\s+androidx\.appcompat\."""),
+        Regex("""^\s*import\s+androidx\.viewbinding\."""),
+        Regex("""^\s*import\s+androidx\.customview\."""),
             Regex("""^\s*import\s+androidx\.compose\.ui\.viewinterop\."""),
             Regex("""^\s*import\s+androidx\.appcompat\."""),
             Regex("""^\s*import\s+androidx\.viewbinding\."""),
@@ -328,6 +332,7 @@ val auditComposeMigration by tasks.registering {
 
     doLast {
         val sourceFiles = sourceRoots.filter { it.exists() }
+            .flatMap { root -> root.walkTopDown().filter { it.isFile && it.extension in setOf("kt", "java") }.toList() }
         val legacyLayoutFiles = layout.projectDirectory.dir("src/main/res").asFile
             .takeIf { it.exists() }
             ?.walkTopDown()
@@ -336,7 +341,6 @@ val auditComposeMigration by tasks.registering {
         val manifestFile = layout.projectDirectory.file("src/main/AndroidManifest.xml").asFile
         val manifestDeclaresActivity = manifestFile.takeIf { it.isFile }?.readText()
             ?.let { Regex("""<\s*(?:activity|activity-alias)\b""").containsMatchIn(it) } ?: false
-            .flatMap { root -> root.walkTopDown().filter { it.isFile && it.extension in setOf("kt", "java") }.toList() }
         val violations = sourceFiles.flatMap { source ->
             source.readLines().mapIndexedNotNull { index, line ->
                 val trimmed = line.trimStart()
@@ -368,7 +372,7 @@ val auditComposeMigration by tasks.registering {
         violations.forEach { logger.lifecycle("  - $it") }
         logger.lifecycle("Remaining View-only dependency declarations: ${dependencyViolations.size}")
         dependencyViolations.forEach { logger.lifecycle("  - $it") }
-        if (violations.isEmpty() && dependencyViolations.isEmpty()) {
+        if (violations.isEmpty() && dependencyViolations.isEmpty() && legacyLayoutFiles.isEmpty() && !manifestDeclaresActivity) {
             logger.lifecycle("Compose source/dependency boundary is clean.")
         }
     }
@@ -386,6 +390,7 @@ val verifyComposeArtifactBoundary by tasks.registering {
         "src/androidTest/kotlin", "src/androidTest/java"
         ).map { layout.projectDirectory.dir(it).asFile }
         val files = sourceRoots.filter { it.exists() }
+            .flatMap { root -> root.walkTopDown().filter { it.isFile && it.extension in setOf("kt", "java") }.toList() }
         val legacyLayoutFiles = layout.projectDirectory.dir("src/main/res").asFile
             .takeIf { it.exists() }
             ?.walkTopDown()
@@ -394,7 +399,6 @@ val verifyComposeArtifactBoundary by tasks.registering {
         val manifestFile = layout.projectDirectory.file("src/main/AndroidManifest.xml").asFile
         val manifestDeclaresActivity = manifestFile.takeIf { it.isFile }?.readText()
             ?.let { Regex("""<\s*(?:activity|activity-alias)\b""").containsMatchIn(it) } ?: false
-            .flatMap { root -> root.walkTopDown().filter { it.isFile && it.extension in setOf("kt", "java") }.toList() }
         val forbiddenImports = Regex("""^\s*import\s+(android\.view\.|android\.widget\.|android\.graphics\.|androidx\.recyclerview\.|androidx\.viewpager2\.|com\.google\.android\.material\.|android\.app\.(Activity|Fragment)|androidx\.activity\.|androidx\.fragment\.|androidx\.lifecycle\.|androidx\.savedstate\.)""")
         val forbiddenReferences = Regex("""\b(AndroidView(?:Binding)?|ComposeView|LayoutInflater|ViewBinding|ViewStub|ViewTreeLifecycleOwner|ViewTreeViewModelStoreOwner|ViewTreeSavedStateRegistryOwner|findViewById|setContentView|SymbolDrawerView|ViewGroup|MotionEvent|RecyclerView|ViewPager2|Activity|Fragment|Lifecycle|LifecycleOwner|LifecycleRegistry|LocalLifecycleOwner|ViewModel|ViewModelStoreOwner|ViewModelProvider|SavedStateHandle|SavedStateRegistryOwner|LifecycleEventObserver|rememberLauncherForActivityResult)\b""")
         val forbiddenQualifiedReferences = Regex("""\b(?:android\.(?:view|widget|graphics)|androidx\.(?:recyclerview|viewpager2|activity|fragment|lifecycle|savedstate|viewbinding|appcompat|customview|compose\\.ui\\.viewinterop)|com\.google\.android\.material)\.[A-Z][A-Za-z0-9_]*(?:\.[A-Z][A-Za-z0-9_]*)*\b""")
