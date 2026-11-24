@@ -124,7 +124,20 @@ class SymbolActionExecutor(
 
     private fun SymbolAction.toExecutionPlan(): ActionExecutionPlan<SymbolAction> =
         when (this) {
-            is SymbolAction.Composite -> ActionExecutionPlan.Composite(actions.map { it.toExecutionPlan() })
+            is SymbolAction.Composite -> {
+                // Keep the source list live: hosts may mutate it during execution.
+                // The engine validates a snapshot first, then rechecks the execution
+                // budget against the current tree as the legacy contract requires.
+                val sourceActions = actions
+                val mappedActions = object : AbstractList<ActionExecutionPlan<SymbolAction>>() {
+                    override val size: Int
+                        get() = sourceActions.size
+
+                    override fun get(index: Int): ActionExecutionPlan<SymbolAction> =
+                        sourceActions[index].toExecutionPlan()
+                }
+                ActionExecutionPlan.Composite(mappedActions)
+            }
             else -> ActionExecutionPlan.Leaf(this)
         }
 
