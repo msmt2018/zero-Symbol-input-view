@@ -11,7 +11,6 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.DeleteKind
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SelectionTransform
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolTextEditing
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolTextRange
-import com.zerostudio.idea.widget.editor.symbolinput.v2.action.GenericSymbolTextActions
 
 /** Optional host bridge for clipboard operations on an editor-neutral document. */
 fun interface SymbolTextClipboard {
