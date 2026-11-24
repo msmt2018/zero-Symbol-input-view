@@ -33,6 +33,7 @@ data class SymbolTextInsertion(
  */
 object SymbolTextEditing {
     @JvmStatic
+    @JvmOverloads
     fun expandMacro(
         template: String,
         selectedText: String,

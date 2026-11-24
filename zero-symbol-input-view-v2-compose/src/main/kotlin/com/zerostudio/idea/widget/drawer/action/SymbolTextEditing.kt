@@ -50,6 +50,7 @@ object SymbolTextEditing {
      * expanded output, including text substituted for $T.
      */
     @JvmStatic
+    @JvmOverloads
     fun expandMacro(
         template: String,
         selectedText: String,
