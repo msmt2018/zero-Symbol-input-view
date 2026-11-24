@@ -53,9 +53,7 @@ class ActionExecutionEngineTest {
         assertEquals(
             ActionExecutionResult.PartialFailure(
                 completedActions = 2,
-                cause = ActionExecutionResult.Invalid(
-                    "Unsupported action cannot be represented in a domain-neutral partial failure"
-                )
+                cause = ActionExecutionResult.Unsupported("decline")
             ),
             result
         )

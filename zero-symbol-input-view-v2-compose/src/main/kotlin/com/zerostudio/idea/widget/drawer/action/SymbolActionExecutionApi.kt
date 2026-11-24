@@ -177,19 +177,6 @@ class SymbolActionExecutor(
             )
         }
 
-    private fun ActionExecutionResult<Nothing>.toSymbolActionResult(): SymbolActionResult =
-        when (this) {
-            ActionExecutionResult.Executed -> SymbolActionResult.Executed
-            is ActionExecutionResult.Cancelled -> SymbolActionResult.Cancelled(completedActions)
-            is ActionExecutionResult.Unsupported -> error("A domain-neutral result cannot contain an unsupported domain action")
-            is ActionExecutionResult.Invalid -> SymbolActionResult.Invalid(reason)
-            is ActionExecutionResult.Failed -> SymbolActionResult.Failed(cause)
-            is ActionExecutionResult.PartialFailure -> SymbolActionResult.PartialFailure(
-                completedActions = completedActions,
-                cause = cause.toSymbolActionResult()
-            )
-        }
-
     private companion object {
         val COMMAND_ID = Regex("[a-zA-Z][a-zA-Z0-9_.-]{0,127}")
         val EXTENSION_ID = Regex("[a-zA-Z0-9][a-zA-Z0-9_.:/-]{0,255}")

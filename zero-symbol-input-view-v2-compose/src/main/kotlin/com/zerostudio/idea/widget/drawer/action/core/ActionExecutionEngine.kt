@@ -23,10 +23,10 @@ sealed interface ActionExecutionResult<out A> {
     data class Unsupported<A>(val action: A) : ActionExecutionResult<A>
     data class Invalid(val reason: String) : ActionExecutionResult<Nothing>
     data class Failed(val cause: Throwable) : ActionExecutionResult<Nothing>
-    data class PartialFailure(
+    data class PartialFailure<out A>(
         val completedActions: Int,
-        val cause: ActionExecutionResult<Nothing>
-    ) : ActionExecutionResult<Nothing>
+        val cause: ActionExecutionResult<A>
+    ) : ActionExecutionResult<A>
 }
 
 /**
@@ -171,25 +171,13 @@ class ActionExecutionEngine<A>(
                 } else {
                     ActionExecutionResult.PartialFailure(
                         completedActions = progress.completedActions,
-                        cause = result.asNonGenericResult()
+                        cause = result
                     )
                 }
             }
         }
         return ActionExecutionResult.Executed
     }
-
-    private fun ActionExecutionResult<A>.asNonGenericResult(): ActionExecutionResult<Nothing> =
-        when (this) {
-            ActionExecutionResult.Executed -> ActionExecutionResult.Executed
-            is ActionExecutionResult.Cancelled -> ActionExecutionResult.Cancelled(completedActions)
-            is ActionExecutionResult.Unsupported -> ActionExecutionResult.Invalid(
-                "Unsupported action cannot be represented in a domain-neutral partial failure"
-            )
-            is ActionExecutionResult.Invalid -> ActionExecutionResult.Invalid(reason)
-            is ActionExecutionResult.Failed -> ActionExecutionResult.Failed(cause)
-            is ActionExecutionResult.PartialFailure -> this
-        }
 
     private class ExecutionProgress(var completedActions: Int = 0)
 
