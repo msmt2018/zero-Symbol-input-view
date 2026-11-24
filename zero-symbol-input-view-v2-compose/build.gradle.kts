@@ -136,6 +136,7 @@ val verifyCoreStateEngineBoundary by tasks.registering {
     val coreFiles = listOf(
         // Editor-neutral action execution contracts and adapters.
         "src/main/kotlin/com/zerostudio/idea/widget/drawer/action/SymbolActionExecutionApi.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/drawer/action/core/ActionExecutionEngine.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/drawer/action/SymbolActionRegistry.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/drawer/action/SymbolTextDocument.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/drawer/action/SymbolTextDocumentActionHost.kt",

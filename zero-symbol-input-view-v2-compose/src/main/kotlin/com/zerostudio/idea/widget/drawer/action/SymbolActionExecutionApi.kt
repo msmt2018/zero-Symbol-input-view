@@ -17,21 +17,15 @@
  *    applicable AGPL terms.
  *
  * 2. GNU General Public License v3.0 only (GPL-3.0-only):
- *    Grants the rights to use, study, modify, and redistribute this work.
  *    Distribution of covered binaries requires compliance with the source
  *    code, license notice, attribution, and other applicable GPL terms.
  *
  * 3. Apache License 2.0 (Apache-2.0):
  *    Grants copyright and applicable patent rights to use, modify, and
- *    distribute this work, subject to its license conditions, including
- *    preservation of notices, inclusion of the license, and marking changes.
+ *    distribute this work, subject to its license conditions.
  *
  * The SPDX operator "AND" means that all listed license terms apply
- * cumulatively. It does not mean that recipients may choose only one
- * of the listed licenses.
- *
- * You must comply with the applicable terms of all three licenses.
- * This notice is a summary and does not replace the full license texts.
+ * cumulatively.
  *
  * Full license texts:
  * - GNU AGPL v3.0: https://www.gnu.org/licenses/agpl-3.0.html
@@ -45,6 +39,9 @@
 
 package com.zerostudio.idea.widget.drawer.action
 
+import com.zerostudio.idea.widget.drawer.action.core.ActionExecutionEngine
+import com.zerostudio.idea.widget.drawer.action.core.ActionExecutionPlan
+import com.zerostudio.idea.widget.drawer.action.core.ActionExecutionResult
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.ClipboardOperation
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.CursorTarget
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.DeleteKind
@@ -52,7 +49,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SelectionTransform
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
 
 /**
- * Host adapter implemented by the application/editor integration. Methods are
+ * Domain adapter implemented by the application/editor integration. Methods are
  * invoked synchronously on the caller thread; UI/editor hosts should call execute
  * from their required thread and report unavailable capabilities with false.
  */
@@ -87,6 +84,10 @@ sealed interface SymbolActionResult {
     data class PartialFailure(val completedActions: Int, val cause: SymbolActionResult) : SymbolActionResult
 }
 
+/**
+ * Public symbol-domain facade. Tree traversal, resource limits, cancellation
+ * and partial-failure accounting live in the lower-level generic engine.
+ */
 class SymbolActionExecutor(
     private val maxCompositeActions: Int = 64,
     private val maxNestingDepth: Int = 8,
@@ -100,151 +101,94 @@ class SymbolActionExecutor(
         require(maxTotalActions in 1..4_096)
     }
 
+    private val engine = ActionExecutionEngine<SymbolAction>(
+        maxCompositeActions = maxCompositeActions,
+        maxNestingDepth = maxNestingDepth,
+        maxTotalActions = maxTotalActions
+    )
+
     fun execute(
         action: SymbolAction,
         host: SymbolActionHost,
         cancellation: SymbolActionCancellation = SymbolActionCancellation.NEVER
     ): SymbolActionResult {
-        val validationError = validate(action, 0, ActionBudget(maxTotalActions))
-        if (validationError != null) return SymbolActionResult.Invalid(validationError)
-        return executeInternal(action, host, 0, cancellation, ExecutionProgress(), ActionBudget(maxTotalActions))
+        val plan = action.toExecutionPlan()
+        val result = engine.execute(
+            plan = plan,
+            executeLeaf = { leaf -> dispatch(leaf, host) },
+            validateLeaf = ::validateLeaf,
+            isCancelled = cancellation::isCancelled
+        )
+        return result.toSymbolActionResult()
     }
 
-    /** Validate the entire tree before invoking the host, preventing malformed
-     * later steps from leaving a partially applied composite action. */
-    private fun validate(action: SymbolAction, depth: Int, budget: ActionBudget): String? {
-        if (depth > maxNestingDepth) return "Composite action nesting limit exceeded"
-        if (!budget.consume()) return "Composite action total action limit exceeded"
-        return when (action) {
-            is SymbolAction.InsertText ->
-                if (action.template.length > maxTextLength) "Insert template is too large" else null
-            is SymbolAction.ReplaceSelection ->
-                if (action.text.length > maxTextLength) "Replacement text is too large" else null
-            is SymbolAction.SurroundSelection ->
-                if (action.prefix.length.toLong() + action.suffix.length > maxTextLength) "Surround template is too large" else null
-            is SymbolAction.EditorCommand -> when {
-                !COMMAND_ID.matches(action.commandId) -> "Invalid editor command ID"
-                (action.payload?.length ?: 0) > maxTextLength -> "Editor command payload is too large"
-                else -> null
-            }
-            is SymbolAction.Extension -> when {
-                !EXTENSION_ID.matches(action.extensionId) -> "Invalid extension ID"
-                (action.payload?.length ?: 0) > maxTextLength -> "Extension payload is too large"
-                else -> null
-            }
-            is SymbolAction.Composite -> when {
-                action.actions.isEmpty() -> "Composite action cannot be empty"
-                action.actions.size > maxCompositeActions -> "Composite action contains too many steps"
-                else -> action.actions.firstNotNullOfOrNull { validate(it, depth + 1, budget) }
-            }
+    private fun SymbolAction.toExecutionPlan(): ActionExecutionPlan<SymbolAction> =
+        when (this) {
+            is SymbolAction.Composite -> ActionExecutionPlan.Composite(actions.map { it.toExecutionPlan() })
+            else -> ActionExecutionPlan.Leaf(this)
+        }
+
+    private fun validateLeaf(action: SymbolAction): String? = when (action) {
+        is SymbolAction.InsertText ->
+            if (action.template.length > maxTextLength) "Insert template is too large" else null
+        is SymbolAction.ReplaceSelection ->
+            if (action.text.length > maxTextLength) "Replacement text is too large" else null
+        is SymbolAction.SurroundSelection ->
+            if (action.prefix.length.toLong() + action.suffix.length > maxTextLength) {
+                "Surround template is too large"
+            } else null
+        is SymbolAction.EditorCommand -> when {
+            !COMMAND_ID.matches(action.commandId) -> "Invalid editor command ID"
+            (action.payload?.length ?: 0) > maxTextLength -> "Editor command payload is too large"
             else -> null
         }
+        is SymbolAction.Extension -> when {
+            !EXTENSION_ID.matches(action.extensionId) -> "Invalid extension ID"
+            (action.payload?.length ?: 0) > maxTextLength -> "Extension payload is too large"
+            else -> null
+        }
+        else -> null
     }
 
-    private fun executeInternal(
-        action: SymbolAction,
-        host: SymbolActionHost,
-        depth: Int,
-        cancellation: SymbolActionCancellation,
-        progress: ExecutionProgress,
-        budget: ActionBudget
-    ): SymbolActionResult {
-        if (depth > maxNestingDepth) return SymbolActionResult.Invalid("Composite action nesting limit exceeded")
-        val cancelled = try {
-            cancellation.isCancelled()
-        } catch (error: Exception) {
-            return SymbolActionResult.Failed(error)
-        }
-        if (cancelled) return SymbolActionResult.Cancelled(progress.completedActions)
-        if (!budget.consume()) return SymbolActionResult.Invalid("Composite action total action limit exceeded")
-        return try {
-            val result = when (action) {
-                is SymbolAction.InsertText -> {
-                    if (action.template.length > maxTextLength) invalid("Insert template is too large")
-                    else supported(host.insertText(action.template), action)
-                }
-                is SymbolAction.ReplaceSelection -> {
-                    if (action.text.length > maxTextLength) invalid("Replacement text is too large")
-                    else supported(host.replaceSelection(action.text), action)
-                }
-                is SymbolAction.SurroundSelection -> {
-                    if (action.prefix.length.toLong() + action.suffix.length > maxTextLength) invalid("Surround template is too large")
-                    else supported(host.surroundSelection(action.prefix, action.suffix), action)
-                }
-                is SymbolAction.MoveCursor -> supported(host.moveCursor(action.target), action)
-                is SymbolAction.Delete -> supported(host.delete(action.kind), action)
-                is SymbolAction.TransformSelection -> supported(host.transformSelection(action.transform), action)
-                is SymbolAction.EditorCommand -> {
-                    when {
-                        !COMMAND_ID.matches(action.commandId) -> invalid("Invalid editor command ID")
-                        (action.payload?.length ?: 0) > maxTextLength -> invalid("Editor command payload is too large")
-                        else -> supported(host.executeEditorCommand(action.commandId, action.payload), action)
-                    }
-                }
-                is SymbolAction.Clipboard -> supported(host.performClipboard(action.operation), action)
-                SymbolAction.OpenManager -> supported(host.openManager(), action)
-                is SymbolAction.Extension -> {
-                    when {
-                        !EXTENSION_ID.matches(action.extensionId) -> invalid("Invalid extension ID")
-                        (action.payload?.length ?: 0) > maxTextLength -> invalid("Extension payload is too large")
-                        else -> supported(host.executeExtension(action.extensionId, action.payload), action)
-                    }
-                }
-                is SymbolAction.Composite -> executeComposite(action, host, depth, cancellation, progress, budget)
-            }
-            if (action !is SymbolAction.Composite && result == SymbolActionResult.Executed) {
-                progress.completedActions++
-            }
-            result
-        } catch (error: Exception) {
-            SymbolActionResult.Failed(error)
-        }
+    private fun dispatch(action: SymbolAction, host: SymbolActionHost): Boolean = when (action) {
+        is SymbolAction.InsertText -> host.insertText(action.template)
+        is SymbolAction.ReplaceSelection -> host.replaceSelection(action.text)
+        is SymbolAction.SurroundSelection -> host.surroundSelection(action.prefix, action.suffix)
+        is SymbolAction.MoveCursor -> host.moveCursor(action.target)
+        is SymbolAction.Delete -> host.delete(action.kind)
+        is SymbolAction.TransformSelection -> host.transformSelection(action.transform)
+        is SymbolAction.EditorCommand -> host.executeEditorCommand(action.commandId, action.payload)
+        is SymbolAction.Clipboard -> host.performClipboard(action.operation)
+        SymbolAction.OpenManager -> host.openManager()
+        is SymbolAction.Extension -> host.executeExtension(action.extensionId, action.payload)
+        is SymbolAction.Composite -> error("Composite actions must be expanded into execution plans")
     }
 
-    private fun executeComposite(
-        composite: SymbolAction.Composite,
-        host: SymbolActionHost,
-        depth: Int,
-        cancellation: SymbolActionCancellation,
-        progress: ExecutionProgress,
-        budget: ActionBudget
-    ): SymbolActionResult {
-        if (composite.actions.isEmpty()) return SymbolActionResult.Invalid("Composite action cannot be empty")
-        if (composite.actions.size > maxCompositeActions) {
-            return SymbolActionResult.Invalid("Composite action contains too many steps")
+    private fun ActionExecutionResult<SymbolAction>.toSymbolActionResult(): SymbolActionResult =
+        when (this) {
+            ActionExecutionResult.Executed -> SymbolActionResult.Executed
+            is ActionExecutionResult.Cancelled -> SymbolActionResult.Cancelled(completedActions)
+            is ActionExecutionResult.Unsupported -> SymbolActionResult.Unsupported(action)
+            is ActionExecutionResult.Invalid -> SymbolActionResult.Invalid(reason)
+            is ActionExecutionResult.Failed -> SymbolActionResult.Failed(cause)
+            is ActionExecutionResult.PartialFailure -> SymbolActionResult.PartialFailure(
+                completedActions = completedActions,
+                cause = cause.toSymbolActionResult()
+            )
         }
-        composite.actions.forEach { child ->
-            val result = executeInternal(child, host, depth + 1, cancellation, progress, budget)
-            if (result is SymbolActionResult.Cancelled) return result
-            if (result != SymbolActionResult.Executed) {
-                // Progress counts successfully executed leaf actions across every
-                // nesting level. A nested PartialFailure already carries that
-                // operation-wide count and must not be wrapped a second time.
-                if (result is SymbolActionResult.PartialFailure) return result
-                return if (progress.completedActions == 0) {
-                    result
-                } else {
-                    SymbolActionResult.PartialFailure(progress.completedActions, result)
-                }
-            }
+
+    private fun ActionExecutionResult<Nothing>.toSymbolActionResult(): SymbolActionResult =
+        when (this) {
+            ActionExecutionResult.Executed -> SymbolActionResult.Executed
+            is ActionExecutionResult.Cancelled -> SymbolActionResult.Cancelled(completedActions)
+            is ActionExecutionResult.Unsupported -> error("A domain-neutral result cannot contain an unsupported domain action")
+            is ActionExecutionResult.Invalid -> SymbolActionResult.Invalid(reason)
+            is ActionExecutionResult.Failed -> SymbolActionResult.Failed(cause)
+            is ActionExecutionResult.PartialFailure -> SymbolActionResult.PartialFailure(
+                completedActions = completedActions,
+                cause = cause.toSymbolActionResult()
+            )
         }
-        return SymbolActionResult.Executed
-    }
-
-    private class ExecutionProgress(var completedActions: Int = 0)
-
-    private class ActionBudget(private var remaining: Int) {
-        fun consume(): Boolean {
-            if (remaining <= 0) return false
-            remaining--
-            return true
-        }
-    }
-
-    private fun supported(success: Boolean, action: SymbolAction) =
-        if (success) SymbolActionResult.Executed else SymbolActionResult.Unsupported(action)
-
-    private fun invalid(reason: String) = SymbolActionResult.Invalid(reason)
 
     private companion object {
         val COMMAND_ID = Regex("[a-zA-Z][a-zA-Z0-9_.-]{0,127}")
