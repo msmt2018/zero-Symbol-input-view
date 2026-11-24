@@ -9,8 +9,6 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.ClipboardOperation
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.CursorTarget
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.DeleteKind
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SelectionTransform
-import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolTextEditing
-import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolTextRange
 
 /** Optional host bridge for clipboard operations on an editor-neutral document. */
 fun interface SymbolTextClipboard {

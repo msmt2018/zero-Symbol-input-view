@@ -40,3 +40,14 @@ Static scanning cannot replace runtime tests. A successful compilation alone can
 ## Editor-Neutral Action API Relocation
 
 The generic text-action implementation is owned by `com.zerostudio.idea.widget.drawer.action`. The symbol-input package retains a JVM-visible forwarding object for source and binary compatibility; new integrations should import the public drawer package. This avoids a dependency from the reusable editor-neutral API back into the symbol-input feature namespace.
+
+
+## Editor-neutral text algorithm relocation
+
+`SymbolTextEditing`, `SymbolTextMacroExpansion`, `SymbolTextRange`, and
+`SymbolTextInsertion` now have canonical implementations/types in
+`drawer.action`. The old `editor.symbolinput.v2.action` JVM classes remain
+as forwarding compatibility declarations with the original result signatures.
+The Compose document action host uses the canonical same-package utility.
+A Java compile fixture and Kotlin public-API tests exercise the new API; the
+legacy Kotlin tests continue to exercise the compatibility facade.

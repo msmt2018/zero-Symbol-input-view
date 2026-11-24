@@ -163,3 +163,17 @@ Compose UI state belongs to the relevant Composition/session scope. Do not store
 A host may adapt its current focused editor/document to SymbolTextDocument and SymbolActionHost. The adapter must be replaced when the focused document changes; do not accidentally retain a previous editor tab's adapter.
 
 Compose has Composition and effect lifetimes. This module avoids traditional View attach/detach and Fragment View lifecycle callbacks; it does not claim that Compose has no lifecycle semantics.
+
+
+## 9. Editor-neutral text algorithms
+
+The canonical `SymbolTextEditing` utility and its result types
+(`SymbolTextMacroExpansion`, `SymbolTextRange`, and `SymbolTextInsertion`)
+are published from `com.zerostudio.idea.widget.drawer.action`. They operate on
+`String`/`CharSequence` and UTF-16 offsets only; they do not depend on the
+symbol-input feature package, Android Views, or editor-core classes.
+
+The historical `editor.symbolinput.v2.action` JVM classes remain as forwarding
+compatibility APIs. Their methods preserve the historical result types and
+delegate to the canonical implementation. New Kotlin and Java integrations
+should import the `drawer.action` classes directly.
