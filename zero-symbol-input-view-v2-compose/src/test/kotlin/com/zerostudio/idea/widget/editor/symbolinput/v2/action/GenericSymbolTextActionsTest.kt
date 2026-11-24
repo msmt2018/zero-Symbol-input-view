@@ -279,6 +279,39 @@ class GenericSymbolTextActionsTest {
         assertEquals("aXb", payload.text)
     }
 
+    @Test
+    fun multiLineCommandsRollBackWhenAnEditIsRejected() {
+        val comment = FakeDocument(
+            "alpha\nbeta",
+            cursor = 3,
+            failOnReplaceCall = 2
+        ).apply { setSelection(0, 10) }
+        assertFalse(run("selection.comment", comment))
+        assertEquals("alpha\nbeta", comment.text)
+        assertEquals(0, comment.selectionStart)
+        assertEquals(10, comment.selectionEnd)
+
+        val indented = FakeDocument(
+            "one\ntwo\nthree",
+            cursor = 0,
+            failOnReplaceCall = 2
+        ).apply { setSelection(0, 7) }
+        assertFalse(run("selection.indentLines", indented))
+        assertEquals("one\ntwo\nthree", indented.text)
+        assertEquals(0, indented.selectionStart)
+        assertEquals(7, indented.selectionEnd)
+
+        val reordered = FakeDocument(
+            "c\na\nb",
+            cursor = 0,
+            failOnReplaceCall = 2
+        ).apply { setSelection(0, 5) }
+        assertFalse(run("selection.reverseLines", reordered))
+        assertEquals("c\na\nb", reordered.text)
+        assertEquals(0, reordered.selectionStart)
+        assertEquals(5, reordered.selectionEnd)
+    }
+
     private fun run(id: String, document: FakeDocument): Boolean =
         GenericSymbolTextActions.createRegistry().execute(
             SymbolActionId("builtin", id), document
@@ -287,8 +320,10 @@ class GenericSymbolTextActionsTest {
     private class FakeDocument(
         var text: String,
         cursor: Int = 0,
-        override val isEditable: Boolean = true
+        override val isEditable: Boolean = true,
+        private val failOnReplaceCall: Int? = null
     ) : SymbolTextDocument {
+        private var replaceCalls = 0
         private var caret = cursor.coerceIn(0, text.length)
         override var selectionStart: Int = caret
             private set
@@ -329,7 +364,8 @@ class GenericSymbolTextActionsTest {
         override fun charAt(offset: Int): Char = text[offset]
 
         override fun replace(start: Int, end: Int, replacement: String): Boolean {
-            if (!isEditable) return false
+            replaceCalls++
+            if (!isEditable || replaceCalls == failOnReplaceCall) return false
             require(start in 0..text.length && end in start..text.length)
             text = text.substring(0, start) + replacement + text.substring(end)
             caret = start + replacement.length

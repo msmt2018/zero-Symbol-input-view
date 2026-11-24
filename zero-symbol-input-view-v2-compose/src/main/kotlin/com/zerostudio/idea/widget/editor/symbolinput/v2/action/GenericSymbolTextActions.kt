@@ -45,6 +45,7 @@
 package com.zerostudio.idea.widget.editor.symbolinput.v2.action
 
 import com.zerostudio.idea.widget.drawer.action.SymbolTextDocument as PublicSymbolTextDocument
+import com.zerostudio.idea.widget.drawer.action.TextDocumentEdit
 
 /**
  * Editor-independent implementations for common text-editing commands.
@@ -307,19 +308,20 @@ object GenericSymbolTextActions {
             lastLine > firstLine &&
             selection.end == document.lineStartOffset(lastLine)
         ) lastLine--
+        val edits = ArrayList<TextDocumentEdit>(lastLine - firstLine + 1)
         for (line in lastLine downTo firstLine) {
             val content = document.lineText(line)
             val indentation = content.indexOfFirst { !it.isWhitespace() }.let {
                 if (it < 0) content.length else it
             }
             val offset = document.lineStartOffset(line) + indentation
-            if (content.substring(indentation).startsWith(marker)) {
-                if (!document.replace(offset, offset + marker.length, "")) return false
+            edits += if (content.substring(indentation).startsWith(marker)) {
+                TextDocumentEdit(offset, offset + marker.length, "")
             } else {
-                if (!document.replace(offset, offset, marker)) return false
+                TextDocumentEdit(offset, offset, marker)
             }
         }
-        return true
+        return edits.isNotEmpty() && document.applyEdits(edits)
     }
 
     private fun indentCurrentLine(document: PublicSymbolTextDocument, indent: String): Boolean {
@@ -474,10 +476,11 @@ object GenericSymbolTextActions {
         val selection = document.codePointSafeSelectionRange()
         val oldStart = selection.start
         val oldEnd = selection.end
-        for (line in range.last downTo range.first) {
+        val edits = range.map { line ->
             val start = document.lineStartOffset(line)
-            if (!document.replace(start, start, indent)) return false
+            TextDocumentEdit(start, start, indent)
         }
+        if (!document.applyEdits(edits)) return false
         document.setSelection(oldStart + indent.length, oldEnd + indent.length * range.count())
         return true
     }
@@ -491,6 +494,7 @@ object GenericSymbolTextActions {
         val firstStart = document.lineStartOffset(range.first)
         var firstRemoved = 0
         var totalRemoved = 0
+        val edits = ArrayList<TextDocumentEdit>(range.count())
         for (line in range.last downTo range.first) {
             val start = document.lineStartOffset(line)
             val content = document.lineText(line)
@@ -505,10 +509,10 @@ object GenericSymbolTextActions {
             if (count > 0) {
                 if (line == range.first) firstRemoved = count
                 totalRemoved += count
-                if (!document.replace(start, start + count, "")) return false
+                edits += TextDocumentEdit(start, start + count, "")
             }
         }
-        if (totalRemoved == 0) return false
+        if (totalRemoved == 0 || !document.applyEdits(edits)) return false
         val startShift = minOf(firstRemoved, (oldStart - firstStart).coerceAtLeast(0))
         document.setSelection(
             (oldStart - startShift).coerceAtLeast(0),
@@ -526,16 +530,14 @@ object GenericSymbolTextActions {
         val original = range.map(document::lineText)
         val reordered = if (reverse) original.reversed() else original.sorted()
         if (original == reordered) return false
-        for (offset in range.count() - 1 downTo 0) {
-            val line = range.first + offset
-            if (!document.replace(
-                    document.lineStartOffset(line),
-                    document.lineEndOffset(line),
-                    reordered[offset]
-                )
-            ) return false
+        val edits = range.mapIndexed { offset, line ->
+            TextDocumentEdit(
+                document.lineStartOffset(line),
+                document.lineEndOffset(line),
+                reordered[offset]
+            )
         }
-        return true
+        return document.applyEdits(edits)
     }
 
     private fun trimDocumentLeading(document: PublicSymbolTextDocument): Boolean {
@@ -547,7 +549,7 @@ object GenericSymbolTextActions {
         val oldEnd = selection.end
         var startShift = 0
         var endShift = 0
-        var changed = false
+        val edits = ArrayList<TextDocumentEdit>()
         for (line in document.lineCount - 1 downTo 0) {
             val content = document.lineText(line)
             val count = content.indexOfFirst { !it.isWhitespace() }.let { if (it < 0) content.length else it }
@@ -555,16 +557,14 @@ object GenericSymbolTextActions {
             val start = document.lineStartOffset(line)
             if (start < oldStart) startShift += minOf(count, oldStart - start)
             if (start < oldEnd) endShift += minOf(count, oldEnd - start)
-            if (!document.replace(start, start + count, "")) return false
-            changed = true
+            edits += TextDocumentEdit(start, start + count, "")
         }
-        if (changed) {
-            document.setSelection(
-                (oldStart - startShift).coerceIn(0, document.textLength),
-                (oldEnd - endShift).coerceIn(0, document.textLength)
-            )
-        }
-        return changed
+        if (edits.isEmpty() || !document.applyEdits(edits)) return false
+        document.setSelection(
+            (oldStart - startShift).coerceIn(0, document.textLength),
+            (oldEnd - endShift).coerceIn(0, document.textLength)
+        )
+        return true
     }
 
     private fun ensureFinalNewline(document: PublicSymbolTextDocument, payload: String?): Boolean {
@@ -722,17 +722,17 @@ object GenericSymbolTextActions {
             document.textLength > MAX_DOCUMENT_WIDE_CHARS ||
             document.lineCount > MAX_DOCUMENT_WIDE_LINES
         ) return false
-        var changed = false
+        val edits = ArrayList<TextDocumentEdit>()
         for (line in document.lineCount - 1 downTo 0) {
             val content = document.lineText(line)
             val trimmedLength = content.trimEnd().length
             if (trimmedLength < content.length) {
+                val start = document.lineStartOffset(line) + trimmedLength
                 val end = document.lineEndOffset(line)
-                if (!document.replace(document.lineStartOffset(line) + trimmedLength, end, "")) return false
-                changed = true
+                edits += TextDocumentEdit(start, end, "")
             }
         }
-        return changed
+        return edits.isNotEmpty() && document.applyEdits(edits)
     }
 
     private fun removeBlankLines(document: PublicSymbolTextDocument): Boolean {
