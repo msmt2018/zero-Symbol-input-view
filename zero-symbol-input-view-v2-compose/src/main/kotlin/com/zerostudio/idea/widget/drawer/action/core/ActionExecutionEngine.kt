@@ -114,30 +114,30 @@ class ActionExecutionEngine<A>(
             return ActionExecutionResult.Invalid("Composite action total action limit exceeded")
         }
 
-        return when (plan) {
-            is ActionExecutionPlan.Leaf -> {
-                val result = try {
-                    if (executeLeaf(plan.action)) {
+        return try {
+            when (plan) {
+                is ActionExecutionPlan.Leaf -> {
+                    val result = if (executeLeaf(plan.action)) {
                         ActionExecutionResult.Executed
                     } else {
                         ActionExecutionResult.Unsupported(plan.action)
                     }
-                } catch (error: Exception) {
-                    ActionExecutionResult.Failed(error)
+                    if (result == ActionExecutionResult.Executed) {
+                        progress.completedActions++
+                    }
+                    result
                 }
-                if (result == ActionExecutionResult.Executed) {
-                    progress.completedActions++
-                }
-                result
+                is ActionExecutionPlan.Composite -> executeComposite(
+                    plan = plan,
+                    depth = depth,
+                    executeLeaf = executeLeaf,
+                    isCancelled = isCancelled,
+                    progress = progress,
+                    budget = budget
+                )
             }
-            is ActionExecutionPlan.Composite -> executeComposite(
-                plan = plan,
-                depth = depth,
-                executeLeaf = executeLeaf,
-                isCancelled = isCancelled,
-                progress = progress,
-                budget = budget
-            )
+        } catch (error: Exception) {
+            ActionExecutionResult.Failed(error)
         }
     }
 
