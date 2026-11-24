@@ -25,4 +25,36 @@ class AdaptiveDimensionsTest {
         val dimensions = AdaptiveDimensions(WindowAdaptiveInfo(1000f, 800f, density = 2f))
         assertEquals(212, dimensions.px(100f))
     }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun rejectsNonFiniteDimensionPolicyScale() {
+        AdaptiveDimensionPolicy(compactScale = Float.POSITIVE_INFINITY)
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun rejectsNonFiniteTouchTargetPolicy() {
+        AdaptiveDimensionPolicy(minimumTouchTargetDp = Float.NaN)
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun rejectsNonFiniteMaximumDimension() {
+        AdaptiveDimensionPolicy(maximumScaledDimensionDp = Float.POSITIVE_INFINITY)
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun rejectsNonFiniteDimensionInput() {
+        AdaptiveDimensions(WindowAdaptiveInfo(400f, 800f)).dp(Float.POSITIVE_INFINITY)
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun rejectsNonFiniteTouchTargetInput() {
+        AdaptiveDimensions(WindowAdaptiveInfo(400f, 800f)).touchTargetDp(Float.NaN)
+    }
+
+    @Test
+    fun pixelConversionSaturatesInsteadOfOverflowing() {
+        val dimensions = AdaptiveDimensions(WindowAdaptiveInfo(1000f, 800f, density = Float.MAX_VALUE))
+        assertEquals(Int.MAX_VALUE, dimensions.px(100f))
+    }
+
 }

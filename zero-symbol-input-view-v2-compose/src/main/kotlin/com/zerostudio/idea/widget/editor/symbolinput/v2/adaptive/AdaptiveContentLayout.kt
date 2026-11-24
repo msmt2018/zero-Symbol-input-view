@@ -14,10 +14,11 @@ data class AdaptiveContentLayoutSpec(
     val dialogWidthFraction: Float
 ) {
     init {
-        require(maxContentWidthDp > 0f)
-        require(horizontalPaddingDp >= 0f && verticalSpacingDp >= 0f)
+        require(maxContentWidthDp.isFinite() && maxContentWidthDp > 0f)
+        require(horizontalPaddingDp.isFinite() && horizontalPaddingDp >= 0f)
+        require(verticalSpacingDp.isFinite() && verticalSpacingDp >= 0f)
         require(cardColumns >= 1)
-        require(dialogWidthFraction in 0.5f..1f)
+        require(dialogWidthFraction.isFinite() && dialogWidthFraction in 0.5f..1f)
     }
 }
 
@@ -34,13 +35,16 @@ data class AdaptiveContentLayoutPolicy(
     val twoColumnBreakpointDp: Float = 840f
 ) {
     init {
-        require(compactMaxWidthDp > 0f && mediumMaxWidthDp >= compactMaxWidthDp)
-        require(expandedMaxWidthDp >= mediumMaxWidthDp)
-        require(compactPaddingDp >= 0f && mediumPaddingDp >= 0f && expandedPaddingDp >= 0f)
-        require(compactDialogFraction in 0.5f..1f)
-        require(mediumDialogFraction in 0.5f..1f)
-        require(expandedDialogFraction in 0.5f..1f)
-        require(twoColumnBreakpointDp > 0f)
+        require(compactMaxWidthDp.isFinite() && compactMaxWidthDp > 0f)
+        require(mediumMaxWidthDp.isFinite() && mediumMaxWidthDp >= compactMaxWidthDp)
+        require(expandedMaxWidthDp.isFinite() && expandedMaxWidthDp >= mediumMaxWidthDp)
+        require(compactPaddingDp.isFinite() && compactPaddingDp >= 0f)
+        require(mediumPaddingDp.isFinite() && mediumPaddingDp >= 0f)
+        require(expandedPaddingDp.isFinite() && expandedPaddingDp >= 0f)
+        require(compactDialogFraction.isFinite() && compactDialogFraction in 0.5f..1f)
+        require(mediumDialogFraction.isFinite() && mediumDialogFraction in 0.5f..1f)
+        require(expandedDialogFraction.isFinite() && expandedDialogFraction in 0.5f..1f)
+        require(twoColumnBreakpointDp.isFinite() && twoColumnBreakpointDp > 0f)
     }
 }
 
@@ -70,11 +74,13 @@ object AdaptiveContentLayoutResolver {
         window: WindowAdaptiveInfo,
         policy: AdaptiveContentLayoutPolicy = AdaptiveContentLayoutPolicy()
     ): Int {
-        require(windowWidthPx >= 0 && density > 0f)
+        require(windowWidthPx >= 0 && density.isFinite() && density > 0f)
         val spec = resolve(window, policy)
-        val availablePx = (window.availableWidthDp * density).toInt().coerceAtLeast(0)
+        val availablePx = (window.availableWidthDp.toDouble() * density.toDouble())
+            .coerceAtMost(Int.MAX_VALUE.toDouble()).toInt().coerceAtLeast(0)
         val fractionWidth = (availablePx * spec.dialogWidthFraction).toInt()
-        val maxWidth = (spec.maxContentWidthDp * density).toInt()
+        val maxWidth = (spec.maxContentWidthDp.toDouble() * density.toDouble())
+            .coerceAtMost(Int.MAX_VALUE.toDouble()).toInt()
         return minOf(windowWidthPx, fractionWidth, maxWidth).coerceAtLeast(0)
     }
 }

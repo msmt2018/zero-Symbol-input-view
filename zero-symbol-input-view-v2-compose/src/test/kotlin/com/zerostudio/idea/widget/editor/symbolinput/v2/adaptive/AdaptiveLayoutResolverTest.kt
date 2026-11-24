@@ -51,4 +51,24 @@ class AdaptiveLayoutResolverTest {
         assertEquals(PaneArrangement.SIDE_BY_SIDE, spec.arrangement)
         assertTrue(spec.useHingeAsBoundary)
     }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun rejectsInfiniteLayoutBreakpoint() {
+        AdaptiveLayoutPolicy(listDetailBreakpointDp = Float.POSITIVE_INFINITY)
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun rejectsNanPaneWeight() {
+        AdaptiveLayoutPolicy(supportingPaneMainWeight = Float.NaN)
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun rejectsInfiniteResolvedPaneWeight() {
+        AdaptiveLayoutSpec(
+            layoutType = CanonicalLayoutType.SUPPORTING_PANE,
+            arrangement = PaneArrangement.MAIN_WITH_SUPPORTING,
+            primaryPaneWeight = Float.POSITIVE_INFINITY
+        )
+    }
+
 }

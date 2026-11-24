@@ -51,4 +51,33 @@ class AdaptiveContentLayoutResolverTest {
     fun rejectsInvalidDialogDensity() {
         AdaptiveContentLayoutResolver.resolveDialogWidthPx(100, 0f, WindowAdaptiveInfo(400f, 800f))
     }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun rejectsInfiniteContentWidthPolicy() {
+        AdaptiveContentLayoutPolicy(compactMaxWidthDp = Float.POSITIVE_INFINITY)
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun rejectsNanPaddingPolicy() {
+        AdaptiveContentLayoutPolicy(mediumPaddingDp = Float.NaN)
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun rejectsInfiniteDialogFraction() {
+        AdaptiveContentLayoutSpec(
+            maxContentWidthDp = 500f,
+            horizontalPaddingDp = 12f,
+            verticalSpacingDp = 8f,
+            cardColumns = 1,
+            dialogWidthFraction = Float.POSITIVE_INFINITY
+        )
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun rejectsInfiniteDialogDensity() {
+        AdaptiveContentLayoutResolver.resolveDialogWidthPx(
+            100, Float.POSITIVE_INFINITY, WindowAdaptiveInfo(400f, 800f)
+        )
+    }
+
 }

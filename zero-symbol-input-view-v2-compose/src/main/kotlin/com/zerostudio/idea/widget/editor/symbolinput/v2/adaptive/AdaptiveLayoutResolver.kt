@@ -18,8 +18,8 @@ data class AdaptiveLayoutSpec(
     val useHingeAsBoundary: Boolean = false
 ) {
     init {
-        require(primaryPaneWeight > 0f)
-        require(secondaryPaneWeight >= 0f)
+        require(primaryPaneWeight.isFinite() && primaryPaneWeight > 0f)
+        require(secondaryPaneWeight.isFinite() && secondaryPaneWeight >= 0f)
         require(feedColumnCount >= 1)
     }
 }
@@ -33,11 +33,12 @@ data class AdaptiveLayoutPolicy(
     val supportingPaneSecondaryWeight: Float = 0.3f
 ) {
     init {
-        require(listDetailBreakpointDp > 0f)
-        require(supportingPaneBreakpointDp > 0f)
-        require(feedMinimumColumnWidthDp > 0f)
+        require(listDetailBreakpointDp.isFinite() && listDetailBreakpointDp > 0f)
+        require(supportingPaneBreakpointDp.isFinite() && supportingPaneBreakpointDp > 0f)
+        require(feedMinimumColumnWidthDp.isFinite() && feedMinimumColumnWidthDp > 0f)
         require(feedMaximumColumns >= 1)
-        require(supportingPaneMainWeight > 0f && supportingPaneSecondaryWeight > 0f)
+        require(supportingPaneMainWeight.isFinite() && supportingPaneMainWeight > 0f)
+        require(supportingPaneSecondaryWeight.isFinite() && supportingPaneSecondaryWeight > 0f)
     }
 }
 

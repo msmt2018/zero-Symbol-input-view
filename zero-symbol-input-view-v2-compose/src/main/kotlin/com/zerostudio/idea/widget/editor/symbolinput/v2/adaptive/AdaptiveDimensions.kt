@@ -20,11 +20,11 @@ data class AdaptiveDimensionPolicy(
     val maximumScaledDimensionDp: Float = 160f
 ) {
     init {
-        require(compactScale in 0.75f..1.25f)
-        require(mediumScale in 0.75f..1.25f)
-        require(expandedScale in 0.75f..1.25f)
-        require(minimumTouchTargetDp >= 48f)
-        require(maximumScaledDimensionDp > 0f)
+        require(compactScale.isFinite() && compactScale in 0.75f..1.25f)
+        require(mediumScale.isFinite() && mediumScale in 0.75f..1.25f)
+        require(expandedScale.isFinite() && expandedScale in 0.75f..1.25f)
+        require(minimumTouchTargetDp.isFinite() && minimumTouchTargetDp >= 48f)
+        require(maximumScaledDimensionDp.isFinite() && maximumScaledDimensionDp > 0f)
     }
 }
 
@@ -40,16 +40,16 @@ class AdaptiveDimensions(
         }
 
     fun dp(baseDp: Float, scale: Boolean = true): Float {
-        require(baseDp >= 0f)
+        require(baseDp.isFinite() && baseDp >= 0f)
         val value = if (scale) baseDp * this.scale else baseDp
         return value.coerceAtMost(policy.maximumScaledDimensionDp)
     }
 
     fun touchTargetDp(requestedDp: Float): Float {
-        require(requestedDp >= 0f)
+        require(requestedDp.isFinite() && requestedDp >= 0f)
         return maxOf(policy.minimumTouchTargetDp, dp(requestedDp))
     }
 
     fun px(baseDp: Float, scale: Boolean = true): Int =
-        (dp(baseDp, scale) * info.density).roundToInt().coerceAtLeast(0)
+        (dp(baseDp, scale).toDouble() * info.density.toDouble()).roundToInt().coerceAtLeast(0)
 }

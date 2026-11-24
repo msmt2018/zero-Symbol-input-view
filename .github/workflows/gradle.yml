@@ -276,7 +276,32 @@ jobs:
         run: chmod +x gradlew
 
       - name: Publish V2 release to local Maven repository
-        run: ./gradlew :zero-symbol-input-view-v2:publishReleasePublicationToMavenLocal --no-daemon
+        shell: bash
+        run: |
+          set -euo pipefail
+          LOG="$RUNNER_TEMP/maven-publication-gradle.log"
+          for attempt in 1 2 3; do
+            STATUS=0
+            if ./gradlew :zero-symbol-input-view-v2:publishReleasePublicationToMavenLocal --no-daemon --stacktrace >"$LOG" 2>&1; then
+              cat "$LOG"
+              exit 0
+            else
+              STATUS=$?
+            fi
+            cat "$LOG"
+            if grep -Eqi 'status code 429|Too Many Requests|status code 5[0-9][0-9]|HTTP 5[0-9][0-9]|temporarily unavailable|Connection reset|Read timed out|Connect timed out' "$LOG"; then
+              if [ "$attempt" -lt 3 ]; then
+                DELAY=$((attempt * 30))
+                echo "::warning::Transient Maven/dependency repository failure; retrying publication validation in ${DELAY}s (attempt ${attempt}/3)."
+                sleep "$DELAY"
+                continue
+              fi
+            fi
+            echo "::error::Maven publication validation failed after attempt ${attempt}; see Gradle output above."
+            exit "$STATUS"
+          done
+          echo "::error::Maven publication validation exhausted its retry budget."
+          exit 1
         env:
           VERSION: 0.0.0-ci
 
