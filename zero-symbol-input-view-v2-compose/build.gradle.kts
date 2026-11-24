@@ -89,7 +89,7 @@ val verifyComposeUiBoundary by tasks.registering {
         )
         val forbiddenCalls = listOf(
             Regex("""\bAndroidView\s*\("""),
-            Regex("""\bAndroidViewBinding\s*\(""")
+            Regex("""\bAndroidViewBinding\s*\("""),
             Regex("""\b(ComposeView|LayoutInflater|ViewBinding|ViewStub|ViewTreeLifecycleOwner|ViewTreeViewModelStoreOwner|ViewTreeSavedStateRegistryOwner|findViewById|setContentView)\b""")
         )
 
@@ -398,7 +398,7 @@ val verifyComposeArtifactBoundary by tasks.registering {
         val manifestFile = layout.projectDirectory.file("src/main/AndroidManifest.xml").asFile
         val manifestDeclaresActivity = manifestFile.takeIf { it.isFile }?.readText()
             ?.let { Regex("""<\s*(?:activity|activity-alias)\b""").containsMatchIn(it) } ?: false
-        val forbiddenImports = Regex("""^\s*import\s+(android\.view\.|android\.widget\.|android\.graphics\.|androidx\.recyclerview\.|androidx\.viewpager2\.|com\.google\.android\.material\.|android\.app\.(Activity|Fragment)|androidx\.activity\.|androidx\.fragment\.|androidx\.lifecycle\.|androidx\.savedstate\.)""")
+        val forbiddenImports = Regex("""^\s*import\s+(android\.view\.|android\.widget\.|android\.graphics\.|androidx\.appcompat\.|androidx\.viewbinding\.|androidx\.compose\.ui\.viewinterop\.|androidx\.customview\.|androidx\.recyclerview\.|androidx\.viewpager2\.|com\.google\.android\.material\.|android\.app\.(Activity|Fragment)|androidx\.activity\.|androidx\.fragment\.|androidx\.lifecycle\.|androidx\.savedstate\.)""")
         val forbiddenReferences = Regex("""\b(AndroidView(?:Binding)?|ComposeView|LayoutInflater|ViewBinding|ViewStub|ViewTreeLifecycleOwner|ViewTreeViewModelStoreOwner|ViewTreeSavedStateRegistryOwner|findViewById|setContentView|SymbolDrawerView|ViewGroup|MotionEvent|RecyclerView|ViewPager2|Activity|Fragment|Lifecycle|LifecycleOwner|LifecycleRegistry|LocalLifecycleOwner|ViewModel|ViewModelStoreOwner|ViewModelProvider|SavedStateHandle|SavedStateRegistryOwner|LifecycleEventObserver|rememberLauncherForActivityResult)\b""")
         val forbiddenQualifiedReferences = Regex("""\b(?:android\.(?:view|widget|graphics)|androidx\.(?:recyclerview|viewpager2|activity|fragment|lifecycle|savedstate|viewbinding|appcompat|customview|compose\\.ui\\.viewinterop)|com\.google\.android\.material)\.[A-Z][A-Za-z0-9_]*(?:\.[A-Z][A-Za-z0-9_]*)*\b""")
         val violations = files.flatMap { file ->
