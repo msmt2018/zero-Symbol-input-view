@@ -413,4 +413,11 @@
     <string name="compose_manager_ok">确定</string>
     <string name="compose_manager_delete_selected">批量删除</string>
     <string name="compose_manager_bulk_delete">批量删除</string>
+    <string name="compose_manager_filter_all">全部</string>
+    <string name="compose_manager_filter_favorites">收藏</string>
+    <string name="compose_manager_filter_recent">最近使用</string>
+    <string name="compose_manager_batch_select">批量选择</string>
+    <string name="compose_manager_batch_done">完成</string>
+    <string name="compose_manager_undo_message">操作已完成</string>
+    <string name="compose_manager_undo">撤销</string>
 </resources>
