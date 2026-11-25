@@ -48,6 +48,16 @@ class SymbolDrawerUsageStateTest {
         assertFalse(state.filter(listOf(first, second), "", SymbolManagerFilter.FAVORITES).isNotEmpty())
     }
 
+    @Test fun observersReceiveChangesAndCanDetach() {
+        val state = SymbolDrawerUsageState()
+        val observed = mutableListOf<SymbolUsageSnapshot>()
+        val handle = state.observe(observed::add)
+        state.toggleFavorite(9L)
+        handle.close()
+        state.toggleFavorite(10L)
+        assertEquals(listOf(SymbolUsageSnapshot(), SymbolUsageSnapshot(setOf(9L), emptyList())), observed)
+    }
+
     @Test fun restorePersistsNormalizedSnapshot() {
         val repository = RecordingUsageRepository()
         val state = SymbolDrawerUsageState(repository)
