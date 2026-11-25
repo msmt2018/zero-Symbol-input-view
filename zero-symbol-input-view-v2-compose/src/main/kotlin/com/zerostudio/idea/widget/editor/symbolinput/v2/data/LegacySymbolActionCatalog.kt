@@ -45,8 +45,6 @@
 
 package com.zerostudio.idea.widget.editor.symbolinput.v2.data
 
-import android.content.Context
-import com.zerostudio.idea.widget.editor.symbolinput.v2.R
 
 /**
  * Android resource adapter and compatibility facade for V1 action metadata.
@@ -67,43 +65,5 @@ object LegacySymbolActionCatalog {
     fun hasTextPayload(actionId: Int): Boolean =
         LegacySymbolActionDefinitions.hasTextPayload(actionId)
 
-    fun labels(context: Context): List<String> = listOf(
-        context.getString(R.string.legacy_action_label_01),
-        context.getString(R.string.legacy_action_label_02),
-        context.getString(R.string.legacy_action_label_03),
-        context.getString(R.string.legacy_action_label_04),
-        context.getString(R.string.legacy_action_label_05),
-        context.getString(R.string.legacy_action_label_06),
-        context.getString(R.string.legacy_action_label_07),
-        context.getString(R.string.legacy_action_label_08),
-        context.getString(R.string.legacy_action_label_09),
-        context.getString(R.string.legacy_action_label_10),
-        context.getString(R.string.legacy_action_label_11),
-        context.getString(R.string.legacy_action_label_12),
-        context.getString(R.string.legacy_action_label_13),
-        context.getString(R.string.legacy_action_label_14),
-        context.getString(R.string.legacy_action_label_15),
-        context.getString(R.string.legacy_action_label_16),
-        context.getString(R.string.legacy_action_label_17),
-        context.getString(R.string.legacy_action_label_18),
-        context.getString(R.string.legacy_action_label_19),
-        context.getString(R.string.legacy_action_label_20),
-        context.getString(R.string.legacy_action_label_21),
-        context.getString(R.string.legacy_action_label_22),
-        context.getString(R.string.legacy_action_label_23),
-        context.getString(R.string.legacy_action_label_24),
-        context.getString(R.string.legacy_action_label_25),
-        context.getString(R.string.legacy_action_label_26),
-        context.getString(R.string.legacy_action_label_27),
-        context.getString(R.string.legacy_action_label_28),
-        context.getString(R.string.legacy_action_label_29),
-        context.getString(R.string.legacy_action_label_30),
-        context.getString(R.string.legacy_action_label_31),
-        context.getString(R.string.legacy_action_label_32),
-        context.getString(R.string.legacy_action_label_33)
-    ).also { localized ->
-        check(localized.size == values.size) {
-            "Localized V1 action labels must stay aligned with the picker IDs."
-        }
-    }
+
 }
