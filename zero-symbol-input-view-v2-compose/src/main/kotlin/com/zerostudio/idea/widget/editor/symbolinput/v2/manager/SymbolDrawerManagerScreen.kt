@@ -152,6 +152,7 @@ fun SymbolDrawerManagerScreen(
     val searchFeatureVisible = extensionSnapshot.builtInVisibility[SymbolDrawerBuiltInFeatures.SEARCH] ?: true
     val favoritesFeatureVisible = extensionSnapshot.builtInVisibility[SymbolDrawerBuiltInFeatures.FAVORITES] ?: true
     val recentFeatureVisible = extensionSnapshot.builtInVisibility[SymbolDrawerBuiltInFeatures.RECENT] ?: true
+    val effectiveActions = availableActions.ifEmpty { extensionSnapshot.actions }
     var activeFilter by remember { mutableStateOf(SymbolManagerFilter.ALL) }
     var batchMode by remember { mutableStateOf(false) }
     var undoLabel by remember { mutableStateOf<String?>(null) }
@@ -728,7 +729,7 @@ fun SymbolDrawerManagerScreen(
         val targetGroupId = selectedGroup.id
         SymbolActionEditorDialog(
             existing = editingSymbol,
-            extensions = availableActions,
+            extensions = effectiveActions,
             onDismiss = { symbolDialog = false },
             onSave = { symbol ->
                 runUndoable {
