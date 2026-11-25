@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
@@ -22,6 +23,8 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.AdaptiveWindowC
 import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowAdaptiveInfo
 import com.zerostudio.idea.widget.drawer.adaptive.rememberAdaptiveWindowSnapshot
 import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.DrawerContainer
+import com.zerostudio.idea.widget.editor.symbolinput.v2.manager.SymbolDrawerManagerScreen
+import com.zerostudio.idea.widget.editor.symbolinput.v2.data.ObservableSymbolGroupRepository
 import com.zerostudio.idea.widget.drawer.core.DrawerAnchorInput
 import com.zerostudio.idea.widget.drawer.core.DrawerStateHolder
 import com.zerostudio.idea.widget.drawer.core.ExistingHeightAnchorStrategy
@@ -40,6 +43,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSet
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettingsScreen
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import java.util.concurrent.CopyOnWriteArrayList
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -193,6 +197,29 @@ class ComposeMigrationContractTest {
         compose.onNodeWithText("window-width-500").assertIsDisplayed()
     }
 
+    @Test fun managerScreenMarshalsBackgroundRepositoryUpdatesIntoCompositionScope() {
+        val repository = ObservableTestRepository(groups().take(1))
+        compose.setContent {
+            MaterialTheme {
+                SymbolDrawerManagerScreen(repository = repository)
+            }
+        }
+        compose.onNodeWithText("First").assertIsDisplayed()
+
+        val writer = Thread {
+            repository.publish(
+                listOf(SymbolGroup(id = "external", title = "External update", symbols = emptyList()))
+            )
+        }
+        writer.start()
+        writer.join()
+
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithText("External update").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithText("External update").assertIsDisplayed()
+    }
+
     @Test fun settingsScreenRendersMaterial3Sections() {
         compose.setContent {
             MaterialTheme {
@@ -205,5 +232,25 @@ class ComposeMigrationContractTest {
         compose.onNodeWithText("Symbol drawer settings").assertIsDisplayed()
         compose.onNodeWithText("Appearance").assertIsDisplayed()
         compose.onNodeWithText("Performance").assertIsDisplayed()
+    }
+}
+private class ObservableTestRepository(initial: List<SymbolGroup>) : ObservableSymbolGroupRepository {
+    @Volatile private var snapshot: List<SymbolGroup> = initial
+    private val listeners = CopyOnWriteArrayList<() -> Unit>()
+
+    override fun loadGroups(): List<SymbolGroup> = snapshot
+
+    override fun saveGroups(groups: List<SymbolGroup>) {
+        publish(groups)
+    }
+
+    override fun observeGroups(listener: () -> Unit): AutoCloseable {
+        listeners += listener
+        return AutoCloseable { listeners -= listener }
+    }
+
+    fun publish(groups: List<SymbolGroup>) {
+        snapshot = groups
+        listeners.forEach { it() }
     }
 }
