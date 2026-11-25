@@ -426,4 +426,5 @@
     <string name="compose_manager_preview">预览工具栏</string>
     <string name="compose_manager_restore_preview">恢复预览前数据</string>
     <string name="compose_manager_finish_preview">结束预览</string>
+    <string name="compose_manager_confirm_delete_group">确定删除此分组？</string>
 </resources>
