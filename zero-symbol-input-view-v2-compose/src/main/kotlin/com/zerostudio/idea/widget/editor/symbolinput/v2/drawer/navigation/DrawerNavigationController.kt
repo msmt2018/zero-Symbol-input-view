@@ -94,7 +94,8 @@ class DrawerNavigationController {
         return selectPage(descriptor.id)
     }
 
-    fun pages(): List<DrawerPage> = navigation.pages().mapNotNull(pageContentById::get)
+    fun pages(): List<DrawerPage> =
+        navigation.pages().mapNotNull { descriptor -> pageContentById[descriptor.id] }
     fun selectedPage(): DrawerPage? = navigation.snapshot().selectedPageId?.let(pageContentById::get)
     fun selectedIndex(): Int = navigation.selectedIndex()
     fun snapshot(): DrawerNavigationSnapshot = navigation.snapshot()
