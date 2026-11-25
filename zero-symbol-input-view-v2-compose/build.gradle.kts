@@ -170,6 +170,7 @@ val verifyCoreStateEngineBoundary by tasks.registering {
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/action/SymbolActionExecutor.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/data/LegacySymbolActionAdapter.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/data/LegacySymbolActionDefinitions.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/manager/LegacyActionPickerResolver.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/data/LegacySymbolDataCodec.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/data/SymbolGroupBundleCodec.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/data/SymbolGroupStorageCodec.kt",

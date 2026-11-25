@@ -45,7 +45,7 @@
 package com.zerostudio.idea.widget.editor.symbolinput.v2.manager
 
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.LegacySymbolActionAdapter
-import com.zerostudio.idea.widget.editor.symbolinput.v2.data.LegacySymbolActionCatalog
+import com.zerostudio.idea.widget.editor.symbolinput.v2.data.LegacySymbolActionDefinitions
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.LegacySymbolAction
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
 
@@ -65,7 +65,7 @@ internal object LegacyActionPickerResolver {
         // losslessly preserved, but are not offered as new picker choices.
         if (legacyId == 1 || legacyId == 2) return null
         if (legacyId != null) {
-            val index = LegacySymbolActionCatalog.values.indexOf(legacyId)
+            val index = LegacySymbolActionDefinitions.values.indexOf(legacyId)
             if (index < 0) return null
             val decoded = LegacySymbolActionAdapter.convert(
                 LegacySymbolAction(legacyId, legacyPayload)
@@ -74,16 +74,16 @@ internal object LegacyActionPickerResolver {
         }
         return when (action) {
             is SymbolAction.InsertText ->
-                LegacySymbolActionCatalog.values.indexOf(0).takeIf { it >= 0 }
+                LegacySymbolActionDefinitions.values.indexOf(0).takeIf { it >= 0 }
             is SymbolAction.EditorCommand ->
                 if (action.commandId == "line.replace") {
-                    LegacySymbolActionCatalog.values.indexOf(36).takeIf { it >= 0 }
+                    LegacySymbolActionDefinitions.values.indexOf(36).takeIf { it >= 0 }
                 } else {
-                    LegacySymbolActionCatalog.values.indexOfFirst { id ->
+                    LegacySymbolActionDefinitions.values.indexOfFirst { id ->
                         LegacySymbolActionAdapter.convert(LegacySymbolAction(id)) == action
                     }.takeIf { it >= 0 }
                 }
-            else -> LegacySymbolActionCatalog.values.indexOfFirst { id ->
+            else -> LegacySymbolActionDefinitions.values.indexOfFirst { id ->
                 LegacySymbolActionAdapter.convert(LegacySymbolAction(id)) == action
             }.takeIf { it >= 0 }
         }
