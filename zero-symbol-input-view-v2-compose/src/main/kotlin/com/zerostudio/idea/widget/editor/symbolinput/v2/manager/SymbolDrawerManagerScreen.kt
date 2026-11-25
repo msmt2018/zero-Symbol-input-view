@@ -119,7 +119,14 @@ fun SymbolDrawerManagerScreen(
     var importJson by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var selectedSymbolIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
-    val ownedUsageState = remember(effectiveUsageRepository) { SymbolDrawerUsageState(effectiveUsageRepository) }
+    val clipboard = LocalClipboardManager.current
+    val context = LocalContext.current
+    val effectiveUsageRepository = usageRepository ?: remember(context) {
+        SharedPreferencesSymbolUsageRepository(context)
+    }
+    val ownedUsageState = remember(effectiveUsageRepository) {
+        SymbolDrawerUsageState(effectiveUsageRepository)
+    }
     val usageState = sharedUsageState ?: ownedUsageState
     var usageSnapshot by remember(usageState) { mutableStateOf(usageState.snapshot()) }
     var searchQuery by remember { mutableStateOf("") }
@@ -128,11 +135,6 @@ fun SymbolDrawerManagerScreen(
     var undoLabel by remember { mutableStateOf<String?>(null) }
     var undoAction by remember { mutableStateOf<(() -> Unit)?>(null) }
     var targetDialogOperation by remember { mutableStateOf<String?>(null) }
-    val clipboard = LocalClipboardManager.current
-    val context = LocalContext.current
-    val effectiveUsageRepository = usageRepository ?: remember(context) {
-        SharedPreferencesSymbolUsageRepository(context)
-    }
     val undoMessage = stringResource(R.string.compose_manager_undo_message)
 
     fun refresh() {
@@ -168,7 +170,9 @@ fun SymbolDrawerManagerScreen(
     }
 
     DisposableEffect(usageState) {
-        val handle = usageState.observe { snapshot -> usageSnapshot = snapshot }
+        val handle = usageState.observe { snapshot ->
+            compositionScope.launch { usageSnapshot = snapshot }
+        }
         onDispose { handle.close() }
     }
 
