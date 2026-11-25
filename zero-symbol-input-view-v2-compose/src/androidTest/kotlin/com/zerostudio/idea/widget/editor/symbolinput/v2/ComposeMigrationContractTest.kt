@@ -12,9 +12,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -130,7 +132,8 @@ class ComposeMigrationContractTest {
                 onPageSelected = { selected = it.id }
             )
         }
-        compose.onNodeWithText("Page one").assertIsDisplayed().performTouchInput { swipeLeft() }
+        compose.onNodeWithText("Page one").assertIsDisplayed()
+        compose.onRoot().performTouchInput { swipeLeft() }
         compose.waitForIdle()
         compose.onNodeWithText("Page two").assertIsDisplayed()
     }
@@ -188,13 +191,13 @@ class ComposeMigrationContractTest {
 
     @Test fun adaptiveObserverReportsComposeLayoutBounds() {
         compose.setContent {
-            Box(Modifier.size(width = 500.dp, height = 400.dp)) {
+            Box(Modifier.size(width = 320.dp, height = 400.dp)) {
                 AdaptiveWindowObserver(Modifier.fillMaxSize()) { info ->
                     Text("window-width-" + info.widthDp.toInt())
                 }
             }
         }
-        compose.onNodeWithText("window-width-500").assertIsDisplayed()
+        compose.onNodeWithText("window-width-320").assertIsDisplayed()
     }
 
     @Test fun managerScreenMarshalsBackgroundRepositoryUpdatesIntoCompositionScope() {
@@ -231,7 +234,7 @@ class ComposeMigrationContractTest {
         }
         compose.onNodeWithText("Symbol drawer settings").assertIsDisplayed()
         compose.onNodeWithText("Appearance").assertIsDisplayed()
-        compose.onNodeWithText("Performance").assertIsDisplayed()
+        compose.onNodeWithText("Performance").performScrollTo().assertIsDisplayed()
     }
 }
 private class ObservableTestRepository(initial: List<SymbolGroup>) : ObservableSymbolGroupRepository {
