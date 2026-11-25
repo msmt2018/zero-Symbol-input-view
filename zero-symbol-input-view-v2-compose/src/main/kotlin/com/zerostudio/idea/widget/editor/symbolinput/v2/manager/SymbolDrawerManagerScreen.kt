@@ -52,10 +52,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -80,6 +83,8 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.consume
 import androidx.compose.ui.unit.dp
 import com.zerostudio.idea.widget.editor.symbolinput.v2.R
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupBundleCodec
@@ -99,6 +104,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawer
 import com.zerostudio.idea.widget.editor.symbolinput.v2.rememberSymbolDrawerState
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 /**
  * Compose-native symbol data manager. Persistence and JSON codecs remain in
@@ -128,6 +134,8 @@ fun SymbolDrawerManagerScreen(
     var importJson by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var selectedSymbolIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
+    var dragWorkingOrder by remember { mutableStateOf<List<SymbolEntry>?>(null) }
+    val symbolListState = rememberLazyListState()
     val clipboard = LocalClipboardManager.current
     val context = LocalContext.current
     val effectiveUsageRepository = usageRepository ?: remember(context) {
@@ -250,6 +258,7 @@ fun SymbolDrawerManagerScreen(
             )
         }.orEmpty()
     }
+    val displayedSymbols = dragWorkingOrder ?: visibleSymbols
     Column(
         modifier = modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -467,11 +476,56 @@ fun SymbolDrawerManagerScreen(
                 }
             }
             LazyColumn(
+                state = symbolListState,
                 modifier = Modifier.fillMaxWidth().weight(0.58f),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                itemsIndexed(visibleSymbols, key = { _, symbol -> symbol.id }) { index, symbol ->
-                    Card {
+                itemsIndexed(displayedSymbols, key = { _, symbol -> symbol.id }) { index, symbol ->
+                    Card(
+                        modifier = Modifier.pointerInput(
+                            symbol.id, selectedGroup.id, searchQuery, activeFilter, batchMode
+                        ) {
+                            if (searchQuery.isNotBlank() || activeFilter != SymbolManagerFilter.ALL || batchMode) {
+                                return@pointerInput
+                            }
+                            var pointerY = 0f
+                            detectDragGesturesAfterLongPress(
+                                onDragStart = {
+                                    val item = symbolListState.layoutInfo.visibleItemsInfo
+                                        .firstOrNull { it.key == symbol.id } ?: return@detectDragGesturesAfterLongPress
+                                    pointerY = item.offset + item.size / 2f
+                                    dragWorkingOrder = selectedGroup.symbols.toList()
+                                },
+                                onDrag = { change, dragAmount ->
+                                    change.consume()
+                                    pointerY += dragAmount.y
+                                    val targetId = symbolListState.layoutInfo.visibleItemsInfo
+                                        .minByOrNull { abs(it.offset + it.size / 2f - pointerY) }
+                                        ?.key as? Long ?: return@detectDragGesturesAfterLongPress
+                                    val working = dragWorkingOrder ?: return@detectDragGesturesAfterLongPress
+                                    val from = working.indexOfFirst { it.id == symbol.id }
+                                    val to = working.indexOfFirst { it.id == targetId }
+                                    if (from >= 0 && to >= 0 && from != to) {
+                                        dragWorkingOrder = working.toMutableList().apply {
+                                            add(to, removeAt(from))
+                                        }
+                                    }
+                                },
+                                onDragEnd = {
+                                    val reordered = dragWorkingOrder
+                                    dragWorkingOrder = null
+                                    if (reordered != null &&
+                                        reordered.map { it.id } != selectedGroup.symbols.map { it.id }
+                                    ) {
+                                        runUndoable {
+                                            manager.reorderSymbols(selectedGroup.id, reordered.map { it.id })
+                                        }
+                                    }
+                                },
+                                onDragCancel = { dragWorkingOrder = null }
+                            )
+                        }
+                    ) {
                         Row(
                             Modifier.fillMaxWidth().padding(8.dp),
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
