@@ -45,10 +45,6 @@
 
 package com.zerostudio.idea.widget.editor.symbolinput.v2.manager
 
-import android.os.Handler
-import android.os.Looper
-import java.util.concurrent.atomic.AtomicBoolean
-
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -75,6 +71,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -89,6 +86,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupReposito
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
+import kotlinx.coroutines.launch
 
 /**
  * Compose-native symbol data manager. Persistence and JSON codecs remain in
@@ -101,7 +99,7 @@ fun SymbolDrawerManagerScreen(
     onClose: (() -> Unit)? = null
 ) {
     val manager = remember(repository) { SymbolGroupManager(repository) }
-    val mainThreadHandler = remember { Handler(Looper.getMainLooper()) }
+    val compositionScope = rememberCoroutineScope()
     var groups by remember(repository) { mutableStateOf(manager.groups) }
     var selectedGroupId by remember(repository) { mutableStateOf(groups.firstOrNull()?.id) }
     var groupDialog by remember { mutableStateOf(false) }
@@ -135,26 +133,20 @@ fun SymbolDrawerManagerScreen(
     // Keep an open manager screen coherent with writes performed by another
     // manager or host sharing this repository. The subscription belongs to
     // this Composition only; it does not require Activity/Fragment lifecycle APIs.
-    DisposableEffect(repository, manager, mainThreadHandler) {
+    DisposableEffect(repository, manager, compositionScope) {
         val observable = repository as? ObservableSymbolGroupRepository
-        val active = AtomicBoolean(true)
+        // The remembered scope uses the active Composition's UI dispatcher and
+        // is cancelled automatically when this screen leaves Composition.
+        // Repository callbacks may arrive on any thread; launch safely transfers
+        // the reload and snapshot publication to the Compose-owned scope.
         val handle = observable?.observeGroups {
-            // Repository implementations may notify from arbitrary threads.
-            // Compose state and this screen's manager are confined to the main thread.
-            if (active.get()) {
-                mainThreadHandler.post {
-                    if (active.get()) {
-                        runCatching { manager.reload() }
-                            .onSuccess { refresh() }
-                            .onFailure { errorMessage = it.message ?: "Unable to reload symbol groups" }
-                    }
-                }
+            compositionScope.launch {
+                runCatching { manager.reload() }
+                    .onSuccess { refresh() }
+                    .onFailure { errorMessage = it.message ?: "Unable to reload symbol groups" }
             }
         }
-        onDispose {
-            active.set(false)
-            handle?.close()
-        }
+        onDispose { handle?.close() }
     }
 
     val selectedGroup = groups.firstOrNull { it.id == selectedGroupId }
