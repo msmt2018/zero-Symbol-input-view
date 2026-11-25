@@ -504,23 +504,27 @@ fun SymbolDrawerManagerScreen(
                             var pointerY = 0f
                             detectDragGesturesAfterLongPress(
                                 onDragStart = {
-                                    val item = symbolListState.layoutInfo.visibleItemsInfo
-                                        .firstOrNull { it.key == symbol.id } ?: return@detectDragGesturesAfterLongPress
-                                    pointerY = item.offset + item.size / 2f
-                                    dragWorkingOrder = selectedGroup.symbols.toList()
+                                    symbolListState.layoutInfo.visibleItemsInfo
+                                        .firstOrNull { it.key == symbol.id }
+                                        ?.let { item ->
+                                            pointerY = item.offset + item.size / 2f
+                                            dragWorkingOrder = selectedGroup.symbols.toList()
+                                        }
                                 },
                                 onDrag = { change, dragAmount ->
                                     change.consume()
                                     pointerY += dragAmount.y
                                     val targetId = symbolListState.layoutInfo.visibleItemsInfo
                                         .minByOrNull { abs(it.offset + it.size / 2f - pointerY) }
-                                        ?.key as? Long ?: return@detectDragGesturesAfterLongPress
-                                    val working = dragWorkingOrder ?: return@detectDragGesturesAfterLongPress
-                                    val from = working.indexOfFirst { it.id == symbol.id }
-                                    val to = working.indexOfFirst { it.id == targetId }
-                                    if (from >= 0 && to >= 0 && from != to) {
-                                        dragWorkingOrder = working.toMutableList().apply {
-                                            add(to, removeAt(from))
+                                        ?.key as? Long
+                                    val working = dragWorkingOrder
+                                    if (targetId != null && working != null) {
+                                        val from = working.indexOfFirst { it.id == symbol.id }
+                                        val to = working.indexOfFirst { it.id == targetId }
+                                        if (from >= 0 && to >= 0 && from != to) {
+                                            dragWorkingOrder = working.toMutableList().apply {
+                                                add(to, removeAt(from))
+                                            }
                                         }
                                     }
                                 },
