@@ -185,6 +185,9 @@ internal fun SymbolActionEditorDialog(
     var shortMenuExpanded by remember { mutableStateOf(false) }
     var longMenuExpanded by remember { mutableStateOf(false) }
     var validationError by remember { mutableStateOf<String?>(null) }
+    val emptyLabelMessage = stringResource(R.string.symbol_drawer_187)
+    val shortSelectionError = stringResource(R.string.symbol_drawer_215)
+    val longSelectionError = stringResource(R.string.symbol_drawer_216)
 
     val selectedShort = shortOptions.firstOrNull { it.key == shortKey } ?: shortOptions.first()
     val selectedLong = longOptions.firstOrNull { it.key == longKey } ?: longOptions.first()
@@ -287,17 +290,17 @@ internal fun SymbolActionEditorDialog(
             TextButton(onClick = {
                 val display = label.trim()
                 if (display.isEmpty()) {
-                    validationError = stringResource(R.string.symbol_drawer_187)
+                    validationError = emptyLabelMessage
                     return@TextButton
                 }
                 val shortOption = shortOptions.firstOrNull { it.key == shortKey }
                     ?: run {
-                        validationError = stringResource(R.string.symbol_drawer_215)
+                        validationError = shortSelectionError
                         return@TextButton
                     }
                 val longOption = longOptions.firstOrNull { it.key == longKey }
                     ?: run {
-                        validationError = stringResource(R.string.symbol_drawer_216)
+                        validationError = longSelectionError
                         return@TextButton
                     }
 
