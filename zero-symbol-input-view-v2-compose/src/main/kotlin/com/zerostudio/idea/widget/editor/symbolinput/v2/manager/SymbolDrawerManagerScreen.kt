@@ -103,7 +103,8 @@ fun SymbolDrawerManagerScreen(
     onClose: (() -> Unit)? = null,
     availableActions: List<SymbolDrawerActionExtension> = emptyList(),
     usageRepository: SymbolUsageRepository? = null,
-    searchIncludesActionPayload: Boolean = true
+    searchIncludesActionPayload: Boolean = true,
+    sharedUsageState: SymbolDrawerUsageState? = null
 ) {
     val manager = remember(repository) { SymbolGroupManager(repository) }
     val compositionScope = rememberCoroutineScope()
@@ -118,8 +119,9 @@ fun SymbolDrawerManagerScreen(
     var importJson by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var selectedSymbolIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
-    val usageState = remember(effectiveUsageRepository) { SymbolDrawerUsageState(effectiveUsageRepository) }
-    var usageSnapshot by remember(effectiveUsageRepository) { mutableStateOf(usageState.snapshot()) }
+    val ownedUsageState = remember(effectiveUsageRepository) { SymbolDrawerUsageState(effectiveUsageRepository) }
+    val usageState = sharedUsageState ?: ownedUsageState
+    var usageSnapshot by remember(usageState) { mutableStateOf(usageState.snapshot()) }
     var searchQuery by remember { mutableStateOf("") }
     var activeFilter by remember { mutableStateOf(SymbolManagerFilter.ALL) }
     var batchMode by remember { mutableStateOf(false) }
@@ -163,6 +165,11 @@ fun SymbolDrawerManagerScreen(
             }
         }
         return completed
+    }
+
+    DisposableEffect(usageState) {
+        val handle = usageState.observe { snapshot -> usageSnapshot = snapshot }
+        onDispose { handle.close() }
     }
 
     // Keep an open manager screen coherent with writes performed by another
@@ -361,7 +368,6 @@ fun SymbolDrawerManagerScreen(
                                 }
                             }) { Text("↓") }
                             TextButton(onClick = {
-                                usageSnapshot = usageState.recordRecentlyUsed(symbol.id)
                                 editingSymbol = symbol
                                 symbolDialog = true
                             }) { Text(stringResource(R.string.compose_manager_edit)) }
