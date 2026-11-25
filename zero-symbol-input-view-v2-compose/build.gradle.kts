@@ -170,6 +170,7 @@ val verifyCoreStateEngineBoundary by tasks.registering {
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/adaptive/AdaptiveDimensions.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/drawer/core/DrawerState.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/drawer/core/DrawerInteractionController.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/action/BuiltinSymbolActionCatalog.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/action/SymbolActionJsonCodec.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/action/SymbolActionExecutor.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/data/LegacySymbolActionAdapter.kt",
