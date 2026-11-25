@@ -36,28 +36,31 @@ class SymbolDrawerUsageState(
     init { require(recentLimit > 0) }
 
     private var current = normalize(repository?.load() ?: SymbolUsageSnapshot())
+    private var revisionCounter = 0L
     private val listeners = CopyOnWriteArrayList<(SymbolUsageSnapshot) -> Unit>()
 
     /** Observes immutable snapshots; the returned handle detaches the listener. */
-    fun observe(listener: (SymbolUsageSnapshot) -> Unit): AutoCloseable {
+    @Synchronized fun observe(listener: (SymbolUsageSnapshot) -> Unit): AutoCloseable {
         listeners += listener
         runCatching { listener(snapshot()) }
         return AutoCloseable { listeners.remove(listener) }
     }
 
-    fun snapshot(): SymbolUsageSnapshot = current.copy(
+    @Synchronized fun revision(): Long = revisionCounter
+
+    @Synchronized fun snapshot(): SymbolUsageSnapshot = current.copy(
         favorites = current.favorites.toSet(),
         recent = current.recent.toList()
     )
 
-    fun toggleFavorite(symbolId: Long): SymbolUsageSnapshot {
+    @Synchronized fun toggleFavorite(symbolId: Long): SymbolUsageSnapshot {
         require(symbolId != 0L)
         val favorites = current.favorites.toMutableSet()
         if (!favorites.add(symbolId)) favorites.remove(symbolId)
         return commit(current.copy(favorites = favorites))
     }
 
-    fun recordRecentlyUsed(symbolId: Long): SymbolUsageSnapshot {
+    @Synchronized fun recordRecentlyUsed(symbolId: Long): SymbolUsageSnapshot {
         require(symbolId != 0L)
         val recent = buildList {
             add(symbolId)
@@ -66,7 +69,7 @@ class SymbolDrawerUsageState(
         return commit(current.copy(recent = recent))
     }
 
-    fun prune(validSymbolIds: Set<Long>): SymbolUsageSnapshot {
+    @Synchronized fun prune(validSymbolIds: Set<Long>): SymbolUsageSnapshot {
         val next = SymbolUsageSnapshot(
             favorites = current.favorites.filterTo(linkedSetOf()) { it in validSymbolIds },
             recent = current.recent.filter { it in validSymbolIds }.take(recentLimit)
@@ -74,9 +77,9 @@ class SymbolDrawerUsageState(
         return commit(next)
     }
 
-    fun restore(snapshot: SymbolUsageSnapshot): SymbolUsageSnapshot = commit(normalize(snapshot))
+    @Synchronized fun restore(snapshot: SymbolUsageSnapshot): SymbolUsageSnapshot = commit(normalize(snapshot))
 
-    fun filter(
+    @Synchronized fun filter(
         symbols: List<SymbolEntry>,
         query: String,
         filter: SymbolManagerFilter,
@@ -102,18 +105,19 @@ class SymbolDrawerUsageState(
         return matches.sortedBy { order[it.id] ?: Int.MAX_VALUE }
     }
 
-    private fun commit(value: SymbolUsageSnapshot): SymbolUsageSnapshot {
+    @Synchronized private fun commit(value: SymbolUsageSnapshot): SymbolUsageSnapshot {
         val next = normalize(value)
         if (next != current) {
             repository?.save(next)
             current = next
+            revisionCounter++
             val published = snapshot()
             listeners.forEach { listener -> runCatching { listener(published) } }
         }
         return snapshot()
     }
 
-    private fun normalize(value: SymbolUsageSnapshot): SymbolUsageSnapshot {
+    @Synchronized private fun normalize(value: SymbolUsageSnapshot): SymbolUsageSnapshot {
         val recent = LinkedHashSet<Long>()
         value.recent.forEach { id ->
             if (id != 0L && recent.size < recentLimit) recent += id
