@@ -51,7 +51,7 @@ class SymbolDrawerUsageStateTest {
     @Test fun observersReceiveChangesAndCanDetach() {
         val state = SymbolDrawerUsageState()
         val observed = mutableListOf<SymbolUsageSnapshot>()
-        val handle = state.observe(observed::add)
+        val handle = state.observe { observed.add(it) }
         state.toggleFavorite(9L)
         handle.close()
         state.toggleFavorite(10L)
