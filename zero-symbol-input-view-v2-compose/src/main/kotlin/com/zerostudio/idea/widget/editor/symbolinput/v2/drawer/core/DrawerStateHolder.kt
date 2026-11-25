@@ -34,11 +34,7 @@ class DrawerStateHolder(
 ) {
     private var input: DrawerAnchorInput = initialInput
     private var strategy: DrawerAnchorStrategy = initialStrategy
-    private var listeners: Set<(DrawerState) -> Unit> = emptySet()
-    // Serialize reentrant publications so observers never see nested newer state
-    // followed by an older outer-dispatch snapshot.
-    private val pendingStateNotifications = java.util.ArrayDeque<DrawerState>()
-    private var dispatchingStateNotifications = false
+    private val statePublisher = SynchronousSnapshotPublisher<DrawerState>()
 
     private var heightPx = 0
     /** Fractional pixel movement retained across successive drag deltas. */
@@ -355,20 +351,11 @@ class DrawerStateHolder(
     }
 
     fun addStateListener(listener: (DrawerState) -> Unit) {
-        if (listener in listeners) return
-        listeners = listeners + listener
-        try {
-            listener(snapshot)
-        } catch (failure: RuntimeException) {
-            // A listener that cannot accept its initial snapshot is not a
-            // valid subscriber. Roll back registration before propagating.
-            listeners = listeners - listener
-            throw failure
-        }
+        statePublisher.addListener(listener, snapshot)
     }
 
     fun removeStateListener(listener: (DrawerState) -> Unit) {
-        listeners = listeners - listener
+        statePublisher.removeListener(listener)
     }
 
     /** Invalidates every callback captured by the previous animation. */
@@ -388,35 +375,9 @@ class DrawerStateHolder(
             targetAnchorId = targetAnchorId
         )
         snapshot = published
-        pendingStateNotifications.addLast(published)
-        if (dispatchingStateNotifications) return
-
-        // A listener may synchronously mutate the holder. Queue that newer
-        // publication until every observer has received the current snapshot;
-        // this preserves monotonic notification order under reentrant callbacks.
-        dispatchingStateNotifications = true
-        var dispatchFailure: RuntimeException? = null
-        try {
-            while (pendingStateNotifications.isNotEmpty()) {
-                val nextSnapshot = pendingStateNotifications.removeFirst()
-                // Listener changes take effect on the next publication, while
-                // mutations during this dispatch cannot invalidate its iterator.
-                listeners.toList().forEach { listener ->
-                    try {
-                        listener(nextSnapshot)
-                    } catch (failure: RuntimeException) {
-                        val firstFailure = dispatchFailure
-                        if (firstFailure == null) dispatchFailure = failure
-                        else firstFailure.addSuppressed(failure)
-                    }
-                }
-            }
-        } finally {
-            dispatchingStateNotifications = false
-        }
-        // State publication is complete for every observer before surfacing
-        // callback failures to the caller.
-        dispatchFailure?.let { throw it }
+        // The shared publisher preserves synchronous ordering and safely queues
+        // reentrant mutations until every observer receives this snapshot.
+        statePublisher.publish(published)
     }
 
     private fun createSnapshot(

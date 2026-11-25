@@ -14,7 +14,9 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core
  * queued until every listener has received the current snapshot.
  */
 internal class SynchronousSnapshotPublisher<T> {
-    private val listeners = LinkedHashSet<(T) -> Unit>()
+    // Subscription identity is the listener object supplied by the caller.
+    // Function adapters can implement structural equality inconsistently.
+    private val listeners = mutableListOf<(T) -> Unit>()
     private val pendingSnapshots = java.util.ArrayDeque<T>()
     private var dispatching = false
 
@@ -23,17 +25,19 @@ internal class SynchronousSnapshotPublisher<T> {
      * A listener that rejects its initial state is rolled back.
      */
     fun addListener(listener: (T) -> Unit, initialSnapshot: T) {
-        if (!listeners.add(listener)) return
+        if (listeners.any { it === listener }) return
+        listeners += listener
         try {
             listener(initialSnapshot)
         } catch (failure: RuntimeException) {
-            listeners.remove(listener)
+            removeListener(listener)
             throw failure
         }
     }
 
     fun removeListener(listener: (T) -> Unit) {
-        listeners.remove(listener)
+        val index = listeners.indexOfFirst { it === listener }
+        if (index >= 0) listeners.removeAt(index)
     }
 
     fun publish(snapshot: T) {
