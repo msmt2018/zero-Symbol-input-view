@@ -48,13 +48,11 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.data
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 
 /**
- * Android resource adapter retained for source and binary compatibility.
- * The symbol catalogue itself is implemented by the platform-neutral
- * [SymbolDrawerDefaultGroups] factory.
+ * Platform-neutral compatibility facade for the default symbol catalogue.
+ * Localized presentation is provided by the Compose UI adapter.
  */
 object SymbolDrawerDefaults {
     @JvmStatic
     fun createGroups(): List<SymbolGroup> = SymbolDrawerDefaultGroups.createGroups()
-
 
 }
