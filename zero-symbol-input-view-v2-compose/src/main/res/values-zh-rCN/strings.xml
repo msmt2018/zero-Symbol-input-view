@@ -420,4 +420,10 @@
     <string name="compose_manager_batch_done">完成</string>
     <string name="compose_manager_undo_message">操作已完成</string>
     <string name="compose_manager_undo">撤销</string>
+    <string name="compose_manager_more">更多</string>
+    <string name="compose_manager_export_legacy">导出 V1 兼容 JSON</string>
+    <string name="compose_manager_import_legacy">导入 V1 兼容 JSON</string>
+    <string name="compose_manager_preview">预览工具栏</string>
+    <string name="compose_manager_restore_preview">恢复预览前数据</string>
+    <string name="compose_manager_finish_preview">结束预览</string>
 </resources>
