@@ -413,4 +413,11 @@
     <string name="compose_manager_ok">OK</string>
     <string name="compose_manager_delete_selected">Delete selected</string>
     <string name="compose_manager_bulk_delete">Delete selected</string>
+    <string name="compose_manager_filter_all">All</string>
+    <string name="compose_manager_filter_favorites">Favorites</string>
+    <string name="compose_manager_filter_recent">Recently used</string>
+    <string name="compose_manager_batch_select">Select</string>
+    <string name="compose_manager_batch_done">Done</string>
+    <string name="compose_manager_undo_message">Operation completed</string>
+    <string name="compose_manager_undo">Undo</string>
 </resources>
