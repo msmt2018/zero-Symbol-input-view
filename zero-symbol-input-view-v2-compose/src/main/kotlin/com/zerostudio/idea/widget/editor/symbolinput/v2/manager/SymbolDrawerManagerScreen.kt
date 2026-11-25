@@ -88,6 +88,9 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SharedPreferencesSy
 import com.zerostudio.idea.widget.editor.symbolinput.v2.manager.SymbolManagerFilter
 import com.zerostudio.idea.widget.editor.symbolinput.v2.manager.SymbolUsageRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerActionExtension
+import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerBuiltInFeatures
+import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerExtensionRegistry
+import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerExtensionSnapshot
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import kotlinx.coroutines.launch
@@ -103,8 +106,9 @@ fun SymbolDrawerManagerScreen(
     onClose: (() -> Unit)? = null,
     availableActions: List<SymbolDrawerActionExtension> = emptyList(),
     usageRepository: SymbolUsageRepository? = null,
-    searchIncludesActionPayload: Boolean = true,
-    sharedUsageState: SymbolDrawerUsageState? = null
+    searchIncludesActionPayload: Boolean = false,
+    sharedUsageState: SymbolDrawerUsageState? = null,
+    extensionRegistry: SymbolDrawerExtensionRegistry? = null
 ) {
     val manager = remember(repository) { SymbolGroupManager(repository) }
     val compositionScope = rememberCoroutineScope()
@@ -130,6 +134,13 @@ fun SymbolDrawerManagerScreen(
     val usageState = sharedUsageState ?: ownedUsageState
     var usageSnapshot by remember(usageState) { mutableStateOf(usageState.snapshot()) }
     var searchQuery by remember { mutableStateOf("") }
+    var searchVisible by remember { mutableStateOf(false) }
+    var extensionSnapshot by remember(extensionRegistry) {
+        mutableStateOf(extensionRegistry?.snapshot() ?: SymbolDrawerExtensionSnapshot.EMPTY)
+    }
+    val searchFeatureVisible = extensionSnapshot.builtInVisibility[SymbolDrawerBuiltInFeatures.SEARCH] ?: true
+    val favoritesFeatureVisible = extensionSnapshot.builtInVisibility[SymbolDrawerBuiltInFeatures.FAVORITES] ?: true
+    val recentFeatureVisible = extensionSnapshot.builtInVisibility[SymbolDrawerBuiltInFeatures.RECENT] ?: true
     var activeFilter by remember { mutableStateOf(SymbolManagerFilter.ALL) }
     var batchMode by remember { mutableStateOf(false) }
     var undoLabel by remember { mutableStateOf<String?>(null) }
@@ -169,6 +180,13 @@ fun SymbolDrawerManagerScreen(
         return completed
     }
 
+    DisposableEffect(extensionRegistry) {
+        val handle = extensionRegistry?.observe(emitCurrent = true) { snapshot ->
+            compositionScope.launch { extensionSnapshot = snapshot }
+        }
+        onDispose { handle?.close() }
+    }
+
     DisposableEffect(usageState) {
         val handle = usageState.observe { snapshot ->
             compositionScope.launch { usageSnapshot = snapshot }
@@ -196,9 +214,16 @@ fun SymbolDrawerManagerScreen(
     }
 
     val selectedGroup = groups.firstOrNull { it.id == selectedGroupId }
-    val visibleSymbols = remember(selectedGroup, searchQuery, activeFilter, searchIncludesActionPayload, usageSnapshot) {
+    val visibleSymbols = remember(selectedGroup, searchQuery, activeFilter, searchIncludesActionPayload, usageSnapshot, favoritesFeatureVisible, recentFeatureVisible) {
         selectedGroup?.let {
-            usageState.filter(it.symbols, searchQuery, activeFilter, searchIncludesActionPayload)
+            usageState.filter(
+                it.symbols,
+                searchQuery,
+                if (activeFilter == SymbolManagerFilter.FAVORITES && !favoritesFeatureVisible ||
+                    activeFilter == SymbolManagerFilter.RECENT && !recentFeatureVisible
+                ) SymbolManagerFilter.ALL else activeFilter,
+                searchIncludesActionPayload
+            )
         }.orEmpty()
     }
     Column(
@@ -227,27 +252,41 @@ fun SymbolDrawerManagerScreen(
                 importDialog = true
             }) { Text(stringResource(R.string.compose_manager_import)) }
         }
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = { searchQuery = it },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            label = { Text(stringResource(R.string.symbol_drawer_135)) }
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            if (searchFeatureVisible) {
+                TextButton(onClick = {
+                    searchVisible = !searchVisible
+                    if (!searchVisible) searchQuery = ""
+                }) {
+                    Text(stringResource(if (searchVisible) R.string.symbol_drawer_139 else R.string.symbol_drawer_132))
+                }
+            }
+            if (favoritesFeatureVisible) {
+                TextButton(onClick = { activeFilter = SymbolManagerFilter.FAVORITES }) {
+                    Text(if (activeFilter == SymbolManagerFilter.FAVORITES) "✓ " + stringResource(R.string.compose_manager_filter_favorites) else stringResource(R.string.compose_manager_filter_favorites))
+                }
+            }
+            if (recentFeatureVisible) {
+                TextButton(onClick = { activeFilter = SymbolManagerFilter.RECENT }) {
+                    Text(if (activeFilter == SymbolManagerFilter.RECENT) "✓ " + stringResource(R.string.compose_manager_filter_recent) else stringResource(R.string.compose_manager_filter_recent))
+                }
+            }
             TextButton(onClick = { activeFilter = SymbolManagerFilter.ALL }) {
                 Text(if (activeFilter == SymbolManagerFilter.ALL) "✓ " + stringResource(R.string.compose_manager_filter_all) else stringResource(R.string.compose_manager_filter_all))
-            }
-            TextButton(onClick = { activeFilter = SymbolManagerFilter.FAVORITES }) {
-                Text(if (activeFilter == SymbolManagerFilter.FAVORITES) "✓ " + stringResource(R.string.compose_manager_filter_favorites) else stringResource(R.string.compose_manager_filter_favorites))
-            }
-            TextButton(onClick = { activeFilter = SymbolManagerFilter.RECENT }) {
-                Text(if (activeFilter == SymbolManagerFilter.RECENT) "✓ " + stringResource(R.string.compose_manager_filter_recent) else stringResource(R.string.compose_manager_filter_recent))
             }
             TextButton(onClick = {
                 if (batchMode) selectedSymbolIds = emptySet()
                 batchMode = !batchMode
             }) { Text(if (batchMode) stringResource(R.string.compose_manager_batch_done) else stringResource(R.string.compose_manager_batch_select)) }
+        }
+        if (searchVisible && searchFeatureVisible) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                label = { Text(stringResource(R.string.symbol_drawer_135)) }
+            )
         }
         HorizontalDivider()
         Text(stringResource(R.string.compose_manager_groups), style = MaterialTheme.typography.titleMedium)
