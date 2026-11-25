@@ -45,33 +45,31 @@
 
 package com.zerostudio.idea.widget.editor.symbolinput.v2.data
 
-import android.content.Context
-
 /**
- * One-way, non-destructive migration from the legacy compact JSON schema.
- * The old preference is read-only; the imported copy is saved to the V2 store.
+ * Platform-neutral one-way migration from the legacy compact JSON schema.
+ *
+ * The Android preference lookup belongs to [AndroidLegacySymbolDataMigration];
+ * decoding, validation, repository precedence and migration state remain here.
+ * The supplied JSON is never mutated or rewritten.
  */
 object LegacySymbolDataMigration {
-    private const val LEGACY_PREFS = "advanced_symbol_prefs"
-    private const val LEGACY_DATA_KEY = "symbol_json_data"
-
-    fun importIfV2Empty(context: Context, repository: SymbolGroupRepository): Boolean {
+    fun importIfV2Empty(
+        legacyJson: String?,
+        repository: SymbolGroupRepository
+    ): Boolean {
         if (repository.isLegacyMigrationComplete()) return false
         if (repository.loadGroups().isNotEmpty()) {
             repository.markLegacyMigrationComplete()
             return false
         }
-        val json = context.applicationContext
-            .getSharedPreferences(LEGACY_PREFS, Context.MODE_PRIVATE)
-            .getString(LEGACY_DATA_KEY, null)
-            ?.takeIf { it.isNotBlank() } ?: run {
-                repository.markLegacyMigrationComplete()
-                return false
-            }
+
+        val json = legacyJson?.takeIf(String::isNotBlank) ?: run {
+            repository.markLegacyMigrationComplete()
+            return false
+        }
 
         // Reuse the strict V1 codec so migration enforces the same schema,
         // identifier, action-ID, payload and size limits as explicit imports.
-        // This avoids an unbounded Gson parse of untrusted legacy preferences.
         val imported = runCatching {
             LegacySymbolDataCodec.decode(json).filter { it.symbols.isNotEmpty() }
         }.getOrElse { return false }
@@ -80,9 +78,9 @@ object LegacySymbolDataMigration {
             repository.markLegacyMigrationComplete()
             return false
         }
-        // Model validation and persistence are part of the same failure
-        // boundary as decoding. Keep the original preference untouched and
-        // leave migration pending when either operation rejects the snapshot.
+
+        // Decoding, model validation and persistence share one failure boundary.
+        // A rejected snapshot leaves migration pending for a later retry.
         return runCatching {
             SymbolGroupBundleCodec.validateGroups(imported)
             repository.saveGroups(imported)
@@ -90,5 +88,4 @@ object LegacySymbolDataMigration {
             true
         }.getOrDefault(false)
     }
-
 }
