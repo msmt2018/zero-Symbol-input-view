@@ -8,6 +8,7 @@
 package com.zerostudio.idea.widget.editor.symbolinput.v2.manager
 
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
+import java.util.concurrent.CopyOnWriteArrayList
 
 /** Manager filters are domain state and do not depend on Compose or Android. */
 enum class SymbolManagerFilter { ALL, FAVORITES, RECENT }
@@ -35,6 +36,14 @@ class SymbolDrawerUsageState(
     init { require(recentLimit > 0) }
 
     private var current = normalize(repository?.load() ?: SymbolUsageSnapshot())
+    private val listeners = CopyOnWriteArrayList<(SymbolUsageSnapshot) -> Unit>()
+
+    /** Observes immutable snapshots; the returned handle detaches the listener. */
+    fun observe(listener: (SymbolUsageSnapshot) -> Unit): AutoCloseable {
+        listeners += listener
+        runCatching { listener(snapshot()) }
+        return AutoCloseable { listeners.remove(listener) }
+    }
 
     fun snapshot(): SymbolUsageSnapshot = current.copy(
         favorites = current.favorites.toSet(),
@@ -98,6 +107,8 @@ class SymbolDrawerUsageState(
         if (next != current) {
             repository?.save(next)
             current = next
+            val published = snapshot()
+            listeners.forEach { listener -> runCatching { listener(published) } }
         }
         return snapshot()
     }
