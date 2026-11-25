@@ -60,8 +60,3 @@ data class DrawerPage(
         require(title.isNotBlank()) { "Page title must not be blank" }
     }
 }
-
-data class DrawerNavigationSnapshot(
-    val selectedPageId: String?,
-    val pageIds: List<String>
-)

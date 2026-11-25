@@ -47,26 +47,23 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation
 
 
 /**
- * Page identity and selection model. It owns no Compose Runtime state, View,
- * adapter or lifecycle object; DrawerPage values carry the Composable content
- * slots that the Compose page host renders.
+ * Compatibility-facing page-content adapter and synchronous observer facade.
+ * Page identity and selection are delegated to [DrawerNavigationStateEngine],
+ * which is independent of Compose. This facade retains content slots only to
+ * preserve the existing DrawerPage API; new state-only consumers should use
+ * the engine directly.
  *
- * Threading contract: this controller is single-thread-confined, not
- * thread-safe. Callers must serialize every operation (including reads,
- * listener registration and listener removal) on one thread. Listener
- * callbacks run synchronously on the thread that publishes the change; the
- * initial callback from [addListener] runs on the registering thread.
- * Compose hosts must perform controller operations on their UI/composition
- * dispatcher so synchronous notifications can safely update composition
- * state. This class does not dispatch to, or retain, a thread or dispatcher.
+ * Threading contract: single-thread-confined and not thread-safe. Callers must
+ * serialize all operations. Listener callbacks run synchronously on the
+ * publishing thread; no dispatcher or lifecycle owner is retained.
  */
 class DrawerNavigationController {
     fun interface Listener {
         fun onNavigationChanged(snapshot: DrawerNavigationSnapshot, selectedIndex: Int)
     }
 
-    private var pages: List<DrawerPage> = emptyList()
-    private var selectedId: String? = null
+    private val navigation = DrawerNavigationStateEngine()
+    private var pageContentById: Map<String, DrawerPage> = emptyMap()
     private val listeners = LinkedHashSet<Listener>()
     private val pendingNotifications = java.util.ArrayDeque<Pair<DrawerNavigationSnapshot, Int>>()
     private var dispatchingNotifications = false
@@ -78,36 +75,29 @@ class DrawerNavigationController {
         require(value.map { it.id }.distinct().size == value.size) {
             "Drawer page IDs must be unique"
         }
-        val previous = selectedId
-        pages = value.toList()
-        selectedId = if (preserveSelection && previous != null && pages.any { it.id == previous }) {
-            previous
-        } else {
-            pages.firstOrNull()?.id
-        }
+        val nextPages = value.toList()
+        val nextContent = nextPages.associateBy { it.id }
+        pageContentById = nextContent
+        navigation.submitPages(nextPages.map { DrawerPageDescriptor(it.id, it.title) }, preserveSelection)
         dispatch()
     }
 
     fun selectPage(id: String): Boolean {
-        if (pages.none { it.id == id }) return false
-        if (selectedId == id) return true
-        selectedId = id
-        dispatch()
+        val previousSelection = navigation.snapshot().selectedPageId
+        if (!navigation.selectPage(id)) return false
+        if (navigation.snapshot().selectedPageId != previousSelection) dispatch()
         return true
     }
 
     fun selectPage(index: Int): Boolean {
-        val page = pages.getOrNull(index) ?: return false
-        return selectPage(page.id)
+        val descriptor = navigation.pages().getOrNull(index) ?: return false
+        return selectPage(descriptor.id)
     }
 
-    fun pages(): List<DrawerPage> = pages.toList()
-    fun selectedPage(): DrawerPage? = pages.firstOrNull { it.id == selectedId }
-    fun selectedIndex(): Int = pages.indexOfFirst { it.id == selectedId }
-    fun snapshot() = DrawerNavigationSnapshot(
-        selectedPageId = selectedId,
-        pageIds = java.util.Collections.unmodifiableList(pages.map { it.id })
-    )
+    fun pages(): List<DrawerPage> = navigation.pages().mapNotNull(pageContentById::get)
+    fun selectedPage(): DrawerPage? = navigation.snapshot().selectedPageId?.let(pageContentById::get)
+    fun selectedIndex(): Int = navigation.selectedIndex()
+    fun snapshot(): DrawerNavigationSnapshot = navigation.snapshot()
 
     fun addListener(listener: Listener) {
         if (!listeners.add(listener)) return
@@ -126,7 +116,7 @@ class DrawerNavigationController {
 
     private fun dispatch() {
         val nextSnapshot = snapshot()
-        pendingNotifications.addLast(nextSnapshot to selectedIndex())
+        pendingNotifications.addLast(nextSnapshot to navigation.selectedIndex())
         if (dispatchingNotifications) return
 
         // Reentrant listeners may synchronously select another page. Queue that
