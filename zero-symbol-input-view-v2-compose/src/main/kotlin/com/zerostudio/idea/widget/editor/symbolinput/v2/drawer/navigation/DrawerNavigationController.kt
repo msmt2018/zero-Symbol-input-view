@@ -67,8 +67,9 @@ class DrawerNavigationController {
     private val navigation = DrawerNavigationStateEngine()
     private var pageContentById: Map<String, DrawerPage> = emptyMap()
     private val publisher = SynchronousSnapshotPublisher<Pair<DrawerNavigationSnapshot, Int>>()
+    // Listener registrations are keyed by reference identity, not user-defined equals/hashCode.
     private val listenerAdapters =
-        LinkedHashMap<Listener, (Pair<DrawerNavigationSnapshot, Int>) -> Unit>()
+        java.util.IdentityHashMap<Listener, (Pair<DrawerNavigationSnapshot, Int>) -> Unit>()
 
     /** Latest immutable navigation snapshot. Compose callers should use rememberDrawerNavigationSnapshot. */
     val state: DrawerNavigationSnapshot get() = snapshot()

@@ -136,6 +136,45 @@ class DrawerNavigationControllerTest {
     }
 
     @Test
+    fun distinctListenersThatCompareEqualRemainIndependentSubscriptions() {
+        class EqualListener(
+            private val onChanged: () -> Unit
+        ) : DrawerNavigationController.Listener {
+            override fun onNavigationChanged(
+                snapshot: DrawerNavigationSnapshot,
+                selectedIndex: Int
+            ) = onChanged()
+
+            override fun equals(other: Any?) = other is EqualListener
+            override fun hashCode() = 0
+        }
+
+        val controller = DrawerNavigationController()
+        var firstCalls = 0
+        var secondCalls = 0
+        val first = EqualListener { firstCalls++ }
+        val second = EqualListener { secondCalls++ }
+
+        controller.addListener(first)
+        controller.addListener(second)
+        assertEquals(1, firstCalls)
+        assertEquals(1, secondCalls)
+
+        controller.submitPages(listOf(page("first"), page("second")))
+        assertEquals(2, firstCalls)
+        assertEquals(2, secondCalls)
+
+        controller.selectPage("second")
+        assertEquals(3, firstCalls)
+        assertEquals(3, secondCalls)
+
+        controller.removeListener(first)
+        controller.selectPage("first")
+        assertEquals(3, firstCalls)
+        assertEquals(4, secondCalls)
+    }
+
+    @Test
     fun listenerRejectingInitialNavigationSnapshotIsNotRegistered() {
         val controller = DrawerNavigationController()
         var calls = 0
