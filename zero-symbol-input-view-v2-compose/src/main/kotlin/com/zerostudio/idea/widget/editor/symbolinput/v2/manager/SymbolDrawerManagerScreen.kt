@@ -83,7 +83,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupBundleCo
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupManager
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.ObservableSymbolGroupRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupRepository
-import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
+import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerActionExtension
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import kotlinx.coroutines.launch
@@ -96,7 +96,8 @@ import kotlinx.coroutines.launch
 fun SymbolDrawerManagerScreen(
     repository: SymbolGroupRepository,
     modifier: Modifier = Modifier,
-    onClose: (() -> Unit)? = null
+    onClose: (() -> Unit)? = null,
+    availableActions: List<SymbolDrawerActionExtension> = emptyList()
 ) {
     val manager = remember(repository) { SymbolGroupManager(repository) }
     val compositionScope = rememberCoroutineScope()
@@ -107,8 +108,6 @@ fun SymbolDrawerManagerScreen(
     var editingGroupId by remember { mutableStateOf<String?>(null) }
     var symbolDialog by remember { mutableStateOf(false) }
     var editingSymbol by remember { mutableStateOf<SymbolEntry?>(null) }
-    var symbolLabel by remember { mutableStateOf("") }
-    var symbolActionText by remember { mutableStateOf("") }
     var importDialog by remember { mutableStateOf(false) }
     var importJson by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -221,8 +220,6 @@ fun SymbolDrawerManagerScreen(
             Text(selectedGroup?.title ?: stringResource(R.string.compose_manager_no_group), style = MaterialTheme.typography.titleMedium)
             Button(enabled = selectedGroup != null, onClick = {
                 editingSymbol = null
-                symbolLabel = ""
-                symbolActionText = ""
                 symbolDialog = true
             }) { Text(stringResource(R.string.compose_manager_add_symbol)) }
         }
@@ -291,8 +288,6 @@ fun SymbolDrawerManagerScreen(
                             }) { Text("↓") }
                             TextButton(onClick = {
                                 editingSymbol = symbol
-                                symbolLabel = symbol.label
-                                symbolActionText = (symbol.shortAction as? SymbolAction.InsertText)?.template.orEmpty()
                                 symbolDialog = true
                             }) { Text(stringResource(R.string.compose_manager_edit)) }
                             TextButton(onClick = {
@@ -390,53 +385,20 @@ fun SymbolDrawerManagerScreen(
     }
 
     if (symbolDialog && selectedGroup != null) {
-        AlertDialog(
-            onDismissRequest = { symbolDialog = false },
-            title = {
-                Text(
-                    if (editingSymbol == null) stringResource(R.string.compose_manager_add_symbol)
-                    else stringResource(R.string.compose_manager_edit_symbol)
-                )
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = symbolLabel,
-                        onValueChange = { symbolLabel = it },
-                        singleLine = true,
-                        label = { Text(stringResource(R.string.compose_manager_symbol_label)) }
-                    )
-                    OutlinedTextField(
-                        value = symbolActionText,
-                        onValueChange = { symbolActionText = it },
-                        label = { Text(stringResource(R.string.compose_manager_insert_text)) }
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    val label = symbolLabel.trim()
-                    if (label.isNotEmpty()) {
-                        runCommand {
-                            val old = editingSymbol
-                            if (old == null) {
-                                manager.addSymbol(
-                                    selectedGroup.id,
-                                    SymbolEntry(0L, label, SymbolAction.InsertText(symbolActionText))
-                                )
-                            } else {
-                                manager.updateSymbol(
-                                    selectedGroup.id,
-                                    old.copy(label = label, shortAction = SymbolAction.InsertText(symbolActionText))
-                                )
-                            }
-                        }
-                        symbolDialog = false
+        val targetGroupId = selectedGroup.id
+        SymbolActionEditorDialog(
+            existing = editingSymbol,
+            extensions = availableActions,
+            onDismiss = { symbolDialog = false },
+            onSave = { symbol ->
+                runCommand {
+                    if (editingSymbol == null) {
+                        manager.addSymbol(targetGroupId, symbol)
+                    } else {
+                        manager.updateSymbol(targetGroupId, symbol)
                     }
-                }) { Text(stringResource(R.string.compose_manager_save)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { symbolDialog = false }) { Text(stringResource(R.string.compose_manager_cancel)) }
+                }
+                symbolDialog = false
             }
         )
     }
