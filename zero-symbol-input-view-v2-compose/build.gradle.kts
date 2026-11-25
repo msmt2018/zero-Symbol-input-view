@@ -180,6 +180,7 @@ val verifyCoreStateEngineBoundary by tasks.registering {
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/data/SymbolDrawerDefaultGroups.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/data/SymbolDrawerDefaults.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/manager/LegacyActionPickerResolver.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/manager/SymbolDrawerUsageState.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/data/LegacySymbolDataCodec.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/data/SymbolGroupBundleCodec.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/data/SymbolGroupStorageCodec.kt",
