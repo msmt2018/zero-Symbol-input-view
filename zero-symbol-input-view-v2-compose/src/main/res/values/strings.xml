@@ -420,4 +420,10 @@
     <string name="compose_manager_batch_done">Done</string>
     <string name="compose_manager_undo_message">Operation completed</string>
     <string name="compose_manager_undo">Undo</string>
+    <string name="compose_manager_more">More</string>
+    <string name="compose_manager_export_legacy">Export V1-compatible JSON</string>
+    <string name="compose_manager_import_legacy">Import V1-compatible JSON</string>
+    <string name="compose_manager_preview">Preview toolbar</string>
+    <string name="compose_manager_restore_preview">Restore pre-preview data</string>
+    <string name="compose_manager_finish_preview">Finish preview</string>
 </resources>
