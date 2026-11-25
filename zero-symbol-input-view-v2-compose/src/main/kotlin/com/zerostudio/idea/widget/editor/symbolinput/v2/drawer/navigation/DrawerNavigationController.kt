@@ -103,8 +103,10 @@ class DrawerNavigationController {
     fun snapshot(): DrawerNavigationSnapshot = navigation.snapshot()
 
     fun addListener(listener: Listener) {
-        val adapter = listenerAdapters.getOrPut(listener) { publication ->
-            listener.onNavigationChanged(publication.first, publication.second)
+        val adapter = listenerAdapters.getOrPut(listener) {
+            { publication: Pair<DrawerNavigationSnapshot, Int> ->
+                listener.onNavigationChanged(publication.first, publication.second)
+            }
         }
         try {
             publisher.addListener(adapter, currentPublication())
