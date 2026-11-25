@@ -157,6 +157,7 @@ fun SymbolDrawerManagerScreen(
     var undoLabel by remember { mutableStateOf<String?>(null) }
     var undoAction by remember { mutableStateOf<(() -> Unit)?>(null) }
     var targetDialogOperation by remember { mutableStateOf<String?>(null) }
+    var deleteGroupId by remember { mutableStateOf<String?>(null) }
     var moreMenuExpanded by remember { mutableStateOf(false) }
     var importLegacyJson by remember { mutableStateOf(false) }
     var previewModeActive by remember { mutableStateOf(false) }
@@ -186,11 +187,16 @@ fun SymbolDrawerManagerScreen(
         val previousUsage = usageState.snapshot()
         val previousSelection = selectedGroupId
         val completed = runCommand(command)
+        val usageRevisionAfterCommand = usageState.revision()
         if (completed) {
             undoLabel = undoMessage
             undoAction = {
                 manager.replaceAll(previousGroups)
-                usageSnapshot = usageState.restore(previousUsage)
+                usageSnapshot = if (usageState.revision() == usageRevisionAfterCommand) {
+                    usageState.restore(previousUsage)
+                } else {
+                    usageState.snapshot()
+                }
                 selectedGroupId = previousSelection
             }
         }
@@ -273,7 +279,16 @@ fun SymbolDrawerManagerScreen(
             }) { Text(stringResource(R.string.compose_manager_add_group)) }
             OutlinedButton(
                 enabled = selectedGroup != null,
-                onClick = { selectedGroup?.let { group -> runUndoable { manager.duplicateGroup(group.id) } } }
+                onClick = {
+                    selectedGroup?.let { group ->
+                        runCatching { manager.duplicateGroup(group.id) }
+                            .onSuccess { duplicate ->
+                                selectedGroupId = duplicate.id
+                                refresh()
+                            }
+                            .onFailure { errorMessage = it.message ?: "Unable to duplicate group" }
+                    }
+                }
             ) { Text(stringResource(R.string.symbol_drawer_071)) }
             OutlinedButton(onClick = {
                 clipboard.setText(AnnotatedString(SymbolGroupBundleCodec.encode(groups)))
@@ -426,7 +441,7 @@ fun SymbolDrawerManagerScreen(
                             groupName = group.title
                             groupDialog = true
                         }) { Text(stringResource(R.string.compose_manager_rename)) }
-                        TextButton(onClick = { runUndoable { manager.removeGroup(group.id) } }) {
+                        TextButton(onClick = { deleteGroupId = group.id }) {
                             Text(stringResource(R.string.compose_manager_delete))
                         }
                     }
@@ -588,6 +603,25 @@ fun SymbolDrawerManagerScreen(
                 undoLabel = null
             }) { Text(stringResource(R.string.compose_manager_undo)) }
         }
+    }
+
+    deleteGroupId?.let { groupId ->
+        val group = groups.firstOrNull { it.id == groupId }
+        AlertDialog(
+            onDismissRequest = { deleteGroupId = null },
+            title = { Text(stringResource(R.string.compose_manager_confirm_delete_group)) },
+            text = { Text(group?.title.orEmpty()) },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (runUndoable { manager.removeGroup(groupId) }) deleteGroupId = null
+                }) { Text(stringResource(R.string.compose_manager_delete)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { deleteGroupId = null }) {
+                    Text(stringResource(R.string.compose_manager_cancel))
+                }
+            }
+        )
     }
 
     if (targetDialogOperation != null && selectedGroup != null) {
