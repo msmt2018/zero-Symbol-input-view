@@ -131,7 +131,7 @@ val verifyComposeUiBoundary by tasks.registering {
  */
 val verifyCoreStateEngineBoundary by tasks.registering {
     group = "verification"
-    description = "Rejects Compose/Android imports in platform-neutral action APIs, navigation, and drawer state engines."
+    description = "Rejects Android/Compose dependencies in platform-neutral action, data, settings, navigation, and drawer state engines."
 
     val coreFiles = listOf(
         // Editor-neutral action execution contracts and adapters.
@@ -166,24 +166,39 @@ val verifyCoreStateEngineBoundary by tasks.registering {
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/adaptive/AdaptiveDimensions.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/drawer/core/DrawerState.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/drawer/core/DrawerInteractionController.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/action/SymbolActionJsonCodec.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/action/SymbolActionExecutor.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/data/LegacySymbolActionAdapter.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/data/LegacySymbolDataCodec.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/data/SymbolGroupBundleCodec.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/data/SymbolGroupStorageCodec.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/data/SymbolGroupManager.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/settings/JsonDocumentIO.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/drawer/navigation/DrawerNavigationController.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/drawer/navigation/DrawerNavigationConfig.kt"
     ).map { layout.projectDirectory.file(it).asFile }
 
     doLast {
-        val forbidden = Regex("""^\s*import\s+(?:android\.|androidx\.compose\.|androidx\.appcompat\.|androidx\.viewbinding\.)""")
+        val forbiddenImports = Regex("""^\s*import\s+(?:android\.|androidx\.)""")
+        val forbiddenQualifiedReferences = Regex("""\b(?:android|androidx)\.[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*""")
         val violations = coreFiles.flatMap { source ->
             check(source.isFile) { "Required core state source is missing: $source" }
             source.readLines().mapIndexedNotNull { index, line ->
-                if (forbidden.containsMatchIn(line)) {
+                val trimmed = line.trimStart()
+                val isComment = trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed.startsWith("/*")
+                if (!isComment && (
+                    forbiddenImports.containsMatchIn(line) ||
+                        forbiddenQualifiedReferences.containsMatchIn(line)
+                )) {
                     "${source.relativeTo(projectDir)}:${index + 1}: $line"
                 } else null
             }
         }
         check(violations.isEmpty()) {
-            "Platform-neutral drawer state engine imports Compose/Android APIs:\n" +
+            "Platform-neutral core source references Android/Compose APIs:\n" +
                 violations.joinToString("\n")
         }
-        logger.lifecycle("Platform-neutral drawer state engine boundary clean: ${coreFiles.size} files inspected.")
+        logger.lifecycle("Platform-neutral core boundary clean: ${coreFiles.size} files inspected.")
     }
 }
 

@@ -15,7 +15,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
-import java.io.ByteArrayOutputStream
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -78,20 +77,7 @@ fun rememberJsonDocumentPicker(
                                         ?: error("Unable to open selected JSON document")
                                 }.mapCatching { input ->
                                     input.use { stream ->
-                                        val output = ByteArrayOutputStream()
-                                        val buffer = ByteArray(8 * 1024)
-                                        var total = 0
-                                        while (true) {
-                                            val count = stream.read(buffer)
-                                            if (count < 0) break
-                                            total += count
-                                            require(total <= MAX_IMPORT_BYTES) {
-                                                "Selected JSON file exceeds the 16 MiB import limit"
-                                            }
-                                            output.write(buffer, 0, count)
-                                        }
-                                        output.toString(Charsets.UTF_8.name())
-                                            .removePrefix("\uFEFF")
+                                        JsonDocumentIO.readUtf8Json(stream)
                                     }
                                 }.onSuccess { json ->
                                     if (active.get()) {
@@ -112,7 +98,7 @@ fun rememberJsonDocumentPicker(
                                 runCatching {
                                     val output = contentResolver.openOutputStream(uri, "wt")
                                         ?: error("Unable to create selected JSON document")
-                                    output.bufferedWriter(Charsets.UTF_8).use { it.write(json) }
+                                    output.use { JsonDocumentIO.writeUtf8Json(it, json) }
                                 }.onSuccess {
                                     if (active.get()) {
                                         runCatching { latestExported.value?.invoke() }
@@ -128,4 +114,3 @@ fun rememberJsonDocumentPicker(
     }
 }
 
-private const val MAX_IMPORT_BYTES = 16 * 1024 * 1024
