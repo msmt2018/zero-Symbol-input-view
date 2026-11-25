@@ -45,8 +45,6 @@
 
 package com.zerostudio.idea.widget.editor.symbolinput.v2.data
 
-import android.content.Context
-import com.zerostudio.idea.widget.editor.symbolinput.v2.R
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 
 /**
@@ -58,9 +56,5 @@ object SymbolDrawerDefaults {
     @JvmStatic
     fun createGroups(): List<SymbolGroup> = SymbolDrawerDefaultGroups.createGroups()
 
-    @JvmStatic
-    fun createGroups(context: Context): List<SymbolGroup> =
-        SymbolDrawerDefaultGroups.createGroups(
-            context.getString(R.string.symbol_drawer_default_group_common)
-        )
+
 }
