@@ -45,6 +45,8 @@
 
 package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation
 
+import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.SynchronousSnapshotPublisher
+
 
 /**
  * Compatibility-facing page-content adapter and synchronous observer facade.
@@ -64,9 +66,9 @@ class DrawerNavigationController {
 
     private val navigation = DrawerNavigationStateEngine()
     private var pageContentById: Map<String, DrawerPage> = emptyMap()
-    private val listeners = LinkedHashSet<Listener>()
-    private val pendingNotifications = java.util.ArrayDeque<Pair<DrawerNavigationSnapshot, Int>>()
-    private var dispatchingNotifications = false
+    private val publisher = SynchronousSnapshotPublisher<Pair<DrawerNavigationSnapshot, Int>>()
+    private val listenerAdapters =
+        LinkedHashMap<Listener, (Pair<DrawerNavigationSnapshot, Int>) -> Unit>()
 
     /** Latest immutable navigation snapshot. Compose callers should use rememberDrawerNavigationSnapshot. */
     val state: DrawerNavigationSnapshot get() = snapshot()
@@ -101,48 +103,27 @@ class DrawerNavigationController {
     fun snapshot(): DrawerNavigationSnapshot = navigation.snapshot()
 
     fun addListener(listener: Listener) {
-        if (!listeners.add(listener)) return
+        val adapter = listenerAdapters.getOrPut(listener) { publication ->
+            listener.onNavigationChanged(publication.first, publication.second)
+        }
         try {
-            listener.onNavigationChanged(snapshot(), selectedIndex())
+            publisher.addListener(adapter, currentPublication())
         } catch (failure: RuntimeException) {
-            // Roll back a subscription that cannot accept its initial state.
-            listeners.remove(listener)
+            // Roll back both adapter and publisher registration if the initial
+            // snapshot cannot be accepted by this observer.
+            listenerAdapters.remove(listener)
             throw failure
         }
     }
 
     fun removeListener(listener: Listener) {
-        listeners -= listener
+        listenerAdapters.remove(listener)?.let(publisher::removeListener)
     }
 
-    private fun dispatch() {
-        val nextSnapshot = snapshot()
-        pendingNotifications.addLast(nextSnapshot to navigation.selectedIndex())
-        if (dispatchingNotifications) return
+    private fun currentPublication(): Pair<DrawerNavigationSnapshot, Int> =
+        snapshot() to navigation.selectedIndex()
 
-        // Reentrant listeners may synchronously select another page. Queue that
-        // publication so every observer sees the current snapshot before any
-        // observer receives the newer one.
-        dispatchingNotifications = true
-        var dispatchFailure: RuntimeException? = null
-        try {
-            while (pendingNotifications.isNotEmpty()) {
-                val (publishedSnapshot, publishedIndex) = pendingNotifications.removeFirst()
-                listeners.toList().forEach { listener ->
-                    try {
-                        listener.onNavigationChanged(publishedSnapshot, publishedIndex)
-                    } catch (failure: RuntimeException) {
-                        val firstFailure = dispatchFailure
-                        if (firstFailure == null) dispatchFailure = failure
-                        else firstFailure.addSuppressed(failure)
-                    }
-                }
-            }
-        } finally {
-            dispatchingNotifications = false
-        }
-        // Report callback failures only after all observers have received all
-        // queued snapshots; a failure cannot strand a reentrant publication.
-        dispatchFailure?.let { throw it }
+    private fun dispatch() {
+        publisher.publish(currentPublication())
     }
 }
