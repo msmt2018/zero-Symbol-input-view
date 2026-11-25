@@ -245,8 +245,8 @@ fun SymbolDrawerManagerScreen(
                 Text(if (activeFilter == SymbolManagerFilter.RECENT) "✓ " + stringResource(R.string.compose_manager_filter_recent) else stringResource(R.string.compose_manager_filter_recent))
             }
             TextButton(onClick = {
+                if (batchMode) selectedSymbolIds = emptySet()
                 batchMode = !batchMode
-                if (!batchMode) selectedSymbolIds = emptySet()
             }) { Text(if (batchMode) stringResource(R.string.compose_manager_batch_done) else stringResource(R.string.compose_manager_batch_select)) }
         }
         HorizontalDivider()
@@ -520,8 +520,9 @@ fun SymbolDrawerManagerScreen(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    runUndoable { manager.replaceAll(SymbolGroupBundleCodec.decode(importJson)) }
-                    importDialog = false
+                    if (runUndoable { manager.replaceAll(SymbolGroupBundleCodec.decode(importJson)) }) {
+                        importDialog = false
+                    }
                 }) { Text(stringResource(R.string.compose_manager_import)) }
             },
             dismissButton = {
