@@ -61,6 +61,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -81,6 +83,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import com.zerostudio.idea.widget.editor.symbolinput.v2.R
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupBundleCodec
+import com.zerostudio.idea.widget.editor.symbolinput.v2.data.LegacySymbolDataCodec
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupManager
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.ObservableSymbolGroupRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupRepository
@@ -93,6 +96,8 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerEx
 import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerExtensionSnapshot
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
+import com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawer
+import com.zerostudio.idea.widget.editor.symbolinput.v2.rememberSymbolDrawerState
 import kotlinx.coroutines.launch
 
 /**
@@ -146,6 +151,12 @@ fun SymbolDrawerManagerScreen(
     var undoLabel by remember { mutableStateOf<String?>(null) }
     var undoAction by remember { mutableStateOf<(() -> Unit)?>(null) }
     var targetDialogOperation by remember { mutableStateOf<String?>(null) }
+    var moreMenuExpanded by remember { mutableStateOf(false) }
+    var importLegacyJson by remember { mutableStateOf(false) }
+    var previewModeActive by remember { mutableStateOf(false) }
+    var previewSnapshot by remember { mutableStateOf<List<SymbolGroup>?>(null) }
+    var previewSelectedGroupId by remember { mutableStateOf<String?>(null) }
+    val previewDrawerState = rememberSymbolDrawerState(initiallyExpanded = true)
     val undoMessage = stringResource(R.string.compose_manager_undo_message)
 
     fun refresh() {
@@ -261,9 +272,50 @@ fun SymbolDrawerManagerScreen(
                 clipboard.setText(AnnotatedString(SymbolGroupBundleCodec.encode(groups)))
             }) { Text(stringResource(R.string.compose_manager_export)) }
             OutlinedButton(onClick = {
+                importLegacyJson = false
                 importJson = clipboard.getText()?.text.orEmpty()
                 importDialog = true
             }) { Text(stringResource(R.string.compose_manager_import)) }
+            Box {
+                OutlinedButton(onClick = { moreMenuExpanded = true }) {
+                    Text(stringResource(R.string.compose_manager_more))
+                }
+                DropdownMenu(expanded = moreMenuExpanded, onDismissRequest = { moreMenuExpanded = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.compose_manager_export_legacy)) },
+                        onClick = {
+                            moreMenuExpanded = false
+                            runCatching { LegacySymbolDataCodec.encode(groups) }
+                                .onSuccess { clipboard.setText(AnnotatedString(it)) }
+                                .onFailure { errorMessage = it.message ?: "Legacy export is not supported for this data" }
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.compose_manager_import_legacy)) },
+                        onClick = {
+                            moreMenuExpanded = false
+                            importLegacyJson = true
+                            importJson = clipboard.getText()?.text.orEmpty()
+                            importDialog = true
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(if (previewModeActive) R.string.compose_manager_finish_preview else R.string.compose_manager_preview)) },
+                        onClick = {
+                            moreMenuExpanded = false
+                            if (previewModeActive) {
+                                previewModeActive = false
+                                previewSnapshot = null
+                                previewSelectedGroupId = null
+                            } else {
+                                previewSnapshot = groups.map { it.copy(symbols = it.symbols.toList()) }
+                                previewSelectedGroupId = selectedGroupId
+                                previewModeActive = true
+                            }
+                        }
+                    )
+                }
+            }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             if (searchFeatureVisible) {
@@ -291,6 +343,39 @@ fun SymbolDrawerManagerScreen(
                 if (batchMode) selectedSymbolIds = emptySet()
                 batchMode = !batchMode
             }) { Text(if (batchMode) stringResource(R.string.compose_manager_batch_done) else stringResource(R.string.compose_manager_batch_select)) }
+        }
+        if (previewModeActive) {
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(stringResource(R.string.compose_manager_preview), style = MaterialTheme.typography.titleSmall)
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            TextButton(onClick = {
+                                val snapshot = previewSnapshot ?: return@TextButton
+                                runCatching {
+                                    manager.replaceAll(snapshot.map { it.copy(symbols = it.symbols.toList()) })
+                                    selectedGroupId = previewSelectedGroupId
+                                    refresh()
+                                }.onFailure { errorMessage = it.message ?: "Unable to restore preview snapshot" }
+                            }) { Text(stringResource(R.string.compose_manager_restore_preview)) }
+                            TextButton(onClick = {
+                                previewModeActive = false
+                                previewSnapshot = null
+                                previewSelectedGroupId = null
+                            }) { Text(stringResource(R.string.compose_manager_finish_preview)) }
+                        }
+                    }
+                    Box(Modifier.fillMaxWidth().height(144.dp)) {
+                        SymbolDrawer(
+                            groups = groups,
+                            modifier = Modifier.fillMaxSize(),
+                            state = previewDrawerState,
+                            onSymbolClick = {},
+                            onSymbolLongClick = null
+                        )
+                    }
+                }
+            }
         }
         if (searchVisible && searchFeatureVisible) {
             OutlinedTextField(
@@ -559,7 +644,14 @@ fun SymbolDrawerManagerScreen(
     if (importDialog) {
         AlertDialog(
             onDismissRequest = { importDialog = false },
-            title = { Text(stringResource(R.string.compose_manager_import_title)) },
+            title = {
+                Text(
+                    stringResource(
+                        if (importLegacyJson) R.string.compose_manager_import_legacy
+                        else R.string.compose_manager_import_title
+                    )
+                )
+            },
             text = {
                 OutlinedTextField(
                     value = importJson,
@@ -572,8 +664,15 @@ fun SymbolDrawerManagerScreen(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    if (runUndoable { manager.replaceAll(SymbolGroupBundleCodec.decode(importJson)) }) {
+                    val imported = runCatching {
+                        if (importLegacyJson) LegacySymbolDataCodec.decode(importJson)
+                        else SymbolGroupBundleCodec.decode(importJson)
+                    }.onFailure { errorMessage = it.message ?: "Invalid import data" }.getOrNull()
+                    if (imported != null && runUndoable { manager.replaceAll(imported) }) {
+                        selectedGroupId = imported.firstOrNull()?.id
+                        refresh()
                         importDialog = false
+                        importLegacyJson = false
                     }
                 }) { Text(stringResource(R.string.compose_manager_import)) }
             },
