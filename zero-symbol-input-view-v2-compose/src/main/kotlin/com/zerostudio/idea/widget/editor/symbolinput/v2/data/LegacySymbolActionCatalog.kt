@@ -45,12 +45,11 @@
 
 package com.zerostudio.idea.widget.editor.symbolinput.v2.data
 
-
 /**
- * Android resource adapter and compatibility facade for V1 action metadata.
+ * Platform-neutral compatibility facade for V1 action metadata.
  *
- * Stable IDs and import rules live in [LegacySymbolActionDefinitions].
- * Localized labels stay in this adapter because they are resolved by Android.
+ * Stable IDs, import rules and fallback labels live in
+ * [LegacySymbolActionDefinitions]; this catalog owns no Android resources.
  */
 object LegacySymbolActionCatalog {
     val values: IntArray
@@ -64,6 +63,5 @@ object LegacySymbolActionCatalog {
 
     fun hasTextPayload(actionId: Int): Boolean =
         LegacySymbolActionDefinitions.hasTextPayload(actionId)
-
 
 }
