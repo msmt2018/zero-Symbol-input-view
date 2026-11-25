@@ -83,6 +83,9 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupBundleCo
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupManager
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.ObservableSymbolGroupRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupRepository
+import com.zerostudio.idea.widget.editor.symbolinput.v2.manager.SymbolDrawerUsageState
+import com.zerostudio.idea.widget.editor.symbolinput.v2.manager.SymbolManagerFilter
+import com.zerostudio.idea.widget.editor.symbolinput.v2.manager.SymbolUsageRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerActionExtension
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
@@ -97,7 +100,9 @@ fun SymbolDrawerManagerScreen(
     repository: SymbolGroupRepository,
     modifier: Modifier = Modifier,
     onClose: (() -> Unit)? = null,
-    availableActions: List<SymbolDrawerActionExtension> = emptyList()
+    availableActions: List<SymbolDrawerActionExtension> = emptyList(),
+    usageRepository: SymbolUsageRepository? = null,
+    searchIncludesActionPayload: Boolean = true
 ) {
     val manager = remember(repository) { SymbolGroupManager(repository) }
     val compositionScope = rememberCoroutineScope()
@@ -112,6 +117,13 @@ fun SymbolDrawerManagerScreen(
     var importJson by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var selectedSymbolIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
+    val usageState = remember(usageRepository) { SymbolDrawerUsageState(usageRepository) }
+    var usageSnapshot by remember(usageRepository) { mutableStateOf(usageState.snapshot()) }
+    var searchQuery by remember { mutableStateOf("") }
+    var activeFilter by remember { mutableStateOf(SymbolManagerFilter.ALL) }
+    var batchMode by remember { mutableStateOf(false) }
+    var undoLabel by remember { mutableStateOf<String?>(null) }
+    var undoAction by remember { mutableStateOf<(() -> Unit)?>(null) }
     var targetDialogOperation by remember { mutableStateOf<String?>(null) }
     val clipboard = LocalClipboardManager.current
 
@@ -119,8 +131,11 @@ fun SymbolDrawerManagerScreen(
         groups = manager.groups.toList()
         if (groups.none { it.id == selectedGroupId }) selectedGroupId = groups.firstOrNull()?.id
         val currentGroup = groups.firstOrNull { it.id == selectedGroupId }
-        val validIds = currentGroup?.symbols?.mapTo(mutableSetOf()) { it.id }.orEmpty()
-        selectedSymbolIds = selectedSymbolIds.intersect(validIds)
+        val validIds = groups.asSequence().flatMap { it.symbols.asSequence() }
+            .mapTo(mutableSetOf()) { it.id }
+        usageSnapshot = usageState.prune(validIds)
+        val selectedGroupIds = currentGroup?.symbols?.mapTo(mutableSetOf()) { it.id }.orEmpty()
+        selectedSymbolIds = selectedSymbolIds.intersect(selectedGroupIds)
     }
     fun runCommand(command: () -> Unit): Boolean {
         return runCatching(command)
@@ -149,6 +164,11 @@ fun SymbolDrawerManagerScreen(
     }
 
     val selectedGroup = groups.firstOrNull { it.id == selectedGroupId }
+    val visibleSymbols = remember(selectedGroup, searchQuery, activeFilter, searchIncludesActionPayload, usageSnapshot) {
+        selectedGroup?.let {
+            usageState.filter(it.symbols, searchQuery, activeFilter, searchIncludesActionPayload)
+        }.orEmpty()
+    }
     Column(
         modifier = modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -174,6 +194,28 @@ fun SymbolDrawerManagerScreen(
                 importJson = clipboard.getText()?.text.orEmpty()
                 importDialog = true
             }) { Text(stringResource(R.string.compose_manager_import)) }
+        }
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            label = { Text(stringResource(R.string.symbol_drawer_135)) }
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            TextButton(onClick = { activeFilter = SymbolManagerFilter.ALL }) {
+                Text(if (activeFilter == SymbolManagerFilter.ALL) "✓ All" else "All")
+            }
+            TextButton(onClick = { activeFilter = SymbolManagerFilter.FAVORITES }) {
+                Text(if (activeFilter == SymbolManagerFilter.FAVORITES) "✓ Favorites" else "Favorites")
+            }
+            TextButton(onClick = { activeFilter = SymbolManagerFilter.RECENT }) {
+                Text(if (activeFilter == SymbolManagerFilter.RECENT) "✓ Recent" else "Recent")
+            }
+            TextButton(onClick = {
+                batchMode = !batchMode
+                if (!batchMode) selectedSymbolIds = emptySet()
+            }) { Text(if (batchMode) "Done" else "Select") }
         }
         HorizontalDivider()
         Text(stringResource(R.string.compose_manager_groups), style = MaterialTheme.typography.titleMedium)
@@ -226,7 +268,7 @@ fun SymbolDrawerManagerScreen(
         if (selectedGroup == null) {
             Text(stringResource(R.string.compose_manager_create_group_hint))
         } else {
-            if (selectedGroup.symbols.isNotEmpty()) {
+            if (selectedGroup.symbols.isNotEmpty() && batchMode) {
                 Row(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -259,19 +301,21 @@ fun SymbolDrawerManagerScreen(
                 modifier = Modifier.fillMaxWidth().weight(0.58f),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                itemsIndexed(selectedGroup.symbols, key = { _, symbol -> symbol.id }) { index, symbol ->
+                itemsIndexed(visibleSymbols, key = { _, symbol -> symbol.id }) { index, symbol ->
                     Card {
                         Row(
                             Modifier.fillMaxWidth().padding(8.dp),
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Checkbox(
-                                checked = symbol.id in selectedSymbolIds,
-                                onCheckedChange = { checked ->
-                                    selectedSymbolIds = if (checked) selectedSymbolIds + symbol.id
-                                        else selectedSymbolIds - symbol.id
-                                }
-                            )
+                            if (batchMode) {
+                                Checkbox(
+                                    checked = symbol.id in selectedSymbolIds,
+                                    onCheckedChange = { checked ->
+                                        selectedSymbolIds = if (checked) selectedSymbolIds + symbol.id
+                                            else selectedSymbolIds - symbol.id
+                                    }
+                                )
+                            }
                             Column(Modifier.weight(1f)) {
                                 Text(symbol.label, style = MaterialTheme.typography.bodyLarge)
                                 Text(
@@ -280,13 +324,23 @@ fun SymbolDrawerManagerScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-                            TextButton(enabled = index > 0, onClick = {
-                                runCommand { manager.moveSymbol(selectedGroup.id, index, index - 1) }
+                            TextButton(enabled = selectedGroup.symbols.indexOfFirst { it.id == symbol.id } > 0, onClick = {
+                                val currentIndex = selectedGroup.symbols.indexOfFirst { it.id == symbol.id }
+                                if (currentIndex > 0) runCommand { manager.moveSymbol(selectedGroup.id, currentIndex, currentIndex - 1) }
                             }) { Text("↑") }
-                            TextButton(enabled = index < selectedGroup.symbols.lastIndex, onClick = {
-                                runCommand { manager.moveSymbol(selectedGroup.id, index, index + 1) }
+                            TextButton(onClick = {
+                                usageSnapshot = usageState.toggleFavorite(symbol.id)
+                                undoAction = null
+                                undoLabel = null
+                            }) { Text(if (symbol.id in usageSnapshot.favorites) "★" else "☆") }
+                            TextButton(enabled = index < visibleSymbols.lastIndex, onClick = {
+                                val currentIndex = selectedGroup.symbols.indexOfFirst { it.id == symbol.id }
+                                if (currentIndex >= 0 && currentIndex < selectedGroup.symbols.lastIndex) {
+                                    runCommand { manager.moveSymbol(selectedGroup.id, currentIndex, currentIndex + 1) }
+                                }
                             }) { Text("↓") }
                             TextButton(onClick = {
+                                usageSnapshot = usageState.recordRecentlyUsed(symbol.id)
                                 editingSymbol = symbol
                                 symbolDialog = true
                             }) { Text(stringResource(R.string.compose_manager_edit)) }
@@ -297,6 +351,22 @@ fun SymbolDrawerManagerScreen(
                     }
                 }
             }
+        }
+    }
+
+    if (undoAction != null && undoLabel != null) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(undoLabel.orEmpty(), style = MaterialTheme.typography.bodyMedium)
+            TextButton(onClick = {
+                runCatching { undoAction?.invoke() }
+                    .onSuccess { refresh() }
+                    .onFailure { errorMessage = it.message ?: "Unable to undo operation" }
+                undoAction = null
+                undoLabel = null
+            }) { Text(stringResource(R.string.symbol_drawer_101)) }
         }
     }
 
