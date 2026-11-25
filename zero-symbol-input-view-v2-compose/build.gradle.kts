@@ -156,6 +156,7 @@ val verifyCoreStateEngineBoundary by tasks.registering {
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/drawer/core/DrawerNestedScrollPolicy.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/state/DrawerGeometry.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/adaptive/AdaptiveWindowController.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/adaptive/ConcurrentSnapshotPublisher.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/adaptive/WindowAdaptiveInfo.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/adaptive/AdaptiveLayoutResolver.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/adaptive/AdaptiveGridResolver.kt",
