@@ -58,6 +58,19 @@ class SymbolDrawerUsageStateTest {
         assertEquals(listOf(SymbolUsageSnapshot(), SymbolUsageSnapshot(setOf(9L), emptyList())), observed)
     }
 
+    @Test fun revisionChangesOnlyWhenUsageSnapshotChanges() {
+        val state = SymbolDrawerUsageState()
+        val initial = state.revision()
+        state.toggleFavorite(7L)
+        val afterFavorite = state.revision()
+        assertTrue(afterFavorite > initial)
+        state.toggleFavorite(7L)
+        assertTrue(state.revision() > afterFavorite)
+        val unchanged = state.revision()
+        state.prune(emptySet())
+        assertEquals(unchanged, state.revision())
+    }
+
     @Test fun restorePersistsNormalizedSnapshot() {
         val repository = RecordingUsageRepository()
         val state = SymbolDrawerUsageState(repository)
