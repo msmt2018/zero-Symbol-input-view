@@ -94,7 +94,7 @@ class LegacySymbolDataMigrationTest {
         legacyPreferences.edit().putString("symbol_json_data", json).commit()
         val repository = MemoryRepository()
 
-        assertTrue(LegacySymbolDataMigration.importIfV2Empty(context, repository))
+        assertTrue(AndroidLegacySymbolDataMigration.importIfV2Empty(context, repository))
         assertTrue(repository.migrationComplete)
         val importedGroup = repository.groups.first { it.title == "Legacy" }
         assertEquals(2, importedGroup.symbols.size)
