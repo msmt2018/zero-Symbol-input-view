@@ -426,4 +426,5 @@
     <string name="compose_manager_preview">Preview toolbar</string>
     <string name="compose_manager_restore_preview">Restore pre-preview data</string>
     <string name="compose_manager_finish_preview">Finish preview</string>
+    <string name="compose_manager_confirm_delete_group">Delete this group?</string>
 </resources>
