@@ -277,32 +277,44 @@ fun SymbolDrawerManagerScreen(
                 groupName = ""
                 groupDialog = true
             }) { Text(stringResource(R.string.compose_manager_add_group)) }
-            OutlinedButton(
-                enabled = selectedGroup != null,
-                onClick = {
-                    selectedGroup?.let { group ->
-                        runCatching { manager.duplicateGroup(group.id) }
-                            .onSuccess { duplicate ->
-                                selectedGroupId = duplicate.id
-                                refresh()
-                            }
-                            .onFailure { errorMessage = it.message ?: "Unable to duplicate group" }
-                    }
-                }
-            ) { Text(stringResource(R.string.symbol_drawer_071)) }
-            OutlinedButton(onClick = {
-                clipboard.setText(AnnotatedString(SymbolGroupBundleCodec.encode(groups)))
-            }) { Text(stringResource(R.string.compose_manager_export)) }
-            OutlinedButton(onClick = {
-                importLegacyJson = false
-                importJson = clipboard.getText()?.text.orEmpty()
-                importDialog = true
-            }) { Text(stringResource(R.string.compose_manager_import)) }
             Box {
                 OutlinedButton(onClick = { moreMenuExpanded = true }) {
                     Text(stringResource(R.string.compose_manager_more))
                 }
                 DropdownMenu(expanded = moreMenuExpanded, onDismissRequest = { moreMenuExpanded = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.symbol_drawer_071)) },
+                        enabled = selectedGroup != null,
+                        onClick = {
+                            moreMenuExpanded = false
+                            selectedGroup?.let { group ->
+                                runCatching { manager.duplicateGroup(group.id) }
+                                    .onSuccess { duplicate ->
+                                        selectedGroupId = duplicate.id
+                                        refresh()
+                                    }
+                                    .onFailure { errorMessage = it.message ?: "Unable to duplicate group" }
+                            }
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.compose_manager_export)) },
+                        onClick = {
+                            moreMenuExpanded = false
+                            runCatching { SymbolGroupBundleCodec.encode(groups) }
+                                .onSuccess { clipboard.setText(AnnotatedString(it)) }
+                                .onFailure { errorMessage = it.message ?: "Unable to export groups" }
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.compose_manager_import)) },
+                        onClick = {
+                            moreMenuExpanded = false
+                            importLegacyJson = false
+                            importJson = clipboard.getText()?.text.orEmpty()
+                            importDialog = true
+                        }
+                    )
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.compose_manager_export_legacy)) },
                         onClick = {
