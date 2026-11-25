@@ -48,55 +48,24 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.data
 import android.content.Context
 import com.zerostudio.idea.widget.editor.symbolinput.v2.R
 
-/** Action IDs and ordering copied from V1 res/values/arrays.xml. */
+/**
+ * Android resource adapter and compatibility facade for V1 action metadata.
+ *
+ * Stable IDs and import rules live in [LegacySymbolActionDefinitions].
+ * Localized labels stay in this adapter because they are resolved by Android.
+ */
 object LegacySymbolActionCatalog {
-    val values = intArrayOf(
-        0, 3, 4, 7, 8, 9, 11, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
-        28, 29, 30, 32, 33, 34, 35, 36, 37, 38, 39, 52, 53, 54, 55, 56
-    )
-    // Legacy F1-F12 IDs remain decodable for existing data, but are not offered
-    // as new choices: V1 only inserted literal "<F1>" text rather than dispatching
-    // a function key. Historical clipboard IDs 1/2 are also import-only.
-    val importableValues: Set<Int> = values.toSet() + setOf(1, 2) + (40..51)
+    val values: IntArray
+        get() = LegacySymbolActionDefinitions.values
 
-    /** V1 text payloads are used by insertion and replace-current-line actions. */
-    fun hasTextPayload(actionId: Int): Boolean = actionId == 0 || actionId == 36
+    val importableValues: Set<Int>
+        get() = LegacySymbolActionDefinitions.importableValues
 
-    val labels = listOf(
-        "Insert text",
-        "Delete line",
-        "Clear line",
-        "Convert to uppercase",
-        "Convert to lowercase",
-        "Indent (Tab)",
-        "Toggle comment",
-        "Go to line start",
-        "Go to line end",
-        "Move cursor left",
-        "Move cursor right",
-        "Move cursor up",
-        "Move cursor down",
-        "Open symbol toolbar manager",
-        "Go to document start",
-        "Go to document end",
-        "Select all",
-        "Copy",
-        "Cut",
-        "Paste",
-        "Format code",
-        "Copy line",
-        "Cut line",
-        "Duplicate line",
-        "Replace line",
-        "Enter key",
-        "Tab key",
-        "Shift + Tab",
-        "Copy",
-        "Cut",
-        "Paste",
-        "Undo",
-        "Redo"
-    )
+    val labels: List<String>
+        get() = LegacySymbolActionDefinitions.labels
+
+    fun hasTextPayload(actionId: Int): Boolean =
+        LegacySymbolActionDefinitions.hasTextPayload(actionId)
 
     fun labels(context: Context): List<String> = listOf(
         context.getString(R.string.legacy_action_label_01),
@@ -132,6 +101,9 @@ object LegacySymbolActionCatalog {
         context.getString(R.string.legacy_action_label_31),
         context.getString(R.string.legacy_action_label_32),
         context.getString(R.string.legacy_action_label_33)
-    )
-    init { check(values.size == labels.size) }
+    ).also { localized ->
+        check(localized.size == values.size) {
+            "Localized V1 action labels must stay aligned with the picker IDs."
+        }
+    }
 }

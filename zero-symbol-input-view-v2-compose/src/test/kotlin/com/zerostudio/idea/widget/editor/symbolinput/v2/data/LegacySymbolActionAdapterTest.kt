@@ -143,4 +143,34 @@ class LegacySymbolActionAdapterTest {
         )
     }
 
+    @Test fun definitionsKeepV1IdsImportRulesAndPayloadContractPlatformNeutral() {
+        assertEquals(
+            listOf(
+                0, 3, 4, 7, 8, 9, 11, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
+                28, 29, 30, 32, 33, 34, 35, 36, 37, 38, 39, 52, 53, 54, 55, 56
+            ),
+            LegacySymbolActionDefinitions.values.toList()
+        )
+        assertEquals(LegacySymbolActionDefinitions.values.toList(), LegacySymbolActionCatalog.values.toList())
+        assertEquals(LegacySymbolActionDefinitions.labels, LegacySymbolActionCatalog.labels)
+        assertEquals(47, LegacySymbolActionDefinitions.importableValues.size)
+        assertTrue(LegacySymbolActionDefinitions.importableValues.containsAll(
+            LegacySymbolActionDefinitions.values.toList()
+        ))
+        assertTrue((40..51).all { it in LegacySymbolActionDefinitions.importableValues })
+        assertTrue(1 in LegacySymbolActionDefinitions.importableValues)
+        assertTrue(2 in LegacySymbolActionDefinitions.importableValues)
+        assertFalse(26 in LegacySymbolActionDefinitions.importableValues)
+        assertFalse(27 in LegacySymbolActionDefinitions.importableValues)
+        assertFalse(57 in LegacySymbolActionDefinitions.importableValues)
+        assertTrue(LegacySymbolActionDefinitions.hasTextPayload(0))
+        assertTrue(LegacySymbolActionDefinitions.hasTextPayload(36))
+        assertFalse(LegacySymbolActionDefinitions.hasTextPayload(1))
+        assertFalse(LegacySymbolActionDefinitions.hasTextPayload(40))
+
+        val mutableCopy = LegacySymbolActionDefinitions.values
+        mutableCopy[0] = 999
+        assertEquals(0, LegacySymbolActionDefinitions.values.first())
+    }
+
 }
