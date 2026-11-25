@@ -75,6 +75,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
@@ -83,7 +84,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupBundleCo
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupManager
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.ObservableSymbolGroupRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupRepository
-import com.zerostudio.idea.widget.editor.symbolinput.v2.manager.SymbolDrawerUsageState
+import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SharedPreferencesSymbolUsageRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.manager.SymbolManagerFilter
 import com.zerostudio.idea.widget.editor.symbolinput.v2.manager.SymbolUsageRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerActionExtension
@@ -117,8 +118,8 @@ fun SymbolDrawerManagerScreen(
     var importJson by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var selectedSymbolIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
-    val usageState = remember(usageRepository) { SymbolDrawerUsageState(usageRepository) }
-    var usageSnapshot by remember(usageRepository) { mutableStateOf(usageState.snapshot()) }
+    val usageState = remember(effectiveUsageRepository) { SymbolDrawerUsageState(effectiveUsageRepository) }
+    var usageSnapshot by remember(effectiveUsageRepository) { mutableStateOf(usageState.snapshot()) }
     var searchQuery by remember { mutableStateOf("") }
     var activeFilter by remember { mutableStateOf(SymbolManagerFilter.ALL) }
     var batchMode by remember { mutableStateOf(false) }
@@ -126,6 +127,11 @@ fun SymbolDrawerManagerScreen(
     var undoAction by remember { mutableStateOf<(() -> Unit)?>(null) }
     var targetDialogOperation by remember { mutableStateOf<String?>(null) }
     val clipboard = LocalClipboardManager.current
+    val context = LocalContext.current
+    val effectiveUsageRepository = usageRepository ?: remember(context) {
+        SharedPreferencesSymbolUsageRepository(context)
+    }
+    val undoMessage = stringResource(R.string.compose_manager_undo_message)
 
     fun refresh() {
         groups = manager.groups.toList()
@@ -142,6 +148,21 @@ fun SymbolDrawerManagerScreen(
             .onSuccess { refresh() }
             .onFailure { errorMessage = it.message ?: "Unknown error" }
             .isSuccess
+    }
+    fun runUndoable(command: () -> Unit): Boolean {
+        val previousGroups = manager.groups.toList()
+        val previousUsage = usageState.snapshot()
+        val previousSelection = selectedGroupId
+        val completed = runCommand(command)
+        if (completed) {
+            undoLabel = undoMessage
+            undoAction = {
+                manager.replaceAll(previousGroups)
+                usageSnapshot = usageState.restore(previousUsage)
+                selectedGroupId = previousSelection
+            }
+        }
+        return completed
     }
 
     // Keep an open manager screen coherent with writes performed by another
@@ -185,7 +206,7 @@ fun SymbolDrawerManagerScreen(
             }) { Text(stringResource(R.string.compose_manager_add_group)) }
             OutlinedButton(
                 enabled = selectedGroup != null,
-                onClick = { selectedGroup?.let { group -> runCommand { manager.duplicateGroup(group.id) } } }
+                onClick = { selectedGroup?.let { group -> runUndoable { manager.duplicateGroup(group.id) } } }
             ) { Text(stringResource(R.string.symbol_drawer_071)) }
             OutlinedButton(onClick = {
                 clipboard.setText(AnnotatedString(SymbolGroupBundleCodec.encode(groups)))
@@ -204,18 +225,18 @@ fun SymbolDrawerManagerScreen(
         )
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             TextButton(onClick = { activeFilter = SymbolManagerFilter.ALL }) {
-                Text(if (activeFilter == SymbolManagerFilter.ALL) "✓ All" else "All")
+                Text(if (activeFilter == SymbolManagerFilter.ALL) "✓ " + stringResource(R.string.compose_manager_filter_all) else stringResource(R.string.compose_manager_filter_all))
             }
             TextButton(onClick = { activeFilter = SymbolManagerFilter.FAVORITES }) {
-                Text(if (activeFilter == SymbolManagerFilter.FAVORITES) "✓ Favorites" else "Favorites")
+                Text(if (activeFilter == SymbolManagerFilter.FAVORITES) "✓ " + stringResource(R.string.compose_manager_filter_favorites) else stringResource(R.string.compose_manager_filter_favorites))
             }
             TextButton(onClick = { activeFilter = SymbolManagerFilter.RECENT }) {
-                Text(if (activeFilter == SymbolManagerFilter.RECENT) "✓ Recent" else "Recent")
+                Text(if (activeFilter == SymbolManagerFilter.RECENT) "✓ " + stringResource(R.string.compose_manager_filter_recent) else stringResource(R.string.compose_manager_filter_recent))
             }
             TextButton(onClick = {
                 batchMode = !batchMode
                 if (!batchMode) selectedSymbolIds = emptySet()
-            }) { Text(if (batchMode) "Done" else "Select") }
+            }) { Text(if (batchMode) stringResource(R.string.compose_manager_batch_done) else stringResource(R.string.compose_manager_batch_select)) }
         }
         HorizontalDivider()
         Text(stringResource(R.string.compose_manager_groups), style = MaterialTheme.typography.titleMedium)
@@ -240,17 +261,17 @@ fun SymbolDrawerManagerScreen(
                             )
                         }
                         TextButton(enabled = index > 0, onClick = {
-                            runCommand { manager.moveGroup(index, index - 1) }
+                            runUndoable { manager.moveGroup(index, index - 1) }
                         }) { Text("↑") }
                         TextButton(enabled = index < groups.lastIndex, onClick = {
-                            runCommand { manager.moveGroup(index, index + 1) }
+                            runUndoable { manager.moveGroup(index, index + 1) }
                         }) { Text("↓") }
                         TextButton(onClick = {
                             editingGroupId = group.id
                             groupName = group.title
                             groupDialog = true
                         }) { Text(stringResource(R.string.compose_manager_rename)) }
-                        TextButton(onClick = { runCommand { manager.removeGroup(group.id) } }) {
+                        TextButton(onClick = { runUndoable { manager.removeGroup(group.id) } }) {
                             Text(stringResource(R.string.compose_manager_delete))
                         }
                     }
@@ -290,7 +311,7 @@ fun SymbolDrawerManagerScreen(
                     TextButton(
                         enabled = selectedSymbolIds.isNotEmpty(),
                         onClick = {
-                            if (runCommand { manager.removeSymbols(selectedGroup.id, selectedSymbolIds) }) {
+                            if (runUndoable { manager.removeSymbols(selectedGroup.id, selectedSymbolIds) }) {
                                 selectedSymbolIds = emptySet()
                             }
                         }
@@ -326,17 +347,17 @@ fun SymbolDrawerManagerScreen(
                             }
                             TextButton(enabled = selectedGroup.symbols.indexOfFirst { it.id == symbol.id } > 0, onClick = {
                                 val currentIndex = selectedGroup.symbols.indexOfFirst { it.id == symbol.id }
-                                if (currentIndex > 0) runCommand { manager.moveSymbol(selectedGroup.id, currentIndex, currentIndex - 1) }
+                                if (currentIndex > 0) runUndoable { manager.moveSymbol(selectedGroup.id, currentIndex, currentIndex - 1) }
                             }) { Text("↑") }
                             TextButton(onClick = {
                                 usageSnapshot = usageState.toggleFavorite(symbol.id)
                                 undoAction = null
                                 undoLabel = null
                             }) { Text(if (symbol.id in usageSnapshot.favorites) "★" else "☆") }
-                            TextButton(enabled = index < visibleSymbols.lastIndex, onClick = {
+                            TextButton(enabled = selectedGroup.symbols.indexOfFirst { it.id == symbol.id } in 0 until selectedGroup.symbols.lastIndex, onClick = {
                                 val currentIndex = selectedGroup.symbols.indexOfFirst { it.id == symbol.id }
                                 if (currentIndex >= 0 && currentIndex < selectedGroup.symbols.lastIndex) {
-                                    runCommand { manager.moveSymbol(selectedGroup.id, currentIndex, currentIndex + 1) }
+                                    runUndoable { manager.moveSymbol(selectedGroup.id, currentIndex, currentIndex + 1) }
                                 }
                             }) { Text("↓") }
                             TextButton(onClick = {
@@ -345,7 +366,7 @@ fun SymbolDrawerManagerScreen(
                                 symbolDialog = true
                             }) { Text(stringResource(R.string.compose_manager_edit)) }
                             TextButton(onClick = {
-                                runCommand { manager.removeSymbol(selectedGroup.id, symbol.id) }
+                                runUndoable { manager.removeSymbol(selectedGroup.id, symbol.id) }
                             }) { Text(stringResource(R.string.compose_manager_delete)) }
                         }
                     }
@@ -366,7 +387,7 @@ fun SymbolDrawerManagerScreen(
                     .onFailure { errorMessage = it.message ?: "Unable to undo operation" }
                 undoAction = null
                 undoLabel = null
-            }) { Text(stringResource(R.string.symbol_drawer_101)) }
+            }) { Text(stringResource(R.string.compose_manager_undo)) }
         }
     }
 
@@ -383,7 +404,7 @@ fun SymbolDrawerManagerScreen(
                             modifier = Modifier.fillMaxWidth(),
                             onClick = {
                                 val operation = targetDialogOperation
-                                val completed = runCommand {
+                                val completed = runUndoable {
                                     if (operation == "copy") {
                                         manager.copySymbols(
                                             selectedGroup.id,
