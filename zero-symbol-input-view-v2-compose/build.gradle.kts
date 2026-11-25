@@ -173,6 +173,7 @@ val verifyCoreStateEngineBoundary by tasks.registering {
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/data/SymbolGroupBundleCodec.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/data/SymbolGroupStorageCodec.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/data/SymbolGroupManager.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/data/SymbolDrawerDefaultGroups.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/settings/JsonDocumentIO.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/drawer/navigation/DrawerNavigationController.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/drawer/navigation/DrawerNavigationConfig.kt"

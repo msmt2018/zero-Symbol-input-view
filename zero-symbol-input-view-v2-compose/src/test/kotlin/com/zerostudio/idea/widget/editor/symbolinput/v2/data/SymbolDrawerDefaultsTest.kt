@@ -64,6 +64,14 @@ class SymbolDrawerDefaultsTest {
         assertEquals(SymbolAction.OpenManager, group.symbols.last().shortAction)
     }
 
+    @Test fun platformNeutralFactorySupportsCallerSuppliedGroupTitles() {
+        val group = SymbolDrawerDefaultGroups.createGroups("Localized title").single()
+
+        assertEquals("Localized title", group.title)
+        assertEquals(39, group.symbols.size)
+        assertEquals(SymbolAction.OpenManager, group.symbols.last().shortAction)
+    }
+
     @Test fun newlineTabAndDollarDefaultsKeepTheirActualCharacters() {
         val symbols = SymbolDrawerDefaults.createGroups().single().symbols
         assertEquals("\n", (symbols[35].shortAction as SymbolAction.InsertText).template)
