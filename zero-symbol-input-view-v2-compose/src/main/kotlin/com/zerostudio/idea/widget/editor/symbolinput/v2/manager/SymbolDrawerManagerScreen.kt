@@ -465,7 +465,7 @@ fun SymbolDrawerManagerScreen(
                 TextButton(onClick = {
                     val name = groupName.trim()
                     if (name.isNotEmpty()) {
-                        runCommand {
+                        runUndoable {
                             val currentId = editingGroupId
                             if (currentId == null) {
                                 selectedGroupId = manager.addGroup(name).id
@@ -488,7 +488,7 @@ fun SymbolDrawerManagerScreen(
             extensions = availableActions,
             onDismiss = { symbolDialog = false },
             onSave = { symbol ->
-                runCommand {
+                runUndoable {
                     if (editingSymbol == null) {
                         manager.addSymbol(targetGroupId, symbol)
                     } else {
@@ -516,7 +516,7 @@ fun SymbolDrawerManagerScreen(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    runCommand { manager.replaceAll(SymbolGroupBundleCodec.decode(importJson)) }
+                    runUndoable { manager.replaceAll(SymbolGroupBundleCodec.decode(importJson)) }
                     importDialog = false
                 }) { Text(stringResource(R.string.compose_manager_import)) }
             },
