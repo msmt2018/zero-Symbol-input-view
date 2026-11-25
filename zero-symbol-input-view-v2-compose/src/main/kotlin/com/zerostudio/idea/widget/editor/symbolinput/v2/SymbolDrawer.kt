@@ -87,6 +87,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import com.zerostudio.idea.widget.editor.symbolinput.v2.R
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.DrawerConfig
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
+import com.zerostudio.idea.widget.editor.symbolinput.v2.manager.SymbolDrawerUsageState
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
 import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.SymbolGroupIndicator
@@ -194,7 +195,8 @@ fun SymbolDrawer(
     onSymbolClick: (SymbolEntry) -> Unit,
     onSymbolLongClick: ((SymbolEntry) -> Unit)? = null,
     onOpenManager: (() -> Unit)? = null,
-    onOpenSettings: (() -> Unit)? = null
+    onOpenSettings: (() -> Unit)? = null,
+    usageState: SymbolDrawerUsageState? = null
 ) {
     val safeGroups = groups
     val density = LocalDensity.current
@@ -320,7 +322,10 @@ fun SymbolDrawer(
                         config = config,
                         settings = settings,
                         modifier = Modifier.fillMaxSize(),
-                        onSymbolClick = onSymbolClick,
+                        onSymbolClick = { entry ->
+                            usageState?.recordRecentlyUsed(entry.id)
+                            onSymbolClick(entry)
+                        },
                         onSymbolLongClick = onSymbolLongClick
                     )
                 }
