@@ -136,7 +136,7 @@ fun SymbolDrawerManagerScreen(
     var searchQuery by remember { mutableStateOf("") }
     var searchVisible by remember { mutableStateOf(false) }
     var extensionSnapshot by remember(extensionRegistry) {
-        mutableStateOf(extensionRegistry?.snapshot() ?: SymbolDrawerExtensionSnapshot.EMPTY)
+        mutableStateOf(extensionRegistry?.snapshot() ?: SymbolDrawerExtensionSnapshot(0L, emptyList(), emptyList(), emptyList(), emptyList(), emptyList(), emptyList(), emptyList(), emptyMap()))
     }
     val searchFeatureVisible = extensionSnapshot.builtInVisibility[SymbolDrawerBuiltInFeatures.SEARCH] ?: true
     val favoritesFeatureVisible = extensionSnapshot.builtInVisibility[SymbolDrawerBuiltInFeatures.FAVORITES] ?: true
@@ -182,7 +182,20 @@ fun SymbolDrawerManagerScreen(
 
     DisposableEffect(extensionRegistry) {
         val handle = extensionRegistry?.observe(emitCurrent = true) { snapshot ->
-            compositionScope.launch { extensionSnapshot = snapshot }
+            compositionScope.launch {
+                extensionSnapshot = snapshot
+                val visibility = snapshot.builtInVisibility
+                if (visibility[SymbolDrawerBuiltInFeatures.SEARCH] == false) {
+                    searchVisible = false
+                    searchQuery = ""
+                }
+                if (visibility[SymbolDrawerBuiltInFeatures.FAVORITES] == false &&
+                    activeFilter == SymbolManagerFilter.FAVORITES
+                ) activeFilter = SymbolManagerFilter.ALL
+                if (visibility[SymbolDrawerBuiltInFeatures.RECENT] == false &&
+                    activeFilter == SymbolManagerFilter.RECENT
+                ) activeFilter = SymbolManagerFilter.ALL
+            }
         }
         onDispose { handle?.close() }
     }
