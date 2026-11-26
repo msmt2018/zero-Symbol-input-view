@@ -267,21 +267,68 @@ fun SymbolDrawerManagerScreen(
         modifier = modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(stringResource(R.string.compose_manager_title), style = MaterialTheme.typography.headlineSmall)
-            if (onClose != null) TextButton(onClick = onClose) { Text(stringResource(R.string.compose_manager_close)) }
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = {
-                editingGroupId = null
-                groupName = ""
-                groupDialog = true
-            }) { Text(stringResource(R.string.compose_manager_add_group)) }
+        // Match the View V2 manager shell: compact search and overflow
+        // actions at the top, followed by group tabs, search field and list.
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+        ) {
+            if (searchFeatureVisible) {
+                OutlinedButton(onClick = {
+                    searchVisible = !searchVisible
+                    if (!searchVisible) searchQuery = ""
+                }) {
+                    Text(stringResource(if (searchVisible) R.string.symbol_drawer_139 else R.string.symbol_drawer_132))
+                }
+            }
             Box {
                 OutlinedButton(onClick = { moreMenuExpanded = true }) {
                     Text(stringResource(R.string.compose_manager_more))
                 }
                 DropdownMenu(expanded = moreMenuExpanded, onDismissRequest = { moreMenuExpanded = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.compose_manager_add_group)) },
+                        onClick = {
+                            moreMenuExpanded = false
+                            editingGroupId = null
+                            groupName = ""
+                            groupDialog = true
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.compose_manager_add_symbol)) },
+                        enabled = selectedGroup != null,
+                        onClick = {
+                            moreMenuExpanded = false
+                            editingSymbol = null
+                            symbolDialog = true
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(if (batchMode) stringResource(R.string.compose_manager_batch_done) else stringResource(R.string.compose_manager_batch_select)) },
+                        onClick = {
+                            moreMenuExpanded = false
+                            if (batchMode) selectedSymbolIds = emptySet()
+                            batchMode = !batchMode
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.compose_manager_filter_all)) },
+                        onClick = { moreMenuExpanded = false; activeFilter = SymbolManagerFilter.ALL }
+                    )
+                    if (favoritesFeatureVisible) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.compose_manager_filter_favorites)) },
+                            onClick = { moreMenuExpanded = false; activeFilter = SymbolManagerFilter.FAVORITES }
+                        )
+                    }
+                    if (recentFeatureVisible) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.compose_manager_filter_recent)) },
+                            onClick = { moreMenuExpanded = false; activeFilter = SymbolManagerFilter.RECENT }
+                        )
+                    }
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.symbol_drawer_071)) },
                         enabled = selectedGroup != null,
@@ -338,6 +385,25 @@ fun SymbolDrawerManagerScreen(
                         onClick = {
                             moreMenuExpanded = false
                             if (previewModeActive) {
+                                previewModeActive = false
+                                previewSnapshot = null
+                                previewSelectedGroupId = null
+                            } else {
+                                previewSnapshot = groups.map { it.copy(symbols = it.symbols.toList()) }
+                                previewSelectedGroupId = selectedGroupId
+                                previewModeActive = true
+                            }
+                        }
+                    )
+                }
+            }
+            if (onClose != null) {
+                TextButton(onClick = onClose) {
+                    Text(stringResource(R.string.compose_manager_close))
+                }
+            }
+        }
+        if (previewModeActive) {
                                 previewModeActive = false
                                 previewSnapshot = null
                                 previewSelectedGroupId = null
@@ -411,18 +477,6 @@ fun SymbolDrawerManagerScreen(
                 }
             }
         }
-        if (searchVisible && searchFeatureVisible) {
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                label = { Text(stringResource(R.string.symbol_drawer_135)) }
-            )
-        }
-        HorizontalDivider()
-        Text(stringResource(R.string.compose_manager_groups), style = MaterialTheme.typography.titleMedium)
-
         val selectedGroupIndex = groups.indexOfFirst { it.id == selectedGroupId }
             .coerceIn(0, (groups.size - 1).coerceAtLeast(0))
         val groupPagerState = rememberPagerState(
@@ -547,6 +601,15 @@ fun SymbolDrawerManagerScreen(
                 }
             }
 
+        if (searchVisible && searchFeatureVisible) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                label = { Text(stringResource(R.string.symbol_drawer_135)) }
+            )
+        }
             HorizontalPager(
                 state = groupPagerState,
                 modifier = Modifier.fillMaxWidth().weight(1f),
@@ -579,18 +642,8 @@ fun SymbolDrawerManagerScreen(
                 }
 
                 Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(group.title, style = MaterialTheme.typography.titleSmall)
-                        Button(onClick = {
-                            selectedGroupId = group.id
-                            editingSymbol = null
-                            symbolDialog = true
-                        }) { Text(stringResource(R.string.compose_manager_add_symbol)) }
-                    }
-
+                    // The selected group is already identified by its tab.
+                    // Keep the list page free of a duplicate title/action row.
                     if (group.id == selectedGroupId && group.symbols.isNotEmpty() && batchMode) {
                         Row(
                             Modifier.fillMaxWidth(),
