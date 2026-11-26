@@ -19,7 +19,7 @@
  * Project additional terms under AGPLv3 Section 7 are provided in
  * ADDITIONAL-TERMS.md in this module.
  *
- * Modified: 2026-11-26 (license notice update).
+ * Modified by android_zero on 2026-11-26: license notice updated.
  *
  * Author: android_zero
  * GitHub: https://github.com/msmt2018
