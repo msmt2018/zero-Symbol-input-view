@@ -48,7 +48,7 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.ui
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.toArgb
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerColors
+import com.zerostudio.idea.widget.drawer.style.DrawerColors
 
 /** Captures the active Material 3 host palette as immutable ARGB tokens. */
 @Composable
