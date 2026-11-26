@@ -1211,6 +1211,8 @@ private fun MainActivityComposeContent(
     var replacement by remember { mutableStateOf("") }
     var showManager by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
+    var showSearchPanel by remember { mutableStateOf(false) }
+    var overflowMenuExpanded by remember { mutableStateOf(false) }
     var groups by remember(groupRepository) {
         mutableStateOf(groupRepository.loadGroups().ifEmpty {
             SymbolDrawerDefaultGroups.createGroups().also(groupRepository::saveGroups)
@@ -1226,47 +1228,83 @@ private fun MainActivityComposeContent(
             }
         onDispose { observer?.close() }
     }
-    Column(Modifier.fillMaxSize().padding(top = 8.dp)) {
+    Column(Modifier.fillMaxSize()) {
+        // Keep the editor's original compact action-bar structure: primary
+        // actions remain in the toolbar, while secondary commands live in the
+        // overflow menu instead of occupying permanent full-width rows.
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
         ) {
             Button(onClick = onUndo) { Text("撤销") }
             Button(onClick = onRedo) { Text("重做") }
-            Button(onClick = onFormat) { Text("格式化") }
-            Button(onClick = onChooseLanguage) { Text("语言") }
-            Button(onClick = onChooseTheme) { Text("主题") }
-            Button(onClick = { showSettings = true }) { Text("符号设置") }
+            androidx.compose.material3.TextButton(onClick = { showSearchPanel = !showSearchPanel }) {
+                Text(if (showSearchPanel) "关闭搜索" else "搜索")
+            }
+            androidx.compose.foundation.layout.Box {
+                androidx.compose.material3.TextButton(onClick = { overflowMenuExpanded = true }) {
+                    Text("更多 ⋮")
+                }
+                androidx.compose.material3.DropdownMenu(
+                    expanded = overflowMenuExpanded,
+                    onDismissRequest = { overflowMenuExpanded = false }
+                ) {
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("格式化") },
+                        onClick = { overflowMenuExpanded = false; onFormat() }
+                    )
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("选择语言") },
+                        onClick = { overflowMenuExpanded = false; onChooseLanguage() }
+                    )
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("切换主题") },
+                        onClick = { overflowMenuExpanded = false; onChooseTheme() }
+                    )
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("符号设置") },
+                        onClick = { overflowMenuExpanded = false; showSettings = true }
+                    )
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("打开调试文档") },
+                        onClick = { overflowMenuExpanded = false; onLoadLargeFile() }
+                    )
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("查看日志") },
+                        onClick = { overflowMenuExpanded = false; onOpenLogs() }
+                    )
+                }
+            }
         }
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            OutlinedTextField(
-                value = search,
-                onValueChange = { search = it; onSearchChanged(it) },
-                modifier = Modifier.weight(1f),
-                singleLine = true,
-                label = { Text("搜索") }
-            )
-            OutlinedTextField(
-                value = replacement,
-                onValueChange = { replacement = it; onReplaceChanged(it) },
-                modifier = Modifier.weight(1f),
-                singleLine = true,
-                label = { Text("替换") }
-            )
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Button(onClick = onPrevious) { Text("上一个") }
-            Button(onClick = onNext) { Text("下一个") }
-            Button(onClick = onReplace) { Text("替换") }
-            Button(onClick = onReplaceAll) { Text("全部替换") }
-            Button(onClick = onLoadLargeFile) { Text("大文件") }
-            Button(onClick = onOpenLogs) { Text("日志") }
+        if (showSearchPanel) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    OutlinedTextField(
+                        value = search,
+                        onValueChange = { search = it; onSearchChanged(it) },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        label = { Text("搜索内容") }
+                    )
+                    OutlinedTextField(
+                        value = replacement,
+                        onValueChange = { replacement = it; onReplaceChanged(it) },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        label = { Text("替换为") }
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    androidx.compose.material3.TextButton(onClick = onPrevious) { Text("上一个") }
+                    androidx.compose.material3.TextButton(onClick = onNext) { Text("下一个") }
+                    androidx.compose.material3.TextButton(onClick = onReplace) { Text("替换") }
+                    androidx.compose.material3.TextButton(onClick = onReplaceAll) { Text("全部替换") }
+                }
+            }
         }
         AndroidView(
             factory = { editor },
