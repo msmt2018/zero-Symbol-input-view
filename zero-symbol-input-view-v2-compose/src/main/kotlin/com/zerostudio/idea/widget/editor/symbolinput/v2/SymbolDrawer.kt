@@ -497,7 +497,7 @@ fun SymbolDrawer(
                             group = group,
                             config = layoutConfig,
                             settings = settings,
-                            userScrollEnabled = expansionFraction >= 0.999f,
+                            userScrollEnabled = expansionFraction >= 0.999f && !drawerSnapshot.isDragging,
                             modifier = Modifier.fillMaxSize(),
                             onSymbolClick = { entry ->
                                 usageState?.recordRecentlyUsed(entry.id)
