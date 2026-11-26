@@ -531,7 +531,10 @@ fun SymbolDrawerSettingsScreen(
                             onSettingsChange(decoded)
                         }
                     }.onFailure { errorMessage = it.message ?: "导入失败" }
-                    if (errorMessage == null) importDialog = false
+                    if (errorMessage == null) {
+                        feedbackMessage = if (importGroups) "符号分组导入成功" else "设置导入成功"
+                        importDialog = false
+                    }
                 }) { Text("导入") }
             },
             dismissButton = {
