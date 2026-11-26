@@ -21,29 +21,55 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.settings
 import com.google.gson.Gson
 import com.google.gson.JsonParser
 
-/** Platform-neutral settings persistence contract. */
+/**
+ * Persistence contract for immutable symbol-drawer settings snapshots.
+ * Implementations define their own storage and threading policy; callers should
+ * perform blocking storage work outside Composable bodies.
+ */
 interface SymbolDrawerSettingsRepository {
+    /** Loads the last valid snapshot, recovering to defaults when supported by the implementation. */
     fun load(): SettingsLoadResult
+
+    /** Persists [settings] as the current snapshot. */
     fun save(settings: SymbolDrawerSettings)
+
+    /** Removes the stored snapshot and restores repository defaults. */
     fun reset()
     /** True when a durable user snapshot exists rather than only defaults. */
     fun hasStoredSettings(): Boolean = false
 }
 
+/**
+ * Result of loading settings, including whether invalid persisted data was recovered.
+ *
+ * @property settings validated settings snapshot to apply to the UI.
+ * @property recoveredFromInvalidData true when corrupt/unsupported local data was replaced by a recoverable value.
+ */
 data class SettingsLoadResult(
     val settings: SymbolDrawerSettings,
     val recoveredFromInvalidData: Boolean = false
 )
 
-/** Versioned JSON codec kept separate so defaults and malformed values are testable. */
+/**
+ * Version-aware JSON codec for symbol-drawer settings.
+ *
+ * [decode] supports tolerant local recovery/defaulting. [decodeStrict] is intended
+ * for external backup import and rejects unknown, missing or wrongly typed fields.
+ */
 object SymbolDrawerSettingsCodec {
     private val gson = Gson()
 
+    /** Serializes a validated settings snapshot to its versioned JSON representation. */
     fun encode(settings: SymbolDrawerSettings): String = gson.toJson(settings)
 
+    /** Decodes local/legacy JSON, applying defaults to fields omitted by an older schema. */
     fun decode(json: String): SymbolDrawerSettings = decodeInternal(json, strict = false)
 
-    /** Import path: unlike local preference migration, external backups must be complete. */
+    /**
+     * Decodes an external backup without permissive field recovery.
+     *
+     * @throws IllegalArgumentException if the root, schema version, field set or field types are invalid.
+     */
     fun decodeStrict(json: String): SymbolDrawerSettings = decodeInternal(json, strict = true)
 
     private fun decodeInternal(json: String, strict: Boolean): SymbolDrawerSettings {
