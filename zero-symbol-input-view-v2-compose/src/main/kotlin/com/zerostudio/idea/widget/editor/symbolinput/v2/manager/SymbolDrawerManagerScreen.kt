@@ -552,7 +552,7 @@ fun SymbolDrawerManagerScreen(
                                         enabled = index > 0,
                                         onClick = {
                                             groupMenuId = null
-                                            runUndoable { manager.moveGroup(index, index - 1) }
+                                            runUndoable("已调整分组顺序") { manager.moveGroup(index, index - 1) }
                                         }
                                     )
                                     DropdownMenuItem(
@@ -560,7 +560,7 @@ fun SymbolDrawerManagerScreen(
                                         enabled = index < groups.lastIndex,
                                         onClick = {
                                             groupMenuId = null
-                                            runUndoable { manager.moveGroup(index, index + 1) }
+                                            runUndoable("已调整分组顺序") { manager.moveGroup(index, index + 1) }
                                         }
                                     )
                                     DropdownMenuItem(
@@ -584,7 +584,7 @@ fun SymbolDrawerManagerScreen(
                                         text = { Text("复制分组") },
                                         onClick = {
                                             groupMenuId = null
-                                            runUndoable {
+                                            runUndoable("已复制分组") {
                                                 val duplicate = manager.duplicateGroup(group.id, index + 1)
                                                 selectedGroupId = duplicate.id
                                             }
@@ -943,7 +943,7 @@ fun SymbolDrawerManagerScreen(
                             modifier = Modifier.fillMaxWidth(),
                             onClick = {
                                 if (source != null) {
-                                    runUndoable {
+                                    runUndoable("已复制分组内容") {
                                         manager.copySymbols(
                                             source.id,
                                             source.symbols.mapTo(mutableSetOf()) { it.id },
@@ -990,7 +990,7 @@ fun SymbolDrawerManagerScreen(
             text = { Text(group?.title.orEmpty()) },
             confirmButton = {
                 TextButton(onClick = {
-                    if (runUndoable { manager.removeGroup(groupId) }) deleteGroupId = null
+                    if (runUndoable("已删除分组") { manager.removeGroup(groupId) }) deleteGroupId = null
                 }) { Text(stringResource(R.string.compose_manager_delete)) }
             },
             dismissButton = {
@@ -1092,7 +1092,7 @@ fun SymbolDrawerManagerScreen(
                 TextButton(onClick = {
                     val name = groupName.trim()
                     if (name.isNotEmpty()) {
-                        runUndoable {
+                        runUndoable(if (editingGroupId == null) "已添加分组" else "已重命名分组") {
                             val currentId = editingGroupId
                             if (currentId == null) {
                                 selectedGroupId = manager.addGroup(name).id
@@ -1115,7 +1115,7 @@ fun SymbolDrawerManagerScreen(
             extensions = effectiveActions,
             onDismiss = { symbolDialog = false },
             onSave = { symbol ->
-                runUndoable {
+                runUndoable(if (editingSymbol == null) "已添加符号" else "已更新符号") {
                     if (editingSymbol == null) {
                         manager.addSymbol(targetGroupId, symbol)
                     } else {
@@ -1154,7 +1154,7 @@ fun SymbolDrawerManagerScreen(
                         if (importLegacyJson) LegacySymbolDataCodec.decode(importJson)
                         else SymbolGroupBundleCodec.decode(importJson)
                     }.onFailure { errorMessage = it.message ?: "Invalid import data" }.getOrNull()
-                    if (imported != null && runUndoable { manager.replaceAll(imported) }) {
+                    if (imported != null && runUndoable("已导入分组数据") { manager.replaceAll(imported) }) {
                         selectedGroupId = imported.firstOrNull()?.id
                         refresh()
                         importDialog = false
