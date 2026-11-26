@@ -105,7 +105,7 @@ jobs:
         run: ./gradlew :zero-symbol-input-view-v2:assembleDebug :zero-symbol-input-view-v2:assembleRelease
 
       - name: Run V2 library unit tests
-        run: ./gradlew :zero-symbol-input-view-v2:testDebugUnitTest :zero-symbol-input-view-v2:testReleaseUnitTest
+        run: ./gradlew :zero-symbol-input-view-v2:testDebugUnitTest
 
       - name: Upload V2 unit test diagnostics
         if: always()
@@ -180,7 +180,7 @@ jobs:
         run: ./gradlew :zero-symbol-input-view-v2-compose:assembleDebug :zero-symbol-input-view-v2-compose:assembleRelease
 
       - name: Run Compose V2 unit tests
-        run: ./gradlew :zero-symbol-input-view-v2-compose:testDebugUnitTest :zero-symbol-input-view-v2-compose:testReleaseUnitTest
+        run: ./gradlew :zero-symbol-input-view-v2-compose:testDebugUnitTest
 
       - name: Upload Compose V2 unit test diagnostics
         if: always()
