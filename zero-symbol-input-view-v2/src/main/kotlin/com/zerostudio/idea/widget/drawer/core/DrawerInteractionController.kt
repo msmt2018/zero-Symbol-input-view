@@ -43,8 +43,8 @@ class DrawerInteractionController(
     private var minimumHeight = 0
     private var maximumHeight = 0
     private var height = 0
-    private var animationDurationMs = DEFAULT_ANIMATION_DURATION_MS
-    private var flingVelocityDpPerSecond = DEFAULT_FLING_VELOCITY_DP_PER_SECOND
+    private var animationDurationMs: Long = DEFAULT_ANIMATION_DURATION_MS
+    private var flingVelocityDpPerSecond: Float = DEFAULT_FLING_VELOCITY_DP_PER_SECOND
 
     val currentHeightPx: Int get() = height
     val isDragging: Boolean get() = dragging
@@ -271,12 +271,12 @@ class DrawerInteractionController(
     }
 
     companion object {
-        private const val AXIS_UNDECIDED = 0
-        private const val AXIS_HORIZONTAL = 1
-        private const val AXIS_VERTICAL = 2
-        private const val AXIS_LOCK_RATIO = 1.15f
-        private const val DEFAULT_ANIMATION_DURATION_MS = 220L
-        private const val DEFAULT_FLING_VELOCITY_DP_PER_SECOND = 900f
+        private const val AXIS_UNDECIDED: Int = 0
+        private const val AXIS_HORIZONTAL: Int = 1
+        private const val AXIS_VERTICAL: Int = 2
+        private const val AXIS_LOCK_RATIO: Float = 1.15f
+        private const val DEFAULT_ANIMATION_DURATION_MS: Long = 220L
+        private const val DEFAULT_FLING_VELOCITY_DP_PER_SECOND: Float = 900f
 
         /** Shared policy for nested vertical content and continuous drawer movement. */
         @JvmStatic

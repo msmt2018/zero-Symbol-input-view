@@ -1,7 +1,9 @@
 /*
- * This file is part of zero-Symbol-input-view-V2 Compose.
+ * This file is part of Zero Symbol Input View.
  * Copyright (C) 2026 android_zero
- * SPDX-License-Identifier: AGPL-3.0-only AND GPL-3.0-only AND Apache-2.0
+ * SPDX-License-Identifier: AGPL-3.0-only
+ * License text: https://www.gnu.org/licenses/agpl-3.0.html
+ * Project additional terms: ADDITIONAL-TERMS.md
  */
 package com.zerostudio.idea.widget.drawer.core
 
