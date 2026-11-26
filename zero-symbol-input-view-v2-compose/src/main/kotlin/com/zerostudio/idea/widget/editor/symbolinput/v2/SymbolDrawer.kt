@@ -33,8 +33,11 @@ import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -66,6 +69,8 @@ import androidx.compose.foundation.pager.rememberPagerState
 import com.zerostudio.idea.widget.editor.symbolinput.v2.compose.R
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.DrawerConfig
 import com.zerostudio.idea.widget.drawer.adapter.SymbolDrawerAnchorAdapter
+import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.AdaptiveGridResolver
+import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowAdaptiveInfo
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.manager.SymbolDrawerUsageState
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
@@ -181,121 +186,193 @@ fun SymbolDrawer(
 ) {
     val safeGroups = groups
     val density = LocalDensity.current
-    // Use the exact same geometry resolver as the published View V2 module.
-    // In particular, do not derive drawer anchors from screenHeightDp: that
-    // makes the collapsed grid change behavior in landscape orientation.
-    val anchors = remember(safeGroups, config, density.density) {
-        SymbolDrawerAnchorAdapter.resolve(
-            groups = safeGroups,
-            config = config,
-            density = density.density
-        )
-    }
-    val collapsedHeightPx = anchors.collapsedHeightPx
-    val expandedHeightPx = anchors.expandedHeightPx
-    val holder = state.stateHolder
-    val drawerSnapshot = rememberDrawerStateSnapshot(holder)
-    val targetAnchor = drawerSnapshot.targetAnchorId?.let { id ->
-        drawerSnapshot.anchors.firstOrNull { it.id == id }
-    }
-    val targetHeightPx = targetAnchor?.heightPx ?: drawerSnapshot.currentHeightPx
-    val animatedHeightPx by animateIntAsState(
-        targetValue = if (drawerSnapshot.isDragging) drawerSnapshot.currentHeightPx else targetHeightPx,
-        animationSpec = if (!state.isGeometryInitialized || drawerSnapshot.isDragging) snap() else
-            tween<Int>(config.animationDurationMs.coerceIn(0L, 1200L).toInt()),
-        label = "symbol-drawer-height"
-    )
-    val animationGeneration = holder.activeAnimationGeneration
 
-    LaunchedEffect(state, collapsedHeightPx, expandedHeightPx, density.density) {
-        state.synchronizeGeometry(collapsedHeightPx, expandedHeightPx, density.density)
-    }
-    LaunchedEffect(holder, animatedHeightPx, animationGeneration, targetAnchor?.id) {
-        val generation = animationGeneration ?: return@LaunchedEffect
-        if (!holder.updateAnimatedHeight(animatedHeightPx, generation)) return@LaunchedEffect
-        val target = targetAnchor ?: return@LaunchedEffect
-        if (animatedHeightPx == target.heightPx) {
-            holder.finishAnimation(target.id, generation)
+    // Resolve every dimension from the constraints actually assigned by the
+    // parent. This remains correct in landscape, split-screen and resizable
+    // windows; it does not depend on physical display metrics.
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val safeHeightDp = if (maxHeight == androidx.compose.ui.unit.Dp.Infinity) {
+            config.maxExpandedHeightDp.toFloat()
+        } else {
+            maxHeight.value
         }
-    }
-    val drawerHeight = with(density) { animatedHeightPx.toDp() }
-    val expansionFraction = ((animatedHeightPx - collapsedHeightPx).toFloat() /
-        (expandedHeightPx - collapsedHeightPx).coerceAtLeast(1)).coerceIn(0f, 1f)
-    val revealedIndicatorHeight = (config.indicatorHeightDp * expansionFraction).coerceAtLeast(0f).dp
-    val nestedScrollConnection = remember(holder, density.density) {
-        DrawerNestedScrollConnection(
-            stateHolder = holder,
-            minimumFlingVelocityPxPerSecond = with(density) { 900.dp.toPx() }
-        )
-    }
-
-    val pagerState = rememberPagerState(
-        initialPage = state.selectedPage.coerceIn(0, (safeGroups.size - 1).coerceAtLeast(0)),
-        pageCount = { safeGroups.size }
-    )
-
-    LaunchedEffect(state.selectedPage, safeGroups.size) {
-        if (safeGroups.isNotEmpty()) {
-            val target = state.selectedPage.coerceIn(0, safeGroups.lastIndex)
-            if (pagerState.currentPage != target) pagerState.animateScrollToPage(target)
-        }
-    }
-    LaunchedEffect(pagerState.currentPage) {
-        state.selectedPage = pagerState.currentPage
-    }
-    LaunchedEffect(safeGroups.size) {
-        if (safeGroups.isEmpty()) state.selectedPage = 0
-        else state.selectedPage = state.selectedPage.coerceIn(0, safeGroups.lastIndex)
-    }
-
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(drawerHeight)
-            .nestedScroll(nestedScrollConnection),
-        color = MaterialTheme.colorScheme.surface,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        tonalElevation = 2.dp,
-        shape = MaterialTheme.shapes.large
-    ) {
-        Column(Modifier.fillMaxSize()) {
-            SymbolGroupIndicator(
-                groups = safeGroups,
-                selectedIndex = pagerState.currentPage,
-                onGroupSelected = { state.selectedPage = it },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(revealedIndicatorHeight),
-                settings = settings
+        val windowInfo = remember(maxWidth, safeHeightDp, density.density) {
+            WindowAdaptiveInfo(
+                widthDp = maxWidth.value,
+                heightDp = safeHeightDp,
+                density = density.density
             )
+        }
+        val gridSpec = remember(windowInfo, config, settings) {
+            AdaptiveGridResolver.resolve(
+                window = windowInfo,
+                preferredColumns = config.columns,
+                minimumCellWidthDp = maxOf(36f, settings.minimumTouchTargetDp.toFloat()),
+                baseHorizontalSpacingDp = config.cellHorizontalSpacingDp,
+                baseVerticalSpacingDp = config.cellVerticalSpacingDp,
+                adaptive = true,
+                lockColumnCount = !settings.showFullSymbolLabels
+            )
+        }
+        val layoutConfig = remember(config, gridSpec) {
+            config.copy(
+                columns = gridSpec.columnCount,
+                cellHorizontalSpacingDp = gridSpec.horizontalSpacingDp,
+                cellVerticalSpacingDp = gridSpec.verticalSpacingDp
+            )
+        }
 
-            if (safeGroups.isEmpty()) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(
-                        text = stringResource(R.string.compose_symbol_drawer_empty),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
+        // V2 anchor geometry remains the canonical symbol-drawer specification,
+        // but is resolved only after adaptive grid columns have been selected.
+        val anchors = remember(safeGroups, layoutConfig, density.density) {
+            SymbolDrawerAnchorAdapter.resolve(
+                groups = safeGroups,
+                config = layoutConfig,
+                density = density.density
+            )
+        }
+        val viewportHeightPx = with(density) {
+            if (maxHeight == androidx.compose.ui.unit.Dp.Infinity) {
+                layoutConfig.maxExpandedHeightDp.dp.toPx()
             } else {
-                HorizontalPager(
-                    state = pagerState,
-                    modifier = Modifier.fillMaxSize(),
-                    key = { page -> safeGroups[page].id }
-                ) { page ->
-                    val group = safeGroups[page]
-                    SymbolPage(
-                        group = group,
-                        config = config,
-                        settings = settings,
-                        userScrollEnabled = expansionFraction >= 0.999f,
+                maxHeight.toPx()
+            }
+        }.toInt().coerceAtLeast(1)
+        val collapsedHeightPx = anchors.collapsedHeightPx.coerceAtMost(viewportHeightPx)
+        val expandedHeightPx = anchors.expandedHeightPx
+            .coerceAtMost(viewportHeightPx)
+            .coerceAtLeast(collapsedHeightPx)
+
+        val holder = state.stateHolder
+        val drawerSnapshot = rememberDrawerStateSnapshot(holder)
+        val targetAnchor = drawerSnapshot.targetAnchorId?.let { id ->
+            drawerSnapshot.anchors.firstOrNull { it.id == id }
+        }
+        val targetHeightPx = targetAnchor?.heightPx ?: drawerSnapshot.currentHeightPx
+        val animatedHeightPx by animateIntAsState(
+            targetValue = if (drawerSnapshot.isDragging) drawerSnapshot.currentHeightPx else targetHeightPx,
+            animationSpec = if (!state.isGeometryInitialized || drawerSnapshot.isDragging) snap() else
+                tween<Int>(layoutConfig.animationDurationMs.coerceIn(0L, 1200L).toInt()),
+            label = "symbol-drawer-height"
+        )
+        val animationGeneration = holder.activeAnimationGeneration
+
+        LaunchedEffect(state, collapsedHeightPx, expandedHeightPx, density.density) {
+            state.synchronizeGeometry(collapsedHeightPx, expandedHeightPx, density.density)
+        }
+        LaunchedEffect(holder, animatedHeightPx, animationGeneration, targetAnchor?.id) {
+            val generation = animationGeneration ?: return@LaunchedEffect
+            if (!holder.updateAnimatedHeight(animatedHeightPx, generation)) return@LaunchedEffect
+            val target = targetAnchor ?: return@LaunchedEffect
+            if (animatedHeightPx == target.heightPx) {
+                holder.finishAnimation(target.id, generation)
+            }
+        }
+
+        val drawerHeight = with(density) { animatedHeightPx.toDp() }
+        val expansionFraction = ((animatedHeightPx - collapsedHeightPx).toFloat() /
+            (expandedHeightPx - collapsedHeightPx).coerceAtLeast(1)).coerceIn(0f, 1f)
+        val revealedIndicatorHeight =
+            (layoutConfig.indicatorHeightDp * expansionFraction).coerceAtLeast(0f).dp
+        val minimumFlingVelocity = with(density) {
+            layoutConfig.flingVelocityDpPerSecond.dp.toPx()
+        }
+        val nestedScrollConnection = remember(holder, density.density) {
+            DrawerNestedScrollConnection(
+                stateHolder = holder,
+                minimumFlingVelocityPxPerSecond = minimumFlingVelocity
+            )
+        }
+
+        val pagerState = rememberPagerState(
+            initialPage = state.selectedPage.coerceIn(0, (safeGroups.size - 1).coerceAtLeast(0)),
+            pageCount = { safeGroups.size }
+        )
+
+        LaunchedEffect(state.selectedPage, safeGroups.size) {
+            if (safeGroups.isNotEmpty()) {
+                val target = state.selectedPage.coerceIn(0, safeGroups.lastIndex)
+                if (pagerState.currentPage != target) pagerState.animateScrollToPage(target)
+            }
+        }
+        LaunchedEffect(pagerState.currentPage) {
+            state.selectedPage = pagerState.currentPage
+        }
+        LaunchedEffect(safeGroups.size) {
+            if (safeGroups.isEmpty()) state.selectedPage = 0
+            else state.selectedPage = state.selectedPage.coerceIn(0, safeGroups.lastIndex)
+        }
+
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(drawerHeight)
+                .nestedScroll(nestedScrollConnection)
+                // A disabled LazyVerticalGrid cannot dispatch nested-scroll
+                // gestures. The sheet therefore owns a direct vertical drag
+                // while it is not fully expanded. At the expanded anchor the
+                // grid owns scrolling and nested-scroll returns downward
+                // remainder to the sheet when the grid reaches its first row.
+                .draggable(
+                    orientation = Orientation.Vertical,
+                    enabled = expansionFraction < 0.999f,
+                    onDragStarted = { holder.beginDrag() },
+                    onDragStopped = { velocity ->
+                        if (holder.isDragging) {
+                            holder.endDrag(
+                                fingerVelocityY = velocity,
+                                minimumFlingVelocityPxPerSecond = minimumFlingVelocity
+                            )
+                        }
+                    },
+                    state = androidx.compose.foundation.gestures.rememberDraggableState { delta ->
+                        holder.dragBy(delta)
+                    }
+                ),
+            color = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            tonalElevation = 2.dp,
+            shape = MaterialTheme.shapes.large
+        ) {
+            Column(Modifier.fillMaxSize()) {
+                SymbolGroupIndicator(
+                    groups = safeGroups,
+                    selectedIndex = pagerState.currentPage,
+                    onGroupSelected = { state.selectedPage = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(revealedIndicatorHeight),
+                    settings = settings
+                )
+
+                if (safeGroups.isEmpty()) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(
+                            text = stringResource(R.string.compose_symbol_drawer_empty),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                } else {
+                    HorizontalPager(
+                        state = pagerState,
                         modifier = Modifier.fillMaxSize(),
-                        onSymbolClick = { entry ->
-                            usageState?.recordRecentlyUsed(entry.id)
-                            onSymbolClick(entry)
-                        },
-                        onSymbolLongClick = onSymbolLongClick
-                    )
+                        key = { page -> safeGroups[page].id }
+                    ) { page ->
+                        val group = safeGroups[page]
+                        SymbolPage(
+                            group = group,
+                            config = layoutConfig,
+                            settings = settings,
+                            userScrollEnabled = expansionFraction >= 0.999f,
+                            modifier = Modifier.fillMaxSize(),
+                            onSymbolClick = { entry ->
+                                usageState?.recordRecentlyUsed(entry.id)
+                                onSymbolClick(entry)
+                            },
+                            onSymbolLongClick = onSymbolLongClick
+                        )
+                    }
                 }
             }
         }
