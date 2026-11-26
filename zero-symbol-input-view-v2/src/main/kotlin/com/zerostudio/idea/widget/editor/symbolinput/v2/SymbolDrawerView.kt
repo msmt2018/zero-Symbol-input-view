@@ -73,8 +73,8 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSet
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettingsScreen
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.ThemeMode
 import com.zerostudio.idea.widget.editor.symbolinput.v2.state.DrawerGeometry
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.adapter.SymbolDrawerAnchorAdapter
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerInteractionController
+import com.zerostudio.idea.widget.drawer.adapter.SymbolDrawerAnchorAdapter
+import com.zerostudio.idea.widget.drawer.core.DrawerInteractionController
 import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.SymbolGroupIndicator
 import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.SymbolPageAdapter
 import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerExtensionRegistry

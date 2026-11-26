@@ -46,7 +46,7 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2
 
 import android.view.MotionEvent
 import androidx.test.core.app.ActivityScenario
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerInteractionController
+import com.zerostudio.idea.widget.drawer.core.DrawerInteractionController
 import com.zerostudio.idea.widget.editor.symbolinput.v2.testing.DrawerTestHostActivity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

@@ -48,9 +48,9 @@ import android.view.View
 import android.widget.TextView
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerPage
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerPageHost
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.panel.DrawerPanelContent
+import com.zerostudio.idea.widget.drawer.navigation.DrawerPage
+import com.zerostudio.idea.widget.drawer.navigation.DrawerPageHost
+import com.zerostudio.idea.widget.drawer.panel.DrawerPanelContent
 import com.zerostudio.idea.widget.editor.symbolinput.v2.testing.DrawerTestHostActivity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

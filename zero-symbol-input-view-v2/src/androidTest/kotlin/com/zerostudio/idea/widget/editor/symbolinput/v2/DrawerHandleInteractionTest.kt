@@ -54,11 +54,11 @@ import android.widget.TextView
 import android.widget.ImageButton
 import androidx.core.view.ViewCompat
 import androidx.core.widget.NestedScrollView
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorStrategies
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.panel.DrawerPanelContent
+import com.zerostudio.idea.widget.drawer.core.DrawerAnchorStrategies
+import com.zerostudio.idea.widget.drawer.panel.DrawerPanelContent
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.DrawerContainer
+import com.zerostudio.idea.widget.drawer.DrawerContainer
 import com.zerostudio.idea.widget.editor.symbolinput.v2.testing.DrawerTestHostActivity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

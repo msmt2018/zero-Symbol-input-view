@@ -44,7 +44,7 @@
  */
 package com.zerostudio.idea.widget.editor.symbolinput.v2
 
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerInteractionController
+import com.zerostudio.idea.widget.drawer.core.DrawerInteractionController
 
 /**
  * @deprecated Gesture arbitration is now owned by the feature-neutral drawer
