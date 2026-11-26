@@ -327,6 +327,11 @@ class MainActivity : AppCompatActivity() {
                     onChooseTheme = ::chooseTheme,
                     onOpenLogs = ::openLogs,
                     onLoadLargeFile = { openAssetsFile("samples/big_sample.txt") },
+                    onMenuAction = { itemId ->
+                        val menuHost = PopupMenu(this, View(this))
+                        menuHost.inflate(R.menu.menu_main)
+                        menuHost.menu.findItem(itemId)?.let(::onOptionsItemSelected)
+                    },
                     groupRepository = symbolGroupRepository,
                     settingsRepository = symbolSettingsRepository,
                     onSymbolAction = { symbol ->
@@ -1203,6 +1208,7 @@ private fun MainActivityComposeContent(
     onChooseTheme: () -> Unit,
     onOpenLogs: () -> Unit,
     onLoadLargeFile: () -> Unit,
+    onMenuAction: (Int) -> Unit,
     groupRepository: SymbolGroupRepository,
     settingsRepository: SymbolDrawerSettingsRepository,
     onSymbolAction: (SymbolEntry) -> Unit
@@ -1273,6 +1279,51 @@ private fun MainActivityComposeContent(
                     androidx.compose.material3.DropdownMenuItem(
                         text = { Text("查看日志") },
                         onClick = { overflowMenuExpanded = false; onOpenLogs() }
+                    )
+                    androidx.compose.material3.HorizontalDivider()
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("光标移动：行首/行尾/上下左右") },
+                        onClick = { overflowMenuExpanded = false; onMenuAction(R.id.goto_end) }
+                    )
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("切换自动换行") },
+                        onClick = { overflowMenuExpanded = false; onMenuAction(R.id.text_wordwrap) }
+                    )
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("切换行号显示") },
+                        onClick = { overflowMenuExpanded = false; onMenuAction(R.id.editor_line_number) }
+                    )
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("切换软键盘") },
+                        onClick = { overflowMenuExpanded = false; onMenuAction(R.id.softKbdEnabled) }
+                    )
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("切换语言") },
+                        onClick = { overflowMenuExpanded = false; onMenuAction(R.id.switch_language) }
+                    )
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("切换配色方案") },
+                        onClick = { overflowMenuExpanded = false; onMenuAction(R.id.switch_colors) }
+                    )
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("切换字体") },
+                        onClick = { overflowMenuExpanded = false; onMenuAction(R.id.switch_typeface) }
+                    )
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("抽屉 API 测试") },
+                        onClick = { overflowMenuExpanded = false; onMenuAction(R.id.open_drawer_api_lab) }
+                    )
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("打开测试 Activity") },
+                        onClick = { overflowMenuExpanded = false; onMenuAction(R.id.open_test_activity) }
+                    )
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("分页编辑测试") },
+                        onClick = { overflowMenuExpanded = false; onMenuAction(R.id.open_paged_edit) }
+                    )
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("LSP 测试") },
+                        onClick = { overflowMenuExpanded = false; onMenuAction(R.id.open_lsp_activity) }
                     )
                 }
             }
@@ -1346,6 +1397,7 @@ private fun MainActivityComposeContent(
             ) {
                 SymbolDrawerSettingsScreen(
                     settings = drawerSettings,
+                    groupRepository = groupRepository,
                     onSettingsChange = { updated ->
                         drawerSettings = updated
                         settingsRepository.save(updated)
