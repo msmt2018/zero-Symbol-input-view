@@ -24,19 +24,19 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.AdaptiveWindowO
 import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.AdaptiveWindowController
 import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowAdaptiveInfo
 import com.zerostudio.idea.widget.drawer.adaptive.rememberAdaptiveWindowSnapshot
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.DrawerContainer
+import com.zerostudio.idea.widget.drawer.DrawerContainer
 import com.zerostudio.idea.widget.editor.symbolinput.v2.manager.SymbolDrawerManagerScreen
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.ObservableSymbolGroupRepository
 import com.zerostudio.idea.widget.drawer.core.DrawerAnchorInput
 import com.zerostudio.idea.widget.drawer.core.DrawerStateHolder
 import com.zerostudio.idea.widget.drawer.core.ExistingHeightAnchorStrategy
 import com.zerostudio.idea.widget.drawer.core.rememberDrawerStateSnapshot
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.rememberDrawerContainerState
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerPage
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerPageHost
+import com.zerostudio.idea.widget.drawer.rememberDrawerContainerState
+import com.zerostudio.idea.widget.drawer.navigation.DrawerPage
+import com.zerostudio.idea.widget.drawer.navigation.DrawerPageHost
 import com.zerostudio.idea.widget.drawer.navigation.DrawerNavigationController
 import com.zerostudio.idea.widget.drawer.navigation.rememberDrawerNavigationSnapshot
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.panel.DrawerPanelContent
+import com.zerostudio.idea.widget.drawer.panel.DrawerPanelContent
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
@@ -100,7 +100,7 @@ class ComposeMigrationContractTest {
     }
 
     @Test fun drawerContainerUsesCompositionOwnedExpansionState() {
-        var state: com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.DrawerContainerState? = null
+        var state: com.zerostudio.idea.widget.drawer.DrawerContainerState? = null
         compose.setContent {
             val drawerState = rememberDrawerContainerState()
             state = drawerState
