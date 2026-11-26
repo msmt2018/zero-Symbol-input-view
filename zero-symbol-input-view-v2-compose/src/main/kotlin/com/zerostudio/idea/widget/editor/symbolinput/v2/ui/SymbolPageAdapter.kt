@@ -51,7 +51,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -85,12 +85,14 @@ fun SymbolPage(
     config: DrawerConfig,
     settings: SymbolDrawerSettings,
     modifier: Modifier = Modifier,
+    userScrollEnabled: Boolean = false,
     onSymbolClick: (SymbolEntry) -> Unit,
     onSymbolLongClick: ((SymbolEntry) -> Unit)? = null
 ) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(config.columns.coerceIn(1, 30)),
         modifier = modifier.fillMaxSize().padding(horizontal = 4.dp),
+        userScrollEnabled = userScrollEnabled,
         verticalArrangement = Arrangement.spacedBy(config.cellVerticalSpacingDp.dp),
         horizontalArrangement = Arrangement.spacedBy(config.cellHorizontalSpacingDp.dp)
     ) {
@@ -118,7 +120,7 @@ private fun SymbolCell(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = config.cellHeightDp.coerceAtLeast(config.minimumTouchTargetDp).dp)
+            .height(config.cellHeightDp.coerceAtLeast(config.minimumTouchTargetDp).dp)
             .clip(MaterialTheme.shapes.small)
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(horizontal = 2.dp, vertical = 4.dp),
