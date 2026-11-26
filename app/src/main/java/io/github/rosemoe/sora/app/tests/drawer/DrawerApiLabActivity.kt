@@ -81,7 +81,7 @@ private fun DrawerApiLabScreen() {
     val playerState = remember(player) { mutableStateOf(player.state) }
     val shuffleState = remember { mutableStateOf(true) }
     var selectedPage by remember { mutableStateOf("player") }
-    var selectedAnchor by remember { mutableStateOf("peek") }
+    var selectedAnchor by remember { mutableStateOf("hidden") }
     val drawerState = com.zerostudio.idea.widget.drawer.rememberDrawerContainerState()
 
     DisposableEffect(player) {
@@ -94,7 +94,7 @@ private fun DrawerApiLabScreen() {
 
     val config = remember {
         DrawerConfig(
-            anchorStrategy = DrawerAnchorStrategies.fourStage(),
+            anchorStrategy = DrawerAnchorStrategies.fourStageWithHidden(),
             style = DrawerStyle(
                 dimensions = DrawerDimensions(
                     peekHeightDp = 54f,
@@ -116,7 +116,7 @@ private fun DrawerApiLabScreen() {
             enableDrag = true,
             enableNestedScroll = true,
             enableEdgeToEdge = true,
-            dismissOnScrimTap = false,
+            dismissOnScrimTap = true,
             navigationConfig = DrawerNavigationConfig(
                 enabled = true,
                 placement = DrawerNavigationPlacement.TOP
@@ -155,7 +155,7 @@ private fun DrawerApiLabScreen() {
 
     BackHandler(enabled = drawerState.expanded) {
         drawerState.collapse()
-        selectedAnchor = "peek"
+        selectedAnchor = "hidden"
     }
 
     DrawerContainer(
@@ -165,6 +165,7 @@ private fun DrawerApiLabScreen() {
         pages = pages,
         selectedPageId = selectedPage,
         onPageSelected = { selectedPage = it.id },
+        onDismiss = { selectedAnchor = "hidden" },
         modifier = Modifier.fillMaxSize()
     ) {
         Column(
@@ -205,6 +206,10 @@ private fun DrawerApiLabScreen() {
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
+                        AnchorButton("0%", "hidden", selectedAnchor, Modifier.weight(1f)) {
+                            selectedAnchor = it
+                            drawerState.controller.moveToAnchor(it)
+                        }
                         AnchorButton("30%", "peek", selectedAnchor, Modifier.weight(1f)) {
                             selectedAnchor = it
                             drawerState.controller.moveToAnchor(it)
@@ -229,12 +234,12 @@ private fun DrawerApiLabScreen() {
                     }
                     OutlinedButton(
                         onClick = {
-                            selectedAnchor = "peek"
+                            selectedAnchor = "hidden"
                             drawerState.collapse()
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("收回至 30%")
+                        Text("完全隐藏抽屉（0%）")
                     }
                 }
             }
@@ -256,7 +261,7 @@ private fun DrawerApiLabScreen() {
                     Button(
                         onClick = {
                             selectedPage = "player"
-                            selectedAnchor = "80%"
+                            selectedAnchor = "large"
                             drawerState.controller.moveToAnchor("large")
                         },
                         modifier = Modifier.fillMaxWidth()
@@ -267,7 +272,7 @@ private fun DrawerApiLabScreen() {
             }
 
             Text(
-                "拖动抽屉顶部或面板区域，可在 30% / 50% / 80% / 100% 四个稳定锚点之间切换。",
+                "抽屉默认处于 0% 完全隐藏状态；打开后可在 30% / 50% / 80% / 100% 四个稳定锚点之间切换。",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -455,7 +460,7 @@ private fun DrawerApiReferencePanel() {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text("四档锚点 API", style = MaterialTheme.typography.titleLarge)
-        Text("DrawerAnchorStrategies.fourStage() 提供稳定的 peek / half / large / expanded 锚点。")
+        Text("DrawerAnchorStrategies.fourStageWithHidden() 提供 hidden(0%) / peek(30%) / half(50%) / large(80%) / expanded(100%) 五个锚点。")
         Text("每个锚点都根据父容器实际测量高度计算，并由 DrawerStateHolder 统一管理拖动、吸附和动画。")
         HorizontalDivider()
         Text("全屏与系统栏", style = MaterialTheme.typography.titleMedium)
