@@ -267,8 +267,8 @@ fun SymbolDrawerManagerScreen(
         modifier = modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Match the View V2 manager shell: compact search and overflow
-        // actions at the top, followed by group tabs, search field and list.
+        // View V2's manager shell: search and overflow actions in one compact
+        // header, followed by group tabs, search and the active symbol list.
         Row(
             Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End,
@@ -306,7 +306,12 @@ fun SymbolDrawerManagerScreen(
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text(if (batchMode) stringResource(R.string.compose_manager_batch_done) else stringResource(R.string.compose_manager_batch_select)) },
+                        text = {
+                            Text(
+                                if (batchMode) stringResource(R.string.compose_manager_batch_done)
+                                else stringResource(R.string.compose_manager_batch_select)
+                            )
+                        },
                         onClick = {
                             moreMenuExpanded = false
                             if (batchMode) selectedSymbolIds = emptySet()
@@ -315,18 +320,27 @@ fun SymbolDrawerManagerScreen(
                     )
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.compose_manager_filter_all)) },
-                        onClick = { moreMenuExpanded = false; activeFilter = SymbolManagerFilter.ALL }
+                        onClick = {
+                            moreMenuExpanded = false
+                            activeFilter = SymbolManagerFilter.ALL
+                        }
                     )
                     if (favoritesFeatureVisible) {
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.compose_manager_filter_favorites)) },
-                            onClick = { moreMenuExpanded = false; activeFilter = SymbolManagerFilter.FAVORITES }
+                            onClick = {
+                                moreMenuExpanded = false
+                                activeFilter = SymbolManagerFilter.FAVORITES
+                            }
                         )
                     }
                     if (recentFeatureVisible) {
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.compose_manager_filter_recent)) },
-                            onClick = { moreMenuExpanded = false; activeFilter = SymbolManagerFilter.RECENT }
+                            onClick = {
+                                moreMenuExpanded = false
+                                activeFilter = SymbolManagerFilter.RECENT
+                            }
                         )
                     }
                     DropdownMenuItem(
@@ -381,14 +395,44 @@ fun SymbolDrawerManagerScreen(
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text(stringResource(if (previewModeActive) R.string.compose_manager_finish_preview else R.string.compose_manager_preview)) },
+                        text = {
+                            Text(
+                                stringResource(
+                                    if (previewModeActive) R.string.compose_manager_finish_preview
+                                    else R.string.compose_manager_preview
+                                )
+                            )
+                        },
                         onClick = {
                             moreMenuExpanded = false
                             if (previewModeActive) {
+                                previewModeActive = false
+                                previewSnapshot = null
+                                previewSelectedGroupId = null
+                            } else {
+                                previewSnapshot = groups.map { it.copy(symbols = it.symbols.toList()) }
+                                previewSelectedGroupId = selectedGroupId
+                                previewModeActive = true
+                            }
+                        }
+                    )
+                }
+            }
+            if (onClose != null) {
+                TextButton(onClick = onClose) {
+                    Text(stringResource(R.string.compose_manager_close))
+                }
+            }
+        }
+
+        if (previewModeActive) {
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(stringResource(R.string.compose_manager_preview), style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            stringResource(R.string.compose_manager_preview),
+                            style = MaterialTheme.typography.titleSmall
+                        )
                         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             TextButton(onClick = {
                                 val snapshot = previewSnapshot ?: return@TextButton
@@ -417,6 +461,7 @@ fun SymbolDrawerManagerScreen(
                 }
             }
         }
+
         val selectedGroupIndex = groups.indexOfFirst { it.id == selectedGroupId }
             .coerceIn(0, (groups.size - 1).coerceAtLeast(0))
         val groupPagerState = rememberPagerState(
