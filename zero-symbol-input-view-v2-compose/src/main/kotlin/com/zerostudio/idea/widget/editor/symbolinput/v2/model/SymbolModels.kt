@@ -46,8 +46,11 @@
 package com.zerostudio.idea.widget.editor.symbolinput.v2.model
 
 /**
- * Immutable symbol data consumed by the drawer UI.
- * IDs must remain stable across refreshes. The UI never mutates caller-owned lists.
+ * A logical page/group of symbols displayed by SymbolDrawer.
+ *
+ * @property id Stable, non-blank identity used to preserve selection across refreshes.
+ * @property title User-visible group title.
+ * @property symbols Ordered snapshot of the entries in this group.
  */
 data class SymbolGroup(
     val id: String,
@@ -55,6 +58,22 @@ data class SymbolGroup(
     val symbols: List<SymbolEntry>
 )
 
+/**
+ * A selectable symbol and its short-/long-press action definitions.
+ *
+ * IDs must be unique across the repository snapshot. Legacy fields are retained
+ * so V1 JSON can be decoded and re-encoded without losing numeric action data.
+ *
+ * @property id Stable symbol identifier; zero may be reserved by manager APIs for generated IDs.
+ * @property label Visible symbol label or insertion glyph.
+ * @property shortAction Action invoked by a short click.
+ * @property longAction Optional action invoked by a long click.
+ * @property icon Optional presentation icon token.
+ * @property legacyShortActionId Original V1 short-action numeric identifier.
+ * @property legacyShortText Original V1 short-action payload/text.
+ * @property legacyLongActionId Original V1 long-action numeric identifier.
+ * @property legacyLongText Original V1 long-action payload/text.
+ */
 data class SymbolEntry(
     val id: Long,
     val label: String,
@@ -68,7 +87,11 @@ data class SymbolEntry(
     val legacyLongText: String? = null
 )
 
-/** Typed V2 action contract, independent from legacy integer IDs and editor APIs. */
+/**
+ * Typed, editor-neutral operation associated with a SymbolEntry.
+ * Implementations describe intent; SymbolActionHost performs the operation
+ * against the currently focused editor/document.
+ */
 sealed interface SymbolAction {
     data class InsertText(val template: String) : SymbolAction
     data class ReplaceSelection(val text: String) : SymbolAction
@@ -83,16 +106,45 @@ sealed interface SymbolAction {
     data class Extension(val extensionId: String, val payload: String? = null) : SymbolAction
 }
 
+/** Relative or absolute cursor destination used by MoveCursor. */
 enum class CursorTarget {
     LEFT, RIGHT, UP, DOWN, LINE_START, LINE_END, DOCUMENT_START, DOCUMENT_END
 }
+/** Deletion direction/range used by Delete. */
 enum class DeleteKind { BACKWARD, FORWARD, CURRENT_LINE, TO_LINE_START, TO_LINE_END }
+/** Built-in transformation applied to the current selection. */
 enum class SelectionTransform { UPPERCASE, LOWERCASE, TOGGLE_CASE }
+/** Clipboard operation requested by Clipboard. */
 enum class ClipboardOperation { COPY, CUT, PASTE }
 
-/** Migration-only representation of the first-generation action schema. */
+/**
+ * Loss-preserving representation of a first-generation numeric action.
+ * This type is intended for import/migration compatibility, not new integrations.
+ *
+ * @property type Original V1 numeric action identifier.
+ * @property payload Original optional action payload.
+ */
 data class LegacySymbolAction(val type: Int, val payload: String? = null)
 
+/**
+ * Symbol-grid presentation and interaction configuration.
+ *
+ * This feature-level configuration is distinct from the generic Drawer
+ * container configuration in the drawer.config package. Dimensions are dp
+ * unless a property name states otherwise. Constructor validation rejects
+ * values outside the supported ranges.
+ *
+ * @property columns Preferred number of symbol columns, in the range 1..30.
+ * @property collapsedRows Number of rows visible while the drawer is collapsed.
+ * @property cellHeightDp Symbol cell height in dp.
+ * @property cellHorizontalSpacingDp Horizontal cell spacing in dp; negative values allow overlap.
+ * @property cellVerticalSpacingDp Vertical cell spacing in dp; negative values allow overlap.
+ * @property indicatorHeightDp Group-indicator height in dp.
+ * @property animationDurationMs Drawer transition duration in milliseconds.
+ * @property flingVelocityDpPerSecond Fling threshold in dp per second.
+ * @property maxExpandedHeightDp Upper bound for expanded drawer height in dp.
+ * @property minimumTouchTargetDp Minimum symbol interaction target in dp.
+ */
 data class DrawerConfig(
     val columns: Int = 10,
     val collapsedRows: Int = 2,
