@@ -19,6 +19,11 @@ class DrawerAnchorStrategyContractTest {
         assertEquals(ExistingHeightAnchorStrategy.ID, DrawerAnchorStrategies.existingHeight().id)
         assertEquals(ThreeStageAnchorStrategy.ID, DrawerAnchorStrategies.threeStage().id)
         assertEquals(ContentBasedAnchorStrategy.ID, DrawerAnchorStrategies.contentBased().id)
+        assertEquals(FourStageAnchorStrategy.ID, DrawerAnchorStrategies.fourStage().id)
+        assertEquals(
+            FourStageAnchorStrategy(0.25f, 0.55f, 0.85f).resolve(input),
+            DrawerAnchorStrategies.fourStage(0.25f, 0.55f, 0.85f).resolve(input)
+        )
         assertEquals(CustomAnchorStrategy.ID, DrawerAnchorStrategies.custom(
             listOf(DrawerAnchor("only", 80, DrawerAnchorState.CUSTOM))
         ).id)
@@ -65,6 +70,36 @@ class DrawerAnchorStrategyContractTest {
         }
         assertEquals(0.1f, ThreeStageAnchorStrategy(0.1f).halfExpandedFraction)
         assertEquals(0.9f, ThreeStageAnchorStrategy(0.9f).halfExpandedFraction)
+    }
+
+
+    @Test fun fourStageResolvesThirtyFiftyEightyAndFullViewportAnchors() {
+        val anchors = FourStageAnchorStrategy().resolve(
+            input.copy(minHeightPx = 80, maxHeightPx = 1000, viewportHeightPx = 1000)
+        )
+        assertEquals(listOf("peek", "half", "large", "expanded"), anchors.map { it.id })
+        assertEquals(listOf(300, 500, 800, 1000), anchors.map { it.heightPx })
+    }
+
+    @Test fun fourStageClampsEveryPositionToHostBounds() {
+        val anchors = FourStageAnchorStrategy().resolve(
+            input.copy(minHeightPx = 400, maxHeightPx = 700, viewportHeightPx = 1000)
+        )
+        assertEquals(listOf(400, 500, 700, 700), anchors.map { it.heightPx })
+    }
+
+    @Test fun fourStageFractionsMustBeStrictlyIncreasingAndBelowOne() {
+        listOf(
+            Triple(Float.NaN, 0.5f, 0.8f),
+            Triple(0.3f, Float.POSITIVE_INFINITY, 0.8f),
+            Triple(0.3f, 0.5f, 1f),
+            Triple(0.5f, 0.3f, 0.8f),
+            Triple(0.3f, 0.8f, 0.7f)
+        ).forEach { (first, second, third) ->
+            assertThrows(IllegalArgumentException::class.java) {
+                FourStageAnchorStrategy(first, second, third)
+            }
+        }
     }
 
     @Test fun anchorAndInputRejectInvalidValues() {
