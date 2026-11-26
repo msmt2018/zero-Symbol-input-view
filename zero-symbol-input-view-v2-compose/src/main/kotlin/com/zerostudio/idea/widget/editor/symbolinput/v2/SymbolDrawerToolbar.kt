@@ -34,6 +34,9 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.data.AndroidLegacySymbol
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.ObservableSymbolGroupRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SharedPreferencesSymbolGroupRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolDrawerDefaults
+import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionExecutor
+import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionHost
+import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionResult
 import com.zerostudio.idea.widget.editor.symbolinput.v2.manager.SymbolDrawerManagerScreen
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
@@ -45,17 +48,17 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSet
  * Complete, ready-to-use Compose symbol toolbar.
  *
  * Owns its repositories, legacy-data migration, settings persistence, manager
- * and settings surfaces, and document pickers. The host only supplies the
- * symbol-action callback and places this composable in its UI.
+ * and settings surfaces, document pickers, and typed action dispatch. The host
+ * only supplies its editor-neutral action host and places this composable.
  *
  * All UI and state are Composition-owned. This API does not require an
  * Activity, Fragment, Android View, ViewModel, or Lifecycle observer.
  */
 @Composable
 fun SymbolDrawerToolbar(
-    onSymbolAction: (SymbolEntry) -> Unit,
+    actionHost: SymbolActionHost,
     modifier: Modifier = Modifier,
-    onSymbolLongAction: ((SymbolEntry) -> Unit)? = null,
+    onActionResult: (SymbolEntry, Boolean, SymbolActionResult) -> Unit = { _, _, _ -> },
     initiallyExpanded: Boolean = false
 ) {
     val context = LocalContext.current
@@ -65,6 +68,7 @@ fun SymbolDrawerToolbar(
     val settingsRepository = remember(context) {
         SharedPreferencesSymbolDrawerSettingsRepository(context.applicationContext)
     }
+    val actionExecutor = remember { SymbolActionExecutor() }
     remember(groupRepository) {
         AndroidLegacySymbolDataMigration.importIfV2Empty(context, groupRepository)
     }
@@ -111,10 +115,16 @@ fun SymbolDrawerToolbar(
             if (symbol.shortAction == SymbolAction.OpenManager) {
                 showManager = true
             } else {
-                onSymbolAction(symbol)
+                val result = actionExecutor.execute(symbol.shortAction, actionHost)
+                onActionResult(symbol, false, result)
             }
         },
-        onSymbolLongClick = onSymbolLongAction,
+        onSymbolLongClick = { symbol ->
+            symbol.longAction?.let { action ->
+                val result = actionExecutor.execute(action, actionHost)
+                onActionResult(symbol, true, result)
+            }
+        },
         onOpenManager = { showManager = true },
         onOpenSettings = { showSettings = true }
     )
