@@ -85,11 +85,16 @@ fun SymbolPage(
     onExpandedSheetDragEnd: ((Float) -> Unit)? = null
 ) {
     val gridState = rememberLazyGridState()
-    val sheetDragEnabled = onExpandedSheetDragStart != null &&
-        onExpandedSheetDrag != null && onExpandedSheetDragEnd != null
+    val dragStart = onExpandedSheetDragStart
+    val drag = onExpandedSheetDrag
+    val dragEnd = onExpandedSheetDragEnd
+    val sheetDragEnabled = dragStart != null && drag != null && dragEnd != null
 
     val dragArbitrationModifier = if (sheetDragEnabled) {
-        Modifier.pointerInput(gridState, onExpandedSheetDragStart, onExpandedSheetDrag, onExpandedSheetDragEnd) {
+        Modifier.pointerInput(gridState, dragStart, drag, dragEnd) {
+            val startDrag = requireNotNull(dragStart)
+            val dragBy = requireNotNull(drag)
+            val endDrag = requireNotNull(dragEnd)
             awaitEachGesture {
                 val down = awaitFirstDown(
                     requireUnconsumed = false,
@@ -131,18 +136,18 @@ fun SymbolPage(
 
                         ownsGesture = true
                         velocityTracker.addPosition(change.uptimeMillis, change.position)
-                        onExpandedSheetDragStart()
-                        onExpandedSheetDrag(accumulatedY)
+                        startDrag()
+                        dragBy(accumulatedY)
                         change.consume()
                     } else {
                         velocityTracker.addPosition(change.uptimeMillis, change.position)
-                        onExpandedSheetDrag(delta.y)
+                        dragBy(delta.y)
                         change.consume()
                     }
                 }
 
                 if (ownsGesture) {
-                    onExpandedSheetDragEnd(velocityTracker.calculateVelocity().y)
+                    endDrag(velocityTracker.calculateVelocity().y)
                 }
             }
         }
