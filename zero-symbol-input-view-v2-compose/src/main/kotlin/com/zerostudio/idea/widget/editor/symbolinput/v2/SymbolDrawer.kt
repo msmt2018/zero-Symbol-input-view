@@ -96,6 +96,7 @@ class SymbolDrawerState internal constructor(
     initialPage: Int,
     private val initiallyExpanded: Boolean
 ) {
+    /** Zero-based selected group page. Mutations are normalized and owned by this state. */
     var selectedPage by mutableIntStateOf(initialPage.coerceAtLeast(0))
         internal set
 
@@ -114,6 +115,10 @@ class SymbolDrawerState internal constructor(
     private var geometryInitialized = false
     internal val isGeometryInitialized: Boolean get() = geometryInitialized
 
+    /**
+     * Whether the current target anchor represents an expanded presentation.
+     * During a drag without a target anchor, this is derived from the current height.
+     */
     val expanded: Boolean
         get() {
             val anchors = stateHolder.anchors
@@ -126,9 +131,16 @@ class SymbolDrawerState internal constructor(
             }
         }
 
+    /** Requests a transition to the maximum resolved anchor. */
     fun expand() { stateHolder.expandToMaxAnchor() }
+
+    /** Requests a transition to the minimum resolved anchor. */
     fun collapse() { stateHolder.collapseToMinAnchor() }
+
+    /** Toggles between the minimum and maximum resolved anchors. */
     fun toggle() { if (expanded) collapse() else expand() }
+
+    /** Selects a zero-based group page; negative indices are normalized to zero. */
     fun selectPage(index: Int) { selectedPage = index.coerceAtLeast(0) }
 
     internal fun synchronizeGeometry(
@@ -156,7 +168,13 @@ class SymbolDrawerState internal constructor(
     }
 }
 
-/** Creates state whose lifetime is the calling Composition. */
+/**
+ * Creates state whose lifetime is the calling Composition.
+ *
+ * @param initialPage zero-based initial page; negative values are normalized to zero.
+ * @param initiallyExpanded whether the first resolved drawer geometry starts expanded.
+ * @return a state object remembered at this Composition call site.
+ */
 @Composable
 fun rememberSymbolDrawerState(
     initialPage: Int = 0,
@@ -166,11 +184,23 @@ fun rememberSymbolDrawerState(
 }
 
 /**
- * Native Jetpack Compose symbol drawer.
+ * Displays a native Jetpack Compose symbol drawer.
  *
- * Group paging, symbol layout, expansion gestures and state observation are
- * implemented with Compose Foundation and Material 3. The library never
- * creates or embeds a traditional Android View.
+ * Group paging, symbol layout, expansion gestures and state observation use
+ * Compose Foundation and Material 3. The library does not create or embed a
+ * traditional Android View. Data loading, persistence and navigation remain
+ * responsibilities of the host application.
+ *
+ * @param groups ordered symbol-group snapshot; group and entry IDs should remain stable.
+ * @param modifier modifier applied to the drawer's outer layout.
+ * @param state Composition-owned drawer state; defaults to a remembered state.
+ * @param settings immutable presentation/settings snapshot.
+ * @param config resolved symbol-drawer configuration; defaults from settings.
+ * @param onSymbolClick required callback for a short-clicked symbol.
+ * @param onSymbolLongClick optional callback for a long-clicked symbol.
+ * @param onOpenManager optional callback requesting manager navigation.
+ * @param onOpenSettings optional callback requesting settings navigation.
+ * @param usageState optional usage snapshot used for usage-aware presentation.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
