@@ -1,4 +1,4 @@
-name: Publish V2 library to JitPack
+name: Publish V2 libraries to JitPack
 
 on:
   workflow_dispatch:
@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   publish:
-    name: Build, tag and publish V2 AAR
+    name: Build, tag and publish both V2 libraries
     runs-on: ubuntu-latest
     steps:
       - name: Normalize and validate release version
@@ -28,18 +28,17 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="${INPUT_VERSION#v}"
-          # Accept MAJOR.MINOR and normalize it to MAJOR.MINOR.0.
-          if [[ "$VERSION" =~ ^([0-9]+)\.([0-9]+)$ ]]; then
+          if [[ "$VERSION" =~ ^([0-9]+)\\.([0-9]+)$ ]]; then
             VERSION="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.0"
           fi
-          if [[ ! "$VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
-            echo "::error::Invalid version '$INPUT_VERSION'. Use MAJOR.MINOR, MAJOR.MINOR.PATCH, or SemVer prerelease (for example 4.2, 0.25.0, or 1.0.0-rc.1)."
+          if [[ ! "$VERSION" =~ ^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Invalid version '$INPUT_VERSION'. Use MAJOR.MINOR, MAJOR.MINOR.PATCH, or SemVer prerelease."
             exit 1
           fi
           TAG="v$VERSION"
           echo "version=$TAG" >> "$GITHUB_OUTPUT"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "Publishing version: $TAG"
+          echo "Publishing both V2 modules as $TAG"
 
       - name: Checkout selected branch
         uses: actions/checkout@v6
@@ -77,38 +76,62 @@ jobs:
             exit 1
           fi
           if [[ -n "$EXISTING_COMMIT" ]]; then
-            echo "Tag $RELEASE_TAG already points to this commit; this release can be safely retried."
+            echo "Tag $RELEASE_TAG already points to this commit; release can be safely retried."
           else
             echo "Tag $RELEASE_TAG is available."
           fi
 
-      - name: Run V2 unit tests
-        run: ./gradlew :zero-symbol-input-view-v2:testDebugUnitTest --no-daemon
+      - name: Run V2 library unit tests
+        run: >-
+          ./gradlew
+          :zero-symbol-input-view-v2:testDebugUnitTest
+          :zero-symbol-input-view-v2:testReleaseUnitTest
+          :zero-symbol-input-view-v2-compose:testDebugUnitTest
+          :zero-symbol-input-view-v2-compose:testReleaseUnitTest
+          --no-daemon --stacktrace
         env:
           VERSION: ${{ steps.release.outputs.version }}
 
-      - name: Build V2 release AAR
-        run: ./gradlew :zero-symbol-input-view-v2:assembleRelease --no-daemon
+      - name: Build both V2 release AARs
+        run: >-
+          ./gradlew
+          :zero-symbol-input-view-v2:assembleRelease
+          :zero-symbol-input-view-v2-compose:assembleRelease
+          --no-daemon --stacktrace
         env:
           VERSION: ${{ steps.release.outputs.version }}
 
-      - name: Publish V2 release to local Maven repository
-        run: ./gradlew :zero-symbol-input-view-v2:publishReleasePublicationToMavenLocal --no-daemon
+      - name: Publish both V2 releases to local Maven repository
+        run: >-
+          ./gradlew
+          :zero-symbol-input-view-v2:publishReleasePublicationToMavenLocal
+          :zero-symbol-input-view-v2-compose:publishReleasePublicationToMavenLocal
+          --no-daemon --stacktrace
         env:
           VERSION: ${{ steps.release.outputs.version }}
 
-      - name: Verify local Maven publication
+      - name: Verify both local Maven publications
         shell: bash
         env:
           RELEASE_VERSION: ${{ steps.release.outputs.version }}
         run: |
           set -euo pipefail
-          REPOSITORY="$HOME/.m2/repository/com/github/msmt2018/zero-Symbol-input-view/zero-symbol-input-view-v2/$RELEASE_VERSION"
-          test -s "$REPOSITORY/zero-symbol-input-view-v2-$RELEASE_VERSION.pom"
-          test -s "$REPOSITORY/zero-symbol-input-view-v2-$RELEASE_VERSION.aar"
-          test -s "$REPOSITORY/zero-symbol-input-view-v2-$RELEASE_VERSION-sources.jar"
-          echo "Verified local Maven publication:"
-          find "$REPOSITORY" -maxdepth 1 -type f -printf '%f\n'
+          BASE="$HOME/.m2/repository/com/github/msmt2018/zero-Symbol-input-view"
+          for MODULE in zero-symbol-input-view-v2 zero-symbol-input-view-v2-compose; do
+            REPOSITORY="$BASE/$MODULE/$RELEASE_VERSION"
+            POM="$REPOSITORY/$MODULE-$RELEASE_VERSION.pom"
+            AAR="$REPOSITORY/$MODULE-$RELEASE_VERSION.aar"
+            SOURCES="$REPOSITORY/$MODULE-$RELEASE_VERSION-sources.jar"
+            test -s "$POM"
+            test -s "$AAR"
+            test -s "$SOURCES"
+            grep -Fq "<artifactId>$MODULE</artifactId>" "$POM"
+            grep -Fq "<version>$RELEASE_VERSION</version>" "$POM"
+            grep -Fq "GNU Affero General Public License v3.0 only (AGPL-3.0-only)" "$POM"
+            unzip -t "$AAR" >/dev/null
+            unzip -t "$SOURCES" >/dev/null
+            echo "Verified local Maven publication: $MODULE:$RELEASE_VERSION"
+          done
 
       - name: Create and push Git tag
         shell: bash
@@ -135,35 +158,43 @@ jobs:
             git push origin "refs/tags/$RELEASE_TAG"
           fi
 
-      - name: Trigger and verify JitPack build
+      - name: Trigger and verify both JitPack module builds
         shell: bash
         env:
           RELEASE_TAG: ${{ steps.release.outputs.tag }}
         run: |
           set -euo pipefail
-          BASE="https://jitpack.io/com/github/msmt2018/zero-Symbol-input-view/zero-symbol-input-view-v2/$RELEASE_TAG"
-          POM="$BASE/zero-symbol-input-view-v2-$RELEASE_TAG.pom"
-          AAR="$BASE/zero-symbol-input-view-v2-$RELEASE_TAG.aar"
-          echo "Requesting JitPack artifact: $POM"
-          for attempt in $(seq 1 90); do
-            POM_STATUS="$(curl -L -sS -o /dev/null -w '%{http_code}' "$POM" || true)"
-            AAR_STATUS="$(curl -L -sS -o /dev/null -w '%{http_code}' "$AAR" || true)"
-            if [[ "$POM_STATUS" == "200" && "$AAR_STATUS" == "200" ]]; then
-              echo "JitPack publication verified (POM and AAR available)."
-              {
-                echo "## JitPack publication"
-                echo ""
-                printf -- '- Tag: `%s`\n' "$RELEASE_TAG"
-                printf -- '- Coordinate: `com.github.msmt2018.zero-Symbol-input-view:zero-symbol-input-view-v2:%s`\n' "$RELEASE_TAG"
-                echo "- JitPack: https://jitpack.io/#msmt2018/zero-Symbol-input-view"
-                echo "- Dependency:"
-                echo '  `implementation("com.github.msmt2018.zero-Symbol-input-view:zero-symbol-input-view-v2:'"$RELEASE_TAG"'")`'
-              } >> "$GITHUB_STEP_SUMMARY"
-              exit 0
+          MODULES=(zero-symbol-input-view-v2 zero-symbol-input-view-v2-compose)
+          for MODULE in "${MODULES[@]}"; do
+            BASE="https://jitpack.io/com/github/msmt2018/zero-Symbol-input-view/$MODULE/$RELEASE_TAG"
+            POM="$BASE/$MODULE-$RELEASE_TAG.pom"
+            AAR="$BASE/$MODULE-$RELEASE_TAG.aar"
+            echo "Requesting JitPack artifact: $POM"
+            VERIFIED=false
+            for attempt in $(seq 1 90); do
+              POM_STATUS="$(curl -L -sS -o /dev/null -w '%{http_code}' "$POM" || true)"
+              AAR_STATUS="$(curl -L -sS -o /dev/null -w '%{http_code}' "$AAR" || true)"
+              if [[ "$POM_STATUS" == "200" && "$AAR_STATUS" == "200" ]]; then
+                echo "JitPack publication verified: $MODULE:$RELEASE_TAG"
+                VERIFIED=true
+                break
+              fi
+              echo "$MODULE attempt $attempt/90: POM=$POM_STATUS AAR=$AAR_STATUS"
+              sleep 10
+            done
+            if [[ "$VERIFIED" != "true" ]]; then
+              echo "::error::JitPack did not expose $MODULE POM and AAR before timeout."
+              curl -fsSL "https://jitpack.io/com/github/msmt2018/zero-Symbol-input-view/$RELEASE_TAG/build.log" || true
+              exit 1
             fi
-            echo "Attempt $attempt/90: POM=$POM_STATUS AAR=$AAR_STATUS"
-            sleep 10
           done
-          echo "::error::JitPack did not expose both artifacts before timeout."
-          curl -fsSL "https://jitpack.io/com/github/msmt2018/zero-Symbol-input-view/$RELEASE_TAG/build.log" || true
-          exit 1
+          {
+            echo "## JitPack publication"
+            echo ""
+            printf -- '- Tag: `%s`\\n' "$RELEASE_TAG"
+            echo "- Both V2 library modules were verified:"
+            for MODULE in "${MODULES[@]}"; do
+              printf -- '  - `com.github.msmt2018.zero-Symbol-input-view:%s:%s`\\n' "$MODULE" "$RELEASE_TAG"
+            done
+            echo "- JitPack: https://jitpack.io/#msmt2018/zero-Symbol-input-view"
+          } >> "$GITHUB_STEP_SUMMARY"
