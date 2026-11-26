@@ -445,7 +445,11 @@ fun SymbolDrawerManagerScreen(
                     }
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.symbol_drawer_071)) },
-                        enabled = selectedGroup != null,
+                        enabled = selectedGroup != null &&
+                            groups.size < SymbolGroupBundleCodec.MAX_GROUPS &&
+                            groups.sumOf { it.symbols.size.toLong() } +
+                                (selectedGroup?.symbols?.size?.toLong() ?: 0L) <=
+                                SymbolGroupBundleCodec.MAX_TOTAL_SYMBOLS,
                         onClick = {
                             moreMenuExpanded = false
                             selectedGroup?.let { group ->
