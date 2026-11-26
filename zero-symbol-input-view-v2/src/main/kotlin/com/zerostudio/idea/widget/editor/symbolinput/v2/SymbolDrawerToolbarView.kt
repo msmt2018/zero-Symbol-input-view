@@ -19,6 +19,8 @@ import android.content.Context
 import android.util.AttributeSet
 import android.widget.FrameLayout
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.LegacySymbolDataMigration
+import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionHost
+import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionResult
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SharedPreferencesSymbolGroupRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolDrawerDefaults
 import com.zerostudio.idea.widget.editor.symbolinput.v2.manager.SymbolDrawerManagerScreen
@@ -43,6 +45,10 @@ class SymbolDrawerToolbarView @JvmOverloads constructor(
     private var managerDialog: AlertDialog? = null
     private var settingsDialog: AlertDialog? = null
     private var managerBinding: AutoCloseable? = null
+    private var actionBinding: AutoCloseable? = null
+
+    /** Receives non-successful typed action dispatch results. */
+    var onActionFailure: ((SymbolEntry, Boolean, SymbolActionResult) -> Unit)? = null
 
     val drawer: SymbolDrawerView = SymbolDrawerView(context).also { view ->
         addView(view, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
@@ -54,6 +60,33 @@ class SymbolDrawerToolbarView @JvmOverloads constructor(
         set(value) {
             drawer.onSymbolActionListener = value
         }
+
+    /**
+     * Binds the toolbar to an editor-neutral action host. The returned handle
+     * can be closed from the host's onDestroy; detaching this view also closes it.
+     */
+    fun bindActionHost(host: SymbolActionHost): AutoCloseable {
+        actionBinding?.close()
+        val listener = SymbolDrawerView.OnSymbolActionListener { symbol, isLongPress ->
+            val action = if (isLongPress) symbol.longAction else symbol.shortAction
+            if (action != null) {
+                val result = drawer.executeAction(action, host)
+                if (result !is SymbolActionResult.Executed) {
+                    onActionFailure?.invoke(symbol, isLongPress, result)
+                }
+            }
+        }
+        drawer.onSymbolActionListener = listener
+        lateinit var handle: AutoCloseable
+        handle = AutoCloseable {
+            if (drawer.onSymbolActionListener === listener) {
+                drawer.onSymbolActionListener = null
+            }
+            if (actionBinding === handle) actionBinding = null
+        }
+        actionBinding = handle
+        return handle
+    }
 
     init {
         LegacySymbolDataMigration.importIfV2Empty(context, groupRepository)
@@ -113,6 +146,8 @@ class SymbolDrawerToolbarView @JvmOverloads constructor(
     }
 
     override fun onDetachedFromWindow() {
+        actionBinding?.close()
+        actionBinding = null
         managerBinding?.close()
         managerBinding = null
         managerDialog?.dismiss()
