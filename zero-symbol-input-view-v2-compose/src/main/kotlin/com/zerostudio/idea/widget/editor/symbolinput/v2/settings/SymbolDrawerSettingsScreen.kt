@@ -400,17 +400,15 @@ fun SymbolDrawerSettingsScreen(
                         }
                     }
 
-                    if (onReset != null) {
-                        OutlinedButton(
-                            onClick = {
-                                val defaults = SymbolDrawerSettings()
-                                current = defaults
-                                onSettingsChange(defaults)
-                                onReset()
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text(stringResource(R.string.compose_settings_reset)) }
-                    }
+                    OutlinedButton(
+                        onClick = {
+                            val defaults = SymbolDrawerSettings()
+                            current = defaults
+                            onSettingsChange(defaults)
+                            onReset?.invoke()
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text(stringResource(R.string.compose_settings_reset)) }
                 }
             }
         }
