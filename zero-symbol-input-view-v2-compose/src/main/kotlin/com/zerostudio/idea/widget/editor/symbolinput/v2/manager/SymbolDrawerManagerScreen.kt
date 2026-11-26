@@ -896,11 +896,13 @@ fun SymbolDrawerManagerScreen(
                                                     if (searchQuery.isNotBlank() ||
                                                         activeFilter != SymbolManagerFilter.ALL || batchMode
                                                     ) return@pointerInput
+                                                    var pointerX = 0f
                                                     var pointerY = 0f
                                                     detectDragGesturesAfterLongPress(
                                                         onDragStart = {
                                                             symbolListState.layoutInfo.visibleItemsInfo
                                                                 .firstOrNull { it.key == symbol.id }?.let { info ->
+                                                                    pointerX = info.offset.x + info.size.width - 20f
                                                                     pointerY = info.offset.y + info.size.height / 2f
                                                                     dragWorkingOrder = group.symbols.toList()
                                                                     draggingSymbolId = symbol.id
@@ -908,9 +910,14 @@ fun SymbolDrawerManagerScreen(
                                                         },
                                                         onDrag = { change, dragAmount ->
                                                             change.consume()
+                                                            pointerX += dragAmount.x
                                                             pointerY += dragAmount.y
                                                             val targetId = symbolListState.layoutInfo.visibleItemsInfo
-                                                                .minByOrNull { abs(it.offset.y + it.size.height / 2f - pointerY) }
+                                                                .minByOrNull { info ->
+                                                                    val dx = info.offset.x + info.size.width / 2f - pointerX
+                                                                    val dy = info.offset.y + info.size.height / 2f - pointerY
+                                                                    dx * dx + dy * dy
+                                                                }
                                                                 ?.key as? Long
                                                             val working = dragWorkingOrder
                                                             if (targetId != null && working != null) {
