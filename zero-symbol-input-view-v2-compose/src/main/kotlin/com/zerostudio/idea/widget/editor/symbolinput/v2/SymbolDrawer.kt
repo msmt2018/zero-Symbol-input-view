@@ -277,7 +277,7 @@ fun SymbolDrawer(
         val minimumFlingVelocity = with(density) {
             layoutConfig.flingVelocityDpPerSecond.dp.toPx()
         }
-        val nestedScrollConnection = remember(holder, density.density) {
+        val nestedScrollConnection = remember(holder, density.density, minimumFlingVelocity) {
             DrawerNestedScrollConnection(
                 stateHolder = holder,
                 minimumFlingVelocityPxPerSecond = minimumFlingVelocity
