@@ -58,7 +58,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSet
 fun SymbolDrawerToolbar(
     actionHost: SymbolActionHost,
     modifier: Modifier = Modifier,
-    onActionResult: (SymbolEntry, Boolean, SymbolActionResult) -> Unit = { _, _, _ -> },
+    onActionFailure: (SymbolEntry, Boolean, String) -> Unit = { _, _, _ -> },
     initiallyExpanded: Boolean = false
 ) {
     val context = LocalContext.current
@@ -116,13 +116,17 @@ fun SymbolDrawerToolbar(
                 showManager = true
             } else {
                 val result = actionExecutor.execute(symbol.shortAction, actionHost)
-                onActionResult(symbol, false, result)
+                if (result !is SymbolActionResult.Executed) {
+                    onActionFailure(symbol, false, result.toString())
+                }
             }
         },
         onSymbolLongClick = { symbol ->
             symbol.longAction?.let { action ->
                 val result = actionExecutor.execute(action, actionHost)
-                onActionResult(symbol, true, result)
+                if (result !is SymbolActionResult.Executed) {
+                    onActionFailure(symbol, true, result.toString())
+                }
             }
         },
         onOpenManager = { showManager = true },
