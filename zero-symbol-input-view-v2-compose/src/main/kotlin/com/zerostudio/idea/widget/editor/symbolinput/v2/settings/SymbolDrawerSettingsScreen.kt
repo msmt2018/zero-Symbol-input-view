@@ -510,7 +510,8 @@ fun SymbolDrawerSettingsScreen(
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) { Text(stringResource(R.string.compose_settings_reset)) }
-                }            }
+                }
+            }
         }
     }
 
