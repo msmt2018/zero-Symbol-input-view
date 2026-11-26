@@ -20,7 +20,7 @@ import android.util.AttributeSet
 import android.widget.FrameLayout
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.LegacySymbolDataMigration
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionHost
-import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionResult
+import com.zerostudio.idea.widget.drawer.action.SymbolActionResult
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SharedPreferencesSymbolGroupRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolDrawerDefaults
