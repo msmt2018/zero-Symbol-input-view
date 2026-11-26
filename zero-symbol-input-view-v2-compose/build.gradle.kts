@@ -19,7 +19,7 @@ plugins {
 
 android {
     // The root Android convention configures API 37.1 for every module.
-    namespace = "com.zerostudio.idea.widget.editor.symbolinput.v2"
+    namespace = "com.zerostudio.idea.widget.editor.symbolinput.v2.compose"
     defaultConfig {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
