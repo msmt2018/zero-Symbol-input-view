@@ -670,6 +670,10 @@ fun SymbolDrawerManagerScreen(
                                     )
                                     DropdownMenuItem(
                                         text = { Text("复制分组") },
+                                        enabled = groups.size < SymbolGroupBundleCodec.MAX_GROUPS &&
+                                            groups.sumOf { it.symbols.size.toLong() } +
+                                                group.symbols.size.toLong() <=
+                                                SymbolGroupBundleCodec.MAX_TOTAL_SYMBOLS,
                                         onClick = {
                                             groupMenuId = null
                                             runUndoable("已复制分组") {
