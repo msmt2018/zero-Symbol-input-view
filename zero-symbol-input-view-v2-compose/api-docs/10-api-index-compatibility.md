@@ -1,56 +1,55 @@
-# 10 — Compose API 索引与兼容性
+# 10 — Compose API 索引、包路径与兼容性
 
-本索引仅描述 zero-symbol-input-view-v2-compose 模块。旧 View 模块保留为独立兼容产物，不属于本 Compose API。
+本文按 `zero-symbol-input-view-v2-compose` 当前生产源码整理。Compose artifact 的通用 Drawer 源码位于 `com.zerostudio.idea.widget.drawer`；符号输入 UI 仍位于 `com.zerostudio.idea.widget.editor.symbolinput.v2`。
 
-## 1. 主要 API 分层
+## 1. Compose UI 入口
 
-| 层 | 主要类型 | 职责 |
+| API | 包 | 用途 |
 |---|---|---|
-| 模型 | SymbolGroup、SymbolEntry、SymbolAction、DrawerConfig | 符号与动作数据、配置校验 |
-| 动作 | SymbolActionExecutor、SymbolActionRegistry、SymbolActionHost | 动作验证、路由与宿主能力边界 |
-| 文本 | SymbolTextDocument、SymbolTextDocumentActionHost、GenericSymbolTextActions | 编辑器中立的 UTF-16 文本操作 |
-| 数据 | SymbolGroupRepository、SymbolGroupManager、StorageCodec、BundleCodec、Migration | 持久化、事务式快照更新、导入迁移 |
-| 设置 | SymbolDrawerSettings、SettingsRepository、SettingsCodec | 不可变设置与版本化存储 |
-| 抽屉核心 | DrawerAnchor、DrawerAnchorResolver、DrawerState、DrawerStateHolder、DrawerInteractionController、DrawerNestedScrollPolicy | 纯 Kotlin 锚点、几何、拖动状态机与嵌套滚动策略 |
-| Compose 状态适配 | rememberDrawerStateSnapshot、DefaultDrawerController、DrawerControllerComposition | 将纯状态引擎桥接到 Composition 并驱动界面 |
-| Compose 适配 | DrawerContainer、DrawerPageHost、DrawerPanelHost、AdaptiveWindowObserver、rememberDrawerStateSnapshot、rememberDrawerNavigationSnapshot、rememberAdaptiveWindowSnapshot | Compose 布局、分页、面板和状态/窗口快照桥接 |
-| 扩展 | SymbolDrawerExtensionRegistry 及 Composable 扩展接口 | 动作、指示器、单元格和设置贡献 |
-| 页面 | SymbolDrawer、SymbolDrawerSettingsScreen、SymbolDrawerManagerScreen | 符号抽屉、设置和数据管理界面 |
+| `SymbolDrawer` | `editor.symbolinput.v2` | Compose 符号输入抽屉 |
+| `SymbolDrawerState` / `rememberSymbolDrawerState` | `editor.symbolinput.v2` | 符号抽屉展示状态 |
+| `SymbolDrawerManagerScreen` | `editor.symbolinput.v2.manager` | Compose 分组/符号管理页 |
+| `SymbolDrawerSettingsScreen` | `editor.symbolinput.v2.settings` | Compose 设置页 |
+| `SymbolGroupIndicator` / `SymbolPage` | `editor.symbolinput.v2.ui` | 符号 UI 子组件 |
 
-## 2. 主要 Compose 入口
+本 artifact 不提供 Android `SymbolDrawerView`。
 
-- SymbolDrawer：符号输入抽屉入口。
-- DrawerContainer：通用抽屉容器。
-- DrawerPageHost：基于 HorizontalPager 的页面宿主。
-- DrawerPanelHost：PEEK/EXPANDED 面板 slot。
-- SymbolDrawerSettingsScreen：设置 Composable。
-- SymbolDrawerManagerScreen：分组与符号管理 Composable。
-- AdaptiveWindowObserver：Compose 窗口尺寸与 Insets 适配。
+## 2. 通用 Compose Drawer
 
-以上均为 Composable API，不是 View 子类，不接受 Context 来创建界面，也不提供 XML inflate 入口。
+| API | 包 | 用途 |
+|---|---|---|
+| `DrawerContainer` | `com.zerostudio.idea.widget.drawer` | Composable 通用容器 |
+| `DrawerContainerState` / `rememberDrawerContainerState` | 同上 | Composition 记忆状态 |
+| `DrawerConfig` / `DrawerPresentationMode` | `drawer.config` | 通用 Drawer 配置 |
+| `DrawerStateHolder` / `DrawerController` | `drawer.core` | 单一状态引擎和控制接口 |
+| `DrawerAnchor` / `DrawerAnchorInput` / `DrawerAnchorStrategy` | `drawer.core` | 锚点模型和策略 |
+| `DrawerNestedScrollPolicy` / `DrawerNestedScrollConnection` | `drawer.core` | Compose 嵌套滚动仲裁 |
+| `rememberDrawerStateHolder` / `rememberDefaultDrawerController` / `rememberDrawerStateSnapshot` | `drawer.core` | Composition 状态适配 |
+| `DrawerPage` / `DrawerPageHost` | `drawer.navigation` | 稳定 ID 页面和 Composable host |
+| `DrawerPanelContent` / `drawerPanelContent` / `DrawerPanelHost` | `drawer.panel` | Composable 面板 slot |
+| `DrawerStyle` / `DrawerColors` / `DrawerDimensions` / `DrawerMotion` | `drawer.style` | Material/Compose 样式 token |
 
-## 3. 公共包与 Kotlin ABI
+## 3. 领域、数据与动作
 
-com.zerostudio.idea.widget.drawer 下的 facade 文件目前包含 Kotlin typealias。它们提供 Kotlin 源码导入路径，但不会在 JVM 字节码中生成同名 Java 类。Java 消费者不能把 typealias 当作 Java ABI。
+- Models：`SymbolGroup`、`SymbolEntry`、`SymbolAction`、`model.DrawerConfig`。
+- Actions：`SymbolActionHost`、`SymbolActionExecutor`、`SymbolActionResult`、`SymbolActionRegistry`。
+- Text document：`SymbolTextDocument`、`SymbolTextDocumentActionHost`、`SymbolTextEditing`。
+- Data：`SymbolGroupRepository`、`ObservableSymbolGroupRepository`、`SymbolGroupManager`。
+- Codecs/migration：`SymbolGroupStorageCodec`、`SymbolGroupBundleCodec`、`LegacySymbolDataCodec`、`LegacySymbolDataMigration`、Android migration adapter。
+- Settings：`SymbolDrawerSettings`、`SymbolDrawerSettingsRepository`、`SymbolDrawerSettingsCodec`。
 
-若需要稳定 Java API，必须物理声明 public class/interface 并添加 Java 编译 fixture；仅增加 typealias 文件不构成 Java 兼容完成。
+## 4. Extension API
 
-## 4. 兼容性边界
+`SymbolDrawerExtensionRegistry` 注册 action、legacy action、indicator、item renderer、group provider、settings tab/item 和 theme。每个注册返回 `AutoCloseable`；注册表只持有运行时贡献，不序列化 lambda 或 Composable。调用方负责句柄所有权和释放。注册成功不代表所有页面自动消费该贡献，具体消费者以当前页面实现为准。
 
-- zero-symbol-input-view-v2-compose 与 zero-symbol-input-view-v2 是不同模块。
-- Compose 模块不能通过 AndroidView/AndroidViewBinding 包装旧 View 控件。
-- 旧模块仍有 Activity、Fragment、XML、View 和传统页面测试，不代表 Compose 模块也允许这些 API。
-- V1 数据格式只通过明确的 legacy codec/migration adapter 读取；不应把旧 View 控件作为运行时 UI 依赖。
-- 变更持久化 JSON、稳定 ID 或公开动作语义时，必须同步升级 schema/兼容测试。
+## 5. 包和 ABI 规则
 
-## 5. 生命周期语义
+- 通用 Drawer 新包为实际源码包，不是旧路径的临时别名。
+- 符号输入产品包保持 `editor.symbolinput.v2`。
+- Kotlin `typealias` 仅提供 Kotlin 源码入口，不会生成独立 Java 类。
+- Compose `DrawerContainer` 是 Composable 函数；旧 View artifact 的同名类型是 View class。
+- 两个 artifact 不可互换，也不应同时加入同一个应用依赖图。
 
-Compose 页面由 Composition 管理，remember 状态与 LaunchedEffect 等副作用依赖 Composition/key 作用域。模块不要求宿主提供 LifecycleOwner、ViewModel 或 Fragment View 生命周期回调。不要将这一边界表述为“Compose 没有生命周期”。
+## 6. Compose 生命周期边界
 
-## 6. 排错入口
-
-- 构建失败：先检查失败 Gradle task 和首个 Kotlin/AGP 错误，不要只看最后一行 BUILD FAILED。
-- Compose source boundary 失败：检查模块生产/测试源码是否引入传统 View、Activity/Fragment 或 Lifecycle API。
-- Runtime dependency boundary 失败：检查实际 runtimeClasspath 最短依赖路径，不要通过排除任务或弱化规则掩盖传递依赖。
-- 页面状态异常：检查稳定 page ID、remember key 和 state holder 是否被不相关会话共享。
-- 数据不一致：检查 Repository 写入成功后才发布新快照的顺序。
+不要求 Activity、Fragment、ViewModel 或 LifecycleOwner 作为组件状态容器。Composition、重组、remember 和 effect 取消语义仍然存在；不要将 Compose 描述成完全没有任何生命周期。

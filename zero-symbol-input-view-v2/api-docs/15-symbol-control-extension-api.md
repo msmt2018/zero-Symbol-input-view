@@ -7,8 +7,8 @@
 ```kotlin
 import com.zerostudio.idea.widget.drawer.SymbolDrawerView
 import com.zerostudio.idea.widget.drawer.extension.*
-import com.zerostudio.idea.widget.drawer.action.SymbolAction
-import com.zerostudio.idea.widget.drawer.action.SymbolActionHost
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolActionHost
 ```
 
 符号模型和部分产品 API 仍位于 `com.zerostudio.idea.widget.editor.symbolinput.v2.model` 等 V2 产品包。通用 Drawer 公共 facade 与符号输入产品命名空间是不同层级。

@@ -1,50 +1,38 @@
-# 17 — Source Audit Notes and Known API Boundaries
+# 17 — View Artifact Source Audit Notes
 
-This note records findings from the repository tree inventory and targeted review of the V2 module's public API facade, action runtime, extension registry, widget entry point, Maven publication configuration, documentation index and existing tests. It is not a claim that every Android runtime path has been executed on a device.
+This page records the API and package boundaries of `zero-symbol-input-view-v2`. It is a source-level reference, not a claim that every device interaction has been executed.
 
-## Scope inspected
+## Artifact scope
 
-The V2 module tree contains 164 tracked files in the inspected main-branch tree, including 141 Kotlin/Java/Gradle/XML source and test/resource files and 17 Markdown API documentation files. Production API files reviewed in detail include:
-- `build.gradle.kts`;
-- public Drawer facade files under `com.zerostudio.idea.widget.drawer.*`;
-- `SymbolActionExecutionApi.kt`;
-- `SymbolDrawerView.kt`;
-- `SymbolDrawerExtensionRegistry.kt`;
-- the editor-neutral action/document API and relevant API documentation.
+Target: `zero-symbol-input-view-v2` (Android View library).
 
-The repository also contains JVM tests, Java compile fixtures and Android instrumentation tests. Static repository inspection cannot replace running the Gradle build and device tests.
+- Symbol product entry: `com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawerView`.
+- Symbol models: `com.zerostudio.idea.widget.editor.symbolinput.v2.model`.
+- Generic Drawer: `com.zerostudio.idea.widget.drawer.*`.
+- Editor-neutral actions: `com.zerostudio.idea.widget.drawer.action`.
 
-## Confirmed API boundary: Kotlin typealias vs Java ABI
+## Package relocation
 
-Most generic Drawer facade entries are Kotlin `typealias` declarations pointing to implementation classes in the historical `com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.*` packages. This is valid for Kotlin source imports but does not emit new JVM classes under the facade package. Java consumers must use the actual JVM class package unless the API is physically migrated or wrapped in real public JVM declarations.
+The generic Drawer implementation sources now declare their canonical packages under `com.zerostudio.idea.widget.drawer`, including core, config, navigation, panel, style and adapter packages. The previous `com.zerostudio.idea.widget.editor.symbolinput.v2.drawer` path is not the source package for the relocated implementation.
 
-The extension facade contains real JVM declarations for selected entry points such as `SymbolDrawerBuiltInFeatures`; theme extension types also have Java-facing declarations and compile fixtures. Do not generalize those exceptions to every typealias.
+The symbol toolbar remains an Android View API. Do not infer that moving generic Drawer sources makes `SymbolDrawerView` a Compose component.
 
-## Confirmed design constraints
+## View API boundaries
 
-- The V2 Maven publication is declared by the V2 module's own `maven-publish` configuration with artifact ID `zero-symbol-input-view-v2`.
-- The action host is synchronous and does not switch threads. Host implementations must obey the editor's threading contract.
-- Composite actions are sequential and may partially complete; they are not automatically transactional.
-- The generic document API uses UTF-16 offsets and end-exclusive ranges. Default transaction hooks do not provide atomic rollback unless the host overrides them.
-- The extension registry stores runtime providers/handlers. Registrations and observers require explicit lifecycle cleanup.
-- The custom theme provider currently has a limited consumer scope; registration alone does not imply that all manager/settings/cell surfaces are recolored.
-- The generic Drawer facade is transitional; its Kotlin aliases are not a physical package relocation.
+- `DrawerContainer` is an Android `FrameLayout` / `NestedScrollingParent3`.
+- `DrawerPanelContent` creates Android Views and receives panel visibility/attach callbacks.
+- `DrawerPageHost` manages View-based page content.
+- The symbol toolbar uses ViewPager2 and RecyclerView-backed pages.
+- View attach/detach and saved-state behavior are owned by the Android View host.
 
-## Documentation synchronization actions in this branch
+## Kotlin and Java API compatibility
 
-- Added an English companion API documentation set under `api-docs/en/` (README plus pages 01–17).
-- Added bilingual API documentation links to the V2 module README and API documentation index.
-- Kept the Chinese documentation as the detailed source reference; no runtime source code was modified in this documentation branch.
+Kotlin `typealias` declarations provide source aliases only; they do not emit independent JVM classes. Java consumers must import actual JVM declarations. A package path in Kotlin documentation is not by itself proof that a corresponding JVM class exists.
 
-## Remaining validation required before release
+## Editor-neutral action contract
 
-Run the repository's CI and, where available:
-1. `./gradlew :zero-symbol-input-view-v2:compileDebugKotlin`
-2. `./gradlew :zero-symbol-input-view-v2:test`
-3. `./gradlew :zero-symbol-input-view-v2:assembleRelease`
-4. `./gradlew :zero-symbol-input-view-v2:connectedDebugAndroidTest` on an emulator/device
-5. Java compile fixtures for the intended public Java surface
-6. Maven publication verification of the V2 POM, AAR and sources JAR
-7. Host integration tests for editor thread affinity, undo/transaction behavior, clipboard and Fragment recreation
+The action host is synchronous and does not switch threads. Composite actions are sequential and can partially complete. UTF-16 offsets and end-exclusive ranges are used by the generic document API. Atomic rollback depends on the host's actual transaction implementation.
 
-A green JVM test suite alone does not establish correct gesture arbitration, Insets, nested scrolling, accessibility or editor integration on real Android devices.
+## Validation boundaries
+
+Static source review and JVM tests do not prove real device gesture, nested-scroll, Insets, accessibility or Fragment View cleanup behavior. Those require Android build and device/instrumentation validation. Report the exact module/job and distinguish View instrumentation results from Compose tests.

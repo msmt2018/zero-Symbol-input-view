@@ -1,5 +1,18 @@
 # 04 — Action Registration, Execution and Text Editing
 
+## Canonical package layout
+
+- Execution API, host contract, registry and text-document API: `com.zerostudio.idea.widget.drawer.action`.
+- `SymbolAction` and its enums: `com.zerostudio.idea.widget.editor.symbolinput.v2.model`.
+- Product compatibility facades, `SymbolActionJsonCodec` and `BuiltinSymbolActionCatalog`: `com.zerostudio.idea.widget.editor.symbolinput.v2.action`.
+
+```kotlin
+import com.zerostudio.idea.widget.drawer.action.SymbolActionExecutor
+import com.zerostudio.idea.widget.drawer.action.SymbolActionHost
+import com.zerostudio.idea.widget.drawer.action.SymbolActionResult
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
+```
+
 The runtime separates action data, execution and host capabilities:
 
 ```text

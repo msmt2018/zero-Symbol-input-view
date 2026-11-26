@@ -1,61 +1,65 @@
 # Zero Symbol Input View V2 — Compose API 文档中心
 
-本目录只描述 zero-symbol-input-view-v2-compose 模块。仓库中的旧 zero-symbol-input-view-v2 模块仍是独立的传统 View 兼容构建产物，不属于 Compose UI 运行时。
+本目录仅描述 `zero-symbol-input-view-v2-compose` 模块，API 以当前 Compose 源码为准。
 
-## 模块
+## 语言
 
-- Gradle module：zero-symbol-input-view-v2-compose
-- Namespace：com.zerostudio.idea.widget.editor.symbolinput.v2
-- UI：Jetpack Compose Runtime、UI、Foundation、Material 3
-- 数据/动作：SymbolGroupRepository、SymbolGroupManager、SymbolActionExecutor、SymbolTextDocument
-- 主要页面：SymbolDrawer、SymbolDrawerSettingsScreen、SymbolDrawerManagerScreen
-- 通用容器：DrawerContainer、DrawerPageHost、DrawerPanelHost
-
-本模块不创建 Android View，不使用 AndroidView/AndroidViewBinding 包装旧控件，也不要求 Activity、Fragment、ViewModel 或 LifecycleOwner 作为组件状态容器。Compose 仍有 Composition、重组和 effect 生命周期；“无传统 View 生命周期耦合”不等于“完全没有生命周期”。
+- [简体中文](README.md)
+- [English](en/README.md)
 
 ## 文档地图
 
 | 文档 | 内容 |
 |---|---|
-| 01 — 快速开始 | 模块依赖、Composable 入口、编辑器动作适配 |
-| 02 — SymbolDrawer Compose API | 符号抽屉状态、页面、动作回调 |
-| 03 — 数据模型与动作类型 | 分组、符号、typed action 和 legacy 元数据 |
-| 04 — 动作注册与执行 | Host、Executor、Registry、取消和结果 |
-| 05 — 仓储、管理器与迁移 | Repository、Manager、codec、V1 数据迁移 |
-| 06 — 设置中心 | 设置快照、Repository、codec 和 Compose 设置页 |
-| 07 — 通用 Drawer 框架 | 容器、锚点、状态机、手势和 Compose slots |
-| 08 — 页面导航、面板与样式 | DrawerPage、HorizontalPager、Composable panel、主题 |
-| 09 — 自适应窗口 | WindowAdaptiveInfo、Insets、布局解析和停靠策略 |
-| 10 — API 索引与兼容性 | 模块分层、公共包和 Kotlin/Java ABI |
-| 11 — 手势与内置文本动作 | 嵌套滚动策略、动作目录、通用文本命令 |
-| 12 — 扩展注册框架 | Composable renderer、indicator、settings 与 action 扩展 |
-| 13 — 公共包与编辑器中立文档契约 | UTF-16 文档 API、事务和宿主 adapter |
-| 14 — Drawer 公共 API 参考 | 通用 Compose Drawer 对外 API |
-| 15 — 符号控件扩展实战 | 注册、Composable 内容和扩展约束 |
-| 16 — 测试、发布与排错 | Compose 测试、边界审计和 CI |
+| 01 快速开始 | Compose 依赖、SymbolDrawer、状态与宿主职责 |
+| 02 SymbolDrawer | Composable 符号抽屉 API |
+| 03 Models and Actions | 分组、符号、typed actions |
+| 04 Action Runtime | Host、Executor、Registry 和结果 |
+| 05 Data and Management | Repository、Manager、codec 和迁移 |
+| 06 Settings | 设置快照、Repository 和设置页 |
+| 07 Universal Drawer | Compose Drawer 容器、状态机、锚点和手势 |
+| 08 Navigation / Panels / Style | Composable 页面、面板和样式 |
+| 09 Adaptive Window | 窗口快照、布局解析和停靠策略 |
+| 10 API Index | Compose API 类型和兼容边界 |
+| 11 Interaction and Built-ins | 嵌套滚动与内置文本动作 |
+| 12 Extension Framework | Composable 扩展和运行时注册 |
+| 13 Public Packages | 公共包与编辑器中立文档契约 |
+| 14 Drawer API Reference | Compose Drawer 完整 API |
+| 15 Symbol Control Extensions | Compose 符号控件扩展 |
+| 16 Testing and Release | Compose 测试、发布和排错 |
+| 17 Source Audit Notes (EN) | 源码边界和审计说明 |
 
-## 本地集成
+## 当前包结构
 
-在宿主工程 settings.gradle.kts 中包含本仓库的 Compose module，并在应用模块依赖中引用：
+- Compose 符号抽屉：`com.zerostudio.idea.widget.editor.symbolinput.v2`
+- 符号模型、数据、设置和管理：`com.zerostudio.idea.widget.editor.symbolinput.v2.*`
+- 通用 Compose Drawer：`com.zerostudio.idea.widget.drawer`
+- Drawer Core / Navigation / Panel / Style：`com.zerostudio.idea.widget.drawer.{core,navigation,panel,style}`
+- 编辑器中立动作：`com.zerostudio.idea.widget.drawer.action`
 
-implementation(project(":zero-symbol-input-view-v2-compose"))
+旧路径 `com.zerostudio.idea.widget.editor.symbolinput.v2.drawer` 已不是通用 Drawer 的源码包。新代码应导入 `com.zerostudio.idea.widget.drawer.*`。
 
-不要把旧模块 zero-symbol-input-view-v2 当作 Compose 依赖。远程 Maven 发布坐标是否可用，应以该 Compose module 实际发布配置和成功发布记录为准；仓库中旧 View 模块的 Maven 验证不能替代 Compose artifact 发布验证。
+## 同仓库依赖
 
-## 推荐阅读路径
+```kotlin
+dependencies {
+    implementation(project(":zero-symbol-input-view-v2-compose"))
+}
+```
 
-- 集成符号抽屉：01 → 02 → 04 → 06
-- 编辑器适配：03 → 04 → 11 → 13
-- 扩展 Composable 内容：12 → 15
-- 复用通用 Drawer：07 → 08 → 09 → 14
-- 维护与发布：10 → 16
+本模块不是旧 View artifact 的包装层。符号抽屉、通用 Drawer、页面 host、面板、管理页和设置页均使用 Compose API。模块不要求 Activity、Fragment、ViewModel 或 LifecycleOwner 管理组件状态；Composition/recomposition/effect 生命周期仍然存在。
 
-## 关键边界
+## API 选择
 
-1. 数据模型、Repository 和文本动作不持有 UI View 或 Activity/Fragment。
-2. UI 使用 Composable slot；页面身份使用稳定 ID，不使用列表 index 作为身份。
-3. 文本 offset 使用 UTF-16 code unit，范围为左闭右开。
-4. 运行时扩展 handler/Composable 不序列化；只持久化稳定 ID 和 payload。
-5. Kotlin typealias 不生成 Java 可见的独立 JVM 类。
-6. CI 必须检查源码、发布产物和 runtimeClasspath；不得通过排除依赖或禁用任务掩盖边界问题。
+- 符号输入抽屉：`SymbolDrawer` + `rememberSymbolDrawerState`
+- 通用抽屉：`DrawerContainer` + `rememberDrawerContainerState`
+- 页面：`DrawerPage` + `DrawerPageHost`
+- 面板：`DrawerPanelContent` + `drawerPanelContent`
+- 状态/锚点：`DrawerStateHolder`、`DrawerController`、`DrawerAnchorStrategy`
+- 数据：`SymbolGroupRepository`、`SymbolGroupManager`
+- 设置：`SymbolDrawerSettingsRepository`、`SymbolDrawerSettingsScreen`
+- 编辑器适配：`SymbolActionHost` / `SymbolTextDocument`
 
+## Artifact 隔离
+
+旧 View artifact 的 `DrawerContainer` 是 View class，`DrawerPanelContent` 是 View factory；本模块的同名 API 是 Composable/Composable slot。不要在同一个应用依赖图中同时使用两个 Drawer UI artifact。

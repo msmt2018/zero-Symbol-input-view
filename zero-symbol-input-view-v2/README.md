@@ -27,6 +27,15 @@ V2 是一个独立集成的 Android 符号快捷栏与编辑辅助工具栏库�
 11. [存储与迁移](#11-存储与迁移)
 12. [API 文档](#12-api-文档)
 
+## 当前公共包结构
+
+- 符号输入控件：`com.zerostudio.idea.widget.editor.symbolinput.v2`
+- 符号模型：`com.zerostudio.idea.widget.editor.symbolinput.v2.model`
+- 通用 Drawer：`com.zerostudio.idea.widget.drawer` 及 `core/config/navigation/panel/style/adapter` 子包
+- 编辑器中立动作：`com.zerostudio.idea.widget.drawer.action`
+
+通用 Drawer 源码已从旧的 `com.zerostudio.idea.widget.editor.symbolinput.v2.drawer` 包迁移到 `com.zerostudio.idea.widget.drawer`。新集成代码应使用新包路径；符号输入产品包名不变。通用配置 `drawer.config.DrawerConfig` 与符号网格配置 `model.DrawerConfig` 是不同类型。
+
 ## 1. 快速接入本地 Module
 
 如果把本仓库作为宿主项目的一部分，在根目录 settings.gradle.kts 中包含：

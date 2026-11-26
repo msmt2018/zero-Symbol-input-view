@@ -1,6 +1,18 @@
 # 04 — 动作注册、执行与文本编辑 API
 
-包：`com.zerostudio.idea.widget.editor.symbolinput.v2.action`
+**当前源码包路径**
+
+- 执行宿主、执行器、结果、取消、注册表和文本文档 API：`com.zerostudio.idea.widget.drawer.action`。
+- `SymbolAction` 及 `CursorTarget`、`DeleteKind`、`SelectionTransform`、`ClipboardOperation` 模型：`com.zerostudio.idea.widget.editor.symbolinput.v2.model`。
+- 符号产品兼容 facade、`SymbolActionJsonCodec`、`BuiltinSymbolActionCatalog` 等：`com.zerostudio.idea.widget.editor.symbolinput.v2.action`。
+
+```kotlin
+import com.zerostudio.idea.widget.drawer.action.SymbolActionExecutor
+import com.zerostudio.idea.widget.drawer.action.SymbolActionHost
+import com.zerostudio.idea.widget.drawer.action.SymbolActionResult
+import com.zerostudio.idea.widget.drawer.action.SymbolActionCancellation
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
+```
 
 ## 1. 运行模型
 

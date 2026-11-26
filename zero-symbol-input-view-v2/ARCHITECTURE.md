@@ -1,73 +1,71 @@
-# Symbol Drawer V2 Architecture
+# Symbol Drawer V2 — Android View Architecture
 
 ## Product contract
 
-This library implements one integrated symbol drawer:
+This artifact implements the Android View symbol toolbar:
 
-- vertical drag expands/collapses the symbol surface;
-- the group indicator is progressively revealed by drawer expansion;
-- horizontal swipe changes the active group;
-- tapping a group indicator changes the same pager;
-- symbol click and long-click are dispatched through one callback contract;
-- group identity and selected page survive data refreshes when IDs remain stable.
-
-The legacy library remains untouched and is the behavioural reference during V2 development.
+- Vertical drag expands/collapses the symbol surface.
+- The group indicator is progressively revealed by drawer expansion.
+- Horizontal swipe changes the active group.
+- Tapping a group indicator selects the corresponding page.
+- Short-click and long-click actions are dispatched separately.
+- Stable group IDs preserve selection across data refreshes.
 
 ## Runtime composition
 
 ```text
 SymbolDrawerView
-├── SymbolGroupIndicator (horizontal RecyclerView)
-└── ViewPager2 (horizontal paging)
+├── SymbolGroupIndicator
+└── ViewPager2
     └── SymbolPageAdapter
-        └── RecyclerView + GridLayoutManager per page
-            └── SymbolAdapter (DiffUtil)
+        └── RecyclerView grid pages
 ```
 
 ## Responsibilities
 
-- **SymbolDrawerView**: owns the integrated interaction, height, indicator reveal, pager synchronization and public API. Its expansion geometry includes indicator height separately from grid height, so the indicator remains revealable even when every symbol group fits in the collapsed grid.
-- **DrawerGeometry**: pure row/height/reveal calculations; no View dependencies.
-- **SymbolGroupRepository**: persistence boundary. The default SharedPreferences implementation uses a V2-only namespace.
-- **LegacySymbolDataMigration**: one-way imports the legacy compact JSON preference when the V2 store is empty; it never writes to the legacy store.
-- **SymbolGroupManager**: repository-backed group/symbol commands that a dedicated manager UI can consume.
-- **SymbolGroupIndicator**: recycles group labels and only updates changed selection rows.
-- **SymbolPageAdapter**: pages are recycled by ViewPager2; each page uses a grid RecyclerView and shared recycled pool.
-- **Action configuration**: every symbol exposes independent V1-compatible short-press and optional long-press action selectors, using the exact V1 action IDs, ordering and text-parameter rules. The manager list is also embedded in the settings screen.
-- **Settings repository and screen**: immutable schema-versioned settings snapshots persisted independently from symbol data; the programmatic settings screen exposes each setting and reports saved snapshots to the host. `SymbolDrawerView.applySettings` applies grid geometry, expansion cap, indicator style, labels, touch targets, long-press timing, haptics, motion, cache and fling behavior.
-- **Versioned persistence and bundle codec**: new SharedPreferences writes and import/export use the versioned V2 typed-action envelope. Stable group/symbol IDs, icons, independent short/long typed actions and legacy action metadata are preserved. The decoder continues to read the original V1 compact JSON schema and the previous unversioned V2 draft array.
+- `SymbolDrawerView`: owns symbol toolbar interaction, height, indicator reveal, pager synchronization and public callbacks.
+- `DrawerGeometry`: pure row/height/reveal calculations.
+- `SymbolGroupRepository`: persistence boundary; default storage uses a V2-only namespace.
+- `LegacySymbolDataMigration`: one-way legacy JSON import when the V2 store is empty; it never writes back to legacy preferences.
+- `SymbolGroupManager`: repository-backed group/symbol commands and immutable snapshots.
+- `SymbolGroupIndicator` / `SymbolPageAdapter`: View-based indicator and page rendering.
+- Settings and codecs: schema-versioned settings, typed action envelope, legacy JSON decoding and backup bundle import/export.
+
+## Generic Drawer package layout
+
+The reusable generic Drawer is a separate framework from the symbol toolbar and now has canonical source packages:
+
+- `com.zerostudio.idea.widget.drawer`: `DrawerContainer`.
+- `com.zerostudio.idea.widget.drawer.core`: anchors, resolver, controller, state and interaction controller.
+- `com.zerostudio.idea.widget.drawer.config`: generic Drawer config and presentation mode.
+- `com.zerostudio.idea.widget.drawer.navigation`: pages, navigation controller and View page host.
+- `com.zerostudio.idea.widget.drawer.panel`: View panel content and panel host.
+- `com.zerostudio.idea.widget.drawer.style`: colors, dimensions, typography, motion, shape and theme.
+- `com.zerostudio.idea.widget.drawer.adapter`: symbol drawer anchor adapter.
+
+The previous `com.zerostudio.idea.widget.editor.symbolinput.v2.drawer` package is no longer canonical. The symbol product remains in `com.zerostudio.idea.widget.editor.symbolinput.v2`; its model-level `DrawerConfig` is not the same type as `drawer.config.DrawerConfig`.
 
 ## Gesture arbitration
 
-The drawer intercepts only predominantly vertical movement after touch slop. Horizontal movement remains with ViewPager2. This is intentionally not implemented as a competing horizontal pager. The drag controller tracks velocity and snaps to the nearest endpoint, with a fling threshold for deliberate fast movement.
-
-The V2 interaction contract must continue to be validated against the legacy control:
-1. a vertical upward drag expands the drawer;
-2. a vertical downward drag collapses it;
-3. the group indicator appears continuously during expansion and disappears continuously during collapse;
-4. a horizontal swipe changes groups without changing drawer height;
-5. tapping a group indicator changes the same page;
-6. short and long symbol gestures remain distinct;
-7. updating groups preserves the selected group by stable group ID.
+The symbol toolbar claims predominantly vertical movement after touch slop; horizontal movement remains with ViewPager2. Nested child scrolling is considered before the drawer takes over downward movement. The generic Drawer has its own controller/anchor model and should not be layered around the symbol toolbar.
 
 ## Performance strategy
 
-- RecyclerView-backed indicator instead of creating every indicator child manually.
-- ViewPager2 page recycling instead of recreating all pages on every data update.
-- DiffUtil for symbol cells.
-- Shared RecycledViewPool for page grids.
-- No page item animator during rapid symbol data changes.
-- Immutable snapshots at the UI boundary.
-- Height math is calculated in a pure object and only updates layout params when values actually change.
+- ViewPager2 page recycling.
+- RecyclerView-backed symbol grids and group indicator.
+- Diff-based symbol data updates and shared recycled pools where configured.
+- Immutable snapshots at data/UI boundaries.
+- Pure geometry calculations separated from View measurement and layout.
+- Avoid repeated full adapter replacement for unrelated settings changes.
 
-## Compatibility and migration
+## Editor integration
 
-- Package: `com.zerostudio.idea.widget.editor.symbolinput.v2`.
-- Persistence: `symbol_drawer_v2/groups_json_v2`; legacy keys are never written.
-- Editor integration is callback-based. A host can bridge the callback to the existing `SymbolActionExecutor`.
-- This is a parallel implementation. Do not remove or redirect the legacy widget until behavioural tests and an app-level comparison pass.
+The action runtime is editor-neutral. The host implements `SymbolActionHost` and optionally `SymbolTextDocument`; Sora-specific or other editor adapters belong to the host application or a separate adapter module.
 
-## Deliberate non-goals for this foundation
+## Compatibility and persistence
 
-- The V1 compact data classes are retained in `model.legacy`; migration reads the legacy schema without modifying it. New V2 persistence writes use the versioned typed-action envelope, while legacy IDs and payloads remain attached as compatibility metadata.
-- The settings screen embeds the symbol manager. Each symbol row opens the V1-style editor for its own short/long action configuration.
+- Symbol product package: `com.zerostudio.idea.widget.editor.symbolinput.v2`.
+- Generic Drawer package: `com.zerostudio.idea.widget.drawer.*`.
+- V2 data is stored separately from V1. Legacy data import is one-way.
+- Stable group/symbol IDs, typed short/long actions and legacy metadata are preserved by codecs.
+- The View artifact and Compose artifact are independent UI implementations. Do not depend on both in the same application.

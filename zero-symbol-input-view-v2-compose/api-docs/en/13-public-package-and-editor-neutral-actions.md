@@ -1,21 +1,43 @@
-# 13 — Public packages and editor-neutral actions
+# 13 — Public packages and editor-neutral document contract
 
-The Compose artifact separates editor-neutral contracts from Compose UI. Text document edits, action IDs, action handlers and execution hosts belong to Kotlin APIs that do not require an Activity, Fragment, View or LifecycleOwner.
+The Compose artifact has a physically relocated generic Drawer implementation under the public package. The symbol-input product remains in its own namespace.
 
-The text-document contract uses UTF-16 offsets to match Kotlin/Java string indexing. Validate edit ranges and conflicts before mutation; apply multi-edits in descending offset order and preserve selection/caret metadata according to the transaction contract.
+## Canonical package map
 
-Extension registry snapshots and revision notifications are data APIs. Consumers explicitly own and close observer handles; there is no automatic Fragment view lifecycle binding.
+| API | Package |
+|---|---|
+| Generic Compose Drawer | `com.zerostudio.idea.widget.drawer` |
+| Anchors, controller and state | `com.zerostudio.idea.widget.drawer.core` |
+| Navigation and Composable page host | `com.zerostudio.idea.widget.drawer.navigation` |
+| Composable panel slots | `com.zerostudio.idea.widget.drawer.panel` |
+| Configuration | `com.zerostudio.idea.widget.drawer.config` |
+| Compose style tokens | `com.zerostudio.idea.widget.drawer.style` |
+| Editor-neutral actions | `com.zerostudio.idea.widget.drawer.action` |
+| Symbol-input Composables | `com.zerostudio.idea.widget.editor.symbolinput.v2` |
+| Symbol models | `com.zerostudio.idea.widget.editor.symbolinput.v2.model` |
 
-Kotlin `typealias` facade declarations are Kotlin source aliases only. They do not create Java-visible classes. Java ABI compatibility requires concrete public facade declarations and Java compilation tests.
+Do not import the former `com.zerostudio.idea.widget.editor.symbolinput.v2.drawer` path.
 
-## Editor-neutral text algorithms
+## Recommended imports
 
-The canonical `SymbolTextEditing` utility and its result types
-(`SymbolTextMacroExpansion`, `SymbolTextRange`, and `SymbolTextInsertion`)
-are published from `com.zerostudio.idea.widget.drawer.action`. They operate
-only on text and UTF-16 offsets, with no symbol-input feature or editor-core
-dependency.
+```kotlin
+import com.zerostudio.idea.widget.drawer.DrawerContainer
+import com.zerostudio.idea.widget.drawer.rememberDrawerContainerState
+import com.zerostudio.idea.widget.drawer.config.DrawerConfig
+import com.zerostudio.idea.widget.drawer.navigation.DrawerPage
+import com.zerostudio.idea.widget.drawer.panel.drawerPanelContent
+import com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawer
+import com.zerostudio.idea.widget.editor.symbolinput.v2.rememberSymbolDrawerState
+```
 
-Historical `editor.symbolinput.v2.action` JVM classes remain as forwarding
-compatibility APIs and retain their historical result types. New integrations
-should import the canonical `drawer.action` classes.
+The Compose artifact does not expose `SymbolDrawerView`. Use the `@Composable SymbolDrawer` entry point.
+
+## Text document contract
+
+The action engine operates on the focused document through `SymbolTextDocument`. Offsets are UTF-16 code units, line/column are zero-based, ranges are end-exclusive `[start, end)`, and line-end offsets exclude CR/LF separators. Multi-range edits must validate overlap and apply from right to left.
+
+## Execution semantics
+
+`SymbolActionExecutor` is synchronous and never changes threads. Host adapters must honor their editor's thread rules. Unsupported operations, invalid input, cancellation, exceptions and partial Composite completion are represented separately. Composite is not an automatic transaction; rollback depends on host-provided transaction semantics.
+
+Domain models, repositories, codecs and core state policies remain UI-neutral. Compose slots and effect handling belong at the UI boundary. Compose has Composition/recomposition/effect lifetimes, but this API does not require Activity, Fragment, ViewModel or LifecycleOwner page orchestration.

@@ -1,49 +1,55 @@
-# 10 — API Index, Compatibility and Troubleshooting
+# 10 — Compose API index, package layout and compatibility
 
-## Main API areas
+This page indexes the current `zero-symbol-input-view-v2-compose` artifact. Generic Drawer source is under `com.zerostudio.idea.widget.drawer`; symbol UI remains under `com.zerostudio.idea.widget.editor.symbolinput.v2`.
 
-| Area | Main types |
-|---|---|
-| Symbol toolbar | `SymbolDrawerView`, `SymbolGroup`, `SymbolEntry`, `SymbolAction` |
-| Action runtime | `SymbolActionHost`, `SymbolActionExecutor`, `SymbolActionResult`, `SymbolActionRegistry`, `SymbolActionJsonCodec` |
-| Text adapter | `SymbolTextDocument`, `SymbolTextDocumentActionHost`, `GenericSymbolTextActions` |
-| Data | `SymbolGroupRepository`, `SymbolGroupManager`, storage/bundle codecs, migration adapters |
-| Settings | `SymbolDrawerSettings`, settings repository/codec/screen |
-| Generic Drawer | `DrawerContainer`, `DrawerController`, anchor strategies/resolver, interaction controller |
-| Navigation/panels | `DrawerPage`, `DrawerNavigationController`, `DrawerPageHost`, `DrawerPanelContent` |
-| Style | `DrawerStyle`, colors, dimensions, typography, motion, shape and presets |
-| Adaptive | `WindowAdaptiveInfo`, observers/controllers and adaptive resolvers |
-| Extensions | `SymbolDrawerExtensionRegistry`, action/indicator/item/settings/theme extension contracts |
+## 1. Compose UI entry points
 
-Use the detailed page for exact signatures and behavior.
+| API | Package | Purpose |
+|---|---|---|
+| `SymbolDrawer` | `editor.symbolinput.v2` | Compose symbol drawer |
+| `SymbolDrawerState`, `rememberSymbolDrawerState` | `editor.symbolinput.v2` | Composition-owned presentation state |
+| `SymbolDrawerManagerScreen` | `editor.symbolinput.v2.manager` | Compose manager screen |
+| `SymbolDrawerSettingsScreen` | `editor.symbolinput.v2.settings` | Compose settings screen |
+| `SymbolGroupIndicator`, `SymbolPage` | `editor.symbolinput.v2.ui` | Compose UI components |
 
-## Same-name configuration types
+This artifact does not expose `SymbolDrawerView`.
 
-Two different types are named `DrawerConfig`:
-- `model.DrawerConfig`: symbol toolbar configuration.
-- `drawer.config.DrawerConfig`: generic Drawer configuration.
+## 2. Generic Compose Drawer
 
-Use import aliases when both are needed.
+| API | Package | Purpose |
+|---|---|---|
+| `DrawerContainer` | `com.zerostudio.idea.widget.drawer` | Composable generic drawer |
+| `DrawerContainerState`, `rememberDrawerContainerState` | same | Remembered container state |
+| `DrawerConfig`, `DrawerPresentationMode` | `drawer.config` | Generic drawer configuration |
+| `DrawerStateHolder`, `DrawerController` | `drawer.core` | State engine and controller |
+| `DrawerAnchor`, `DrawerAnchorInput`, `DrawerAnchorStrategy` | `drawer.core` | Anchor models and policies |
+| `DrawerNestedScrollPolicy`, `DrawerNestedScrollConnection` | `drawer.core` | Nested-scroll arbitration |
+| `rememberDrawerStateHolder`, `rememberDefaultDrawerController`, `rememberDrawerStateSnapshot` | `drawer.core` | Composition adapters |
+| `DrawerPage`, `DrawerPageHost` | `drawer.navigation` | Stable-ID pages and Composable host |
+| `DrawerPanelContent`, `drawerPanelContent`, `DrawerPanelHost` | `drawer.panel` | Composable panel slots |
+| `DrawerStyle`, `DrawerColors`, `DrawerDimensions`, `DrawerMotion` | `drawer.style` | Compose style tokens |
 
-## Compatibility contracts
+## 3. Domain, data and actions
 
-- Keep V1 numeric action IDs and payload meanings stable.
-- V1 migration is read-only against legacy preferences and writes to the independent V2 repository.
-- Current documented schema versions: settings 3 and typed actions 1. Storage/bundle envelopes are handled by their own codecs.
-- Do not rename stable IDs, JSON fields or action IDs without a migration/version plan.
-- Kotlin typealiases in the new Drawer facade do not create Java-visible JVM classes.
+- Models: `SymbolGroup`, `SymbolEntry`, `SymbolAction`, product `model.DrawerConfig`.
+- Actions: `SymbolActionHost`, `SymbolActionExecutor`, `SymbolActionResult`, `SymbolActionRegistry`.
+- Text document: `SymbolTextDocument`, `SymbolTextDocumentActionHost`, `SymbolTextEditing`.
+- Data: `SymbolGroupRepository`, `ObservableSymbolGroupRepository`, `SymbolGroupManager`.
+- Codecs/migration: `SymbolGroupStorageCodec`, `SymbolGroupBundleCodec`, `LegacySymbolDataCodec`, `LegacySymbolDataMigration`, Android migration adapter.
+- Settings: `SymbolDrawerSettings`, `SymbolDrawerSettingsRepository`, `SymbolDrawerSettingsCodec`.
 
-## Manager screen
+## 4. Extensions
 
-`SymbolDrawerManagerScreen` supports group/symbol CRUD, ordering, duplication, copy/move, batch selection, search, favorites/recent use and bundle import/export. Its UI state (favorites/recent) is not the same as the group repository snapshot. Bind it to the drawer/session and close the returned handle when the screen exits.
+`SymbolDrawerExtensionRegistry` registers action, legacy action, indicator, item renderer, legacy group provider, settings tab/item and theme contributions. Each registration returns an `AutoCloseable`. Contributions are runtime objects, not serialized data. Registration does not imply that every UI screen automatically consumes every extension; use the consumer behavior documented for the current screen.
 
-## Troubleshooting
+## 5. Compatibility boundaries
 
-- No symbols: call `reloadGroups()` or `submitGroups`; inspect repository and parent height.
-- Action does not edit: verify short/long selection, host capability, thread and structured result.
-- Manager changes do not appear: bind the same drawer or submit/reload the changed snapshot.
-- Page resources linger: distinguish hidden from detached/disposed.
-- Large-screen layout is wrong: use current window dimensions and avoid double-subtracting Insets.
-- Settings do not refresh: apply the new snapshot or observe repository changes.
+- Generic Drawer source packages are physically located under `com.zerostudio.idea.widget.drawer`.
+- Symbol-input UI and domain packages remain under `editor.symbolinput.v2`.
+- Kotlin `typealias` does not emit an independent Java class.
+- Compose `DrawerContainer` is a Composable; the legacy artifact's same-concept API is an Android View class.
+- The two UI artifacts are not interchangeable and should not be added together.
 
-Add tests for malformed JSON, failed writes, migration, unsupported host methods, partial composite failure, gestures, lifecycle and window changes.
+## 6. Composition semantics
+
+The API does not require Activity, Fragment, ViewModel or LifecycleOwner as a component state container. Composition, recomposition, remember scopes and effect cancellation still exist. Do not describe Compose as having no lifecycle at all.

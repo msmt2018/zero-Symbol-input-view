@@ -9,10 +9,10 @@
 ```kotlin
 import com.zerostudio.idea.widget.drawer.SymbolDrawerView
 import com.zerostudio.idea.widget.drawer.extension.*
-import com.zerostudio.idea.widget.drawer.action.SymbolAction
-import com.zerostudio.idea.widget.drawer.action.SymbolActionId
-import com.zerostudio.idea.widget.drawer.action.SymbolActionRegistry
-import com.zerostudio.idea.widget.drawer.action.SymbolActionHandler
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolActionId
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolActionRegistry
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolActionHandler
 ```
 
 当前公共扩展类型通过 Kotlin `typealias` 暴露；这是 Kotlin 源码级兼容入口，不会生成可供 Java 直接导入的独立类。若需要 Java ABI 稳定性，后续必须把公共 API 声明物理迁移为真实 public 类型，而不能把 typealias 误当作 Java API。

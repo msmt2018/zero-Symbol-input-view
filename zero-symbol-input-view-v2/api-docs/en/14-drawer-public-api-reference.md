@@ -1,58 +1,55 @@
-# 14 — Universal Drawer Public API Reference
+# 14 — Generic Drawer public API (Android View)
+
+This page describes the generic Drawer in the `zero-symbol-input-view-v2` artifact. It is a traditional Android View implementation and is not interchangeable with the same-concept Compose API in the separate Compose artifact.
 
 ## Imports
 
 ```kotlin
 import com.zerostudio.idea.widget.drawer.DrawerContainer
-import com.zerostudio.idea.widget.drawer.DrawerConfig
-import com.zerostudio.idea.widget.drawer.DrawerPresentationMode
+import com.zerostudio.idea.widget.drawer.config.DrawerConfig
+import com.zerostudio.idea.widget.drawer.config.DrawerPresentationMode
 import com.zerostudio.idea.widget.drawer.core.*
 import com.zerostudio.idea.widget.drawer.navigation.*
 import com.zerostudio.idea.widget.drawer.panel.*
 import com.zerostudio.idea.widget.drawer.style.*
 ```
 
-Some entries are Kotlin typealiases; see [13](13-public-package-and-editor-neutral-actions.md) for Java ABI limitations.
+## Component model
 
-## Object model
-
-`DrawerContainer` owns layout, main content and panels. `DrawerController` is the runtime command surface. `DrawerAnchorStrategy` computes anchors. `DrawerInteractionController` handles gestures and settling. `DrawerPageHost` owns page View creation/cache/lifecycle. `DrawerPanelContent` defines panel content/lifecycle. `DrawerStyle` aggregates appearance tokens.
-
-## Create a container
-
-```kotlin
-val config = DrawerConfig.builder()
-    .setPresentationMode(DrawerPresentationMode.BOTTOM_SHEET)
-    .setDragEnabled(true)
-    .setNestedScrollEnabled(true)
-    .setDismissOnBack(true)
-    .setDismissOnScrimTap(true)
-    .setDragHandleEnabled(true)
-    .build()
-
-val drawer = DrawerContainer(context, config)
-parent.addView(drawer)
-drawer.setMainContent(editorView)
-drawer.setTitle("Tools")
-drawer.expand(animated = false)
+```text
+DrawerContainer (FrameLayout / NestedScrollingParent3)
+├── main content
+├── Peek panel
+├── Expanded panel / DrawerPageHost
+├── navigation tabs
+└── DrawerController
+    ├── anchor strategy and resolver
+    ├── touch/drag/fling interaction controller
+    └── DrawerState snapshot
 ```
 
-Use the current themed Activity Context. The container does not create an Activity or automatically own every host-window Insets policy.
+`DrawerContainer(context, config)` is added to a ViewGroup. Set host content with `setMainContent(view)`, optional title with `setTitle(value)`, and Peek/Expanded panels with `setPeekContent` / `setExpandedContent`. `setPages(pages, preserveSelection)` delegates the expanded area to the page host.
 
-## Container and controller
+## Controller surface
 
-The container supports main content, title, Peek/Expanded content, page lists, expand/collapse, anchor refresh and Back handling. The controller supports anchor movement, strategy and presentation changes, config/style updates, page selection, drag/nested-scroll/edge-to-edge/scrim/Back/handle switches and state observation.
+`drawer.controller` exposes expand/collapse/move-to-anchor, anchor refresh and strategy replacement, presentation mode and full config updates, style/theme setters, panel setters, page selection, navigation config, drag/nested-scroll/edge-to-edge/dismiss/handle/accessibility switches, current state and state listeners.
 
-Apply a complete config snapshot atomically rather than repeatedly changing it during animation.
+`DrawerState` is a snapshot containing current anchor ID, current pixel height, resolved anchors, drag/animation flags and derived stable-anchor/expansion properties.
 
-## Anchor strategies
+## Configuration and policies
 
-Available strategies include existing-height compatibility, three-stage, content-based and custom. The resolver normalizes anchor definitions, chooses the nearest anchor and computes fling targets. IDs must be stable and unique.
+`drawer.config.DrawerConfig` is the generic container config; it is distinct from `editor.symbolinput.v2.model.DrawerConfig`, which configures the symbol grid. The generic config combines anchor strategy, style, panel content, gesture and dismissal flags, navigation config and presentation mode.
 
-## Navigation, panels and style
+Built-in anchor strategies include `ExistingHeightAnchorStrategy`, `ThreeStageAnchorStrategy`, `ContentBasedAnchorStrategy` and `CustomAnchorStrategy`. Custom strategies implement `DrawerAnchorStrategy.resolve(input)`.
 
-Pages use stable IDs. The page host caches Views and sends visibility/detach/dispose lifecycle events. A hidden page may remain cached. Style consists of colors, dimensions, typography, motion and shape, plus theme resolution and presets.
+## Navigation and panels
 
-## Integration boundaries
+`DrawerPage` has a stable ID, title, `DrawerPanelContent` and optional Android Drawable icon. `DrawerPanelContent` is a View factory with panel attached/visible/hidden/detached callbacks. It is not a Composable slot.
 
-The host remains responsible for window layout, app navigation and platform-specific Insets not explicitly handled by the container. Refresh anchors after content/window measurement changes. Test nested scrolling, horizontal children, Back, scrim, detach and Context recreation on device.
+## Android lifecycle and state
+
+The container uses Android View attach/detach and saved-state mechanisms to manage gesture resources and restore drawer/page state. The host must release references with its Fragment View or Activity lifecycle and connect Back handling through `handleBack()` as appropriate.
+
+## Compose artifact distinction
+
+In `zero-symbol-input-view-v2-compose`, `DrawerContainer` is a Composable function, `DrawerPanelContent` wraps a Composable lambda, and `DrawerPageHost` is a Composable. The two artifacts are separate implementations; do not put both on the same dependency graph.

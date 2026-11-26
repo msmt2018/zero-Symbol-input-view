@@ -16,6 +16,20 @@ Audit in dependency order:
 6. Compose screens and symbol-drawer UI.
 
 ## Key Boundaries
+## Generic Drawer package relocation
+
+The generic Drawer source files now use the canonical package tree:
+
+- `com.zerostudio.idea.widget.drawer`
+- `com.zerostudio.idea.widget.drawer.core`
+- `com.zerostudio.idea.widget.drawer.config`
+- `com.zerostudio.idea.widget.drawer.navigation`
+- `com.zerostudio.idea.widget.drawer.panel`
+- `com.zerostudio.idea.widget.drawer.style`
+- `com.zerostudio.idea.widget.drawer.adapter`
+
+The former `com.zerostudio.idea.widget.editor.symbolinput.v2.drawer` namespace is not the source package. The symbol-input UI and domain packages remain under `editor.symbolinput.v2`. The View artifact exposes a View-based Drawer with these concepts; this artifact exposes Composables and Composable slots.
+
 
 - Domain, data, and core state APIs must not all be annotated `@Composable` merely to serve the UI.
 - Compose pages must not implement their UI with an Android View tree or wrap legacy controls with `AndroidView` / `AndroidViewBinding`.

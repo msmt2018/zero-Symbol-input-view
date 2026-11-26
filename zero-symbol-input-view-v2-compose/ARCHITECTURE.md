@@ -2,166 +2,97 @@
 
 ## Migration contract
 
-The `zero-symbol-input-view-v2-compose` module is the Compose implementation. The
-legacy `zero-symbol-input-view-v2` module remains a separate compatibility
-reference and is not part of this module's runtime UI.
+The `zero-symbol-input-view-v2-compose` module is a native Jetpack Compose implementation. The legacy `zero-symbol-input-view-v2` module is a separate Android View artifact and is not part of this module's UI runtime.
 
-The Compose module must not implement UI through Android Views or bind page
-state to Android's traditional page lifecycle APIs:
+The Compose module must not implement UI through Android Views or bind page state to Android's traditional page lifecycle APIs:
 
-- No `android.view.View`, `ViewGroup`, `android.widget`, or View-based
-  Material components in production UI.
-- No `AndroidView` / `AndroidViewBinding` interop as a substitute for
-  migrating a control.
-- No RecyclerView, ViewPager2, Fragment, Activity, ViewModel,
-  LifecycleOwner, LifecycleRegistry, or SavedStateRegistry integration in
-  feature source.
-- UI state is owned by Composition and explicit state holders. Animation and
-  gesture work is driven by Compose APIs and caller-provided composition scopes.
-- Domain, persistence, action execution, geometry, and policy code remain
-  independent of page lifecycle and should not import Compose UI unless the
-  type is specifically a Compose extension slot.
+- No `android.view.View`, `ViewGroup`, `android.widget`, or View-based Material components in production UI.
+- No `AndroidView` / `AndroidViewBinding` interop as a substitute for migrating a control.
+- No RecyclerView, ViewPager2, Fragment, Activity, ViewModel, LifecycleOwner, LifecycleRegistry, or SavedStateRegistry integration in feature UI.
+- UI state is owned by Composition and explicit state holders.
+- Domain, persistence, action execution, geometry and policy code remain independent of page lifecycle.
 
-"Lifecycle-neutral" means no dependency on Android Activity/Fragment/ViewModel
-or LifecycleOwner page orchestration. Compose still has Composition,
-recomposition, and effect lifetimes; it is not literally lifecycle-free.
+“Lifecycle-neutral” means no dependency on Activity/Fragment/ViewModel or LifecycleOwner page orchestration. Compose still has Composition, recomposition and effect lifetimes; it is not literally lifecycle-free.
+
+## Canonical package layout
+
+- Generic Drawer: `com.zerostudio.idea.widget.drawer`
+- Drawer core: `com.zerostudio.idea.widget.drawer.core`
+- Navigation: `com.zerostudio.idea.widget.drawer.navigation`
+- Panels: `com.zerostudio.idea.widget.drawer.panel`
+- Styles: `com.zerostudio.idea.widget.drawer.style`
+- Editor-neutral actions: `com.zerostudio.idea.widget.drawer.action`
+- Symbol UI: `com.zerostudio.idea.widget.editor.symbolinput.v2`
+- Symbol domain/data/settings: `com.zerostudio.idea.widget.editor.symbolinput.v2.*`
+
+The old `com.zerostudio.idea.widget.editor.symbolinput.v2.drawer` package is no longer canonical. Do not add new source or imports under that path.
 
 ## Bottom-up dependency layers
 
-Refactors must move from lower layers upward. Do not implement a new UI
-component against an unstable framework API and then reshape the framework
-around that component.
+Refactors move from lower layers upward. Do not build a new UI component against an unstable framework API and then reshape the framework around that component.
 
 ### Layer 0 — editor-neutral text and action contracts
 
 Location: `com.zerostudio.idea.widget.drawer.action`
 
-Responsibilities:
-
 - UTF-16 document offsets, selection, cursor, line mapping and edit semantics.
-- Atomic edit/rollback contract where the host supports it.
 - Action host, cancellation, execution result and bounded action execution.
 - Action registry and extension dispatch.
 - No editor-specific class, Android View, Activity, Fragment or lifecycle owner.
 
-This layer is the host integration boundary. Platform clipboard or storage
-adapters may be supplied by the application, but the action engine itself stays
-UI-neutral.
-
 ### Layer 1 — domain models and validation
 
-Location: `editor.symbolinput.v2.model` and action model packages.
-
-Responsibilities:
+Location: `com.zerostudio.idea.widget.editor.symbolinput.v2.model`
 
 - Stable group/symbol IDs and typed short/long actions.
 - Immutable snapshots and strict input validation.
 - Composite action depth/node/payload limits.
-- Compatibility metadata for importing legacy data without retaining legacy UI.
+- Compatibility metadata for importing legacy data.
 
 ### Layer 2 — persistence and migration
 
-Location: `editor.symbolinput.v2.data` and settings repository packages.
-
-Responsibilities:
+Locations: `editor.symbolinput.v2.data` and settings repository packages.
 
 - Repository interfaces and versioned codecs.
-- Atomic replacement and one-way legacy-data import.
+- One-way legacy-data import.
 - Defensive copies at repository boundaries.
 - Persistence failures must not publish an unpersisted in-memory state.
 - No UI or page lifecycle dependency.
 
 ### Layer 3 — drawer core state, geometry and interaction policy
 
-Location: `editor.symbolinput.v2.drawer.core` and `state`.
+Location: `com.zerostudio.idea.widget.drawer.core`
 
-Responsibilities:
-
-- Anchor resolution, drawer state, transition generation and stale-frame
-  rejection.
+- Anchor resolution, state transitions and stale-frame rejection.
 - Drag, fling and nested-scroll arbitration.
 - Pixel geometry and density validation.
-- State holders expose observable snapshots; animation execution belongs to
-  the Compose host.
-- Explicit thread-confinement contract; no hidden Activity or lifecycle owner.
+- State holders publish observable snapshots; animation execution belongs to the Compose host.
+- Core state engine remains independent of Compose UI.
 
 ### Layer 4 — adaptive layout, navigation, panels, styles and extensions
 
-Locations: `adaptive`, `drawer.navigation`, `drawer.panel`,
-`drawer.style`, and `extension`.
-
-Responsibilities:
+Locations: `adaptive`, `drawer.navigation`, `drawer.panel`, `drawer.style` and `extension`.
 
 - Window measurements represented as immutable data.
 - Stable page IDs and selection synchronization.
 - Content slots expressed as `@Composable` contracts.
-- Extension registration returns closeable handles; registry owns no UI
-  lifecycle and does not silently create host components.
+- Extension registration returns closeable handles; registry owns no UI lifecycle.
 - Adaptive decisions remain policy objects; actual placement is Compose layout.
 
 ### Layer 5 — Compose UI and screens
 
-Locations: `ui`, `drawer`, `SymbolDrawerView.kt`, `manager`, and
-`settings`.
+Locations: `editor.symbolinput.v2`, `manager`, `settings` and Compose UI packages.
 
-Responsibilities:
+- Compose Foundation and Material 3.
+- Lazy layouts and stable keys for dynamic symbol groups.
+- Gesture and nested-scroll coordination through Compose APIs.
+- Accessibility semantics and reduced-motion support.
+- No Android View wrappers.
 
-- Compose Foundation and Material 3 only.
-- Lazy grids/lists and Compose Pager for virtualized content.
-- State is passed through stable immutable models and explicit callbacks.
-- No Activity/Fragment/ViewModel/LifecycleOwner dependency.
-- File/document operations are isolated behind host callbacks or platform
-  adapters; they do not introduce View-based UI.
+## Public Drawer API
 
-## Runtime composition
+`DrawerContainer` is a Composable in `com.zerostudio.idea.widget.drawer`. `DrawerPanelContent` wraps a Composable ColumnScope slot. `DrawerPageHost` uses Compose paging and stable page IDs. The separate View artifact uses the same conceptual names for Android View classes; the two artifacts are not interchangeable and should not be added together.
 
-```text
-SymbolDrawer (Composable)
-├── DrawerContainer (Composable shell)
-│   ├── DrawerStateHolder (Composition-observable state)
-│   ├── DrawerInteractionController (gesture policy)
-│   └── AdaptiveContentLayout (Compose layout)
-├── SymbolGroupIndicator (Compose indicator)
-├── DrawerPageHost (Compose HorizontalPager)
-│   └── SymbolPageAdapter (Compose LazyVerticalGrid renderer)
-└── Symbol action dispatch
-    └── SymbolActionExecutor
-        └── SymbolActionHost / SymbolTextDocument adapter
-```
+## Composition resource semantics
 
-The generic drawer shell and the symbol-input product are separate API
-surfaces. Public facade packages may use Kotlin `typealias` for source
-compatibility; a typealias does not create a Java-visible class. Physical
-package relocation and Java facade classes must be handled as separate,
-explicit compatibility changes.
-
-## State and ownership rules
-
-- Repository owns persisted data; manager commands validate and persist before
-  publishing a new snapshot.
-- Drawer state holder owns continuous height, drag remainder, anchor target,
-  and animation generation.
-- Compose host owns animation scheduling and passes generation-tagged frames
-  back to the state holder.
-- Navigation state uses stable page IDs, not list indices as identity.
-- Extension registry owns registrations and revisioned snapshots, not screen
-  lifetimes. Hosts close registration handles when their own feature/session
-  ends.
-- No state holder may retain Activity, Fragment, View, LifecycleOwner, or a
-  coroutine scope implicitly.
-
-## Build boundary
-
-The module's `check` task enforces both source and resolved production
-runtime dependency boundaries. The migration inventory is diagnostic; it must
-not be confused with the strict gate. Runtime dependency validation resolves
-both debug and release runtime classpaths so a transitive Android View or
-Lifecycle dependency cannot silently re-enter the artifact.
-
-## Migration status
-
-This document describes the target architecture and current source ownership.
-It does not claim that every copied compatibility file, every public API
-facade, every extension consumer, or every documentation example has already
-been physically migrated. Remaining work must be recorded against concrete
-source paths and completed bottom-up without altering the legacy module.
+Composition-scoped state and effects are cancelled/removed as their keys or owning Composition leave scope. Use `remember`, `LaunchedEffect`, `DisposableEffect` and stable keys for the intended purpose. Do not describe these semantics as “no lifecycle”.

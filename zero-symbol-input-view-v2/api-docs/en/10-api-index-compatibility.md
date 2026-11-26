@@ -1,49 +1,58 @@
-# 10 — API Index, Compatibility and Troubleshooting
+# 10 — API index, package layout and compatibility
 
-## Main API areas
+This page indexes the current `zero-symbol-input-view-v2` Android View artifact.
 
-| Area | Main types |
-|---|---|
-| Symbol toolbar | `SymbolDrawerView`, `SymbolGroup`, `SymbolEntry`, `SymbolAction` |
-| Action runtime | `SymbolActionHost`, `SymbolActionExecutor`, `SymbolActionResult`, `SymbolActionRegistry`, `SymbolActionJsonCodec` |
-| Text adapter | `SymbolTextDocument`, `SymbolTextDocumentActionHost`, `GenericSymbolTextActions` |
-| Data | `SymbolGroupRepository`, `SymbolGroupManager`, storage/bundle codecs, migration adapters |
-| Settings | `SymbolDrawerSettings`, settings repository/codec/screen |
-| Generic Drawer | `DrawerContainer`, `DrawerController`, anchor strategies/resolver, interaction controller |
-| Navigation/panels | `DrawerPage`, `DrawerNavigationController`, `DrawerPageHost`, `DrawerPanelContent` |
-| Style | `DrawerStyle`, colors, dimensions, typography, motion, shape and presets |
-| Adaptive | `WindowAdaptiveInfo`, observers/controllers and adaptive resolvers |
-| Extensions | `SymbolDrawerExtensionRegistry`, action/indicator/item/settings/theme extension contracts |
+## 1. Symbol-input product APIs
 
-Use the detailed page for exact signatures and behavior.
+| Type | Package | Purpose |
+|---|---|---|
+| `SymbolDrawerView` | `com.zerostudio.idea.widget.editor.symbolinput.v2` | Android View symbol toolbar |
+| `SymbolGroup`, `SymbolEntry`, `SymbolAction` | `editor.symbolinput.v2.model` | Domain models and typed actions |
+| Product `DrawerConfig` | `editor.symbolinput.v2.model` | Symbol grid/toolbar geometry |
+| `SymbolDrawerSettings` | `editor.symbolinput.v2.settings` | Immutable settings snapshot |
+| `SymbolDrawerManagerScreen` | `editor.symbolinput.v2.manager` | View-based manager UI |
+| `SymbolDrawerSettingsScreen` | `editor.symbolinput.v2.settings` | View-based settings UI |
 
-## Same-name configuration types
+## 2. Generic Drawer APIs
 
-Two different types are named `DrawerConfig`:
-- `model.DrawerConfig`: symbol toolbar configuration.
-- `drawer.config.DrawerConfig`: generic Drawer configuration.
+| Type | Package | Purpose |
+|---|---|---|
+| `DrawerContainer` | `com.zerostudio.idea.widget.drawer` | Generic Android ViewGroup |
+| `DrawerController`, `DrawerState` | `drawer.core` | Runtime control and state snapshot |
+| `DrawerAnchor`, `DrawerAnchorInput`, `DrawerAnchorStrategy` | `drawer.core` | Anchor models and policies |
+| `DrawerInteractionController` | `drawer.core` | Touch-axis arbitration and settling |
+| `DrawerConfig`, `DrawerPresentationMode` | `drawer.config` | Generic container configuration |
+| `DrawerPage`, `DrawerNavigationController`, `DrawerPageHost` | `drawer.navigation` | View page navigation |
+| `DrawerPanelContent`, `DrawerPanelHost` | `drawer.panel` | View panel factory and host |
+| `DrawerStyle`, `DrawerColors`, `DrawerDimensions` | `drawer.style` | Appearance tokens |
+| `DrawerPreset`, `DrawerPresets` | `drawer.preset` | Preset configurations |
+| `SymbolDrawerAnchorAdapter` | `drawer.adapter` | Symbol geometry adapter |
 
-Use import aliases when both are needed.
+## 3. Editor-neutral action APIs
 
-## Compatibility contracts
+The canonical package is `com.zerostudio.idea.widget.drawer.action`:
 
-- Keep V1 numeric action IDs and payload meanings stable.
-- V1 migration is read-only against legacy preferences and writes to the independent V2 repository.
-- Current documented schema versions: settings 3 and typed actions 1. Storage/bundle envelopes are handled by their own codecs.
-- Do not rename stable IDs, JSON fields or action IDs without a migration/version plan.
-- Kotlin typealiases in the new Drawer facade do not create Java-visible JVM classes.
+- `SymbolActionHost`, `SymbolActionExecutor`, `SymbolActionResult`, `SymbolActionCancellation`.
+- `SymbolActionRegistry`, `SymbolActionHandler`, `SymbolActionId`.
+- `SymbolTextDocument`, `SymbolTextDocumentActionHost`, `SymbolTextClipboard`.
+- `SymbolTextEditing`, `GenericSymbolTextActions`, `BuiltinSymbolActionCatalog`.
 
-## Manager screen
+The `SymbolAction` sealed model and its enums remain in `editor.symbolinput.v2.model`.
 
-`SymbolDrawerManagerScreen` supports group/symbol CRUD, ordering, duplication, copy/move, batch selection, search, favorites/recent use and bundle import/export. Its UI state (favorites/recent) is not the same as the group repository snapshot. Bind it to the drawer/session and close the returned handle when the screen exits.
+## 4. Runtime contracts
 
-## Troubleshooting
+- IDs are stable identities; persisted group/symbol IDs must be unique.
+- Action execution is synchronous and does not switch threads.
+- Composite actions are sequential and may return partial failure; no automatic rollback is provided.
+- Text offsets use UTF-16 code units and end-exclusive ranges.
+- Repository writes must succeed before the manager publishes a new snapshot.
+- Extension registrations return `AutoCloseable` handles and must be closed by their owner.
+- This artifact uses Android View attach/detach and saved-state contracts.
 
-- No symbols: call `reloadGroups()` or `submitGroups`; inspect repository and parent height.
-- Action does not edit: verify short/long selection, host capability, thread and structured result.
-- Manager changes do not appear: bind the same drawer or submit/reload the changed snapshot.
-- Page resources linger: distinguish hidden from detached/disposed.
-- Large-screen layout is wrong: use current window dimensions and avoid double-subtracting Insets.
-- Settings do not refresh: apply the new snapshot or observe repository changes.
+## 5. Artifact compatibility
 
-Add tests for malformed JSON, failed writes, migration, unsupported host methods, partial composite failure, gestures, lifecycle and window changes.
+The Compose artifact is a separate implementation. Its `DrawerContainer`, `DrawerPanelContent` and `DrawerPageHost` are Composables/Composable slots, unlike the View types documented here. Do not add both UI artifacts to one app dependency graph.
+
+## 6. Troubleshooting
+
+Check the artifact and fully qualified package first. In particular, distinguish `editor.symbolinput.v2.model.DrawerConfig` from `drawer.config.DrawerConfig`. Kotlin `typealias` declarations do not emit independent Java classes.
