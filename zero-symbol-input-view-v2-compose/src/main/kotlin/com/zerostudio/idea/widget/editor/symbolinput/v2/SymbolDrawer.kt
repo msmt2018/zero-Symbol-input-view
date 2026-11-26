@@ -67,7 +67,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import com.zerostudio.idea.widget.editor.symbolinput.v2.R
+import com.zerostudio.idea.widget.editor.symbolinput.v2.compose.R
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.DrawerConfig
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.manager.SymbolDrawerUsageState
