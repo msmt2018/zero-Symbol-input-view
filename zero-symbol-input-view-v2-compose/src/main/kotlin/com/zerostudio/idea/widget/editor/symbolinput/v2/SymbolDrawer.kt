@@ -60,11 +60,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerDefaults
+import androidx.compose.foundation.pager.PagerSnapDistance
 import androidx.compose.foundation.pager.rememberPagerState
 import com.zerostudio.idea.widget.editor.symbolinput.v2.compose.R
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.DrawerConfig
@@ -346,7 +348,15 @@ fun SymbolDrawer(
                     onGroupSelected = { state.selectedPage = it },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(revealedIndicatorHeight),
+                        .height(revealedIndicatorHeight)
+                        .graphicsLayer {
+                            alpha = expansionFraction
+                            translationY = -(
+                                (1f - expansionFraction) *
+                                    layoutConfig.indicatorHeightDp *
+                                    density.density * 0.2f
+                                )
+                        },
                     settings = settings
                 )
 
@@ -362,6 +372,10 @@ fun SymbolDrawer(
                     HorizontalPager(
                         state = pagerState,
                         modifier = Modifier.fillMaxSize(),
+                        flingBehavior = PagerDefaults.flingBehavior(
+                            state = pagerState,
+                            pagerSnapDistance = PagerSnapDistance.atMost(1)
+                        ),
                         key = { page -> safeGroups[page].id }
                     ) { page ->
                         val group = safeGroups[page]
