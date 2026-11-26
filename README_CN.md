@@ -245,7 +245,7 @@ V1 紧凑 JSON 示例：
 V2 项目原创源码文件使用以下 SPDX 许可表达式：
 
 ```text
-SPDX-License-Identifier: AGPL-3.0-only AND GPL-3.0-only AND Apache-2.0
+SPDX-License-Identifier: AGPL-3.0-only
 ```
 
 这里的 `AND` 是有意采用的累积许可表达式：列出的三份许可证同时适用于同一受许可作品，不表示接收者可以从中任选一份。使用受许可内容时，必须遵守三份许可证中所有适用的条件。
