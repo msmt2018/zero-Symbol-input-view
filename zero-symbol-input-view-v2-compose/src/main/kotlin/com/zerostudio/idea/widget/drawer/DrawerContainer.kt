@@ -218,7 +218,11 @@ fun DrawerContainer(
             availableHeightPx -
                 if (config.presentationMode == DrawerPresentationMode.FULL_SCREEN) statusBarInsetPx else 0
             ).coerceAtLeast(1)
-        val minimumHeightPx = collapsedHeightPx.coerceAtMost(viewportHeightPx)
+        val minimumHeightPx = if (config.anchorStrategy.allowsHiddenAnchor) {
+            0
+        } else {
+            collapsedHeightPx.coerceAtMost(viewportHeightPx)
+        }
         val configuredExpandedHeightPx = with(density) {
             dimensions.expandedMaxHeightDp.dp.roundToPx()
         }
@@ -309,7 +313,7 @@ fun DrawerContainer(
     Box(Modifier.fillMaxSize()) {
         content()
 
-        if ((expanded || config.presentationMode == DrawerPresentationMode.FULL_SCREEN) && config.style.drawScrim) {
+        if (expanded && config.style.drawScrim) {
             Box(
                 Modifier
                     .fillMaxSize()
