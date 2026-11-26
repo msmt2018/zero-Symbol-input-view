@@ -38,18 +38,30 @@ object AdaptiveGridResolver {
 
         val horizontalBase = baseHorizontalSpacingDp.coerceIn(MIN_SPACING_DP, MAX_SPACING_DP)
         val verticalBase = baseVerticalSpacingDp.coerceIn(MIN_SPACING_DP, MAX_SPACING_DP)
-        val spacingScale = when {
-            !adaptive || window.availableWidthDp < MEDIUM_WIDTH_DP -> 1f
-            window.availableWidthDp < EXPANDED_WIDTH_DP -> 1.25f
-            else -> 1.5f
+        if (!adaptive) {
+            return AdaptiveGridSpec(preferredColumns, horizontalBase, verticalBase)
         }
-        val horizontalSpacing = adaptSpacing(horizontalBase, spacingScale)
-        val scaledVertical = adaptSpacing(verticalBase, spacingScale)
-        val verticalSpacing = if (window.availableHeightDp < COMPACT_HEIGHT_UPPER_BOUND_DP && scaledVertical > 0) {
+
+        // Keep the established View V2 spacing contract: compact = +0dp,
+        // medium = +1dp and expanded = +3dp. This is an additive layout
+        // adjustment, not a multiplicative scale (2dp at expanded becomes 5dp).
+        val spacingAdjustment = when (window.sizeClass) {
+            WindowSizeClass.COMPACT -> COMPACT_SPACING_ADJUSTMENT_DP
+            WindowSizeClass.MEDIUM -> MEDIUM_SPACING_ADJUSTMENT_DP
+            WindowSizeClass.EXPANDED -> EXPANDED_SPACING_ADJUSTMENT_DP
+        }
+        val horizontalSpacing = (horizontalBase + spacingAdjustment)
+            .coerceIn(MIN_SPACING_DP, MAX_SPACING_DP)
+        val scaledVertical = (verticalBase + spacingAdjustment)
+            .coerceIn(MIN_SPACING_DP, MAX_SPACING_DP)
+        val verticalSpacing = if (
+            window.availableHeightDp < COMPACT_HEIGHT_UPPER_BOUND_DP && scaledVertical > 0
+        ) {
             (scaledVertical * compactHeightVerticalSpacingScale).roundToInt()
+                .coerceIn(MIN_SPACING_DP, MAX_SPACING_DP)
         } else scaledVertical
 
-        if (!adaptive || lockColumnCount) {
+        if (lockColumnCount) {
             return AdaptiveGridSpec(preferredColumns, horizontalSpacing, verticalSpacing)
         }
 
@@ -58,7 +70,9 @@ object AdaptiveGridResolver {
         val spacing = horizontalSpacing.toDouble()
         val trackPitch = (cellWidth + spacing).coerceAtLeast(MIN_TRACK_PITCH_DP)
         val fittingColumns = if (availableWidth < cellWidth) 1 else {
-            floor((availableWidth - spacing).coerceAtLeast(0.0) / trackPitch).toInt().coerceAtLeast(1)
+            floor((availableWidth - spacing).coerceAtLeast(0.0) / trackPitch)
+                .toInt()
+                .coerceAtLeast(1)
         }
         return AdaptiveGridSpec(
             fittingColumns.coerceAtMost(preferredColumns).coerceAtLeast(1),
@@ -67,15 +81,10 @@ object AdaptiveGridResolver {
         )
     }
 
-    private fun adaptSpacing(spacingDp: Int, scale: Float): Int {
-        if (spacingDp <= 0 || scale == 1f) return spacingDp
-        val scaled = (spacingDp * scale).roundToInt()
-        return scaled.coerceIn(MIN_SPACING_DP, MAX_SPACING_DP)
-    }
-
     private const val COMPACT_HEIGHT_UPPER_BOUND_DP = 480f
-    private const val MEDIUM_WIDTH_DP = 600f
-    private const val EXPANDED_WIDTH_DP = 840f
+    private const val COMPACT_SPACING_ADJUSTMENT_DP = 0
+    private const val MEDIUM_SPACING_ADJUSTMENT_DP = 1
+    private const val EXPANDED_SPACING_ADJUSTMENT_DP = 3
     private const val MIN_SPACING_DP = -24
     private const val MAX_SPACING_DP = 48
     private const val MIN_TRACK_PITCH_DP = 1.0
