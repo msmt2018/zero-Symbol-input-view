@@ -45,6 +45,10 @@
 
 package com.zerostudio.idea.widget.editor.symbolinput.v2.settings
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -82,6 +86,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import com.zerostudio.idea.widget.editor.symbolinput.v2.compose.R
@@ -120,7 +125,54 @@ fun SymbolDrawerSettingsScreen(
     var importGroups by remember { mutableStateOf(false) }
     var importJson by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var feedbackMessage by remember { mutableStateOf<String?>(null) }
+    var pendingFileImportGroups by remember { mutableStateOf(false) }
+    var pendingOpenResult by remember { mutableStateOf<((Uri?) -> Unit)?>(null) }
+    var pendingCreateResult by remember { mutableStateOf<((Uri?) -> Unit)?>(null) }
     val clipboard = LocalClipboardManager.current
+    val context = LocalContext.current
+    val openDocumentLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        pendingOpenResult?.invoke(uri)
+        pendingOpenResult = null
+    }
+    val createDocumentLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        pendingCreateResult?.invoke(uri)
+        pendingCreateResult = null
+    }
+    val documentPicker = rememberJsonDocumentPicker(
+        contentResolver = context.contentResolver,
+        requestOpenDocument = { onResult ->
+            pendingOpenResult = onResult
+            openDocumentLauncher.launch(arrayOf("*/*"))
+        },
+        requestCreateDocument = { fileName, onResult ->
+            pendingCreateResult = onResult
+            createDocumentLauncher.launch(fileName)
+        },
+        onImported = { json ->
+            runCatching {
+                if (pendingFileImportGroups) {
+                    SymbolGroupBundleCodec.decode(json)
+                    importGroups = true
+                    importJson = json
+                    errorMessage = null
+                    importDialog = true
+                } else {
+                    val decoded = SymbolDrawerSettingsCodec.decodeStrict(json)
+                        .copy(themeMode = ThemeMode.SYSTEM)
+                    current = decoded
+                    onSettingsChange(decoded)
+                    feedbackMessage = "设置文件导入成功"
+                }
+            }.onFailure { errorMessage = it.message ?: "JSON 文件导入失败" }
+        },
+        onExported = { feedbackMessage = "JSON 文件导出成功" },
+        onError = { errorMessage = it.message ?: "JSON 文件操作失败" }
+    )
     val tabTitles = listOf("外观", "布局", "平板/大屏", "交互", "性能/搜索", "数据管理")
     // Each View V2 settings tab retains its own scroll position.
     val tabScrollStates = remember {
@@ -327,7 +379,7 @@ fun SymbolDrawerSettingsScreen(
                 5 -> {
                     SettingsSection("设置备份与恢复") {
                         Text(
-                            "单独备份或恢复当前符号控件设置。导入前会完整解析并校验 JSON。",
+                            "设置数据独立备份。支持复制 JSON、导出文件、粘贴 JSON 导入和选择文件导入。",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -335,26 +387,47 @@ fun SymbolDrawerSettingsScreen(
                             Button(
                                 onClick = {
                                     runCatching { SymbolDrawerSettingsCodec.encode(current) }
-                                        .onSuccess { clipboard.setText(AnnotatedString(it)) }
+                                        .onSuccess { clipboard.setText(AnnotatedString(it)); feedbackMessage = "设置 JSON 已复制" }
                                         .onFailure { errorMessage = it.message ?: "导出设置 JSON 失败" }
                                 },
                                 modifier = Modifier.weight(1f)
-                            ) { Text("复制设置 JSON") }
+                            ) { Text("复制 JSON") }
                             OutlinedButton(
                                 onClick = {
+                                    runCatching {
+                                        documentPicker.saveJson(
+                                            "symbol-drawer-settings.json",
+                                            SymbolDrawerSettingsCodec.encode(current)
+                                        )
+                                    }.onFailure { errorMessage = it.message ?: "导出设置文件失败" }
+                                },
+                                modifier = Modifier.weight(1f)
+                            ) { Text("导出文件") }
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedButton(
+                                onClick = {
+                                    pendingFileImportGroups = false
                                     importGroups = false
                                     importJson = clipboard.getText()?.text.orEmpty()
                                     errorMessage = null
                                     importDialog = true
                                 },
                                 modifier = Modifier.weight(1f)
-                            ) { Text("导入设置 JSON") }
+                            ) { Text("粘贴 JSON 导入") }
+                            OutlinedButton(
+                                onClick = {
+                                    pendingFileImportGroups = false
+                                    documentPicker.openJson()
+                                },
+                                modifier = Modifier.weight(1f)
+                            ) { Text("从文件导入") }
                         }
                     }
 
                     SettingsSection("符号分组备份与恢复") {
                         Text(
-                            "符号分组数据独立于设置数据。导入成功后立即写入分组仓库。",
+                            "符号分组数据与控件设置分开存储。文件导入会先校验 JSON，再由你确认替换当前分组。",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -366,13 +439,32 @@ fun SymbolDrawerSettingsScreen(
                                         errorMessage = "符号分组仓库不可用"
                                     } else {
                                         runCatching { SymbolGroupBundleCodec.encode(repository.loadGroups()) }
-                                            .onSuccess { clipboard.setText(AnnotatedString(it)) }
+                                            .onSuccess { clipboard.setText(AnnotatedString(it)); feedbackMessage = "符号分组 JSON 已复制" }
                                             .onFailure { errorMessage = it.message ?: "导出符号分组 JSON 失败" }
                                     }
                                 },
                                 enabled = groupRepository != null,
                                 modifier = Modifier.weight(1f)
-                            ) { Text("复制分组 JSON") }
+                            ) { Text("复制 JSON") }
+                            OutlinedButton(
+                                onClick = {
+                                    val repository = groupRepository
+                                    if (repository == null) {
+                                        errorMessage = "符号分组仓库不可用"
+                                    } else {
+                                        runCatching {
+                                            documentPicker.saveJson(
+                                                "symbol-drawer-groups.json",
+                                                SymbolGroupBundleCodec.encode(repository.loadGroups())
+                                            )
+                                        }.onFailure { errorMessage = it.message ?: "导出符号分组文件失败" }
+                                    }
+                                },
+                                enabled = groupRepository != null,
+                                modifier = Modifier.weight(1f)
+                            ) { Text("导出文件") }
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             OutlinedButton(
                                 onClick = {
                                     importGroups = true
@@ -382,7 +474,15 @@ fun SymbolDrawerSettingsScreen(
                                 },
                                 enabled = groupRepository != null,
                                 modifier = Modifier.weight(1f)
-                            ) { Text("导入分组 JSON") }
+                            ) { Text("粘贴 JSON 导入") }
+                            OutlinedButton(
+                                onClick = {
+                                    pendingFileImportGroups = true
+                                    documentPicker.openJson()
+                                },
+                                enabled = groupRepository != null,
+                                modifier = Modifier.weight(1f)
+                            ) { Text("从文件导入") }
                         }
                     }
 
@@ -393,7 +493,7 @@ fun SymbolDrawerSettingsScreen(
                         ) {
                             Text("数据安全提示", style = MaterialTheme.typography.titleSmall)
                             Text(
-                                "导入操作会替换对应的设置或分组数据。请在导入前保留备份，并确认 JSON 来源可信。设置数据与符号分组数据彼此独立。",
+                                "导入操作会替换对应的设置或分组数据。请在导入前保留备份，并确认 JSON 来源可信。分组文件在覆盖前需要确认。",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -406,11 +506,11 @@ fun SymbolDrawerSettingsScreen(
                             current = defaults
                             onSettingsChange(defaults)
                             onReset?.invoke()
+                            feedbackMessage = "已恢复默认设置"
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) { Text(stringResource(R.string.compose_settings_reset)) }
-                }
-            }
+                }            }
         }
     }
 
@@ -447,6 +547,17 @@ fun SymbolDrawerSettingsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { importDialog = false }) { Text("取消") }
+            }
+        )
+    }
+
+    feedbackMessage?.let { message ->
+        AlertDialog(
+            onDismissRequest = { feedbackMessage = null },
+            title = { Text("操作完成") },
+            text = { Text(message) },
+            confirmButton = {
+                TextButton(onClick = { feedbackMessage = null }) { Text("确定") }
             }
         )
     }
