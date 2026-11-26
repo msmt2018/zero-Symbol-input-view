@@ -86,7 +86,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
-import com.zerostudio.idea.widget.editor.symbolinput.v2.R
+import com.zerostudio.idea.widget.editor.symbolinput.v2.compose.R
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupBundleCodec
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.LegacySymbolDataCodec
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupManager
