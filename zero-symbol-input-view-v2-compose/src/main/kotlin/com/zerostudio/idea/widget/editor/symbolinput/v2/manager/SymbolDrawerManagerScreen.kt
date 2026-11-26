@@ -841,7 +841,26 @@ fun SymbolDrawerManagerScreen(
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             itemsIndexed(pageDisplayedSymbols, key = { _, symbol -> symbol.id }) { _, symbol ->
-                                Card {
+                                Card(
+                                    modifier = Modifier.animateItem().combinedClickable(
+                                        onClick = {
+                                            if (batchMode) {
+                                                selectedSymbolIds = if (symbol.id in selectedSymbolIds) selectedSymbolIds - symbol.id
+                                                else selectedSymbolIds + symbol.id
+                                            } else {
+                                                selectedGroupId = group.id
+                                                editingSymbol = symbol
+                                                symbolDialog = true
+                                            }
+                                        },
+                                        onLongClick = {
+                                            if (batchMode) {
+                                                selectedSymbolIds = if (symbol.id in selectedSymbolIds) selectedSymbolIds - symbol.id
+                                                else selectedSymbolIds + symbol.id
+                                            } else symbolMenuId = symbol.id
+                                        }
+                                    )
+                                ) {
                                     Row(
                                         Modifier.fillMaxWidth().padding(8.dp),
                                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -861,24 +880,7 @@ fun SymbolDrawerManagerScreen(
                                                 .background(MaterialTheme.colorScheme.primary)
                                         )
                                         Column(
-                                            Modifier.weight(1f).combinedClickable(
-                                                onClick = {
-                                                    if (batchMode) {
-                                                        selectedSymbolIds = if (symbol.id in selectedSymbolIds) selectedSymbolIds - symbol.id
-                                                        else selectedSymbolIds + symbol.id
-                                                    } else {
-                                                        selectedGroupId = group.id
-                                                        editingSymbol = symbol
-                                                        symbolDialog = true
-                                                    }
-                                                },
-                                                onLongClick = {
-                                                    if (batchMode) {
-                                                        selectedSymbolIds = if (symbol.id in selectedSymbolIds) selectedSymbolIds - symbol.id
-                                                        else selectedSymbolIds + symbol.id
-                                                    } else symbolMenuId = symbol.id
-                                                }
-                                            ),
+                                            Modifier.weight(1f),
                                             verticalArrangement = Arrangement.Center
                                         ) {
                                             Text(
@@ -907,6 +909,7 @@ fun SymbolDrawerManagerScreen(
                                                                 .firstOrNull { it.key == symbol.id }?.let { info ->
                                                                     pointerY = info.offset.y + info.size.height / 2f
                                                                     dragWorkingOrder = group.symbols.toList()
+                                                                    draggingSymbolId = symbol.id
                                                                 }
                                                         },
                                                         onDrag = { change, dragAmount ->
@@ -929,21 +932,28 @@ fun SymbolDrawerManagerScreen(
                                                         onDragEnd = {
                                                             val reordered = dragWorkingOrder
                                                             dragWorkingOrder = null
+                                                            draggingSymbolId = null
                                                             if (reordered != null &&
                                                                 reordered.map { it.id } != group.symbols.map { it.id }
                                                             ) runUndoable("已调整符号顺序") {
                                                                 manager.reorderSymbols(group.id, reordered.map { it.id })
                                                             }
                                                         },
-                                                        onDragCancel = { dragWorkingOrder = null }
+                                                        onDragCancel = {
+                                                            dragWorkingOrder = null
+                                                            draggingSymbolId = null
+                                                        }
                                                     )
                                                 },
                                             contentAlignment = androidx.compose.ui.Alignment.Center
                                         ) {
-                                            Text("⋮⋮", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            Icon(
+                                                imageVector = Icons.Default.DragHandle,
+                                                contentDescription = "Drag handle",
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
                                         }
                                         Box {
-                                            TextButton(onClick = { symbolMenuId = symbol.id }) { Text("⋮") }
                                             DropdownMenu(
                                                 expanded = symbolMenuId == symbol.id,
                                                 onDismissRequest = { symbolMenuId = null }
