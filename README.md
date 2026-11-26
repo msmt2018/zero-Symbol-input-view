@@ -239,35 +239,18 @@ See [models and actions](zero-symbol-input-view-v2/api-docs/03-models-and-action
 
 ## License
 
-### License identifier
+The original project-authored source files in the following modules are licensed under **GNU Affero General Public License v3.0 only (AGPL-3.0-only)**:
 
-Original V2 project source files are marked with the following SPDX expression:
+- `zero-Symbol-input-view/` — legacy V1
+- `zero-symbol-input-view-v2/` — V2
+- `zero-symbol-input-view-v2-compose/` — Compose integration
+
+Each module contains its own complete `LICENSE` file. The applicable source-file header is:
 
 ```text
 SPDX-License-Identifier: AGPL-3.0-only
 ```
 
-The module is licensed exclusively under the GNU Affero General Public License v3.0 (AGPL-3.0-only).
+This licensing applies only to project-authored files carrying that identifier and contributions whose copyright holders have authorized the license. It does not relicense third-party dependencies, vendored/imported code, or files carrying separate upstream notices. Preserve and comply with those notices and their original license terms.
 
-### What the licenses require
-
-1. **GNU Affero General Public License v3.0 only (AGPL-3.0-only).** Provides rights to use, study, modify and redistribute the covered work. In particular, when a modified version is used to provide users access to it over a computer network, AGPLv3 section 13 requires offering those users the Corresponding Source of that modified version under the AGPL terms.
-2. **GNU General Public License v3.0 only (GPL-3.0-only).** Provides rights to use, study, modify and redistribute the covered work. Conveying object code triggers the applicable GPLv3 requirements, including providing Corresponding Source or a valid offer, preserving notices, and complying with the license conditions.
-3. **Apache License 2.0 (Apache-2.0).** Grants copyright and applicable patent licenses, subject to its conditions, including providing a copy of the license, retaining relevant copyright/patent/trademark/attribution notices, marking modified files, and respecting its patent-termination provision.
-
-This section is a practical summary, not legal advice and not a substitute for the complete license texts. If the cumulative licensing expression is not intended, obtain legal review and change the SPDX expression consistently before release.
-
-### Complete license texts
-
-- [GNU AGPL v3.0](zero-symbol-input-view-v2/LICENSE-AGPL-3.0-only.txt) · [Official text](https://www.gnu.org/licenses/agpl-3.0.html)
-- [GNU GPL v3.0](zero-symbol-input-view-v2/LICENSE-GPL-3.0-only.txt) · [Official text](https://www.gnu.org/licenses/gpl-3.0.html)
-- [Apache License 2.0](zero-symbol-input-view-v2/LICENSE-Apache-2.0.txt) · [Official text](https://www.apache.org/licenses/LICENSE-2.0)
-
-### Scope and third-party material
-
-This licensing notice applies to original V2 project-authored files in `zero-symbol-input-view-v2/` that carry the SPDX identifier above, and to contributions whose copyright holders have authorized this licensing. It does not relicense the entire repository, the legacy V1 module, third-party dependencies, vendored/imported code, or files carrying separate upstream notices.
-
-The repository-root `LICENSE` remains applicable to repository material outside the specifically identified V2 files. Preserve all third-party copyright and license notices. A file-level notice does not override a more specific upstream license.
-
-**Copyright (C) 2026 android_zero**  
-Author: android_zero · [GitHub](https://github.com/msmt2018) · WeChat: `android_zero`
+The repository-root `LICENSE` remains separate and continues to apply to repository content not covered by the module-specific notices. The module-level AGPL licenses do not replace or modify that root license.
