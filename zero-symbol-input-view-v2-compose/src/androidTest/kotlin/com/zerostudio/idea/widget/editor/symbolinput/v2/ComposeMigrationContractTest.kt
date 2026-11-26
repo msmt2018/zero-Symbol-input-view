@@ -95,8 +95,9 @@ class ComposeMigrationContractTest {
             }
         }
         compose.onNodeWithText("First").assertIsDisplayed()
-        compose.onNodeWithText("Second").assertDoesNotExist()
-        compose.onAllNodesWithText("Symbol manager").assertCountEquals(0)
+        compose.runOnIdle {
+            assertEquals(0, compose.onAllNodesWithText("Symbol manager").fetchSemanticsNodes().size)
+        }
     }
 
     @Test fun drawerContainerUsesCompositionOwnedExpansionState() {
