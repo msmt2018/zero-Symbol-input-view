@@ -78,14 +78,14 @@ class DrawerApiLabActivity : AppCompatActivity() {
 private fun DrawerApiLabScreen() {
     val context = LocalContext.current
     val player = remember(context) { DrawerDemoPlayerController(context.applicationContext) }
-    var playerState by remember { mutableStateOf(player.state) }
-    var shuffleEnabled by remember { mutableStateOf(true) }
+    val playerState = remember(player) { mutableStateOf(player.state) }
+    val shuffleState = remember { mutableStateOf(true) }
     var selectedPage by remember { mutableStateOf("player") }
     var selectedAnchor by remember { mutableStateOf("peek") }
     val drawerState = com.zerostudio.idea.widget.drawer.rememberDrawerContainerState()
 
     DisposableEffect(player) {
-        val subscription = player.addListener { playerState = it }
+        val subscription = player.addListener { playerState.value = it }
         onDispose {
             subscription.close()
             player.close()
@@ -125,27 +125,33 @@ private fun DrawerApiLabScreen() {
         )
     }
 
-    val pages = listOf(
-        DrawerPage(
-            "player",
-            "播放器",
-            drawerPanelContent {
-                MusicPlayerPanel(
-                    player = player,
-                    state = playerState,
-                    shuffleEnabled = shuffleEnabled,
-                    onShuffleChanged = { shuffleEnabled = it }
-                )
-            }
-        ),
-        DrawerPage(
-            "api",
-            "API 说明",
-            drawerPanelContent {
-                DrawerApiReferencePanel()
-            }
+    // Keep page identities stable while the playback position publishes
+    // progress updates. The page content reads the remembered state holders
+    // when it is composed, so the player remains live without rebuilding the
+    // navigation model every 450ms.
+    val pages = remember(player) {
+        listOf(
+            DrawerPage(
+                "player",
+                "播放器",
+                drawerPanelContent {
+                    MusicPlayerPanel(
+                        player = player,
+                        state = playerState.value,
+                        shuffleEnabled = shuffleState.value,
+                        onShuffleChanged = { shuffleState.value = it }
+                    )
+                }
+            ),
+            DrawerPage(
+                "api",
+                "API 说明",
+                drawerPanelContent {
+                    DrawerApiReferencePanel()
+                }
+            )
         )
-    )
+    }
 
     BackHandler(enabled = drawerState.expanded) {
         drawerState.collapse()
