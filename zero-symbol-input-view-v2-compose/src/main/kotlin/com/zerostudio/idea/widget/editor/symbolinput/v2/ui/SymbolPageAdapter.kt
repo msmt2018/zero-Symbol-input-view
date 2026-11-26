@@ -42,6 +42,7 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -84,6 +85,7 @@ fun SymbolPage(
     onExpandedSheetDragEnd: ((Float) -> Unit)? = null
 ) {
     val gridState = rememberLazyGridState()
+    val latestUserScrollEnabled = rememberUpdatedState(userScrollEnabled)
     val dragStart = onExpandedSheetDragStart
     val drag = onExpandedSheetDrag
     val dragEnd = onExpandedSheetDragEnd
@@ -128,7 +130,7 @@ fun SymbolPage(
                         // downward gesture when the grid is already at its top.
                         if (abs(accumulatedX) >= abs(accumulatedY) ||
                             accumulatedY <= 0f ||
-                            (userScrollEnabled && gridState.canScrollBackward)
+                            (latestUserScrollEnabled.value && gridState.canScrollBackward)
                         ) {
                             break
                         }
