@@ -964,7 +964,6 @@ fun SymbolDrawerManagerScreen(
             }
             }
         }
-    }
 
     copyGroupSourceId?.let { sourceId ->
         val source = groups.firstOrNull { it.id == sourceId }
