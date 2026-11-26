@@ -191,14 +191,19 @@ fun SymbolDrawer(
     // parent. This remains correct in landscape, split-screen and resizable
     // windows; it does not depend on physical display metrics.
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val safeWidthDp = if (maxWidth == androidx.compose.ui.unit.Dp.Infinity) {
+            (config.columns * maxOf(36, settings.minimumTouchTargetDp)).toFloat()
+        } else {
+            maxWidth.value
+        }
         val safeHeightDp = if (maxHeight == androidx.compose.ui.unit.Dp.Infinity) {
             config.maxExpandedHeightDp.toFloat()
         } else {
             maxHeight.value
         }
-        val windowInfo = remember(maxWidth, safeHeightDp, density.density) {
+        val windowInfo = remember(safeWidthDp, safeHeightDp, density.density) {
             WindowAdaptiveInfo(
-                widthDp = maxWidth.value,
+                widthDp = safeWidthDp,
                 heightDp = safeHeightDp,
                 density = density.density
             )
