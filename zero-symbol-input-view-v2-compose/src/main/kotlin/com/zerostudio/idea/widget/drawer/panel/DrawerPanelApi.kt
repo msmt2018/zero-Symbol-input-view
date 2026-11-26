@@ -5,8 +5,6 @@
  */
 package com.zerostudio.idea.widget.drawer.panel
 
-typealias DrawerPanelContent = com.zerostudio.idea.widget.drawer.panel.DrawerPanelContent
-typealias DrawerPanelSlot = com.zerostudio.idea.widget.drawer.panel.DrawerPanelSlot
 
 @androidx.compose.runtime.Composable
 fun DrawerPanelHost(
