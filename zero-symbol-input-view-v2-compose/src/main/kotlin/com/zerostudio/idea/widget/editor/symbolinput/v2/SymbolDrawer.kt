@@ -47,8 +47,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.background
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.res.stringResource
@@ -64,6 +62,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -183,12 +182,32 @@ fun SymbolDrawer(
 ) {
     val safeGroups = groups
     val density = LocalDensity.current
-    val collapsedHeight = (config.collapsedRows * config.cellHeightDp +
-        config.indicatorHeightDp + 28).coerceAtLeast(96).dp
+    // Match the V2 View geometry: the collapsed shell is the configured symbol grid
+    // only (two rows by default); the group indicator is progressively revealed
+    // while expanding instead of reserving permanent header/handle space.
+    val collapsedHeight = (
+        config.collapsedRows * config.cellHeightDp +
+            (config.collapsedRows - 1).coerceAtLeast(0) * config.cellVerticalSpacingDp + 8
+        ).coerceAtLeast(1).dp
     val collapsedHeightPx = with(density) { collapsedHeight.roundToPx() }
-    val expandedHeightPx = with(density) {
-        config.maxExpandedHeightDp.dp.roundToPx().coerceAtLeast(collapsedHeightPx)
+    val configuration = LocalConfiguration.current
+    val naturalRows = safeGroups.maxOfOrNull { group ->
+        ((group.symbols.size + config.columns - 1) / config.columns).coerceAtLeast(1)
+    } ?: config.collapsedRows
+    val naturalGridHeightPx = with(density) {
+        (naturalRows * config.cellHeightDp +
+            (naturalRows - 1).coerceAtLeast(0) * config.cellVerticalSpacingDp + 8).dp.roundToPx()
+    }.coerceAtLeast(collapsedHeightPx)
+    val indicatorHeightPx = with(density) { config.indicatorHeightDp.coerceAtLeast(0).dp.roundToPx() }
+    val screenHeightCapPx = with(density) {
+        (configuration.screenHeightDp * 0.28f).dp.roundToPx()
     }
+    val configuredHeightCapPx = with(density) {
+        config.maxExpandedHeightDp.dp.roundToPx()
+    }
+    val expandedHeightPx = (naturalGridHeightPx + indicatorHeightPx)
+        .coerceAtMost(minOf(screenHeightCapPx, configuredHeightCapPx).coerceAtLeast(collapsedHeightPx))
+        .coerceAtLeast(collapsedHeightPx)
     val holder = state.stateHolder
     val drawerSnapshot = rememberDrawerStateSnapshot(holder)
     val targetAnchor = drawerSnapshot.targetAnchorId?.let { id ->
@@ -215,6 +234,9 @@ fun SymbolDrawer(
         }
     }
     val drawerHeight = with(density) { animatedHeightPx.toDp() }
+    val expansionFraction = ((animatedHeightPx - collapsedHeightPx).toFloat() /
+        (expandedHeightPx - collapsedHeightPx).coerceAtLeast(1)).coerceIn(0f, 1f)
+    val revealedIndicatorHeight = (config.indicatorHeightDp * expansionFraction).coerceAtLeast(0f).dp
     val dragState = remember(holder) {
         DraggableState { delta -> holder.dragBy(delta) }
     }
@@ -241,48 +263,32 @@ fun SymbolDrawer(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .height(drawerHeight),
+            .height(drawerHeight)
+            .draggable(
+                state = dragState,
+                orientation = Orientation.Vertical,
+                onDragStarted = { holder.beginDrag() },
+                onDragStopped = { velocity ->
+                    holder.endDrag(
+                        fingerVelocityY = velocity,
+                        minimumFlingVelocityPxPerSecond = with(density) { 900.dp.toPx() }
+                    )
+                }
+            ),
         color = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface,
         tonalElevation = 2.dp,
         shape = MaterialTheme.shapes.large
     ) {
         Column(Modifier.fillMaxSize()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(24.dp)
-                    .draggable(
-                        state = dragState,
-                        orientation = Orientation.Vertical,
-                        onDragStarted = { holder.beginDrag() },
-                        onDragStopped = { velocity ->
-                            holder.endDrag(
-                                fingerVelocityY = velocity,
-                                minimumFlingVelocityPxPerSecond = with(density) { 900.dp.toPx() }
-                            )
-                        }
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Box(
-                    Modifier
-                        .size(width = 36.dp, height = 4.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f))
-                )
-            }
-
             SymbolGroupIndicator(
                 groups = safeGroups,
                 selectedIndex = pagerState.currentPage,
                 onGroupSelected = { state.selectedPage = it },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(config.indicatorHeightDp.coerceAtLeast(0).dp),
-                settings = settings,
-                onSettingsClick = onOpenSettings,
-                onManagerClick = onOpenManager
+                    .height(revealedIndicatorHeight),
+                settings = settings
             )
 
             if (safeGroups.isEmpty()) {
