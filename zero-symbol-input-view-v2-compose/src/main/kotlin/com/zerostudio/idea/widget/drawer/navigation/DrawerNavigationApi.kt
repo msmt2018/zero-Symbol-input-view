@@ -5,13 +5,6 @@
  */
 package com.zerostudio.idea.widget.drawer.navigation
 
-typealias DrawerNavigationPlacement = com.zerostudio.idea.widget.drawer.navigation.DrawerNavigationPlacement
-typealias DrawerIndicatorShape = com.zerostudio.idea.widget.drawer.navigation.DrawerIndicatorShape
-typealias DrawerIndicatorStyle = com.zerostudio.idea.widget.drawer.navigation.DrawerIndicatorStyle
-typealias DrawerNavigationConfig = com.zerostudio.idea.widget.drawer.navigation.DrawerNavigationConfig
-typealias DrawerNavigationController = com.zerostudio.idea.widget.drawer.navigation.DrawerNavigationController
-typealias DrawerPage = com.zerostudio.idea.widget.drawer.navigation.DrawerPage
-typealias DrawerNavigationSnapshot = com.zerostudio.idea.widget.drawer.navigation.DrawerNavigationSnapshot
 
 @androidx.compose.runtime.Composable
 fun DrawerPageHost(
