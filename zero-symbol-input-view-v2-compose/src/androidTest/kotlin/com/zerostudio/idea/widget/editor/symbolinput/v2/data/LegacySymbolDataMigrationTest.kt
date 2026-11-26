@@ -120,7 +120,7 @@ class LegacySymbolDataMigrationTest {
         legacyPreferences.edit().putString("symbol_json_data", json).commit()
         val repository = MemoryRepository()
 
-        assertFalse(LegacySymbolDataMigration.importIfV2Empty(context, repository))
+        assertFalse(AndroidLegacySymbolDataMigration.importIfV2Empty(context, repository))
         assertFalse(repository.migrationComplete)
         assertTrue(repository.groups.isEmpty())
         assertEquals(json, legacyPreferences.getString("symbol_json_data", null))
@@ -135,7 +135,7 @@ class LegacySymbolDataMigrationTest {
         )
         val repository = MemoryRepository(existing)
 
-        assertFalse(LegacySymbolDataMigration.importIfV2Empty(context, repository))
+        assertFalse(AndroidLegacySymbolDataMigration.importIfV2Empty(context, repository))
         assertTrue(repository.migrationComplete)
         assertEquals(existing, repository.groups)
         assertEquals(json, legacyPreferences.getString("symbol_json_data", null))
