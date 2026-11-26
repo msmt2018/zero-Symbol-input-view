@@ -45,6 +45,7 @@
 
 package com.zerostudio.idea.widget.editor.symbolinput.v2.manager
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
@@ -57,7 +58,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
@@ -100,6 +103,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.AdaptiveContent
 import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowAdaptiveInfo
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupBundleCodec
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.LegacySymbolDataCodec
+import com.zerostudio.idea.widget.editor.symbolinput.v2.data.LegacySymbolActionCatalog
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupManager
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.ObservableSymbolGroupRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupRepository
@@ -111,6 +115,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerBu
 import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerExtensionRegistry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerExtensionSnapshot
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawer
 import com.zerostudio.idea.widget.editor.symbolinput.v2.rememberSymbolDrawerState
@@ -172,6 +177,7 @@ fun SymbolDrawerManagerScreen(
     var undoAction by remember { mutableStateOf<(() -> Unit)?>(null) }
     var targetDialogOperation by remember { mutableStateOf<String?>(null) }
     var deleteGroupId by remember { mutableStateOf<String?>(null) }
+    var deleteSymbolTarget by remember { mutableStateOf<Pair<String, Long>?>(null) }
     var groupMenuId by remember { mutableStateOf<String?>(null) }
     var symbolMenuId by remember { mutableStateOf<Long?>(null) }
     var copyGroupSourceId by remember { mutableStateOf<String?>(null) }
@@ -199,21 +205,19 @@ fun SymbolDrawerManagerScreen(
             .onFailure { errorMessage = it.message ?: "Unknown error" }
             .isSuccess
     }
-    fun runUndoable(command: () -> Unit): Boolean {
+    fun runUndoable(message: String = undoMessage, command: () -> Unit): Boolean {
         val previousGroups = manager.groups.toList()
         val previousUsage = usageState.snapshot()
         val previousSelection = selectedGroupId
         val completed = runCommand(command)
         val usageRevisionAfterCommand = usageState.revision()
         if (completed) {
-            undoLabel = undoMessage
+            undoLabel = message
             undoAction = {
                 manager.replaceAll(previousGroups)
                 usageSnapshot = if (usageState.revision() == usageRevisionAfterCommand) {
                     usageState.restore(previousUsage)
-                } else {
-                    usageState.snapshot()
-                }
+                } else usageState.snapshot()
                 selectedGroupId = previousSelection
             }
         }
@@ -697,130 +701,139 @@ fun SymbolDrawerManagerScreen(
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             itemsIndexed(pageDisplayedSymbols, key = { _, symbol -> symbol.id }) { _, symbol ->
-                                Card(
-                                    modifier = Modifier.pointerInput(
-                                        symbol.id, group.id, searchQuery, activeFilter, batchMode
-                                    ) {
-                                        if (searchQuery.isNotBlank() ||
-                                            activeFilter != SymbolManagerFilter.ALL || batchMode
-                                        ) return@pointerInput
-
-                                        var pointerY = 0f
-                                        detectDragGesturesAfterLongPress(
-                                            onDragStart = {
-                                                symbolListState.layoutInfo.visibleItemsInfo
-                                                    .firstOrNull { it.key == symbol.id }
-                                                    ?.let { item ->
-                                                        pointerY = item.offset.y + item.size.height / 2f
-                                                        dragWorkingOrder = group.symbols.toList()
-                                                    }
-                                            },
-                                            onDrag = { change, dragAmount ->
-                                                change.consume()
-                                                pointerY += dragAmount.y
-                                                val targetId = symbolListState.layoutInfo.visibleItemsInfo
-                                                    .minByOrNull {
-                                                        abs(it.offset.y + it.size.height / 2f - pointerY)
-                                                    }?.key as? Long
-                                                val working = dragWorkingOrder
-                                                if (targetId != null && working != null) {
-                                                    val from = working.indexOfFirst { it.id == symbol.id }
-                                                    val to = working.indexOfFirst { it.id == targetId }
-                                                    if (from >= 0 && to >= 0 && from != to) {
-                                                        dragWorkingOrder = working.toMutableList().apply {
-                                                            add(to, removeAt(from))
-                                                        }
-                                                    }
-                                                }
-                                            },
-                                            onDragEnd = {
-                                                val reordered = dragWorkingOrder
-                                                dragWorkingOrder = null
-                                                if (reordered != null &&
-                                                    reordered.map { it.id } != group.symbols.map { it.id }
-                                                ) {
-                                                    runUndoable {
-                                                        manager.reorderSymbols(group.id, reordered.map { it.id })
-                                                    }
-                                                }
-                                            },
-                                            onDragCancel = { dragWorkingOrder = null }
-                                        )
-                                    }
-                                ) {
+                                Card {
                                     Row(
                                         Modifier.fillMaxWidth().padding(8.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
                                     ) {
                                         if (group.id == selectedGroupId && batchMode) {
                                             Checkbox(
                                                 checked = symbol.id in selectedSymbolIds,
                                                 onCheckedChange = { checked ->
-                                                    selectedSymbolIds = if (checked) {
-                                                        selectedSymbolIds + symbol.id
-                                                    } else {
-                                                        selectedSymbolIds - symbol.id
-                                                    }
+                                                    selectedSymbolIds = if (checked) selectedSymbolIds + symbol.id
+                                                    else selectedSymbolIds - symbol.id
                                                 }
                                             )
                                         }
-                                        Column(Modifier.weight(1f)) {
-                                            Text(symbol.label, style = MaterialTheme.typography.bodyLarge)
+                                        Box(
+                                            Modifier.width(3.dp).heightIn(min = 56.dp)
+                                                .background(MaterialTheme.colorScheme.primary)
+                                        )
+                                        Column(
+                                            Modifier.weight(1f).combinedClickable(
+                                                onClick = {
+                                                    if (batchMode) {
+                                                        selectedSymbolIds = if (symbol.id in selectedSymbolIds) selectedSymbolIds - symbol.id
+                                                        else selectedSymbolIds + symbol.id
+                                                    } else {
+                                                        selectedGroupId = group.id
+                                                        editingSymbol = symbol
+                                                        symbolDialog = true
+                                                    }
+                                                },
+                                                onLongClick = {
+                                                    if (batchMode) {
+                                                        selectedSymbolIds = if (symbol.id in selectedSymbolIds) selectedSymbolIds - symbol.id
+                                                        else selectedSymbolIds + symbol.id
+                                                    } else symbolMenuId = symbol.id
+                                                }
+                                            ),
+                                            verticalArrangement = Arrangement.Center
+                                        ) {
                                             Text(
-                                                text = symbol.shortAction.toString(),
+                                                text = (if (batchMode && symbol.id in selectedSymbolIds) "☑ " else "") +
+                                                    (symbol.icon?.takeIf(String::isNotBlank)?.let { "$it  " }.orEmpty()) +
+                                                    symbol.label,
+                                                style = MaterialTheme.typography.titleSmall,
+                                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                                            )
+                                            Text(
+                                                text = symbolActionSummary(symbol),
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
-                                        Text(
-                                            "≡",
-                                            modifier = Modifier.padding(horizontal = 4.dp),
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
+                                        Box(
+                                            Modifier.width(40.dp).heightIn(min = 56.dp)
+                                                .pointerInput(symbol.id, group.id, searchQuery, activeFilter, batchMode) {
+                                                    if (searchQuery.isNotBlank() ||
+                                                        activeFilter != SymbolManagerFilter.ALL || batchMode
+                                                    ) return@pointerInput
+                                                    var pointerY = 0f
+                                                    detectDragGesturesAfterLongPress(
+                                                        onDragStart = {
+                                                            symbolListState.layoutInfo.visibleItemsInfo
+                                                                .firstOrNull { it.key == symbol.id }?.let { info ->
+                                                                    pointerY = info.offset.y + info.size.height / 2f
+                                                                    dragWorkingOrder = group.symbols.toList()
+                                                                }
+                                                        },
+                                                        onDrag = { change, dragAmount ->
+                                                            change.consume()
+                                                            pointerY += dragAmount.y
+                                                            val targetId = symbolListState.layoutInfo.visibleItemsInfo
+                                                                .minByOrNull { abs(it.offset.y + it.size.height / 2f - pointerY) }
+                                                                ?.key as? Long
+                                                            val working = dragWorkingOrder
+                                                            if (targetId != null && working != null) {
+                                                                val from = working.indexOfFirst { it.id == symbol.id }
+                                                                val to = working.indexOfFirst { it.id == targetId }
+                                                                if (from >= 0 && to >= 0 && from != to) {
+                                                                    dragWorkingOrder = working.toMutableList().apply {
+                                                                        add(to, removeAt(from))
+                                                                    }
+                                                                }
+                                                            }
+                                                        },
+                                                        onDragEnd = {
+                                                            val reordered = dragWorkingOrder
+                                                            dragWorkingOrder = null
+                                                            if (reordered != null &&
+                                                                reordered.map { it.id } != group.symbols.map { it.id }
+                                                            ) runUndoable("已调整符号顺序") {
+                                                                manager.reorderSymbols(group.id, reordered.map { it.id })
+                                                            }
+                                                        },
+                                                        onDragCancel = { dragWorkingOrder = null }
+                                                    )
+                                                },
+                                            contentAlignment = androidx.compose.ui.Alignment.Center
+                                        ) {
+                                            Text("⋮⋮", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
                                         Box {
-                                            TextButton(onClick = { symbolMenuId = symbol.id }) {
-                                                Text("⋮")
-                                            }
+                                            TextButton(onClick = { symbolMenuId = symbol.id }) { Text("⋮") }
                                             DropdownMenu(
                                                 expanded = symbolMenuId == symbol.id,
                                                 onDismissRequest = { symbolMenuId = null }
                                             ) {
                                                 val symbolIndex = group.symbols.indexOfFirst { it.id == symbol.id }
                                                 DropdownMenuItem(
-                                                    text = { Text("上移") },
-                                                    enabled = symbolIndex > 0,
-                                                    onClick = {
-                                                        symbolMenuId = null
-                                                        if (symbolIndex > 0) {
-                                                            runUndoable {
-                                                                manager.moveSymbol(group.id, symbolIndex, symbolIndex - 1)
-                                                            }
-                                                        }
-                                                    }
-                                                )
-                                                DropdownMenuItem(
-                                                    text = { Text("下移") },
-                                                    enabled = symbolIndex >= 0 && symbolIndex < group.symbols.lastIndex,
-                                                    onClick = {
-                                                        symbolMenuId = null
-                                                        if (symbolIndex >= 0 && symbolIndex < group.symbols.lastIndex) {
-                                                            runUndoable {
-                                                                manager.moveSymbol(group.id, symbolIndex, symbolIndex + 1)
-                                                            }
-                                                        }
-                                                    }
-                                                )
-                                                DropdownMenuItem(
-                                                    text = {
-                                                        Text(
-                                                            if (symbol.id in usageSnapshot.favorites) "取消收藏" else "收藏"
-                                                        )
-                                                    },
+                                                    text = { Text(if (symbol.id in usageSnapshot.favorites) "取消收藏" else "收藏") },
                                                     onClick = {
                                                         symbolMenuId = null
                                                         usageSnapshot = usageState.toggleFavorite(symbol.id)
                                                         undoAction = null
                                                         undoLabel = null
+                                                    }
+                                                )
+                                                DropdownMenuItem(
+                                                    text = { Text("标记为最近使用") },
+                                                    onClick = {
+                                                        symbolMenuId = null
+                                                        usageSnapshot = usageState.recordRecentlyUsed(symbol.id)
+                                                        undoAction = null
+                                                        undoLabel = null
+                                                    }
+                                                )
+                                                DropdownMenuItem(
+                                                    text = { Text("复制到当前分组") },
+                                                    onClick = {
+                                                        symbolMenuId = null
+                                                        runUndoable("已复制符号") {
+                                                            manager.copySymbols(group.id, setOf(symbol.id), group.id)
+                                                        }
                                                     }
                                                 )
                                                 DropdownMenuItem(
@@ -844,6 +857,28 @@ fun SymbolDrawerManagerScreen(
                                                     }
                                                 )
                                                 DropdownMenuItem(
+                                                    text = { Text("上移") },
+                                                    enabled = symbolIndex > 0,
+                                                    onClick = {
+                                                        symbolMenuId = null
+                                                        if (symbolIndex > 0) runUndoable("已调整符号顺序") {
+                                                            manager.moveSymbol(group.id, symbolIndex, symbolIndex - 1)
+                                                        }
+                                                    }
+                                                )
+                                                DropdownMenuItem(
+                                                    text = { Text("下移") },
+                                                    enabled = symbolIndex >= 0 && symbolIndex < group.symbols.lastIndex,
+                                                    onClick = {
+                                                        symbolMenuId = null
+                                                        if (symbolIndex >= 0 && symbolIndex < group.symbols.lastIndex) {
+                                                            runUndoable("已调整符号顺序") {
+                                                                manager.moveSymbol(group.id, symbolIndex, symbolIndex + 1)
+                                                            }
+                                                        }
+                                                    }
+                                                )
+                                                DropdownMenuItem(
                                                     text = { Text(stringResource(R.string.compose_manager_edit)) },
                                                     onClick = {
                                                         symbolMenuId = null
@@ -856,13 +891,14 @@ fun SymbolDrawerManagerScreen(
                                                     text = { Text(stringResource(R.string.compose_manager_delete)) },
                                                     onClick = {
                                                         symbolMenuId = null
-                                                        runUndoable { manager.removeSymbol(group.id, symbol.id) }
+                                                        deleteSymbolTarget = group.id to symbol.id
                                                     }
                                                 )
                                             }
                                         }
                                     }
                                 }
+                            }
                             }
                         }
                     }
@@ -936,6 +972,27 @@ fun SymbolDrawerManagerScreen(
             },
             dismissButton = {
                 TextButton(onClick = { deleteGroupId = null }) {
+                    Text(stringResource(R.string.compose_manager_cancel))
+                }
+            }
+        )
+    }
+
+    deleteSymbolTarget?.let { (groupId, symbolId) ->
+        val symbol = groups.firstOrNull { it.id == groupId }?.symbols?.firstOrNull { it.id == symbolId }
+        AlertDialog(
+            onDismissRequest = { deleteSymbolTarget = null },
+            title = { Text("删除符号") },
+            text = { Text(symbol?.label.orEmpty()) },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (runUndoable("已删除符号：" + symbol?.label.orEmpty()) {
+                        manager.removeSymbol(groupId, symbolId)
+                    }) deleteSymbolTarget = null
+                }) { Text(stringResource(R.string.compose_manager_delete)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { deleteSymbolTarget = null }) {
                     Text(stringResource(R.string.compose_manager_cancel))
                 }
             }
@@ -1095,5 +1152,36 @@ fun SymbolDrawerManagerScreen(
                 TextButton(onClick = { errorMessage = null }) { Text(stringResource(R.string.compose_manager_ok)) }
             }
         )
+    }
+}
+
+
+@Composable
+private fun symbolActionSummary(symbol: SymbolEntry): String {
+    val shortName = symbolActionDisplayName(symbol.shortAction, symbol.legacyShortActionId)
+    val longName = symbol.longAction?.let {
+        symbolActionDisplayName(it, symbol.legacyLongActionId)
+    } ?: stringResource(R.string.symbol_drawer_150)
+    return stringResource(R.string.symbol_drawer_176, shortName, longName)
+}
+
+@Composable
+private fun symbolActionDisplayName(action: SymbolAction, legacyId: Int?): String {
+    if (legacyId != null) {
+        val index = LegacySymbolActionCatalog.values.indexOf(legacyId)
+        LegacySymbolActionCatalog.labels.getOrNull(index)?.let { return it }
+    }
+    return when (action) {
+        is SymbolAction.InsertText -> "插入文本"
+        is SymbolAction.ReplaceSelection -> "替换选区"
+        is SymbolAction.SurroundSelection -> "包围选区"
+        is SymbolAction.MoveCursor -> "移动光标：" + action.target.name
+        is SymbolAction.Delete -> "删除：" + action.kind.name
+        is SymbolAction.TransformSelection -> "转换选区：" + action.transform.name
+        is SymbolAction.EditorCommand -> "编辑器命令：" + action.commandId
+        is SymbolAction.Clipboard -> "剪贴板：" + action.operation.name
+        SymbolAction.OpenManager -> "打开符号管理"
+        is SymbolAction.Composite -> "组合动作（" + action.actions.size + "）"
+        is SymbolAction.Extension -> "扩展动作：" + action.extensionId
     }
 }
