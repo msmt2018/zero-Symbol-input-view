@@ -34,7 +34,6 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.data.AndroidLegacySymbol
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.ObservableSymbolGroupRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SharedPreferencesSymbolGroupRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolDrawerDefaults
-import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.manager.SymbolDrawerManagerScreen
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
@@ -66,7 +65,9 @@ fun SymbolDrawerToolbar(
     val settingsRepository = remember(context) {
         SharedPreferencesSymbolDrawerSettingsRepository(context.applicationContext)
     }
-    AndroidLegacySymbolDataMigration.importIfV2Empty(context, groupRepository)
+    remember(groupRepository) {
+        AndroidLegacySymbolDataMigration.importIfV2Empty(context, groupRepository)
+    }
 
     var groups by remember(groupRepository) {
         mutableStateOf(groupRepository.loadGroups().ifEmpty {
@@ -76,6 +77,7 @@ fun SymbolDrawerToolbar(
     var settings by remember(settingsRepository) {
         mutableStateOf(settingsRepository.load().settings)
     }
+    val drawerState = rememberSymbolDrawerState(initiallyExpanded = initiallyExpanded)
     var showManager by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
     var pendingOpenDocument by remember { mutableStateOf<(((Uri?) -> Unit))?>(null) }
@@ -103,6 +105,7 @@ fun SymbolDrawerToolbar(
     SymbolDrawer(
         groups = groups,
         modifier = modifier,
+        state = drawerState,
         settings = settings,
         onSymbolClick = { symbol ->
             if (symbol.shortAction == SymbolAction.OpenManager) {
