@@ -1,6 +1,6 @@
 # Zero Symbol Input View V2 — Compose API 文档中心
 
-本目录仅描述 `zero-symbol-input-view-v2-compose` 模块，API 以当前 Compose 源码为准。
+本目录仅描述 `zero-symbol-input-view-v2-compose`。所有 API 签名、可见性、默认参数和异常行为均以当前 Compose 模块生产源码为准。
 
 ## 语言
 
@@ -11,35 +11,24 @@
 
 | 文档 | 内容 |
 |---|---|
-| 01 快速开始 | Compose 依赖、SymbolDrawer、状态与宿主职责 |
-| 02 SymbolDrawer | Composable 符号抽屉 API |
-| 03 Models and Actions | 分组、符号、typed actions |
-| 04 Action Runtime | Host、Executor、Registry 和结果 |
-| 05 Data and Management | Repository、Manager、codec 和迁移 |
-| 06 Settings | 设置快照、Repository 和设置页 |
-| 07 Universal Drawer | Compose Drawer 容器、状态机、锚点和手势 |
-| 08 Navigation / Panels / Style | Composable 页面、面板和样式 |
-| 09 Adaptive Window | 窗口快照、布局解析和停靠策略 |
-| 10 API Index | Compose API 类型和兼容边界 |
-| 11 Interaction and Built-ins | 嵌套滚动与内置文本动作 |
-| 12 Extension Framework | Composable 扩展和运行时注册 |
-| 13 Public Packages | 公共包与编辑器中立文档契约 |
-| 14 Drawer API Reference | Compose Drawer 完整 API |
-| 15 Symbol Control Extensions | Compose 符号控件扩展 |
-| 16 Testing and Release | Compose 测试、发布和排错 |
-| 17 Source Audit Notes (EN) | 源码边界和审计说明 |
+| 01–06 | 快速开始、符号抽屉、模型/动作、动作运行时、数据管理、设置 |
+| 07–09 | 通用 Compose Drawer、导航/面板/样式、自适应窗口 |
+| 10–13 | API 索引、交互与内置动作、扩展框架、公共包和编辑器中立契约 |
+| 14–16 | Drawer 完整参考、符号扩展实战、测试/发布/排错 |
+| [17 KDoc API 完整开发参考](17-kdoc-api-reference.md) | 按 Kotlin/JavaDoc 规范梳理公开 API、包结构、参数契约、状态/线程/异常/兼容边界 |
 
-## 当前包结构
+## 规范包结构
 
-- Compose 符号抽屉：`com.zerostudio.idea.widget.editor.symbolinput.v2`
-- 符号模型、数据、设置和管理：`com.zerostudio.idea.widget.editor.symbolinput.v2.*`
-- 通用 Compose Drawer：`com.zerostudio.idea.widget.drawer`
-- Drawer Core / Navigation / Panel / Style：`com.zerostudio.idea.widget.drawer.{core,navigation,panel,style}`
+- 符号输入 UI：`com.zerostudio.idea.widget.editor.symbolinput.v2`
+- 符号模型/动作/数据/设置：`com.zerostudio.idea.widget.editor.symbolinput.v2.*`
+- 通用 Compose Drawer：`com.zerostudio.idea.widget.drawer.*`
 - 编辑器中立动作：`com.zerostudio.idea.widget.drawer.action`
 
-旧路径 `com.zerostudio.idea.widget.editor.symbolinput.v2.drawer` 已不是通用 Drawer 的源码包。新代码应导入 `com.zerostudio.idea.widget.drawer.*`。
+通用 Drawer 已位于 `com.zerostudio.idea.widget.drawer.*`；旧路径 `com.zerostudio.idea.widget.editor.symbolinput.v2.drawer` 不再是规范源码包。
 
-## 同仓库依赖
+## 依赖
+
+同仓库：
 
 ```kotlin
 dependencies {
@@ -47,19 +36,26 @@ dependencies {
 }
 ```
 
-本模块不是旧 View artifact 的包装层。符号抽屉、通用 Drawer、页面 host、面板、管理页和设置页均使用 Compose API。模块不要求 Activity、Fragment、ViewModel 或 LifecycleOwner 管理组件状态；Composition/recomposition/effect 生命周期仍然存在。
+外部 Maven 消费者必须使用 Compose artifact 实际发布的坐标和已成功发布的版本，不得复用旧 View artifact 坐标。
 
 ## API 选择
 
-- 符号输入抽屉：`SymbolDrawer` + `rememberSymbolDrawerState`
+- 符号输入：`SymbolDrawer` + `rememberSymbolDrawerState`
 - 通用抽屉：`DrawerContainer` + `rememberDrawerContainerState`
-- 页面：`DrawerPage` + `DrawerPageHost`
-- 面板：`DrawerPanelContent` + `drawerPanelContent`
+- 页面/面板：`DrawerPage`、`DrawerPageHost`、`DrawerPanelContent`
 - 状态/锚点：`DrawerStateHolder`、`DrawerController`、`DrawerAnchorStrategy`
 - 数据：`SymbolGroupRepository`、`SymbolGroupManager`
 - 设置：`SymbolDrawerSettingsRepository`、`SymbolDrawerSettingsScreen`
-- 编辑器适配：`SymbolActionHost` / `SymbolTextDocument`
+- 编辑器适配：`SymbolActionHost`、`SymbolTextDocument`
+
+## KDoc / Dokka
+
+公开 Kotlin 声明应使用标准 KDoc，按适用性说明 `@param`、`@return`、`@throws`、`@see`。内部实现、Composable slot、Kotlin typealias 和持久化契约必须分别说明，不能把 typealias 当成 Java 独立类，也不能把 Composable slot 当成 View factory。
+
+## Composition 边界
+
+本模块不要求 Activity、Fragment、ViewModel 或 LifecycleOwner 作为 UI 状态管理合同，不创建传统 Android View，也不使用 AndroidView 包装旧控件。Compose 仍有 Composition、recomposition、remember 和 effect cancellation 语义；“零传统 View 生命周期耦合”不等于“没有任何生命周期语义”。
 
 ## Artifact 隔离
 
-旧 View artifact 的 `DrawerContainer` 是 View class，`DrawerPanelContent` 是 View factory；本模块的同名 API 是 Composable/Composable slot。不要在同一个应用依赖图中同时使用两个 Drawer UI artifact。
+旧 View artifact 的同名概念是 Android View class / View factory；本模块提供 Composable / Composable slot。二者不可互换，不应同时作为同一应用的 Drawer UI 依赖。
