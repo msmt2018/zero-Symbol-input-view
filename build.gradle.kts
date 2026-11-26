@@ -43,7 +43,12 @@ val highApiProjects = arrayOf("editor-lsp")
 
 fun Project.configureAndroidAndKotlin() {
     extensions.findByType<CommonExtension>()?.apply {
-        compileSdk { version = release(Versions.compileSdkVersion) }
+        compileSdk {
+            version = release(Versions.compileSdkVersion) {
+                // Compose BOM 2026.11.01 resolves Compose 1.13.0, which requires Android API 37.1.
+                minorApiLevel = 1
+            }
+        }
         buildToolsVersion = Versions.buildToolsVersion
 
         defaultConfig.apply {
