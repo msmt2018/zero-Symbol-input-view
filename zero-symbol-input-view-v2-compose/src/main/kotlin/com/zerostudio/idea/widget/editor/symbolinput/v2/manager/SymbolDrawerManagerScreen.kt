@@ -1192,7 +1192,42 @@ private fun symbolActionSummary(symbol: SymbolEntry): String {
 private fun symbolActionDisplayName(action: SymbolAction, legacyId: Int?): String {
     if (legacyId != null) {
         val index = LegacySymbolActionCatalog.values.indexOf(legacyId)
-        LegacySymbolActionCatalog.labels.getOrNull(index)?.let { return it }
+        val localizedLabels = listOf(
+            stringResource(R.string.legacy_action_label_01),
+            stringResource(R.string.legacy_action_label_02),
+            stringResource(R.string.legacy_action_label_03),
+            stringResource(R.string.legacy_action_label_04),
+            stringResource(R.string.legacy_action_label_05),
+            stringResource(R.string.legacy_action_label_06),
+            stringResource(R.string.legacy_action_label_07),
+            stringResource(R.string.legacy_action_label_08),
+            stringResource(R.string.legacy_action_label_09),
+            stringResource(R.string.legacy_action_label_10),
+            stringResource(R.string.legacy_action_label_11),
+            stringResource(R.string.legacy_action_label_12),
+            stringResource(R.string.legacy_action_label_13),
+            stringResource(R.string.legacy_action_label_14),
+            stringResource(R.string.legacy_action_label_15),
+            stringResource(R.string.legacy_action_label_16),
+            stringResource(R.string.legacy_action_label_17),
+            stringResource(R.string.legacy_action_label_18),
+            stringResource(R.string.legacy_action_label_19),
+            stringResource(R.string.legacy_action_label_20),
+            stringResource(R.string.legacy_action_label_21),
+            stringResource(R.string.legacy_action_label_22),
+            stringResource(R.string.legacy_action_label_23),
+            stringResource(R.string.legacy_action_label_24),
+            stringResource(R.string.legacy_action_label_25),
+            stringResource(R.string.legacy_action_label_26),
+            stringResource(R.string.legacy_action_label_27),
+            stringResource(R.string.legacy_action_label_28),
+            stringResource(R.string.legacy_action_label_29),
+            stringResource(R.string.legacy_action_label_30),
+            stringResource(R.string.legacy_action_label_31),
+            stringResource(R.string.legacy_action_label_32),
+            stringResource(R.string.legacy_action_label_33)
+        )
+        localizedLabels.getOrNull(index)?.let { return it }
     }
     return when (action) {
         is SymbolAction.InsertText -> "插入文本"
