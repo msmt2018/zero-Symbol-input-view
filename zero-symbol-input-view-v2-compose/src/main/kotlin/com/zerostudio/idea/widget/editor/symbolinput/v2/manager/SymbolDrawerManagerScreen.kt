@@ -416,13 +416,6 @@ fun SymbolDrawerManagerScreen(
                             batchMode = !batchMode
                         }
                     )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.compose_manager_filter_all)) },
-                        onClick = {
-                            moreMenuExpanded = false
-                            activeFilter = SymbolManagerFilter.ALL
-                        }
-                    )
                     if (favoritesFeatureVisible) {
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.compose_manager_filter_favorites)) },
@@ -861,6 +854,7 @@ fun SymbolDrawerManagerScreen(
                                         }
                                     )
                                 ) {
+                                    Box {
                                     Row(
                                         Modifier.fillMaxWidth().padding(8.dp),
                                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -953,7 +947,7 @@ fun SymbolDrawerManagerScreen(
                                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
-                                        Box {
+                                        Box(Modifier.align(androidx.compose.ui.Alignment.CenterEnd)) {
                                             DropdownMenu(
                                                 expanded = symbolMenuId == symbol.id,
                                                 onDismissRequest = { symbolMenuId = null }
@@ -1049,6 +1043,7 @@ fun SymbolDrawerManagerScreen(
                                                 )
                                             }
                                         }
+                                    }
                                     }
                                 }
                             }
