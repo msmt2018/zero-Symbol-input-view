@@ -244,10 +244,10 @@ See [models and actions](zero-symbol-input-view-v2/api-docs/03-models-and-action
 Original V2 project source files are marked with the following SPDX expression:
 
 ```text
-SPDX-License-Identifier: AGPL-3.0-only AND GPL-3.0-only AND Apache-2.0
+SPDX-License-Identifier: AGPL-3.0-only
 ```
 
-The SPDX operator `AND` is intentional: the three listed licenses apply cumulatively to the same covered work. It does not mean that a recipient may select only one of them. Recipients must satisfy the applicable conditions of all three licenses when exercising rights in covered material.
+The module is licensed exclusively under the GNU Affero General Public License v3.0 (AGPL-3.0-only).
 
 ### What the licenses require
 
