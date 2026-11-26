@@ -62,11 +62,12 @@ object LegacySymbolActionAdapter {
         val payload = legacy.payload
         return when (legacy.type) {
             0 -> SymbolAction.InsertText(payload.orEmpty())
-            // IDs 1/2 are retained in imported data, but the current V1
-            // SymbolActionExecutor has no dispatch branches for them. Keep them
-            // as unresolved legacy extensions rather than inventing clipboard
-            // behavior during migration.
-            1, 2 -> SymbolAction.Extension("legacy.action.${legacy.type}", payload)
+            // Historical MT Manager imports use IDs 1/2 for copy/cut long
+            // actions. V1's numeric dispatcher did not handle these IDs, but V2
+            // can provide their intended clipboard behavior through the typed
+            // host contract without changing the V1 dispatcher.
+            1 -> SymbolAction.Clipboard(ClipboardOperation.COPY)
+            2 -> SymbolAction.Clipboard(ClipboardOperation.CUT)
             // V1 cutLine() delegates to deleteLine() and does not touch the clipboard.
             // Preserve that exact numeric-ID behavior; real clipboard cut is 29/53.
             3, 34 -> SymbolAction.Delete(DeleteKind.CURRENT_LINE)
