@@ -55,8 +55,13 @@ import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -199,9 +204,35 @@ fun DrawerContainer(
     val dimensions = config.style.dimensions
     val collapsedHeight = (dimensions.peekHeightDp + dimensions.handleHeightDp + 24f).dp
     val collapsedHeightPx = with(density) { collapsedHeight.roundToPx() }
-    val maxExpandedHeightPx = with(density) { dimensions.expandedMaxHeightDp.dp.roundToPx() }
-    val resolvedExpandedHeightPx = maxExpandedHeightPx.coerceAtLeast(collapsedHeightPx)
-    val resolvedExpandedHeight = with(density) { resolvedExpandedHeightPx.toDp() }
+
+    // Measure against the real parent viewport. A full-screen presentation
+    // must not inherit the ordinary sheet's 640/900dp content-height cap.
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        val availableHeightPx = with(density) {
+            if (maxHeight == androidx.compose.ui.unit.Dp.Infinity) {
+                dimensions.expandedMaxHeightDp.dp.roundToPx()
+            } else maxHeight.roundToPx()
+        }.coerceAtLeast(1)
+        val statusBarInsetPx = WindowInsets.statusBars.getTop(density)
+        val viewportHeightPx = (
+            availableHeightPx -
+                if (config.presentationMode == DrawerPresentationMode.FULL_SCREEN) statusBarInsetPx else 0
+            ).coerceAtLeast(1)
+        val minimumHeightPx = collapsedHeightPx.coerceAtMost(viewportHeightPx)
+        val configuredExpandedHeightPx = with(density) {
+            dimensions.expandedMaxHeightDp.dp.roundToPx()
+        }
+        val resolvedExpandedHeightPx = if (
+            config.presentationMode == DrawerPresentationMode.FULL_SCREEN
+        ) {
+            viewportHeightPx
+        } else {
+            configuredExpandedHeightPx.coerceIn(minimumHeightPx, viewportHeightPx)
+        }
+        val resolvedExpandedHeight = with(density) { resolvedExpandedHeightPx.toDp() }
+        val viewportWidthPx = with(density) {
+            if (maxWidth == androidx.compose.ui.unit.Dp.Infinity) 0 else maxWidth.roundToPx()
+        }
     val animationSpec: androidx.compose.animation.core.AnimationSpec<Int> =
         if (config.style.motion.enableSpring) spring() else
             androidx.compose.animation.core.tween<Int>(
@@ -222,16 +253,24 @@ fun DrawerContainer(
     )
     val generation = controller.activeAnimationGeneration()
 
-    LaunchedEffect(state, collapsedHeightPx, resolvedExpandedHeightPx, config.anchorStrategy, density.density) {
-        val viewportHeightPx = resolvedExpandedHeightPx
+    LaunchedEffect(
+        state,
+        collapsedHeightPx,
+        resolvedExpandedHeightPx,
+        viewportHeightPx,
+        viewportWidthPx,
+        config.anchorStrategy,
+        density.density
+    ) {
         state.synchronizeGeometry(
             input = DrawerAnchorInput(
-                minHeightPx = collapsedHeightPx.coerceAtMost(viewportHeightPx),
-                maxHeightPx = viewportHeightPx,
+                minHeightPx = minimumHeightPx,
+                maxHeightPx = resolvedExpandedHeightPx,
                 viewportHeightPx = viewportHeightPx,
                 contentHeightPx = viewportHeightPx,
-                existingExpandedHeightPx = viewportHeightPx,
-                density = density.density
+                existingExpandedHeightPx = resolvedExpandedHeightPx,
+                density = density.density,
+                viewportWidthPx = viewportWidthPx
             ),
             strategy = config.anchorStrategy
         )
@@ -260,7 +299,7 @@ fun DrawerContainer(
                 config.style.motion.minimumFlingVelocityDp * density.density
         )
     }
-    val expanded = state.expanded || config.presentationMode == DrawerPresentationMode.FULL_SCREEN
+    val expanded = state.expanded
     val displayHeight = with(density) { animatedHeightPx.toDp() }
 
     // System-back dispatch is intentionally host-owned. The library does not
@@ -292,7 +331,7 @@ fun DrawerContainer(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .height(if (config.presentationMode == DrawerPresentationMode.FULL_SCREEN) resolvedExpandedHeight else displayHeight)
+                .height(displayHeight)
                 .then(
                     if (config.enableNestedScroll) Modifier.nestedScroll(nestedScrollConnection)
                     else Modifier
@@ -323,6 +362,7 @@ fun DrawerContainer(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .windowInsetsPadding(WindowInsets.navigationBars)
                     .padding(
                         horizontal = dimensions.horizontalPaddingDp.dp,
                         vertical = dimensions.verticalPaddingDp.dp
