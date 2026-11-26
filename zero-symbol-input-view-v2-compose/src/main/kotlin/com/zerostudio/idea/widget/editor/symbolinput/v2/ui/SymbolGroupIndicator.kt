@@ -58,9 +58,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.ui.res.stringResource
-import com.zerostudio.idea.widget.editor.symbolinput.v2.compose.R
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -259,19 +256,6 @@ fun SymbolGroupIndicator(
                     }
                 }
             }
-        }
-        if (onManagerClick != null) {
-            TextButton(onClick = onManagerClick) {
-                Text(stringResource(R.string.compose_manager_title))
-            }
-        }
-        if (onSettingsClick != null) {
-            Text(
-                text = "⚙",
-                modifier = Modifier.clickable(onClick = onSettingsClick),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.titleMedium
-            )
         }
     }
 }
