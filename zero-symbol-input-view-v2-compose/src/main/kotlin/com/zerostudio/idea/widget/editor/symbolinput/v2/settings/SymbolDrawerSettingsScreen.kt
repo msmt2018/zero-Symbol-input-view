@@ -98,10 +98,18 @@ fun SymbolDrawerSettingsScreen(
     onReset: (() -> Unit)? = null,
     groupRepository: SymbolGroupRepository? = null
 ) {
-    var current by remember(settings) { mutableStateOf(settings) }
+    // View V2 always follows the host system theme. Keep the same persisted
+    // value instead of exposing independent light/dark controls in Compose.
+    var current by remember(settings) {
+        mutableStateOf(settings.copy(themeMode = ThemeMode.SYSTEM))
+    }
+
     fun update(transform: (SymbolDrawerSettings) -> SymbolDrawerSettings) {
-        current = transform(current)
-        onSettingsChange(current)
+        val updated = transform(current).copy(themeMode = ThemeMode.SYSTEM)
+        current = updated
+        // V2 settings are persisted and applied as soon as a control changes;
+        // there is no separate Apply/Save phase.
+        onSettingsChange(updated)
     }
 
     var selectedTab by remember { mutableStateOf(0) }
@@ -110,128 +118,263 @@ fun SymbolDrawerSettingsScreen(
     var importJson by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val clipboard = LocalClipboardManager.current
+    val tabTitles = listOf("外观", "布局", "平板/大屏", "交互", "性能/搜索", "数据管理")
+
     Column(
-        modifier = modifier.fillMaxSize().padding(16.dp),
+        modifier = modifier.fillMaxSize().padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(stringResource(R.string.compose_settings_title), style = MaterialTheme.typography.headlineSmall)
-        TabRow(selectedTabIndex = selectedTab) {
-            listOf("外观", "布局", "平板/大屏", "交互", "性能/搜索", "数据管理").forEachIndexed { index, label ->
-                Tab(selected = selectedTab == index, onClick = { selectedTab = index }, text = { Text(label, maxLines = 1) })
+        Text(
+            stringResource(R.string.compose_settings_title),
+            style = MaterialTheme.typography.headlineSmall
+        )
+        TabRow(selectedTabIndex = selectedTab.coerceIn(tabTitles.indices)) {
+            tabTitles.forEachIndexed { index, label ->
+                Tab(
+                    selected = selectedTab == index,
+                    onClick = { selectedTab = index },
+                    text = { Text(label, maxLines = 1) }
+                )
             }
         }
+
         Column(
             modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             when (selectedTab) {
                 0 -> SettingsSection(stringResource(R.string.compose_settings_appearance)) {
-                    EnumSetting(stringResource(R.string.compose_settings_theme), current.themeMode, ThemeMode.entries) { value ->
-                        update { it.copy(themeMode = value) }
-                    }
-                    EnumSetting(stringResource(R.string.compose_settings_indicator), current.indicatorStyle, GroupIndicatorStyle.entries) { value ->
-                        update { it.copy(indicatorStyle = value) }
-                    }
-                    IntSetting(stringResource(R.string.compose_settings_indicator_height), current.indicatorHeightDp, 0, 96) { value ->
-                        update { it.copy(indicatorHeightDp = value) }
-                    }
-                    IntSetting(stringResource(R.string.compose_settings_label_size), current.symbolLabelTextSizeSp, 8, 32) { value ->
-                        update { it.copy(symbolLabelTextSizeSp = value) }
-                    }
-                    SwitchSetting(stringResource(R.string.compose_settings_show_labels), current.showSymbolLabels) { value ->
-                        update { it.copy(showSymbolLabels = value) }
-                    }
-                    SwitchSetting(stringResource(R.string.compose_settings_full_labels), current.showFullSymbolLabels) { value ->
-                        update { it.copy(showFullSymbolLabels = value) }
-                    }
-                    SwitchSetting(stringResource(R.string.compose_settings_group_titles), current.showGroupTitles) { value ->
-                        update { it.copy(showGroupTitles = value) }
-                    }
-                    SwitchSetting(stringResource(R.string.compose_settings_action_hints), current.showActionHints) { value ->
-                        update { it.copy(showActionHints = value) }
-                    }
+                    EnumSetting(
+                        stringResource(R.string.compose_settings_indicator),
+                        current.indicatorStyle,
+                        GroupIndicatorStyle.entries
+                    ) { value -> update { it.copy(indicatorStyle = value) } }
+                    SwitchSetting(
+                        stringResource(R.string.compose_settings_group_titles),
+                        current.showGroupTitles
+                    ) { value -> update { it.copy(showGroupTitles = value) } }
+                    SwitchSetting(
+                        stringResource(R.string.compose_settings_show_labels),
+                        current.showSymbolLabels
+                    ) { value -> update { it.copy(showSymbolLabels = value) } }
+                    SwitchSetting(
+                        stringResource(R.string.compose_settings_full_labels),
+                        current.showFullSymbolLabels
+                    ) { value -> update { it.copy(showFullSymbolLabels = value) } }
+                    Text(
+                        "完整标签模式会保留符号的全部文本，并根据单元格宽度自动缩小字号。",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    IntSetting(
+                        stringResource(R.string.compose_settings_label_size),
+                        current.symbolLabelTextSizeSp,
+                        8,
+                        32
+                    ) { value -> update { it.copy(symbolLabelTextSizeSp = value) } }
+                    SwitchSetting(
+                        stringResource(R.string.compose_settings_action_hints),
+                        current.showActionHints
+                    ) { value -> update { it.copy(showActionHints = value) } }
                 }
+
                 1 -> SettingsSection(stringResource(R.string.compose_settings_layout)) {
-                    IntSetting(stringResource(R.string.compose_settings_columns), current.columns, 1, 30) { value -> update { it.copy(columns = value) } }
-                    IntSetting(stringResource(R.string.compose_settings_collapsed_rows), current.collapsedRows, 1, 16) { value -> update { it.copy(collapsedRows = value) } }
-                    IntSetting(stringResource(R.string.compose_settings_cell_height), current.cellHeightDp, 6, 128) { value -> update { it.copy(cellHeightDp = value) } }
-                    IntSetting(stringResource(R.string.compose_settings_horizontal_spacing), current.cellHorizontalSpacingDp, -24, 48) { value -> update { it.copy(cellHorizontalSpacingDp = value) } }
-                    IntSetting(stringResource(R.string.compose_settings_vertical_spacing), current.cellVerticalSpacingDp, -24, 48) { value -> update { it.copy(cellVerticalSpacingDp = value) } }
-                    IntSetting(stringResource(R.string.compose_settings_max_height), current.maxExpandedHeightDp, 80, 1800) { value -> update { it.copy(maxExpandedHeightDp = value) } }
-                    IntSetting(stringResource(R.string.compose_settings_touch_target), current.minimumTouchTargetDp, 20, 112) { value -> update { it.copy(minimumTouchTargetDp = value) } }
+                    IntSetting(
+                        stringResource(R.string.compose_settings_columns),
+                        current.columns,
+                        1,
+                        30
+                    ) { value -> update { it.copy(columns = value) } }
+                    IntSetting(
+                        stringResource(R.string.compose_settings_collapsed_rows),
+                        current.collapsedRows,
+                        1,
+                        16
+                    ) { value -> update { it.copy(collapsedRows = value) } }
+                    IntSetting(
+                        stringResource(R.string.compose_settings_cell_height),
+                        current.cellHeightDp,
+                        6,
+                        128
+                    ) { value -> update { it.copy(cellHeightDp = value) } }
+                    IntSetting(
+                        stringResource(R.string.compose_settings_horizontal_spacing),
+                        current.cellHorizontalSpacingDp,
+                        -24,
+                        48
+                    ) { value -> update { it.copy(cellHorizontalSpacingDp = value) } }
+                    IntSetting(
+                        stringResource(R.string.compose_settings_vertical_spacing),
+                        current.cellVerticalSpacingDp,
+                        -24,
+                        48
+                    ) { value -> update { it.copy(cellVerticalSpacingDp = value) } }
+                    IntSetting(
+                        stringResource(R.string.compose_settings_indicator_height),
+                        current.indicatorHeightDp,
+                        0,
+                        96
+                    ) { value -> update { it.copy(indicatorHeightDp = value) } }
+                    IntSetting(
+                        stringResource(R.string.compose_settings_max_height),
+                        current.maxExpandedHeightDp,
+                        80,
+                        1800
+                    ) { value -> update { it.copy(maxExpandedHeightDp = value) } }
+                    IntSetting(
+                        stringResource(R.string.compose_settings_touch_target),
+                        current.minimumTouchTargetDp,
+                        20,
+                        112
+                    ) { value -> update { it.copy(minimumTouchTargetDp = value) } }
                 }
-                2 -> SettingsSection("平板与大屏布局") {
-                    EnumSetting(stringResource(R.string.compose_settings_large_screen), current.largeScreenLayoutMode, LargeScreenLayoutMode.entries) { value ->
-                        update { it.copy(largeScreenLayoutMode = value) }
-                    }
-                    EnumSetting(stringResource(R.string.compose_settings_side_edge), current.sideDockEdge, SideDockEdge.entries) { value ->
-                        update { it.copy(sideDockEdge = value) }
-                    }
+
+                2 -> SettingsSection("平板与大屏") {
+                    Text(
+                        "大屏布局由窗口尺寸类别、可用空间和宿主布局约束自动决定。符号控件在手机上保持底部停靠；在宽窗口中由自适应布局策略选择合适的内容区域。此页面与 View V2 一样仅提供布局说明，不增加独立的停靠边缘配置。",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                 }
+
                 3 -> SettingsSection(stringResource(R.string.compose_settings_interaction)) {
-                    IntSetting(stringResource(R.string.compose_settings_animation), current.animationDurationMs, 0, 1200) { value -> update { it.copy(animationDurationMs = value) } }
-                    IntSetting(stringResource(R.string.compose_settings_fling), current.flingVelocityDpPerSecond, 100, 6000) { value -> update { it.copy(flingVelocityDpPerSecond = value) } }
-                    IntSetting(stringResource(R.string.compose_settings_long_press), current.longPressTimeoutMs, 250, 1000) { value -> update { it.copy(longPressTimeoutMs = value) } }
-                    EnumSetting(stringResource(R.string.compose_settings_haptics), current.hapticMode, HapticMode.entries) { value -> update { it.copy(hapticMode = value) } }
-                    SwitchSetting(stringResource(R.string.compose_settings_reduce_motion), current.reduceMotion) { value -> update { it.copy(reduceMotion = value) } }
-                    SwitchSetting(stringResource(R.string.compose_settings_auto_collapse), current.autoCollapseAfterAction) { value -> update { it.copy(autoCollapseAfterAction = value) } }
-                    SwitchSetting(stringResource(R.string.compose_settings_remember_expansion), current.rememberExpandedState) { value -> update { it.copy(rememberExpandedState = value) } }
+                    IntSetting(
+                        stringResource(R.string.compose_settings_long_press),
+                        current.longPressTimeoutMs,
+                        250,
+                        1000
+                    ) { value -> update { it.copy(longPressTimeoutMs = value) } }
+                    IntSetting(
+                        stringResource(R.string.compose_settings_fling),
+                        current.flingVelocityDpPerSecond,
+                        100,
+                        6000
+                    ) { value -> update { it.copy(flingVelocityDpPerSecond = value) } }
+                    SwitchSetting(
+                        stringResource(R.string.compose_settings_auto_collapse),
+                        current.autoCollapseAfterAction
+                    ) { value -> update { it.copy(autoCollapseAfterAction = value) } }
+                    SwitchSetting(
+                        stringResource(R.string.compose_settings_remember_expansion),
+                        current.rememberExpandedState
+                    ) { value -> update { it.copy(rememberExpandedState = value) } }
+                    Text(
+                        "以下选项控制抽屉展开/关闭动画与触觉反馈。",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    IntSetting(
+                        stringResource(R.string.compose_settings_animation),
+                        current.animationDurationMs,
+                        0,
+                        1200
+                    ) { value -> update { it.copy(animationDurationMs = value) } }
+                    SwitchSetting(
+                        stringResource(R.string.compose_settings_reduce_motion),
+                        current.reduceMotion
+                    ) { value -> update { it.copy(reduceMotion = value) } }
+                    EnumSetting(
+                        stringResource(R.string.compose_settings_haptics),
+                        current.hapticMode,
+                        HapticMode.entries
+                    ) { value -> update { it.copy(hapticMode = value) } }
                 }
+
                 4 -> SettingsSection(stringResource(R.string.compose_settings_performance)) {
-                    IntSetting(stringResource(R.string.compose_settings_page_cache), current.pageCacheLimit, 1, 9) { value -> update { it.copy(pageCacheLimit = value) } }
-                    SwitchSetting(stringResource(R.string.compose_settings_prefetch), current.prefetchAdjacentGroups) { value -> update { it.copy(prefetchAdjacentGroups = value) } }
-                    SwitchSetting(stringResource(R.string.compose_settings_search_payload), current.searchIncludesActionPayload) { value -> update { it.copy(searchIncludesActionPayload = value) } }
+                    IntSetting(
+                        stringResource(R.string.compose_settings_page_cache),
+                        current.pageCacheLimit,
+                        1,
+                        9
+                    ) { value -> update { it.copy(pageCacheLimit = value) } }
+                    SwitchSetting(
+                        stringResource(R.string.compose_settings_prefetch),
+                        current.prefetchAdjacentGroups
+                    ) { value -> update { it.copy(prefetchAdjacentGroups = value) } }
+                    SwitchSetting(
+                        stringResource(R.string.compose_settings_search_payload),
+                        current.searchIncludesActionPayload
+                    ) { value -> update { it.copy(searchIncludesActionPayload = value) } }
                 }
-                5 -> SettingsSection("数据备份与恢复") {
-                    Text("设置与符号分组使用 JSON 格式备份；复制后可保存为文件，导入时会先完整校验数据。", style = MaterialTheme.typography.bodyMedium)
-                    Button(onClick = {
-                        clipboard.setText(AnnotatedString(SymbolDrawerSettingsCodec.encode(current)))
-                    }, modifier = Modifier.fillMaxWidth()) { Text("复制设置 JSON") }
-                    Button(
-                        onClick = {
-                            val repository = groupRepository
-                            if (repository == null) errorMessage = "符号分组仓库不可用"
-                            else runCatching { SymbolGroupBundleCodec.encode(repository.loadGroups()) }
-                                .onSuccess { clipboard.setText(AnnotatedString(it)) }
-                                .onFailure { errorMessage = it.message ?: "导出符号分组失败" }
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) { Text("复制符号分组 JSON") }
-                    OutlinedButton(onClick = {
-                        importGroups = false
-                        importJson = clipboard.getText()?.text.orEmpty()
-                        importDialog = true
-                    }, modifier = Modifier.fillMaxWidth()) { Text("从剪贴板导入设置 JSON") }
-                    OutlinedButton(
-                        onClick = {
-                            importGroups = true
-                            importJson = clipboard.getText()?.text.orEmpty()
-                            importDialog = true
-                        },
-                        enabled = groupRepository != null,
-                        modifier = Modifier.fillMaxWidth()
-                    ) { Text("从剪贴板导入符号分组 JSON") }
-                    if (onReset != null) {
-                        OutlinedButton(onClick = onReset, modifier = Modifier.fillMaxWidth()) {
-                            Text(stringResource(R.string.compose_settings_reset))
+
+                5 -> {
+                    SettingsSection("设置数据备份与恢复") {
+                        Text(
+                            "设置与符号分组分别使用 JSON 格式备份。导入前会完整解析并校验数据；导入成功后立即更新当前设置或符号分组。",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Button(
+                            onClick = {
+                                runCatching { SymbolDrawerSettingsCodec.encode(current) }
+                                    .onSuccess { clipboard.setText(AnnotatedString(it)) }
+                                    .onFailure { errorMessage = it.message ?: "导出设置 JSON 失败" }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text("复制设置 JSON") }
+                        Button(
+                            onClick = {
+                                val repository = groupRepository
+                                if (repository == null) {
+                                    errorMessage = "符号分组仓库不可用"
+                                } else {
+                                    runCatching { SymbolGroupBundleCodec.encode(repository.loadGroups()) }
+                                        .onSuccess { clipboard.setText(AnnotatedString(it)) }
+                                        .onFailure { errorMessage = it.message ?: "导出符号分组 JSON 失败" }
+                                }
+                            },
+                            enabled = groupRepository != null,
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text("复制符号分组 JSON") }
+                        OutlinedButton(
+                            onClick = {
+                                importGroups = false
+                                importJson = clipboard.getText()?.text.orEmpty()
+                                errorMessage = null
+                                importDialog = true
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text("从剪贴板导入设置 JSON") }
+                        OutlinedButton(
+                            onClick = {
+                                importGroups = true
+                                importJson = clipboard.getText()?.text.orEmpty()
+                                errorMessage = null
+                                importDialog = true
+                            },
+                            enabled = groupRepository != null,
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text("从剪贴板导入符号分组 JSON") }
+                    }
+
+                    Card(Modifier.fillMaxWidth()) {
+                        Column(
+                            Modifier.fillMaxWidth().padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text("数据安全提示", style = MaterialTheme.typography.titleSmall)
+                            Text(
+                                "导入操作会替换对应的设置或分组数据。请在导入前保留备份，并确认 JSON 来源可信。设置数据与符号分组数据彼此独立。",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
-                }
-            }
-        }
-        if (selectedTab != 5) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                if (onReset != null) {
-                    OutlinedButton(onClick = onReset, modifier = Modifier.weight(1f)) {
-                        Text(stringResource(R.string.compose_settings_reset))
+
+                    if (onReset != null) {
+                        OutlinedButton(
+                            onClick = {
+                                val defaults = SymbolDrawerSettings()
+                                current = defaults
+                                onSettingsChange(defaults)
+                                onReset()
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text(stringResource(R.string.compose_settings_reset)) }
                     }
-                }
-                Button(onClick = { onSettingsChange(current) }, modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.compose_settings_apply))
                 }
             }
         }
     }
+
     if (importDialog) {
         AlertDialog(
             onDismissRequest = { importDialog = false },
@@ -255,6 +398,7 @@ fun SymbolDrawerSettingsScreen(
                             repository.saveGroups(decoded)
                         } else {
                             val decoded = SymbolDrawerSettingsCodec.decodeStrict(importJson)
+                                .copy(themeMode = ThemeMode.SYSTEM)
                             current = decoded
                             onSettingsChange(decoded)
                         }
@@ -267,12 +411,15 @@ fun SymbolDrawerSettingsScreen(
             }
         )
     }
+
     errorMessage?.let { message ->
         AlertDialog(
             onDismissRequest = { errorMessage = null },
             title = { Text("操作失败") },
             text = { Text(message) },
-            confirmButton = { TextButton(onClick = { errorMessage = null }) { Text("确定") } }
+            confirmButton = {
+                TextButton(onClick = { errorMessage = null }) { Text("确定") }
+            }
         )
     }
 }
