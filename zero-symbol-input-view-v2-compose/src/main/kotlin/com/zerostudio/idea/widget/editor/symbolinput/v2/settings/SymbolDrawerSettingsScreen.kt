@@ -247,6 +247,7 @@ fun SymbolDrawerSettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = {
+                    errorMessage = null
                     runCatching {
                         if (importGroups) {
                             val repository = requireNotNull(groupRepository)
