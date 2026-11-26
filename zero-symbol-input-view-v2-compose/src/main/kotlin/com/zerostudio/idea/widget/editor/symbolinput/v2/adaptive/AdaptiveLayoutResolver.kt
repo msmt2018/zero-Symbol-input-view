@@ -21,6 +21,9 @@ data class AdaptiveLayoutSpec(
         require(primaryPaneWeight.isFinite() && primaryPaneWeight > 0f)
         require(secondaryPaneWeight.isFinite() && secondaryPaneWeight >= 0f)
         require(feedColumnCount >= 1)
+        if (arrangement == PaneArrangement.SINGLE || arrangement == PaneArrangement.STACKED) {
+            require(secondaryPaneWeight == 0f)
+        }
     }
 }
 
@@ -52,17 +55,26 @@ object AdaptiveLayoutResolver {
     ): AdaptiveLayoutSpec {
         val width = info.availableWidthDp
         val height = info.availableHeightDp
-        val separatedHinge = info.foldingFeature.isSeparating && info.foldingFeature.hasBounds
-        // Android's adaptive guidance explicitly treats width and height as
-        // independent classes. A compact-height landscape window should not
-        // force a two-pane arrangement merely because its width is sufficient.
+
+        // Only a vertically oriented separating feature can divide a window
+        // into side-by-side panes. A horizontal tabletop fold is not a
+        // meaningful boundary for list/detail columns.
+        val folding = info.foldingFeature
+        val verticalSeparatingHinge = folding.isSeparating &&
+            folding.hasBounds &&
+            (folding.boundsBottomDp - folding.boundsTopDp) >=
+            (folding.boundsRightDp - folding.boundsLeftDp)
+
+        // Width and height are independent constraints. A wide but very short
+        // landscape/freeform window remains single-pane when there is not
+        // enough vertical room for the paired content surfaces.
         val hasMultiPaneSpace = height >= policy.minimumMultiPaneHeightDp
-        val useHingeBoundary = separatedHinge && hasMultiPaneSpace
+        val useHingeBoundary = verticalSeparatingHinge && hasMultiPaneSpace
 
         return when (type) {
             CanonicalLayoutType.LIST_DETAIL -> {
                 val dualPane = hasMultiPaneSpace &&
-                    (width >= policy.listDetailBreakpointDp || separatedHinge)
+                    (width >= policy.listDetailBreakpointDp || verticalSeparatingHinge)
                 AdaptiveLayoutSpec(
                     layoutType = type,
                     arrangement = if (dualPane) PaneArrangement.SIDE_BY_SIDE else PaneArrangement.SINGLE,
@@ -73,8 +85,9 @@ object AdaptiveLayoutResolver {
             }
 
             CanonicalLayoutType.FEED -> {
-                val columns = (width / policy.feedMinimumColumnWidthDp).toInt()
-                    .coerceIn(1, policy.feedMaximumColumns)
+                val columns = kotlin.math.floor(
+                    width.toDouble() / policy.feedMinimumColumnWidthDp.toDouble()
+                ).toInt().coerceIn(1, policy.feedMaximumColumns)
                 AdaptiveLayoutSpec(
                     layoutType = type,
                     arrangement = PaneArrangement.FEED_GRID,
@@ -85,7 +98,7 @@ object AdaptiveLayoutResolver {
 
             CanonicalLayoutType.SUPPORTING_PANE -> {
                 val showSupporting = hasMultiPaneSpace &&
-                    (width >= policy.supportingPaneBreakpointDp || separatedHinge)
+                    (width >= policy.supportingPaneBreakpointDp || verticalSeparatingHinge)
                 AdaptiveLayoutSpec(
                     layoutType = type,
                     arrangement = if (showSupporting) {
