@@ -75,7 +75,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.zerostudio.idea.widget.editor.symbolinput.v2.R
+import com.zerostudio.idea.widget.editor.symbolinput.v2.compose.R
 
 /**
  * Immutable settings editor rendered entirely with Compose. The host persists
