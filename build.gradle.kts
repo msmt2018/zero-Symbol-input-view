@@ -39,7 +39,7 @@ buildscript {
     }
 }
 
-val highApiProjects = arrayOf("editor-lsp")
+val highApiProjects = arrayOf("editor-lsp", "app")
 
 fun Project.configureAndroidAndKotlin() {
     extensions.findByType<CommonExtension>()?.apply {
