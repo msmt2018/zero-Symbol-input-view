@@ -238,35 +238,18 @@ V1 紧凑 JSON 示例：
 
 ## 开源许可协议
 
-### SPDX 许可标识
+三个符号输入 Library 模块中由项目作者拥有版权的原创作品，采用
+**GNU Affero 通用公共许可证第三版（仅此版本，AGPL-3.0-only）**。
+仓库根目录及各适用模块提供未经修改的 GNU 官方许可证完整正文；
+官方文本：https://www.gnu.org/licenses/agpl-3.0.html。
 
-V2 项目原创源码文件使用以下 SPDX 许可表达式：
+项目另行适用 AGPLv3 第 7 节允许的附加条款，具体见各模块的
+`ADDITIONAL-TERMS.md`。这些附加条款独立于 GNU 官方许可证正文，
+不会修改或替代官方正文。
 
-```text
-SPDX-License-Identifier: AGPL-3.0-only AND GPL-3.0-only AND Apache-2.0
-```
-
-这里的 `AND` 是有意采用的累积许可表达式：列出的三份许可证同时适用于同一受许可作品，不表示接收者可以从中任选一份。使用受许可内容时，必须遵守三份许可证中所有适用的条件。
-
-### 三份许可证的主要要求
-
-1. **GNU Affero 通用公共许可证 v3.0（仅此版本，AGPL-3.0-only）。** 授予使用、研究、修改和再分发作品的权利。特别是，当修改版本通过计算机网络向用户提供交互服务时，AGPLv3 第 13 条要求按照 AGPL 条款向这些用户提供该修改版本的 Corresponding Source（对应源代码）。
-2. **GNU 通用公共许可证 v3.0（仅此版本，GPL-3.0-only）。** 授予使用、研究、修改和再分发作品的权利。传播目标代码时，必须遵守 GPLv3 的适用要求，包括提供对应源代码或有效的书面要约、保留许可和版权声明，以及履行其他许可条件。
-3. **Apache License 2.0（Apache-2.0）。** 授予版权及适用的专利许可，但必须遵守其条件，包括附带许可证副本、保留相关版权/专利/商标/归属声明、标记修改过的文件，并遵守专利终止条款。
-
-以上仅为便于理解的摘要，不构成法律意见，也不能替代完整许可证文本。如果实际意图并非三份许可证累积适用，应在发布前寻求法律审查，并统一修正 SPDX 表达式及全部相关声明。
-
-### 完整许可证文本
-
-- [GNU AGPL v3.0 完整文本](zero-symbol-input-view-v2/LICENSE-AGPL-3.0-only.txt) · [官方文本](https://www.gnu.org/licenses/agpl-3.0.html)
-- [GNU GPL v3.0 完整文本](zero-symbol-input-view-v2/LICENSE-GPL-3.0-only.txt) · [官方文本](https://www.gnu.org/licenses/gpl-3.0.html)
-- [Apache License 2.0 完整文本](zero-symbol-input-view-v2/LICENSE-Apache-2.0.txt) · [官方文本](https://www.apache.org/licenses/LICENSE-2.0)
-
-### 适用范围与第三方代码
-
-本许可声明适用于 `zero-symbol-input-view-v2/` 目录内带有上述 SPDX 标识的 V2 项目原创文件，以及版权持有人已授权按该许可发布的贡献。它不会自动将整个仓库、旧版 V1 模块、第三方依赖、引入/复制的外部代码，或带有独立上游许可声明的文件重新许可。
-
-仓库根目录的 `LICENSE` 仍适用于未被 V2 文件级许可声明明确覆盖的仓库内容。必须保留所有第三方版权和许可证声明；文件级声明不能覆盖更具体的上游许可。
+本项目许可证不会重新许可第三方或导入的材料。必须保留并遵守这些
+材料各自原有的版权声明和许可证条件。文件或目录存在独立上游许可
+声明时，该具体声明继续适用于相应材料。
 
 **Copyright (C) 2026 android_zero**  
-作者：android_zero · [GitHub](https://github.com/msmt2018) · 微信：`android_zero`
+作者：android_zero · GitHub：https://github.com/msmt2018 · 微信：`android_zero`
