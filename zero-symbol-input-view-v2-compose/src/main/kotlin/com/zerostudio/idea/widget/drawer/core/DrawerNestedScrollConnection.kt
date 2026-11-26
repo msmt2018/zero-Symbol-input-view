@@ -30,7 +30,13 @@ import androidx.compose.ui.unit.Velocity
  */
 class DrawerNestedScrollConnection(
     private val stateHolder: DrawerStateHolder,
-    private val minimumFlingVelocityPxPerSecond: Float = 400f
+    private val minimumFlingVelocityPxPerSecond: Float = 400f,
+    /**
+     * Evaluated only when a nested-scroll gesture first tries to consume.
+     * Once this connection owns a gesture, it keeps ownership until fling or
+     * cancellation even if the drawer height changes during that gesture.
+     */
+    private val canStartNestedScroll: () -> Boolean = { true }
 ) : NestedScrollConnection {
 
     /**
@@ -54,6 +60,7 @@ class DrawerNestedScrollConnection(
         // Programmatic descendant scrolling must not move the drawer. This
         // connection participates only in user-driven nested gestures.
         if (source != NestedScrollSource.UserInput) return Offset.Zero
+        if (!ownsNestedScrollGesture && !canStartNestedScroll()) return Offset.Zero
         val result = stateHolder.dispatchNestedScroll(
             availableDeltaY = available.y,
             childCanScrollBackward = false,
@@ -71,6 +78,7 @@ class DrawerNestedScrollConnection(
         // Side-effect scroll deltas (for example animateScrollToItem) belong
         // to the descendant/ancestor scroll chain, not drawer gestures.
         if (source != NestedScrollSource.UserInput) return Offset.Zero
+        if (!ownsNestedScrollGesture && !canStartNestedScroll()) return Offset.Zero
         val result = stateHolder.dispatchNestedScroll(
             availableDeltaY = available.y,
             childCanScrollBackward = false,
