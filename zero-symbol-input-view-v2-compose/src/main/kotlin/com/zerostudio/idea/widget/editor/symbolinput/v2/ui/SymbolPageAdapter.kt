@@ -10,33 +10,11 @@
  * This file is distributed under the following licenses, which apply
  * cumulatively to the same work:
  *
- * 1. GNU Affero General Public License v3.0 only (AGPL-3.0-only):
- *    Grants the rights to use, study, modify, and redistribute this work.
- *    When a modified version is used to provide network services to users,
- *    the corresponding source code must be made available under the
- *    applicable AGPL terms.
+ * 1. GNU Affero General Public License v3.0 only (AGPL-3.0-only).
+ * 2. GNU General Public License v3.0 only (GPL-3.0-only).
+ * 3. Apache License 2.0 (Apache-2.0).
  *
- * 2. GNU General Public License v3.0 only (GPL-3.0-only):
- *    Grants the rights to use, study, modify, and redistribute this work.
- *    Distribution of covered binaries requires compliance with the source
- *    code, license notice, attribution, and other applicable GPL terms.
- *
- * 3. Apache License 2.0 (Apache-2.0):
- *    Grants copyright and applicable patent rights to use, modify, and
- *    distribute this work, subject to its license conditions, including
- *    preservation of notices, inclusion of the license, and marking changes.
- *
- * The SPDX operator "AND" means that all listed license terms apply
- * cumulatively. It does not mean that recipients may choose only one
- * of the listed licenses.
- *
- * You must comply with the applicable terms of all three licenses.
- * This notice is a summary and does not replace the full license texts.
- *
- * Full license texts:
- * - GNU AGPL v3.0: https://www.gnu.org/licenses/agpl-3.0.html
- * - GNU GPL v3.0:  https://www.gnu.org/licenses/gpl-3.0.html
- * - Apache 2.0:    https://www.apache.org/licenses/LICENSE-2.0
+ * See the corresponding license files in this module for the complete terms.
  *
  * Author: android_zero
  * GitHub: https://github.com/msmt2018
@@ -47,6 +25,7 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.ui
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -55,14 +34,21 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.awaitFirstDown
+import androidx.compose.ui.input.pointer.awaitPointerEvent
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -73,12 +59,16 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.DrawerConfig
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
+import kotlin.math.abs
 
 /**
  * Composition-native replacement for the former RecyclerView/ListAdapter page.
  *
- * There is deliberately no adapter object, ViewHolder, recycling callback or
- * manual bind/unbind API. LazyVerticalGrid owns item composition and disposal.
+ * The grid owns its scroll state. When the sheet is fully expanded, a downward
+ * gesture is offered to the sheet only after the grid reaches its first item;
+ * upward gestures and downward gestures while the grid can scroll backward
+ * remain owned by the grid. This gives a short/non-scrollable grid a reliable
+ * way to collapse the sheet without stealing normal symbol-list scrolling.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -89,11 +79,84 @@ fun SymbolPage(
     modifier: Modifier = Modifier,
     userScrollEnabled: Boolean = false,
     onSymbolClick: (SymbolEntry) -> Unit,
-    onSymbolLongClick: ((SymbolEntry) -> Unit)? = null
+    onSymbolLongClick: ((SymbolEntry) -> Unit)? = null,
+    onExpandedSheetDragStart: (() -> Unit)? = null,
+    onExpandedSheetDrag: ((Float) -> Unit)? = null,
+    onExpandedSheetDragEnd: ((Float) -> Unit)? = null
 ) {
+    val gridState = rememberLazyGridState()
+    val sheetDragEnabled = onExpandedSheetDragStart != null &&
+        onExpandedSheetDrag != null && onExpandedSheetDragEnd != null
+
+    val dragArbitrationModifier = if (sheetDragEnabled) {
+        Modifier.pointerInput(gridState, onExpandedSheetDragStart, onExpandedSheetDrag, onExpandedSheetDragEnd) {
+            awaitEachGesture {
+                val down = awaitFirstDown(
+                    requireUnconsumed = false,
+                    pass = PointerEventPass.Initial
+                )
+                val pointerId = down.id
+                val velocityTracker = VelocityTracker().apply {
+                    addPosition(down.uptimeMillis, down.position)
+                }
+                var previous = down.position
+                var accumulatedX = 0f
+                var accumulatedY = 0f
+                var ownsGesture = false
+
+                while (true) {
+                    val event = awaitPointerEvent(PointerEventPass.Initial)
+                    val change = event.changes.firstOrNull { it.id == pointerId } ?: break
+                    if (!change.pressed) break
+
+                    val delta = change.position - previous
+                    previous = change.position
+
+                    if (!ownsGesture) {
+                        accumulatedX += delta.x
+                        accumulatedY += delta.y
+                        val crossedSlop = abs(accumulatedX) > viewConfiguration.touchSlop ||
+                            abs(accumulatedY) > viewConfiguration.touchSlop
+                        if (!crossedSlop) continue
+
+                        // Horizontal paging and upward grid scrolling always
+                        // remain with descendants. The sheet claims only a
+                        // downward gesture when the grid is already at its top.
+                        if (abs(accumulatedX) >= abs(accumulatedY) ||
+                            accumulatedY <= 0f ||
+                            gridState.canScrollBackward
+                        ) {
+                            break
+                        }
+
+                        ownsGesture = true
+                        velocityTracker.addPosition(change.uptimeMillis, change.position)
+                        onExpandedSheetDragStart()
+                        onExpandedSheetDrag(accumulatedY)
+                        change.consume()
+                    } else {
+                        velocityTracker.addPosition(change.uptimeMillis, change.position)
+                        onExpandedSheetDrag(delta.y)
+                        change.consume()
+                    }
+                }
+
+                if (ownsGesture) {
+                    onExpandedSheetDragEnd(velocityTracker.calculateVelocity().y)
+                }
+            }
+        }
+    } else {
+        Modifier
+    }
+
     LazyVerticalGrid(
+        state = gridState,
         columns = GridCells.Fixed(config.columns.coerceIn(1, 30)),
-        modifier = modifier.fillMaxSize().padding(horizontal = 4.dp),
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 4.dp)
+            .then(dragArbitrationModifier),
         userScrollEnabled = userScrollEnabled,
         verticalArrangement = Arrangement.spacedBy(config.cellVerticalSpacingDp.dp),
         horizontalArrangement = Arrangement.spacedBy(config.cellHorizontalSpacingDp.dp)
@@ -161,9 +224,6 @@ private fun SymbolCell(
  * Full-label mode keeps the complete symbol text on one line. The font is
  * reduced against the cell's actual measured width rather than truncating the
  * label or allowing it to wrap into the next row.
- *
- * Density conversion is performed through LocalDensity so font scaling remains
- * correct on windows with different display density and user font scale.
  */
 @Composable
 private fun FullSymbolLabel(
