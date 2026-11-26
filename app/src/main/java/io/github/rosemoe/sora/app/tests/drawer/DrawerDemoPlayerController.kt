@@ -124,6 +124,10 @@ internal class DrawerDemoPlayerController(
         } else startPreparedPlayer(current)
     }
 
+    fun playTrack(index: Int) {
+        if (!closed) selectTrack(index.coerceIn(tracks.indices))
+    }
+
     fun nextTrack(shuffle: Boolean = false) {
         if (closed) return
         val nextIndex = if (shuffle && tracks.size > 1) {
