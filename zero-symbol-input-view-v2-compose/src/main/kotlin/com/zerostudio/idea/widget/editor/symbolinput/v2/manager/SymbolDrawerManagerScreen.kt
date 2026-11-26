@@ -264,7 +264,7 @@ fun SymbolDrawerManagerScreen(
 
     val selectedGroup = groups.firstOrNull { it.id == selectedGroupId }
     Column(
-        modifier = modifier.fillMaxSize().padding(16.dp),
+        modifier = modifier.fillMaxSize().padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         // View V2's manager shell: search and overflow actions in one compact
