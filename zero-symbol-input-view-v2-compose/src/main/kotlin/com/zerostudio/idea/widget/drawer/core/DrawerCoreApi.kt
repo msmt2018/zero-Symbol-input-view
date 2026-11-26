@@ -44,27 +44,27 @@
  */
 package com.zerostudio.idea.widget.drawer.core
 
-typealias DrawerAnchorState = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorState
-typealias DrawerAnchor = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchor
-typealias DrawerAnchorInput = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorInput
-typealias DrawerAnchorResolver = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorResolver
-typealias DrawerAnchorStrategy = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorStrategy
-typealias ExistingHeightAnchorStrategy = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.ExistingHeightAnchorStrategy
-typealias ThreeStageAnchorStrategy = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.ThreeStageAnchorStrategy
-typealias ContentBasedAnchorStrategy = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.ContentBasedAnchorStrategy
-typealias CustomAnchorStrategy = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.CustomAnchorStrategy
-typealias DrawerAnchorStrategies = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorStrategies
-typealias DrawerController = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerController
-typealias DrawerInteractionController = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerInteractionController
-typealias DrawerState = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerState
+typealias DrawerAnchorState = com.zerostudio.idea.widget.drawer.core.DrawerAnchorState
+typealias DrawerAnchor = com.zerostudio.idea.widget.drawer.core.DrawerAnchor
+typealias DrawerAnchorInput = com.zerostudio.idea.widget.drawer.core.DrawerAnchorInput
+typealias DrawerAnchorResolver = com.zerostudio.idea.widget.drawer.core.DrawerAnchorResolver
+typealias DrawerAnchorStrategy = com.zerostudio.idea.widget.drawer.core.DrawerAnchorStrategy
+typealias ExistingHeightAnchorStrategy = com.zerostudio.idea.widget.drawer.core.ExistingHeightAnchorStrategy
+typealias ThreeStageAnchorStrategy = com.zerostudio.idea.widget.drawer.core.ThreeStageAnchorStrategy
+typealias ContentBasedAnchorStrategy = com.zerostudio.idea.widget.drawer.core.ContentBasedAnchorStrategy
+typealias CustomAnchorStrategy = com.zerostudio.idea.widget.drawer.core.CustomAnchorStrategy
+typealias DrawerAnchorStrategies = com.zerostudio.idea.widget.drawer.core.DrawerAnchorStrategies
+typealias DrawerController = com.zerostudio.idea.widget.drawer.core.DrawerController
+typealias DrawerInteractionController = com.zerostudio.idea.widget.drawer.core.DrawerInteractionController
+typealias DrawerState = com.zerostudio.idea.widget.drawer.core.DrawerState
 
-typealias DrawerStateHolder = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerStateHolder
+typealias DrawerStateHolder = com.zerostudio.idea.widget.drawer.core.DrawerStateHolder
 
-typealias DrawerNestedScrollPhase = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerNestedScrollPhase
-typealias DrawerNestedScrollInput = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerNestedScrollInput
-typealias DrawerNestedScrollResult = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerNestedScrollResult
-typealias DrawerNestedScrollPolicy = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerNestedScrollPolicy
-typealias DrawerNestedScrollConnection = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerNestedScrollConnection
+typealias DrawerNestedScrollPhase = com.zerostudio.idea.widget.drawer.core.DrawerNestedScrollPhase
+typealias DrawerNestedScrollInput = com.zerostudio.idea.widget.drawer.core.DrawerNestedScrollInput
+typealias DrawerNestedScrollResult = com.zerostudio.idea.widget.drawer.core.DrawerNestedScrollResult
+typealias DrawerNestedScrollPolicy = com.zerostudio.idea.widget.drawer.core.DrawerNestedScrollPolicy
+typealias DrawerNestedScrollConnection = com.zerostudio.idea.widget.drawer.core.DrawerNestedScrollConnection
 
 /** Composition-owned factories exposed from the stable public drawer API. */
 @androidx.compose.runtime.Composable
@@ -73,7 +73,7 @@ fun rememberDrawerStateHolder(
     initialStrategy: DrawerAnchorStrategy = ExistingHeightAnchorStrategy(),
     initialAnchorId: String? = null
 ): DrawerStateHolder =
-    com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.rememberDrawerStateHolder(
+    com.zerostudio.idea.widget.drawer.core.rememberDrawerStateHolder(
         initialInput = initialInput,
         initialStrategy = initialStrategy,
         initialAnchorId = initialAnchorId
@@ -85,8 +85,8 @@ fun rememberDefaultDrawerController(
     anchorInputProvider: () -> DrawerAnchorInput,
     initialStrategy: DrawerAnchorStrategy = ExistingHeightAnchorStrategy(),
     initialAnchorId: String? = null
-): com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DefaultDrawerController =
-    com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.rememberDefaultDrawerController(
+): com.zerostudio.idea.widget.drawer.core.DefaultDrawerController =
+    com.zerostudio.idea.widget.drawer.core.rememberDefaultDrawerController(
         initialInput = initialInput,
         anchorInputProvider = anchorInputProvider,
         initialStrategy = initialStrategy,
@@ -97,4 +97,4 @@ fun rememberDefaultDrawerController(
 /** Subscribes the current Composition to the pure drawer state engine. */
 @androidx.compose.runtime.Composable
 fun rememberDrawerStateSnapshot(holder: DrawerStateHolder): DrawerState =
-    com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.rememberDrawerStateSnapshot(holder)
+    com.zerostudio.idea.widget.drawer.core.rememberDrawerStateSnapshot(holder)

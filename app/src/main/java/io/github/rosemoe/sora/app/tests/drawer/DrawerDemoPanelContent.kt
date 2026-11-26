@@ -20,7 +20,7 @@ import com.google.android.material.card.MaterialCardView
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.switchmaterial.SwitchMaterial
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.panel.DrawerPanelContent
+import com.zerostudio.idea.widget.drawer.panel.DrawerPanelContent
 import kotlin.math.min
 
 internal class DrawerDemoPlayerPanelContent(

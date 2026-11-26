@@ -44,11 +44,11 @@
  */
 package com.zerostudio.idea.widget.drawer.navigation
 
-typealias DrawerNavigationPlacement = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerNavigationPlacement
-typealias DrawerIndicatorShape = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerIndicatorShape
-typealias DrawerIndicatorStyle = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerIndicatorStyle
-typealias DrawerNavigationConfig = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerNavigationConfig
-typealias DrawerNavigationController = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerNavigationController
-typealias DrawerPage = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerPage
-typealias DrawerNavigationSnapshot = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerNavigationSnapshot
-typealias DrawerPageHost = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerPageHost
+typealias DrawerNavigationPlacement = com.zerostudio.idea.widget.drawer.navigation.DrawerNavigationPlacement
+typealias DrawerIndicatorShape = com.zerostudio.idea.widget.drawer.navigation.DrawerIndicatorShape
+typealias DrawerIndicatorStyle = com.zerostudio.idea.widget.drawer.navigation.DrawerIndicatorStyle
+typealias DrawerNavigationConfig = com.zerostudio.idea.widget.drawer.navigation.DrawerNavigationConfig
+typealias DrawerNavigationController = com.zerostudio.idea.widget.drawer.navigation.DrawerNavigationController
+typealias DrawerPage = com.zerostudio.idea.widget.drawer.navigation.DrawerPage
+typealias DrawerNavigationSnapshot = com.zerostudio.idea.widget.drawer.navigation.DrawerNavigationSnapshot
+typealias DrawerPageHost = com.zerostudio.idea.widget.drawer.navigation.DrawerPageHost

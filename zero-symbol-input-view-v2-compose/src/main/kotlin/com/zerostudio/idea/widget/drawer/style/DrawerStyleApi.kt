@@ -44,12 +44,12 @@
  */
 package com.zerostudio.idea.widget.drawer.style
 
-typealias DrawerThemeMode = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerThemeMode
-typealias DrawerColorAttributes = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerColorAttributes
-typealias DrawerColors = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerColors
-typealias DrawerDimensions = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerDimensions
-typealias DrawerTypography = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerTypography
-typealias DrawerMotion = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerMotion
-typealias DrawerShape = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerShape
-typealias DrawerStyle = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerStyle
-typealias DrawerThemeResolver = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerThemeResolver
+typealias DrawerThemeMode = com.zerostudio.idea.widget.drawer.style.DrawerThemeMode
+typealias DrawerColorAttributes = com.zerostudio.idea.widget.drawer.style.DrawerColorAttributes
+typealias DrawerColors = com.zerostudio.idea.widget.drawer.style.DrawerColors
+typealias DrawerDimensions = com.zerostudio.idea.widget.drawer.style.DrawerDimensions
+typealias DrawerTypography = com.zerostudio.idea.widget.drawer.style.DrawerTypography
+typealias DrawerMotion = com.zerostudio.idea.widget.drawer.style.DrawerMotion
+typealias DrawerShape = com.zerostudio.idea.widget.drawer.style.DrawerShape
+typealias DrawerStyle = com.zerostudio.idea.widget.drawer.style.DrawerStyle
+typealias DrawerThemeResolver = com.zerostudio.idea.widget.drawer.style.DrawerThemeResolver

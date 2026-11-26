@@ -16,26 +16,26 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.slider.Slider
 import com.google.android.material.switchmaterial.SwitchMaterial
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.DrawerContainer
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.config.DrawerConfig
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.config.DrawerPresentationMode
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchor
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorState
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorStrategies
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerPage
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerNavigationConfig
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerNavigationPlacement
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerIndicatorStyle
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerIndicatorShape
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.panel.DrawerPanelContent
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.preset.DrawerPreset
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.preset.DrawerPresets
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerColors
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerDimensions
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerMotion
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerShape
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerTypography
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerThemeMode
+import com.zerostudio.idea.widget.drawer.DrawerContainer
+import com.zerostudio.idea.widget.drawer.config.DrawerConfig
+import com.zerostudio.idea.widget.drawer.config.DrawerPresentationMode
+import com.zerostudio.idea.widget.drawer.core.DrawerAnchor
+import com.zerostudio.idea.widget.drawer.core.DrawerAnchorState
+import com.zerostudio.idea.widget.drawer.core.DrawerAnchorStrategies
+import com.zerostudio.idea.widget.drawer.navigation.DrawerPage
+import com.zerostudio.idea.widget.drawer.navigation.DrawerNavigationConfig
+import com.zerostudio.idea.widget.drawer.navigation.DrawerNavigationPlacement
+import com.zerostudio.idea.widget.drawer.navigation.DrawerIndicatorStyle
+import com.zerostudio.idea.widget.drawer.navigation.DrawerIndicatorShape
+import com.zerostudio.idea.widget.drawer.panel.DrawerPanelContent
+import com.zerostudio.idea.widget.drawer.preset.DrawerPreset
+import com.zerostudio.idea.widget.drawer.preset.DrawerPresets
+import com.zerostudio.idea.widget.drawer.style.DrawerColors
+import com.zerostudio.idea.widget.drawer.style.DrawerDimensions
+import com.zerostudio.idea.widget.drawer.style.DrawerMotion
+import com.zerostudio.idea.widget.drawer.style.DrawerShape
+import com.zerostudio.idea.widget.drawer.style.DrawerTypography
+import com.zerostudio.idea.widget.drawer.style.DrawerThemeMode
 
 /** Interactive playground for the reusable, business-neutral drawer APIs. */
 class DrawerApiLabActivity : AppCompatActivity() {

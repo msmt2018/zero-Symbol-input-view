@@ -55,20 +55,20 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.core.view.ViewCompat
 import com.google.android.material.tabs.TabLayout
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.DrawerContainer
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.config.DrawerConfig
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.config.DrawerPresentationMode
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorStrategies
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerNavigationConfig
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerPage
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.panel.DrawerPanelContent
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerColors
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerDimensions
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerMotion
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerShape
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerStyle
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerThemeMode
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerTypography
+import com.zerostudio.idea.widget.drawer.DrawerContainer
+import com.zerostudio.idea.widget.drawer.config.DrawerConfig
+import com.zerostudio.idea.widget.drawer.config.DrawerPresentationMode
+import com.zerostudio.idea.widget.drawer.core.DrawerAnchorStrategies
+import com.zerostudio.idea.widget.drawer.navigation.DrawerNavigationConfig
+import com.zerostudio.idea.widget.drawer.navigation.DrawerPage
+import com.zerostudio.idea.widget.drawer.panel.DrawerPanelContent
+import com.zerostudio.idea.widget.drawer.style.DrawerColors
+import com.zerostudio.idea.widget.drawer.style.DrawerDimensions
+import com.zerostudio.idea.widget.drawer.style.DrawerMotion
+import com.zerostudio.idea.widget.drawer.style.DrawerShape
+import com.zerostudio.idea.widget.drawer.style.DrawerStyle
+import com.zerostudio.idea.widget.drawer.style.DrawerThemeMode
+import com.zerostudio.idea.widget.drawer.style.DrawerTypography
 import com.zerostudio.idea.widget.editor.symbolinput.v2.testing.DrawerTestHostActivity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -167,7 +167,7 @@ class DrawerControllerContractTest {
                 assertEquals(View.IMPORTANT_FOR_ACCESSIBILITY_AUTO, sheet.importantForAccessibility)
 
                 val observedStates = mutableListOf<String>()
-                val listener: (com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerState) -> Unit = {
+                val listener: (com.zerostudio.idea.widget.drawer.core.DrawerState) -> Unit = {
                     observedStates += it.currentAnchorId
                 }
                 controller.addStateListener(listener)

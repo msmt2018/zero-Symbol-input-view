@@ -92,10 +92,10 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
 import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.SymbolGroupIndicator
 import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.SymbolPage
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerAnchorInput
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerStateHolder
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.rememberDrawerStateSnapshot
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.ExistingHeightAnchorStrategy
+import com.zerostudio.idea.widget.drawer.core.DrawerAnchorInput
+import com.zerostudio.idea.widget.drawer.core.DrawerStateHolder
+import com.zerostudio.idea.widget.drawer.core.rememberDrawerStateSnapshot
+import com.zerostudio.idea.widget.drawer.core.ExistingHeightAnchorStrategy
 
 /**
  * Composition-owned state for the symbol drawer.

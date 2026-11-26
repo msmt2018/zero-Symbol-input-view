@@ -44,44 +44,44 @@
  */
 package com.zerostudio.idea.widget.drawer
 
-typealias DrawerConfig = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.config.DrawerConfig
-typealias DrawerPresentationMode = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.config.DrawerPresentationMode
-typealias DrawerPreset = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.preset.DrawerPreset
-typealias DrawerPresets = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.preset.DrawerPresets
-typealias DrawerStyle = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerStyle
-typealias DrawerThemeMode = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerThemeMode
-typealias DrawerColorAttributes = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerColorAttributes
-typealias DrawerColors = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerColors
-typealias DrawerDimensions = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerDimensions
-typealias DrawerTypography = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerTypography
-typealias DrawerMotion = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerMotion
-typealias DrawerShape = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerShape
-typealias DrawerThemeResolver = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.style.DrawerThemeResolver
+typealias DrawerConfig = com.zerostudio.idea.widget.drawer.config.DrawerConfig
+typealias DrawerPresentationMode = com.zerostudio.idea.widget.drawer.config.DrawerPresentationMode
+typealias DrawerPreset = com.zerostudio.idea.widget.drawer.preset.DrawerPreset
+typealias DrawerPresets = com.zerostudio.idea.widget.drawer.preset.DrawerPresets
+typealias DrawerStyle = com.zerostudio.idea.widget.drawer.style.DrawerStyle
+typealias DrawerThemeMode = com.zerostudio.idea.widget.drawer.style.DrawerThemeMode
+typealias DrawerColorAttributes = com.zerostudio.idea.widget.drawer.style.DrawerColorAttributes
+typealias DrawerColors = com.zerostudio.idea.widget.drawer.style.DrawerColors
+typealias DrawerDimensions = com.zerostudio.idea.widget.drawer.style.DrawerDimensions
+typealias DrawerTypography = com.zerostudio.idea.widget.drawer.style.DrawerTypography
+typealias DrawerMotion = com.zerostudio.idea.widget.drawer.style.DrawerMotion
+typealias DrawerShape = com.zerostudio.idea.widget.drawer.style.DrawerShape
+typealias DrawerThemeResolver = com.zerostudio.idea.widget.drawer.style.DrawerThemeResolver
 
-typealias DrawerController = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerController
-typealias DefaultDrawerController = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DefaultDrawerController
-typealias DrawerStateHolder = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerStateHolder
-typealias DrawerState = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.core.DrawerState
+typealias DrawerController = com.zerostudio.idea.widget.drawer.core.DrawerController
+typealias DefaultDrawerController = com.zerostudio.idea.widget.drawer.core.DefaultDrawerController
+typealias DrawerStateHolder = com.zerostudio.idea.widget.drawer.core.DrawerStateHolder
+typealias DrawerState = com.zerostudio.idea.widget.drawer.core.DrawerState
 
 
 
 /** Compose-native drawer entry point. */
 typealias SymbolDrawerState = com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawerState
-typealias DrawerContainerState = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.DrawerContainerState
+typealias DrawerContainerState = com.zerostudio.idea.widget.drawer.DrawerContainerState
 
 /** Compose-native generic drawer container facade. */
 @androidx.compose.runtime.Composable
 fun DrawerContainer(
-    config: com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.config.DrawerConfig = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.config.DrawerConfig(),
+    config: com.zerostudio.idea.widget.drawer.config.DrawerConfig = com.zerostudio.idea.widget.drawer.config.DrawerConfig(),
     modifier: androidx.compose.ui.Modifier = androidx.compose.ui.Modifier,
-    state: DrawerContainerState = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.rememberDrawerContainerState(),
+    state: DrawerContainerState = com.zerostudio.idea.widget.drawer.rememberDrawerContainerState(),
     title: String? = null,
-    pages: List<com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerPage> = emptyList(),
+    pages: List<com.zerostudio.idea.widget.drawer.navigation.DrawerPage> = emptyList(),
     selectedPageId: String? = null,
-    onPageSelected: (com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerPage) -> Unit = {},
+    onPageSelected: (com.zerostudio.idea.widget.drawer.navigation.DrawerPage) -> Unit = {},
     onDismiss: () -> Unit = {},
     content: @androidx.compose.runtime.Composable androidx.compose.foundation.layout.BoxScope.() -> Unit
-) = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.DrawerContainer(
+) = com.zerostudio.idea.widget.drawer.DrawerContainer(
     config = config,
     modifier = modifier,
     state = state,

@@ -44,5 +44,5 @@
  */
 package com.zerostudio.idea.widget.drawer.adapter
 
-typealias SymbolDrawerAnchors = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.adapter.SymbolDrawerAnchors
-typealias SymbolDrawerAnchorAdapter = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.adapter.SymbolDrawerAnchorAdapter
+typealias SymbolDrawerAnchors = com.zerostudio.idea.widget.drawer.adapter.SymbolDrawerAnchors
+typealias SymbolDrawerAnchorAdapter = com.zerostudio.idea.widget.drawer.adapter.SymbolDrawerAnchorAdapter

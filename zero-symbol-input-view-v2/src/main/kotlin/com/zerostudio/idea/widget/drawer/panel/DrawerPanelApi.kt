@@ -44,6 +44,6 @@
  */
 package com.zerostudio.idea.widget.drawer.panel
 
-typealias DrawerPanelContent = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.panel.DrawerPanelContent
-typealias DrawerPanelSlot = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.panel.DrawerPanelSlot
-typealias DrawerPanelHost = com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.panel.DrawerPanelHost
+typealias DrawerPanelContent = com.zerostudio.idea.widget.drawer.panel.DrawerPanelContent
+typealias DrawerPanelSlot = com.zerostudio.idea.widget.drawer.panel.DrawerPanelSlot
+typealias DrawerPanelHost = com.zerostudio.idea.widget.drawer.panel.DrawerPanelHost

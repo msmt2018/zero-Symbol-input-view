@@ -101,9 +101,9 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerAc
 import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerExtensionRegistry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerBuiltInFeatures
 import com.google.android.material.tabs.TabLayout
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerPage
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation.DrawerPageHost
-import com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.panel.DrawerPanelContent
+import com.zerostudio.idea.widget.drawer.navigation.DrawerPage
+import com.zerostudio.idea.widget.drawer.navigation.DrawerPageHost
+import com.zerostudio.idea.widget.drawer.panel.DrawerPanelContent
 
 private const val SETTINGS_PREFERENCE_KEY = "settings_json_v1"
 
