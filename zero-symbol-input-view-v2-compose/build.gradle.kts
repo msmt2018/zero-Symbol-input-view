@@ -1,10 +1,10 @@
 /*
- * This file is part of zero-Symbol-input-view-V2 Compose.
+ * This file is part of Zero Symbol Input View.
  * Copyright (C) 2026 android_zero
- * SPDX-License-Identifier: AGPL-3.0-only AND GPL-3.0-only AND Apache-2.0
- * Author: android_zero · https://github.com/msmt2018
+ * SPDX-License-Identifier: AGPL-3.0-only
+ * License text: https://www.gnu.org/licenses/agpl-3.0.html
+ * Project additional terms: ADDITIONAL-TERMS.md
  */
-
 import org.gradle.api.publish.maven.MavenPublication
 import java.util.ArrayDeque
 import org.gradle.api.artifacts.component.ModuleComponentIdentifier
@@ -150,14 +150,14 @@ val verifyCoreStateEngineBoundary by tasks.registering {
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/settings/SymbolDrawerSettings.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/settings/SymbolDrawerSettingsRepository.kt",
         // Drawer geometry, state and navigation engines.
-        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/drawer/core/SynchronousSnapshotPublisher.kt",
-        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/drawer/navigation/DrawerPageDescriptor.kt",
-        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/drawer/navigation/DrawerNavigationStateEngine.kt",
-        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/drawer/core/DrawerStateHolder.kt",
-        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/drawer/core/DrawerAnchor.kt",
-        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/drawer/core/DrawerAnchorResolver.kt",
-        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/drawer/core/DrawerAnchorStrategy.kt",
-        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/drawer/core/DrawerNestedScrollPolicy.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/drawer/core/SynchronousSnapshotPublisher.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/drawer/navigation/DrawerPageDescriptor.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/drawer/navigation/DrawerNavigationStateEngine.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/drawer/core/DrawerStateHolder.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/drawer/core/DrawerAnchor.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/drawer/core/DrawerAnchorResolver.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/drawer/core/DrawerAnchorStrategy.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/drawer/core/DrawerNestedScrollPolicy.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/state/DrawerGeometry.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/adaptive/AdaptiveWindowController.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/adaptive/ConcurrentSnapshotPublisher.kt",
@@ -168,8 +168,8 @@ val verifyCoreStateEngineBoundary by tasks.registering {
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/adaptive/SymbolDrawerDockingLayoutResolver.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/adaptive/SymbolDrawerDockingCoordinator.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/adaptive/AdaptiveDimensions.kt",
-        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/drawer/core/DrawerState.kt",
-        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/drawer/core/DrawerInteractionController.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/drawer/core/DrawerState.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/drawer/core/DrawerInteractionController.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/action/BuiltinSymbolActionCatalog.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/action/SymbolActionJsonCodec.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/action/SymbolActionExecutor.kt",
@@ -187,8 +187,8 @@ val verifyCoreStateEngineBoundary by tasks.registering {
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/data/SymbolGroupManager.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/data/SymbolDrawerDefaultGroups.kt",
         "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/settings/JsonDocumentIO.kt",
-        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/drawer/navigation/DrawerNavigationController.kt",
-        "src/main/kotlin/com/zerostudio/idea/widget/editor/symbolinput/v2/drawer/navigation/DrawerNavigationConfig.kt"
+        "src/main/kotlin/com/zerostudio/idea/widget/drawer/navigation/DrawerNavigationController.kt",
+        "src/main/kotlin/com/zerostudio/idea/widget/drawer/navigation/DrawerNavigationConfig.kt"
     ).map { layout.projectDirectory.file(it).asFile }
 
     doLast {
@@ -485,7 +485,7 @@ afterEvaluate {
                     url.set("https://github.com/msmt2018/zero-Symbol-input-view")
                     licenses {
                         license {
-                            name.set("AGPL-3.0-only AND GPL-3.0-only AND Apache-2.0")
+                            name.set("AGPL-3.0-only")
                             url.set("https://github.com/msmt2018/zero-Symbol-input-view")
                             distribution.set("repo")
                         }
