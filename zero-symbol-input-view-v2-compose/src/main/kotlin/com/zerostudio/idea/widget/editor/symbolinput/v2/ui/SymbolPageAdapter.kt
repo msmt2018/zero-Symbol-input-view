@@ -128,7 +128,7 @@ fun SymbolPage(
                         // downward gesture when the grid is already at its top.
                         if (abs(accumulatedX) >= abs(accumulatedY) ||
                             accumulatedY <= 0f ||
-                            gridState.canScrollBackward
+                            (userScrollEnabled && gridState.canScrollBackward)
                         ) {
                             break
                         }
