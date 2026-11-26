@@ -358,9 +358,20 @@ fun SymbolDrawerManagerScreen(
         // header, followed by group tabs, search and the active symbol list.
         Row(
             Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End,
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
         ) {
+            if (onOpenSettings != null) {
+                TextButton(onClick = onOpenSettings) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = stringResource(R.string.compose_manager_settings)
+                    )
+                    Text(stringResource(R.string.compose_manager_settings))
+                }
+            } else {
+                androidx.compose.foundation.layout.Spacer(Modifier.width(4.dp))
+            }
             if (searchFeatureVisible) {
                 OutlinedButton(onClick = {
                     searchVisible = !searchVisible
@@ -417,7 +428,7 @@ fun SymbolDrawerManagerScreen(
                             text = { Text(stringResource(R.string.compose_manager_filter_favorites)) },
                             onClick = {
                                 moreMenuExpanded = false
-                                activeFilter = SymbolManagerFilter.FAVORITES
+                                favoritesDialog = true
                             }
                         )
                     }
@@ -426,7 +437,7 @@ fun SymbolDrawerManagerScreen(
                             text = { Text(stringResource(R.string.compose_manager_filter_recent)) },
                             onClick = {
                                 moreMenuExpanded = false
-                                activeFilter = SymbolManagerFilter.RECENT
+                                recentDialog = true
                             }
                         )
                     }
@@ -459,8 +470,6 @@ fun SymbolDrawerManagerScreen(
                         text = { Text(stringResource(R.string.compose_manager_import)) },
                         onClick = {
                             moreMenuExpanded = false
-                            importLegacyJson = false
-                            importJson = clipboard.getText()?.text.orEmpty()
                             importDialog = true
                         }
                     )
@@ -469,20 +478,16 @@ fun SymbolDrawerManagerScreen(
                         onClick = {
                             moreMenuExpanded = false
                             runCatching { LegacySymbolDataCodec.encode(groups) }
-                                .onSuccess {
-                                    clipboard.setText(AnnotatedString(it))
-                                    operationMessage = "V1 兼容 JSON 已复制到剪贴板"
-                                }
-                                .onFailure { errorMessage = it.message ?: "Legacy export is not supported for this data" }
+                                .onSuccess { documentPicker.saveJson("symbol-groups-v1.json", it) }
+                                .onFailure { errorMessage = it.message ?: "V1 JSON 导出失败" }
                         }
                     )
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.compose_manager_import_legacy)) },
                         onClick = {
                             moreMenuExpanded = false
-                            importLegacyJson = true
-                            importJson = clipboard.getText()?.text.orEmpty()
-                            importDialog = true
+                            pendingFileImportLegacy = true
+                            documentPicker.openJson()
                         }
                     )
                     DropdownMenuItem(
