@@ -59,13 +59,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import com.zerostudio.idea.widget.editor.symbolinput.v2.compose.R
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.DrawerConfig
+import com.zerostudio.idea.widget.drawer.adapter.SymbolDrawerAnchorAdapter
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.manager.SymbolDrawerUsageState
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
@@ -181,33 +181,18 @@ fun SymbolDrawer(
 ) {
     val safeGroups = groups
     val density = LocalDensity.current
-    // Match the V2 View geometry: the collapsed shell is the configured symbol grid
-    // only (two rows by default); the group indicator is progressively revealed
-    // while expanding instead of reserving permanent header/handle space.
-    val collapsedHeight = (
-        config.collapsedRows * maxOf(config.cellHeightDp, config.minimumTouchTargetDp) +
-            (config.collapsedRows - 1).coerceAtLeast(0) * config.cellVerticalSpacingDp + 8
-        ).coerceAtLeast(1).dp
-    val collapsedHeightPx = with(density) { collapsedHeight.roundToPx() }
-    val configuration = LocalConfiguration.current
-    val naturalRows = safeGroups.maxOfOrNull { group ->
-        ((group.symbols.size + config.columns - 1) / config.columns).coerceAtLeast(1)
-    } ?: config.collapsedRows
-    val touchCellHeightDp = maxOf(config.cellHeightDp, config.minimumTouchTargetDp)
-    val naturalGridHeightPx = with(density) {
-        (naturalRows * touchCellHeightDp +
-            (naturalRows - 1).coerceAtLeast(0) * config.cellVerticalSpacingDp + 8).dp.roundToPx()
-    }.coerceAtLeast(collapsedHeightPx)
-    val indicatorHeightPx = with(density) { config.indicatorHeightDp.coerceAtLeast(0).dp.roundToPx() }
-    val screenMinimumHeightPx = with(density) { (configuration.screenHeightDp * 0.20f).dp.roundToPx() }
-    val screenHeightCapPx = with(density) { (configuration.screenHeightDp * 0.28f).dp.roundToPx() }
-    val configuredHeightCapPx = with(density) { config.maxExpandedHeightDp.dp.roundToPx() }
-    val expandedHeightCapPx = minOf(screenHeightCapPx, configuredHeightCapPx)
-        .coerceAtLeast(collapsedHeightPx)
-    val desiredExpandedHeightPx = maxOf(naturalGridHeightPx + indicatorHeightPx, screenMinimumHeightPx)
-    val expandedHeightPx = desiredExpandedHeightPx
-        .coerceAtMost(expandedHeightCapPx)
-        .coerceAtLeast(collapsedHeightPx)
+    // Use the exact same geometry resolver as the published View V2 module.
+    // In particular, do not derive drawer anchors from screenHeightDp: that
+    // makes the collapsed grid change behavior in landscape orientation.
+    val anchors = remember(safeGroups, config, density.density) {
+        SymbolDrawerAnchorAdapter.resolve(
+            groups = safeGroups,
+            config = config,
+            density = density.density
+        )
+    }
+    val collapsedHeightPx = anchors.collapsedHeightPx
+    val expandedHeightPx = anchors.expandedHeightPx
     val holder = state.stateHolder
     val drawerSnapshot = rememberDrawerStateSnapshot(holder)
     val targetAnchor = drawerSnapshot.targetAnchorId?.let { id ->
@@ -303,6 +288,7 @@ fun SymbolDrawer(
                         group = group,
                         config = config,
                         settings = settings,
+                        userScrollEnabled = expansionFraction >= 0.999f,
                         modifier = Modifier.fillMaxSize(),
                         onSymbolClick = { entry ->
                             usageState?.recordRecentlyUsed(entry.id)
