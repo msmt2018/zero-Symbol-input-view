@@ -44,27 +44,8 @@
  */
 package com.zerostudio.idea.widget.drawer.core
 
-typealias DrawerAnchorState = com.zerostudio.idea.widget.drawer.core.DrawerAnchorState
-typealias DrawerAnchor = com.zerostudio.idea.widget.drawer.core.DrawerAnchor
-typealias DrawerAnchorInput = com.zerostudio.idea.widget.drawer.core.DrawerAnchorInput
-typealias DrawerAnchorResolver = com.zerostudio.idea.widget.drawer.core.DrawerAnchorResolver
-typealias DrawerAnchorStrategy = com.zerostudio.idea.widget.drawer.core.DrawerAnchorStrategy
-typealias ExistingHeightAnchorStrategy = com.zerostudio.idea.widget.drawer.core.ExistingHeightAnchorStrategy
-typealias ThreeStageAnchorStrategy = com.zerostudio.idea.widget.drawer.core.ThreeStageAnchorStrategy
-typealias ContentBasedAnchorStrategy = com.zerostudio.idea.widget.drawer.core.ContentBasedAnchorStrategy
-typealias CustomAnchorStrategy = com.zerostudio.idea.widget.drawer.core.CustomAnchorStrategy
-typealias DrawerAnchorStrategies = com.zerostudio.idea.widget.drawer.core.DrawerAnchorStrategies
-typealias DrawerController = com.zerostudio.idea.widget.drawer.core.DrawerController
-typealias DrawerInteractionController = com.zerostudio.idea.widget.drawer.core.DrawerInteractionController
-typealias DrawerState = com.zerostudio.idea.widget.drawer.core.DrawerState
 
-typealias DrawerStateHolder = com.zerostudio.idea.widget.drawer.core.DrawerStateHolder
 
-typealias DrawerNestedScrollPhase = com.zerostudio.idea.widget.drawer.core.DrawerNestedScrollPhase
-typealias DrawerNestedScrollInput = com.zerostudio.idea.widget.drawer.core.DrawerNestedScrollInput
-typealias DrawerNestedScrollResult = com.zerostudio.idea.widget.drawer.core.DrawerNestedScrollResult
-typealias DrawerNestedScrollPolicy = com.zerostudio.idea.widget.drawer.core.DrawerNestedScrollPolicy
-typealias DrawerNestedScrollConnection = com.zerostudio.idea.widget.drawer.core.DrawerNestedScrollConnection
 
 /** Composition-owned factories exposed from the stable public drawer API. */
 @androidx.compose.runtime.Composable
