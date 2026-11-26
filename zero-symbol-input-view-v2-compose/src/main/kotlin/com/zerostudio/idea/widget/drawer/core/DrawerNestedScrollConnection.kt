@@ -102,13 +102,11 @@ class DrawerNestedScrollConnection(
         if (!ownsGesture || !stateHolder.isDragging) return Velocity.Zero
 
         val heightBeforeSettle = stateHolder.currentHeightPx
-        // Nested-scroll velocity is expressed in scroll/content coordinates,
-        // opposite to the finger velocity consumed by DrawerStateHolder and the
-        // legacy View interaction controller. Convert exactly once here:
-        // an upward finger fling (negative) is a positive scroll velocity and
-        // must expand; a downward finger fling must collapse.
+        // Compose nested-scroll deltas and velocities preserve the raw pointer
+        // direction: upward is negative and downward is positive. This matches
+        // the finger-velocity contract used by the legacy View controller.
         val target = stateHolder.endDrag(
-            fingerVelocityY = -available.y,
+            fingerVelocityY = available.y,
             minimumFlingVelocityPxPerSecond = minimumFlingVelocityPxPerSecond
         )
 
