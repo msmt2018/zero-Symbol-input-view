@@ -310,25 +310,20 @@ fun SymbolDrawer(
             else state.selectedPage = state.selectedPage.coerceIn(0, safeGroups.lastIndex)
         }
 
-        // Gesture ownership is exclusive at each stable stage:
-        // - Before full expansion, the sheet owns the vertical drag because
-        //   the symbol grid is intentionally non-scrollable.
-        // - At full expansion, the grid owns scrolling and its nested-scroll
-        //   remainder is handed back to the sheet, allowing a downward drag
-        //   to collapse only after the grid reaches its first row.
+        // Keep the nested-scroll node stable for the whole gesture. The
+        // symbol grid dispatches nested scroll only while fully expanded;
+        // while collapsed/partially expanded it is non-scrollable and the
+        // sheet's direct draggable owns the gesture.
         //
-        // Do not install draggable and nestedScroll simultaneously. Competing
-        // parent/child drag pipelines can consume the same pointer stream and
-        // leave the holder stuck at the expanded anchor.
+        // At the expanded anchor the direct draggable is disabled, so the grid
+        // consumes its own scroll first and returns downward remainder through
+        // this parent connection when it reaches the first row.
         val fullyExpanded = expansionFraction >= 0.999f
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(drawerHeight)
-                .then(
-                    if (fullyExpanded) Modifier.nestedScroll(nestedScrollConnection)
-                    else Modifier
-                )
+                .nestedScroll(nestedScrollConnection)
                 .draggable(
                     orientation = Orientation.Vertical,
                     enabled = !fullyExpanded,
