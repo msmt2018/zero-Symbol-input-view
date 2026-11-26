@@ -389,7 +389,21 @@ fun SymbolDrawer(
                                 usageState?.recordRecentlyUsed(entry.id)
                                 onSymbolClick(entry)
                             },
-                            onSymbolLongClick = onSymbolLongClick
+                            onSymbolLongClick = onSymbolLongClick,
+                            onExpandedSheetDragStart = if (expansionFraction >= 0.999f) {
+                                { holder.beginDrag() }
+                            } else {
+                                null
+                            },
+                            onExpandedSheetDrag = { fingerDeltaY ->
+                                holder.dragBy(fingerDeltaY)
+                            },
+                            onExpandedSheetDragEnd = { fingerVelocityY ->
+                                holder.endDrag(
+                                    fingerVelocityY = fingerVelocityY,
+                                    minimumFlingVelocityPxPerSecond = minimumFlingVelocity
+                                )
+                            }
                         )
                     }
                 }
