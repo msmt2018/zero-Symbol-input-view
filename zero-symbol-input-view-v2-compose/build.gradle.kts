@@ -19,7 +19,8 @@ plugins {
 
 android {
     // Compose BOM 2026.11.01 resolves Compose 1.13 artifacts requiring API 37 extension 1.
-    compileSdk { version = release(37, 1) }
+    compileSdk = 37
+    compileSdkExtension = 1
 
     namespace = "com.zerostudio.idea.widget.editor.symbolinput.v2"
     defaultConfig {
