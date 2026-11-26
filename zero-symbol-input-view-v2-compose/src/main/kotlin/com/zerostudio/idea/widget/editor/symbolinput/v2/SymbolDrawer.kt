@@ -60,6 +60,7 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -67,7 +68,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.PagerSnapDistance
@@ -363,6 +363,7 @@ fun SymbolDrawer(
                     awaitEachGesture {
                         val down = awaitFirstDown(requireUnconsumed = false)
                         val pointerId = down.id
+                        val isExpandedAtDown = expandedAtGestureStart.value
                         val velocityTracker = VelocityTracker()
                         velocityTracker.addPosition(down.uptimeMillis, down.position)
                         var lastPosition = down.position
@@ -390,7 +391,7 @@ fun SymbolDrawer(
                                     // Snapshot expansion only when the gesture starts.
                                     // Reaching the expanded anchor mid-drag must not disable
                                     // this pointer pipeline before UP and strand isDragging.
-                                    if (axis == 2 && !expandedAtGestureStart.value) {
+                                    if (axis == 2 && !isExpandedAtDown) {
                                         holder.beginDrag()
                                         ownsDirectDrag = true
                                     }
