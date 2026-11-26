@@ -51,16 +51,17 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
@@ -89,11 +90,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import com.zerostudio.idea.widget.editor.symbolinput.v2.compose.R
+import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.AdaptiveContentLayoutResolver
+import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowAdaptiveInfo
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupBundleCodec
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.LegacySymbolDataCodec
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupManager
@@ -595,13 +599,27 @@ fun SymbolDrawerManagerScreen(
                 label = { Text(stringResource(R.string.symbol_drawer_135)) }
             )
         }
-            HorizontalPager(
-                state = groupPagerState,
-                modifier = Modifier.fillMaxWidth().weight(1f),
-                key = { page -> groups[page].id }
-            ) { page ->
+            BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
+                val density = LocalDensity.current
+                val widthDp = maxWidth.value.takeIf { it.isFinite() } ?: 600f
+                val heightDp = maxHeight.value.takeIf { it.isFinite() } ?: 800f
+                val windowInfo = remember(widthDp, heightDp, density.density) {
+                    WindowAdaptiveInfo(
+                        widthDp = widthDp,
+                        heightDp = heightDp,
+                        density = density.density
+                    )
+                }
+                val managerCardColumns = remember(windowInfo) {
+                    AdaptiveContentLayoutResolver.resolve(windowInfo).cardColumns.coerceIn(1, 4)
+                }
+                HorizontalPager(
+                    state = groupPagerState,
+                    modifier = Modifier.fillMaxSize(),
+                    key = { page -> groups[page].id }
+                ) { page ->
                 val group = groups[page]
-                val symbolListState = rememberLazyListState()
+                val symbolListState = rememberLazyGridState()
                 val pageVisibleSymbols = remember(
                     group,
                     searchQuery,
@@ -671,10 +689,12 @@ fun SymbolDrawerManagerScreen(
                             style = MaterialTheme.typography.bodyMedium
                         )
                     } else {
-                        LazyColumn(
+                        LazyVerticalGrid(
                             state = symbolListState,
+                            columns = GridCells.Fixed(managerCardColumns),
                             modifier = Modifier.fillMaxWidth().weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             itemsIndexed(pageDisplayedSymbols, key = { _, symbol -> symbol.id }) { _, symbol ->
                                 Card(
@@ -691,7 +711,7 @@ fun SymbolDrawerManagerScreen(
                                                 symbolListState.layoutInfo.visibleItemsInfo
                                                     .firstOrNull { it.key == symbol.id }
                                                     ?.let { item ->
-                                                        pointerY = item.offset + item.size / 2f
+                                                        pointerY = item.offset.y + item.size.height / 2f
                                                         dragWorkingOrder = group.symbols.toList()
                                                     }
                                             },
@@ -700,7 +720,7 @@ fun SymbolDrawerManagerScreen(
                                                 pointerY += dragAmount.y
                                                 val targetId = symbolListState.layoutInfo.visibleItemsInfo
                                                     .minByOrNull {
-                                                        abs(it.offset + it.size / 2f - pointerY)
+                                                        abs(it.offset.y + it.size.height / 2f - pointerY)
                                                     }?.key as? Long
                                                 val working = dragWorkingOrder
                                                 if (targetId != null && working != null) {
@@ -847,6 +867,7 @@ fun SymbolDrawerManagerScreen(
                         }
                     }
                 }
+            }
             }
         }
     }
