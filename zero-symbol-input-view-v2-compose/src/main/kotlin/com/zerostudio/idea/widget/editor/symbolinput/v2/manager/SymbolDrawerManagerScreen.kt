@@ -169,6 +169,7 @@ fun SymbolDrawerManagerScreen(
     var targetDialogOperation by remember { mutableStateOf<String?>(null) }
     var deleteGroupId by remember { mutableStateOf<String?>(null) }
     var groupMenuId by remember { mutableStateOf<String?>(null) }
+    var symbolMenuId by remember { mutableStateOf<Long?>(null) }
     var copyGroupSourceId by remember { mutableStateOf<String?>(null) }
     var moreMenuExpanded by remember { mutableStateOf(false) }
     var importLegacyJson by remember { mutableStateOf(false) }
@@ -262,19 +263,6 @@ fun SymbolDrawerManagerScreen(
     }
 
     val selectedGroup = groups.firstOrNull { it.id == selectedGroupId }
-    val visibleSymbols = remember(selectedGroup, searchQuery, activeFilter, searchIncludesActionPayload, usageSnapshot, favoritesFeatureVisible, recentFeatureVisible) {
-        selectedGroup?.let {
-            usageState.filter(
-                it.symbols,
-                searchQuery,
-                if (activeFilter == SymbolManagerFilter.FAVORITES && !favoritesFeatureVisible ||
-                    activeFilter == SymbolManagerFilter.RECENT && !recentFeatureVisible
-                ) SymbolManagerFilter.ALL else activeFilter,
-                searchIncludesActionPayload
-            )
-        }.orEmpty()
-    }
-    val displayedSymbols = dragWorkingOrder ?: visibleSymbols
     Column(
         modifier = modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -726,21 +714,95 @@ fun SymbolDrawerManagerScreen(
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
-                                        TextButton(onClick = {
-                                            usageSnapshot = usageState.toggleFavorite(symbol.id)
-                                            undoAction = null
-                                            undoLabel = null
-                                        }) {
-                                            Text(if (symbol.id in usageSnapshot.favorites) "★" else "☆")
+                                        Text(
+                                            "≡",
+                                            modifier = Modifier.padding(horizontal = 4.dp),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Box {
+                                            TextButton(onClick = { symbolMenuId = symbol.id }) {
+                                                Text("⋮")
+                                            }
+                                            DropdownMenu(
+                                                expanded = symbolMenuId == symbol.id,
+                                                onDismissRequest = { symbolMenuId = null }
+                                            ) {
+                                                val symbolIndex = group.symbols.indexOfFirst { it.id == symbol.id }
+                                                DropdownMenuItem(
+                                                    text = { Text("上移") },
+                                                    enabled = symbolIndex > 0,
+                                                    onClick = {
+                                                        symbolMenuId = null
+                                                        if (symbolIndex > 0) {
+                                                            runUndoable {
+                                                                manager.moveSymbol(group.id, symbolIndex, symbolIndex - 1)
+                                                            }
+                                                        }
+                                                    }
+                                                )
+                                                DropdownMenuItem(
+                                                    text = { Text("下移") },
+                                                    enabled = symbolIndex >= 0 && symbolIndex < group.symbols.lastIndex,
+                                                    onClick = {
+                                                        symbolMenuId = null
+                                                        if (symbolIndex >= 0 && symbolIndex < group.symbols.lastIndex) {
+                                                            runUndoable {
+                                                                manager.moveSymbol(group.id, symbolIndex, symbolIndex + 1)
+                                                            }
+                                                        }
+                                                    }
+                                                )
+                                                DropdownMenuItem(
+                                                    text = {
+                                                        Text(
+                                                            if (symbol.id in usageSnapshot.favorites) "取消收藏" else "收藏"
+                                                        )
+                                                    },
+                                                    onClick = {
+                                                        symbolMenuId = null
+                                                        usageSnapshot = usageState.toggleFavorite(symbol.id)
+                                                        undoAction = null
+                                                        undoLabel = null
+                                                    }
+                                                )
+                                                DropdownMenuItem(
+                                                    text = { Text("复制到其他分组…") },
+                                                    enabled = groups.any { it.id != group.id },
+                                                    onClick = {
+                                                        symbolMenuId = null
+                                                        selectedGroupId = group.id
+                                                        selectedSymbolIds = setOf(symbol.id)
+                                                        targetDialogOperation = "copy"
+                                                    }
+                                                )
+                                                DropdownMenuItem(
+                                                    text = { Text("移动到其他分组…") },
+                                                    enabled = groups.any { it.id != group.id },
+                                                    onClick = {
+                                                        symbolMenuId = null
+                                                        selectedGroupId = group.id
+                                                        selectedSymbolIds = setOf(symbol.id)
+                                                        targetDialogOperation = "move"
+                                                    }
+                                                )
+                                                DropdownMenuItem(
+                                                    text = { Text(stringResource(R.string.compose_manager_edit)) },
+                                                    onClick = {
+                                                        symbolMenuId = null
+                                                        selectedGroupId = group.id
+                                                        editingSymbol = symbol
+                                                        symbolDialog = true
+                                                    }
+                                                )
+                                                DropdownMenuItem(
+                                                    text = { Text(stringResource(R.string.compose_manager_delete)) },
+                                                    onClick = {
+                                                        symbolMenuId = null
+                                                        runUndoable { manager.removeSymbol(group.id, symbol.id) }
+                                                    }
+                                                )
+                                            }
                                         }
-                                        TextButton(onClick = {
-                                            selectedGroupId = group.id
-                                            editingSymbol = symbol
-                                            symbolDialog = true
-                                        }) { Text(stringResource(R.string.compose_manager_edit)) }
-                                        TextButton(onClick = {
-                                            runUndoable { manager.removeSymbol(group.id, symbol.id) }
-                                        }) { Text(stringResource(R.string.compose_manager_delete)) }
                                     }
                                 }
                             }
