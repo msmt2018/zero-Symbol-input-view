@@ -98,7 +98,7 @@ class SymbolGroupManager(
             "The maximum number of symbol groups has been reached"
         }
         val currentSymbolCount = groups.sumOf { it.symbols.size.toLong() }
-        require(currentSymbolCount + source.symbols.size <= SymbolGroupBundleCodec.MAX_TOTAL_SYMBOLS) {
+        require(currentSymbolCount + source.symbols.size.toLong() <= SymbolGroupBundleCodec.MAX_TOTAL_SYMBOLS) {
             "Duplicating this group would exceed the total symbol limit"
         }
         // Symbol IDs are globally stable within the repository, not merely within one group.
