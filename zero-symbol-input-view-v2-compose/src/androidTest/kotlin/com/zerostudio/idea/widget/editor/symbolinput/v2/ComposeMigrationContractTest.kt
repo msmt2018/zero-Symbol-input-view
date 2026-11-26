@@ -208,20 +208,28 @@ class ComposeMigrationContractTest {
                 SymbolDrawerManagerScreen(repository = repository)
             }
         }
-        compose.onNodeWithText("First").assertIsDisplayed()
+        compose.onNodeWithText("@").assertIsDisplayed()
 
         val writer = Thread {
             repository.publish(
-                listOf(SymbolGroup(id = "external", title = "External update", symbols = emptyList()))
+                listOf(
+                    SymbolGroup(
+                        id = "external",
+                        title = "External update",
+                        symbols = listOf(
+                            SymbolEntry(3L, "!", SymbolAction.InsertText("!"))
+                        )
+                    )
+                )
             )
         }
         writer.start()
         writer.join()
 
         compose.waitUntil(5_000) {
-            compose.onAllNodesWithText("External update").fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodesWithText("!").fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithText("External update").assertIsDisplayed()
+        compose.onNodeWithText("!").assertIsDisplayed()
     }
 
     @Test fun settingsScreenRendersMaterial3Sections() {
@@ -235,7 +243,9 @@ class ComposeMigrationContractTest {
         }
         compose.onNodeWithText("Symbol drawer settings").assertIsDisplayed()
         compose.onNodeWithText("Appearance").assertIsDisplayed()
-        compose.onNodeWithText("Performance").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("性能/搜索").performClick()
+        compose.onNodeWithText("Performance").assertIsDisplayed()
+        compose.onNodeWithText("Page cache limit").performScrollTo().assertIsDisplayed()
     }
     @Test fun stableDrawerApiFacadeRendersComposeContent() {
         compose.setContent {
