@@ -33,9 +33,6 @@ import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.draggable
-import androidx.compose.foundation.gestures.DraggableState
-import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -64,6 +61,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import com.zerostudio.idea.widget.editor.symbolinput.v2.compose.R
@@ -78,6 +76,7 @@ import com.zerostudio.idea.widget.drawer.core.DrawerAnchorInput
 import com.zerostudio.idea.widget.drawer.core.DrawerStateHolder
 import com.zerostudio.idea.widget.drawer.core.rememberDrawerStateSnapshot
 import com.zerostudio.idea.widget.drawer.core.ExistingHeightAnchorStrategy
+import com.zerostudio.idea.widget.drawer.core.DrawerNestedScrollConnection
 
 /**
  * Composition-owned state for the symbol drawer.
@@ -238,8 +237,11 @@ fun SymbolDrawer(
     val expansionFraction = ((animatedHeightPx - collapsedHeightPx).toFloat() /
         (expandedHeightPx - collapsedHeightPx).coerceAtLeast(1)).coerceIn(0f, 1f)
     val revealedIndicatorHeight = (config.indicatorHeightDp * expansionFraction).coerceAtLeast(0f).dp
-    val dragState = remember(holder) {
-        DraggableState { delta -> holder.dragBy(delta) }
+    val nestedScrollConnection = remember(holder, density.density) {
+        DrawerNestedScrollConnection(
+            stateHolder = holder,
+            minimumFlingVelocityPxPerSecond = with(density) { 900.dp.toPx() }
+        )
     }
 
     val pagerState = rememberPagerState(
@@ -265,17 +267,7 @@ fun SymbolDrawer(
         modifier = modifier
             .fillMaxWidth()
             .height(drawerHeight)
-            .draggable(
-                state = dragState,
-                orientation = Orientation.Vertical,
-                onDragStarted = { holder.beginDrag() },
-                onDragStopped = { velocity ->
-                    holder.endDrag(
-                        fingerVelocityY = velocity,
-                        minimumFlingVelocityPxPerSecond = with(density) { 900.dp.toPx() }
-                    )
-                }
-            ),
+            .nestedScroll(nestedScrollConnection),
         color = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface,
         tonalElevation = 2.dp,
