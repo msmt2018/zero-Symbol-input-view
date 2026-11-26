@@ -361,7 +361,12 @@ fun SymbolDrawer(
         // replaced when the drawer left the expanded anchor, an active child
         // pointerInput gesture would be cancelled before UP.
         val expandedSheetDragStart = remember(holder) { { holder.beginDrag() } }
-        val expandedSheetDrag = remember(holder) { { delta: Float -> holder.dragBy(delta) } }
+        val expandedSheetDrag = remember(holder) {
+            { delta: Float ->
+                holder.dragBy(delta)
+                Unit
+            }
+        }
         val expandedSheetDragEnd = remember(holder, minimumFlingVelocity) {
             { velocity: Float ->
                 if (holder.isDragging) {
