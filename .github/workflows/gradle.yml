@@ -41,6 +41,26 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v5
+      - name: Install Android API 37.1 platform
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Android/Sdk}}"
+          SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          test -x "$SDKMANAGER"
+          for attempt in 1 2 3; do
+            if "$SDKMANAGER" --sdk_root="$SDK_ROOT" --install "platforms;android-37.1" &&
+              test -s "$SDK_ROOT/platforms/android-37.1/android.jar"; then
+              echo "Android SDK platform 37.1 is installed and verified."
+              exit 0
+            fi
+            echo "::warning::Android API 37.1 installation attempt $attempt failed."
+            rm -rf "$SDK_ROOT/platforms/android-37.1"
+            sleep $((attempt * 15))
+          done
+          echo "::error::Unable to install Android SDK platform 37.1 after three attempts."
+          exit 1
+
 
       - name: Grant Permissions for Gradle
         run: chmod +x gradlew
@@ -97,6 +117,26 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v5
+      - name: Install Android API 37.1 platform
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Android/Sdk}}"
+          SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          test -x "$SDKMANAGER"
+          for attempt in 1 2 3; do
+            if "$SDKMANAGER" --sdk_root="$SDK_ROOT" --install "platforms;android-37.1" &&
+              test -s "$SDK_ROOT/platforms/android-37.1/android.jar"; then
+              echo "Android SDK platform 37.1 is installed and verified."
+              exit 0
+            fi
+            echo "::warning::Android API 37.1 installation attempt $attempt failed."
+            rm -rf "$SDK_ROOT/platforms/android-37.1"
+            sleep $((attempt * 15))
+          done
+          echo "::error::Unable to install Android SDK platform 37.1 after three attempts."
+          exit 1
+
 
       - name: Grant Permissions for Gradle
         run: chmod +x gradlew
@@ -138,6 +178,26 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v5
+      - name: Install Android API 37.1 platform
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Android/Sdk}}"
+          SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          test -x "$SDKMANAGER"
+          for attempt in 1 2 3; do
+            if "$SDKMANAGER" --sdk_root="$SDK_ROOT" --install "platforms;android-37.1" &&
+              test -s "$SDK_ROOT/platforms/android-37.1/android.jar"; then
+              echo "Android SDK platform 37.1 is installed and verified."
+              exit 0
+            fi
+            echo "::warning::Android API 37.1 installation attempt $attempt failed."
+            rm -rf "$SDK_ROOT/platforms/android-37.1"
+            sleep $((attempt * 15))
+          done
+          echo "::error::Unable to install Android SDK platform 37.1 after three attempts."
+          exit 1
+
 
       - name: Grant Permissions for Gradle
         run: chmod +x gradlew
@@ -215,6 +275,26 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v5
+      - name: Install Android API 37.1 platform
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Android/Sdk}}"
+          SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          test -x "$SDKMANAGER"
+          for attempt in 1 2 3; do
+            if "$SDKMANAGER" --sdk_root="$SDK_ROOT" --install "platforms;android-37.1" &&
+              test -s "$SDK_ROOT/platforms/android-37.1/android.jar"; then
+              echo "Android SDK platform 37.1 is installed and verified."
+              exit 0
+            fi
+            echo "::warning::Android API 37.1 installation attempt $attempt failed."
+            rm -rf "$SDK_ROOT/platforms/android-37.1"
+            sleep $((attempt * 15))
+          done
+          echo "::error::Unable to install Android SDK platform 37.1 after three attempts."
+          exit 1
+
 
       - name: Grant Permissions for Gradle
         run: chmod +x gradlew
@@ -277,6 +357,26 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v5
+      - name: Install Android API 37.1 platform
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Android/Sdk}}"
+          SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          test -x "$SDKMANAGER"
+          for attempt in 1 2 3; do
+            if "$SDKMANAGER" --sdk_root="$SDK_ROOT" --install "platforms;android-37.1" &&
+              test -s "$SDK_ROOT/platforms/android-37.1/android.jar"; then
+              echo "Android SDK platform 37.1 is installed and verified."
+              exit 0
+            fi
+            echo "::warning::Android API 37.1 installation attempt $attempt failed."
+            rm -rf "$SDK_ROOT/platforms/android-37.1"
+            sleep $((attempt * 15))
+          done
+          echo "::error::Unable to install Android SDK platform 37.1 after three attempts."
+          exit 1
+
 
       - name: Configure KVM permissions
         run: |
@@ -323,6 +423,26 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v5
+      - name: Install Android API 37.1 platform
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Android/Sdk}}"
+          SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          test -x "$SDKMANAGER"
+          for attempt in 1 2 3; do
+            if "$SDKMANAGER" --sdk_root="$SDK_ROOT" --install "platforms;android-37.1" &&
+              test -s "$SDK_ROOT/platforms/android-37.1/android.jar"; then
+              echo "Android SDK platform 37.1 is installed and verified."
+              exit 0
+            fi
+            echo "::warning::Android API 37.1 installation attempt $attempt failed."
+            rm -rf "$SDK_ROOT/platforms/android-37.1"
+            sleep $((attempt * 15))
+          done
+          echo "::error::Unable to install Android SDK platform 37.1 after three attempts."
+          exit 1
+
 
       - name: Grant Permissions for Gradle
         run: chmod +x gradlew
@@ -395,6 +515,26 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v5
+      - name: Install Android API 37.1 platform
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Android/Sdk}}"
+          SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          test -x "$SDKMANAGER"
+          for attempt in 1 2 3; do
+            if "$SDKMANAGER" --sdk_root="$SDK_ROOT" --install "platforms;android-37.1" &&
+              test -s "$SDK_ROOT/platforms/android-37.1/android.jar"; then
+              echo "Android SDK platform 37.1 is installed and verified."
+              exit 0
+            fi
+            echo "::warning::Android API 37.1 installation attempt $attempt failed."
+            rm -rf "$SDK_ROOT/platforms/android-37.1"
+            sleep $((attempt * 15))
+          done
+          echo "::error::Unable to install Android SDK platform 37.1 after three attempts."
+          exit 1
+
 
       - name: Grant Permissions for Gradle
         run: chmod +x gradlew
