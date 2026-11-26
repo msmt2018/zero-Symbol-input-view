@@ -142,7 +142,28 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build V2 library debug and release variants
-        run: ./gradlew :zero-symbol-input-view-v2:assembleDebug :zero-symbol-input-view-v2:assembleRelease
+        shell: bash
+        run: |
+          set -euo pipefail
+          LOG="$RUNNER_TEMP/v2-library-build.log"
+          for attempt in 1 2 3; do
+            if ./gradlew :zero-symbol-input-view-v2:assembleDebug :zero-symbol-input-view-v2:assembleRelease --no-daemon --stacktrace >"$LOG" 2>&1; then
+              cat "$LOG"
+              exit 0
+            fi
+            STATUS=$?
+            cat "$LOG"
+            if grep -Eqi 'status code 429|Too Many Requests|status code 5[0-9][0-9]|HTTP 5[0-9][0-9]|temporarily unavailable|Connection reset|Read timed out|Connect timed out' "$LOG" && [ "$attempt" -lt 3 ]; then
+              DELAY=$((attempt * 30))
+              echo "::warning::Transient dependency repository failure; retrying legacy V2 build in ${DELAY}s (attempt ${attempt}/3)."
+              sleep "$DELAY"
+              continue
+            fi
+            echo "::error::Legacy V2 build failed after attempt ${attempt}; see Gradle output above."
+            exit "$STATUS"
+          done
+          echo "::error::Legacy V2 build exhausted its retry budget."
+          exit 1
 
       - name: Run V2 library unit tests
         run: ./gradlew :zero-symbol-input-view-v2:testDebugUnitTest
