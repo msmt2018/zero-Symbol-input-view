@@ -158,7 +158,6 @@ fun SymbolDrawerManagerScreen(
     var symbolDialog by remember { mutableStateOf(false) }
     var editingSymbol by remember { mutableStateOf<SymbolEntry?>(null) }
     var importDialog by remember { mutableStateOf(false) }
-    var importJson by remember { mutableStateOf("") }
     var pendingFileImportLegacy by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var selectedSymbolIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
@@ -1210,40 +1209,31 @@ fun SymbolDrawerManagerScreen(
     if (importDialog) {
         AlertDialog(
             onDismissRequest = { importDialog = false },
-            title = {
-                Text(
-                    stringResource(
-                        if (importLegacyJson) R.string.compose_manager_import_legacy
-                        else R.string.compose_manager_import_title
-                    )
-                )
-            },
-            text = {
-                OutlinedTextField(
-                    value = importJson,
-                    onValueChange = { importJson = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    minLines = 5,
-                    maxLines = 12,
-                    label = { Text(stringResource(R.string.compose_manager_json)) }
-                )
-            },
+            title = { Text(stringResource(R.string.compose_manager_clipboard_import)) },
+            text = {},
             confirmButton = {
                 TextButton(onClick = {
-                    val imported = runCatching {
-                        if (importLegacyJson) LegacySymbolDataCodec.decode(importJson)
-                        else SymbolGroupBundleCodec.decode(importJson)
-                    }.onFailure { errorMessage = it.message ?: "Invalid import data" }.getOrNull()
-                    if (imported != null && runUndoable("已导入分组数据") { manager.replaceAll(imported) }) {
-                        selectedGroupId = imported.firstOrNull()?.id
-                        refresh()
-                        importDialog = false
-                        importLegacyJson = false
+                    val json = clipboard.getText()?.text.orEmpty()
+                    if (json.isBlank()) {
+                        errorMessage = "剪贴板没有可导入的 JSON 内容"
+                    } else {
+                        val imported = runCatching { SymbolGroupBundleCodec.decode(json) }
+                            .onFailure { errorMessage = it.message ?: "剪贴板 JSON 无效" }
+                            .getOrNull()
+                        if (imported != null &&
+                            runUndoable("已从剪贴板导入分组") { manager.replaceAll(imported) }
+                        ) {
+                            selectedGroupId = imported.firstOrNull()?.id
+                            refresh()
+                            importDialog = false
+                        }
                     }
-                }) { Text(stringResource(R.string.compose_manager_import)) }
+                }) { Text(stringResource(R.string.compose_manager_paste_clipboard)) }
             },
             dismissButton = {
-                TextButton(onClick = { importDialog = false }) { Text(stringResource(R.string.compose_manager_cancel)) }
+                TextButton(onClick = { importDialog = false }) {
+                    Text(stringResource(R.string.compose_manager_cancel))
+                }
             }
         )
     }
