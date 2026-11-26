@@ -940,7 +940,7 @@ fun SymbolDrawerManagerScreen(
                                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
-                                        Box(Modifier.align(androidx.compose.ui.Alignment.CenterEnd)) {
+                                        Box(Modifier.align(androidx.compose.ui.Alignment.CenterEnd).width(1.dp).height(1.dp)) {
                                             DropdownMenu(
                                                 expanded = symbolMenuId == symbol.id,
                                                 onDismissRequest = { symbolMenuId = null }
