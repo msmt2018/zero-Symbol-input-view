@@ -358,12 +358,10 @@ fun SymbolDrawerManagerScreen(
                         onClick = {
                             moreMenuExpanded = false
                             selectedGroup?.let { group ->
-                                runCatching { manager.duplicateGroup(group.id) }
-                                    .onSuccess { duplicate ->
-                                        selectedGroupId = duplicate.id
-                                        refresh()
-                                    }
-                                    .onFailure { errorMessage = it.message ?: "Unable to duplicate group" }
+                                runUndoable("已复制分组") {
+                                    val duplicate = manager.duplicateGroup(group.id)
+                                    selectedGroupId = duplicate.id
+                                }
                             }
                         }
                     )
