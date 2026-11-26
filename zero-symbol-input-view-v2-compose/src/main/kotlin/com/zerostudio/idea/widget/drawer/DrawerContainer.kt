@@ -229,7 +229,6 @@ fun DrawerContainer(
         } else {
             configuredExpandedHeightPx.coerceIn(minimumHeightPx, viewportHeightPx)
         }
-        val resolvedExpandedHeight = with(density) { resolvedExpandedHeightPx.toDp() }
         val viewportWidthPx = with(density) {
             if (maxWidth == androidx.compose.ui.unit.Dp.Infinity) 0 else maxWidth.roundToPx()
         }
@@ -300,7 +299,8 @@ fun DrawerContainer(
         )
     }
     val expanded = state.expanded
-    val displayHeight = with(density) { animatedHeightPx.toDp() }
+    val renderedHeightPx = if (snapshot.isDragging) snapshot.currentHeightPx else animatedHeightPx
+    val displayHeight = with(density) { renderedHeightPx.toDp() }
 
     // System-back dispatch is intentionally host-owned. The library does not
     // register lifecycle-bound back callbacks; the host can collapse this
