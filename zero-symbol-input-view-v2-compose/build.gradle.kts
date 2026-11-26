@@ -485,8 +485,8 @@ afterEvaluate {
                     url.set("https://github.com/msmt2018/zero-Symbol-input-view")
                     licenses {
                         license {
-                            name.set("AGPL-3.0-only")
-                            url.set("https://github.com/msmt2018/zero-Symbol-input-view")
+                            name.set("GNU Affero General Public License v3.0 only (AGPL-3.0-only)")
+                            url.set("https://www.gnu.org/licenses/agpl-3.0.html")
                             distribution.set("repo")
                         }
                     }
