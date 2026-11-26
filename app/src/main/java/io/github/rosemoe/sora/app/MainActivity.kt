@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -37,7 +38,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,9 +48,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Dialog
 import com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawer
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolDrawerDefaultGroups
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
+import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SharedPreferencesSymbolGroupRepository
+import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupRepository
+import com.zerostudio.idea.widget.editor.symbolinput.v2.manager.SymbolDrawerManagerScreen
+import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
+import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettingsScreen
+import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettingsRepository
 
 import android.content.DialogInterface
 import android.graphics.Typeface
@@ -288,8 +299,12 @@ class MainActivity : AppCompatActivity() {
 
         val actionExecutor = SymbolActionExecutor()
         val actionHost = SoraCodeEditorSymbolActionHost(editor) {
-            Toast.makeText(this, "符号管理入口", Toast.LENGTH_SHORT).show()
+            // The Compose drawer routes the built-in OpenManager action to its
+            // native manager surface; this host callback remains a safe fallback.
+            Toast.makeText(this, "请从符号抽屉打开符号管理", Toast.LENGTH_SHORT).show()
         }
+        val symbolGroupRepository = SharedPreferencesSymbolGroupRepository(this)
+        val symbolSettingsRepository = SharedPreferencesSymbolDrawerSettingsRepository(this)
         androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
         setContent {
             androidx.compose.material3.MaterialTheme {
@@ -311,6 +326,8 @@ class MainActivity : AppCompatActivity() {
                     onChooseTheme = ::chooseTheme,
                     onOpenLogs = ::openLogs,
                     onLoadLargeFile = { openAssetsFile("samples/big_sample.txt") },
+                    groupRepository = symbolGroupRepository,
+                    settingsRepository = symbolSettingsRepository,
                     onSymbolAction = { symbol ->
                         val result = actionExecutor.execute(symbol.shortAction, actionHost)
                         if (result !is SymbolActionResult.Executed) {
@@ -1185,10 +1202,29 @@ private fun MainActivityComposeContent(
     onChooseTheme: () -> Unit,
     onOpenLogs: () -> Unit,
     onLoadLargeFile: () -> Unit,
+    groupRepository: SymbolGroupRepository,
+    settingsRepository: SymbolDrawerSettingsRepository,
     onSymbolAction: (SymbolEntry) -> Unit
 ) {
     var search by remember { mutableStateOf("") }
     var replacement by remember { mutableStateOf("") }
+    var showManager by remember { mutableStateOf(false) }
+    var showSettings by remember { mutableStateOf(false) }
+    var groups by remember(groupRepository) {
+        mutableStateOf(groupRepository.loadGroups().ifEmpty {
+            SymbolDrawerDefaultGroups.createGroups().also(groupRepository::saveGroups)
+        })
+    }
+    var drawerSettings by remember(settingsRepository) {
+        mutableStateOf(settingsRepository.load().settings)
+    }
+    DisposableEffect(groupRepository) {
+        val observer = (groupRepository as? com.zerostudio.idea.widget.editor.symbolinput.v2.data.ObservableSymbolGroupRepository)
+            ?.observeGroups {
+                groups = groupRepository.loadGroups()
+            }
+        onDispose { observer?.close() }
+    }
     Column(Modifier.fillMaxSize().padding(top = 8.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
@@ -1199,6 +1235,7 @@ private fun MainActivityComposeContent(
             Button(onClick = onFormat) { Text("格式化") }
             Button(onClick = onChooseLanguage) { Text("语言") }
             Button(onClick = onChooseTheme) { Text("主题") }
+            Button(onClick = { showSettings = true }) { Text("符号设置") }
         }
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
@@ -1235,12 +1272,52 @@ private fun MainActivityComposeContent(
             modifier = Modifier.fillMaxWidth().weight(1f)
         )
         SymbolDrawer(
-            groups = SymbolDrawerDefaultGroups.createGroups(),
+            groups = groups,
             modifier = Modifier.fillMaxWidth(),
-            onSymbolClick = onSymbolAction,
-            onOpenManager = { /* The manager is migrated in the next UI pass. */ },
-            onOpenSettings = { /* Settings are migrated in the next UI pass. */ }
+            settings = drawerSettings,
+            onSymbolClick = { symbol ->
+                if (symbol.shortAction == SymbolAction.OpenManager) {
+                    showManager = true
+                } else {
+                    onSymbolAction(symbol)
+                }
+            }
         )
         Spacer(Modifier.height(4.dp))
+    }
+    if (showManager) {
+        Dialog(onDismissRequest = { showManager = false }) {
+            Surface(
+                modifier = Modifier.fillMaxWidth().fillMaxHeight(0.9f),
+                shape = MaterialTheme.shapes.large
+            ) {
+                SymbolDrawerManagerScreen(
+                    repository = groupRepository,
+                    onClose = { showManager = false },
+                    searchIncludesActionPayload = drawerSettings.searchIncludesActionPayload
+                )
+            }
+        }
+    }
+    if (showSettings) {
+        Dialog(onDismissRequest = { showSettings = false }) {
+            Surface(
+                modifier = Modifier.fillMaxWidth().fillMaxHeight(0.9f),
+                shape = MaterialTheme.shapes.large
+            ) {
+                SymbolDrawerSettingsScreen(
+                    settings = drawerSettings,
+                    onSettingsChange = { updated ->
+                        drawerSettings = updated
+                        settingsRepository.save(updated)
+                    },
+                    onReset = {
+                        settingsRepository.reset()
+                        drawerSettings = settingsRepository.load().settings
+                    }
+                )
+            }
+        }
+    }
     }
 }
