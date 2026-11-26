@@ -69,8 +69,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.Tab
-import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.AlertDialog
@@ -89,6 +87,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import com.zerostudio.idea.widget.editor.symbolinput.v2.compose.R
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupBundleCodec
+import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.LiquidScrollableTabRow
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupRepository
 
 /**
@@ -188,18 +187,12 @@ fun SymbolDrawerSettingsScreen(
                 )
             }
         }
-        ScrollableTabRow(
-            selectedTabIndex = selectedTab.coerceIn(tabTitles.indices),
-            edgePadding = 0.dp
-        ) {
-            tabTitles.forEachIndexed { index, label ->
-                Tab(
-                    selected = selectedTab == index,
-                    onClick = { selectedTab = index },
-                    text = { Text(label, maxLines = 1) }
-                )
-            }
-        }
+        LiquidScrollableTabRow(
+            titles = tabTitles,
+            selectedIndex = selectedTab,
+            onTabSelected = { selectedTab = it },
+            modifier = Modifier.fillMaxWidth()
+        )
 
         Column(
             modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(tabScrollStates[selectedTab.coerceIn(tabTitles.indices)]),
