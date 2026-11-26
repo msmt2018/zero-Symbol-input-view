@@ -45,7 +45,6 @@ class SymbolDrawerToolbarView @JvmOverloads constructor(
     private val settingsRepository = SharedPreferencesSymbolDrawerSettingsRepository(context.applicationContext)
     private var managerDialog: AlertDialog? = null
     private var settingsDialog: AlertDialog? = null
-    private var managerBinding: AutoCloseable? = null
     private var actionBinding: AutoCloseable? = null
 
     /** Receives non-successful typed action dispatch results. */
@@ -107,18 +106,12 @@ class SymbolDrawerToolbarView @JvmOverloads constructor(
             repository = groupRepository,
             liveDrawer = drawer
         )
-        managerBinding?.close()
-        managerBinding = screen.bindToDrawer(drawer)
         managerDialog = AlertDialog.Builder(context)
             .setView(screen)
             .setNegativeButton(android.R.string.cancel, null)
             .create()
             .also { dialog ->
-                dialog.setOnDismissListener {
-                    managerBinding?.close()
-                    managerBinding = null
-                    managerDialog = null
-                }
+                dialog.setOnDismissListener { managerDialog = null }
                 dialog.show()
             }
     }
@@ -149,8 +142,6 @@ class SymbolDrawerToolbarView @JvmOverloads constructor(
     override fun onDetachedFromWindow() {
         actionBinding?.close()
         actionBinding = null
-        managerBinding?.close()
-        managerBinding = null
         managerDialog?.dismiss()
         managerDialog = null
         settingsDialog?.dismiss()
