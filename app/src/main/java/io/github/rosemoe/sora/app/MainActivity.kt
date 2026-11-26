@@ -1233,10 +1233,7 @@ private fun MainActivityComposeContent(
                         text = { Text("切换主题") },
                         onClick = { overflowMenuExpanded = false; onChooseTheme() }
                     )
-                    androidx.compose.material3.DropdownMenuItem(
-                        text = { Text("符号设置") },
-                        onClick = { overflowMenuExpanded = false; showSettings = true }
-                    )
+                    // Symbol settings are opened from the toolbar's own indicator.
                     androidx.compose.material3.DropdownMenuItem(
                         text = { Text("打开调试文档") },
                         onClick = { overflowMenuExpanded = false; onLoadLargeFile() }
