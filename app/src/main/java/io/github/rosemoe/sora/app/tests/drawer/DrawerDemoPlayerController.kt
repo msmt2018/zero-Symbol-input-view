@@ -8,6 +8,7 @@ import android.os.Looper
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
+import kotlin.random.Random
 
 internal data class DrawerDemoTrack(
     val title: String,
@@ -123,9 +124,23 @@ internal class DrawerDemoPlayerController(
         } else startPreparedPlayer(current)
     }
 
-    fun nextTrack() {
-        if (!closed) selectTrack((state.trackIndex + 1) % tracks.size)
+    fun nextTrack(shuffle: Boolean = false) {
+        if (closed) return
+        val nextIndex = if (shuffle && tracks.size > 1) {
+            val candidates = tracks.indices.filter { it != state.trackIndex }
+            candidates[Random.nextInt(candidates.size)]
+        } else {
+            (state.trackIndex + 1) % tracks.size
+        }
+        selectTrack(nextIndex)
     }
+
+    /** Starts a different randomly selected CC0 track from the local cache/network source. */
+    fun playRandomTrack() {
+        if (!closed) nextTrack(shuffle = true)
+    }
+
+    fun availableTracks(): List<DrawerDemoTrack> = tracks
 
     fun previousTrack() {
         if (closed) return
