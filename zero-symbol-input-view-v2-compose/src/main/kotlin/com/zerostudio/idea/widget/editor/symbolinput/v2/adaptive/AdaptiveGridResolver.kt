@@ -20,10 +20,10 @@ data class AdaptiveGridSpec(
 /**
  * Resolves a responsive grid from the width actually allocated by its parent.
  *
- * The preferred column count is an upper bound. Each cell is kept at least
- * [minimumCellWidthDp] wide whenever the available width permits it. Negative
- * spacing remains supported for the symbol drawer's compact presentation, but
- * it is not allowed to make the column-count calculation divide by zero.
+ * The preferred column count is an upper bound. The resolver uses the effective
+ * track pitch (cell width plus spacing), including supported negative spacing,
+ * so compact layouts do not lose columns merely because cells intentionally
+ * overlap. The result remains bounded by the configured preferred count.
  */
 object AdaptiveGridResolver {
     fun resolve(
@@ -43,12 +43,12 @@ object AdaptiveGridResolver {
                 compactHeightVerticalSpacingScale in 0f..1f
         )
 
-        // Runtime config can originate from an older host or persisted user
-        // settings. Clamp only to the supported spacing range; do not silently
-        // add size-class spacing, which would override the user's chosen value.
-        val horizontalSpacing = baseHorizontalSpacingDp.coerceIn(-24, 48)
-        val configuredVerticalSpacing = baseVerticalSpacingDp.coerceIn(-24, 48)
-        val verticalSpacing = if (window.availableHeightDp < COMPACT_HEIGHT_UPPER_BOUND_DP &&
+        // Preserve the configured spacing, including intentional negative
+        // overlap. Clamping is limited to the public supported range.
+        val horizontalSpacing = baseHorizontalSpacingDp.coerceIn(MIN_SPACING_DP, MAX_SPACING_DP)
+        val configuredVerticalSpacing = baseVerticalSpacingDp.coerceIn(MIN_SPACING_DP, MAX_SPACING_DP)
+        val verticalSpacing = if (
+            window.availableHeightDp < COMPACT_HEIGHT_UPPER_BOUND_DP &&
             configuredVerticalSpacing > 0
         ) {
             (configuredVerticalSpacing * compactHeightVerticalSpacingScale).toInt()
@@ -64,25 +64,33 @@ object AdaptiveGridResolver {
             )
         }
 
-        val availableWidth = window.availableWidthDp.coerceAtLeast(0f)
-        val effectiveSpacing = horizontalSpacing.coerceAtLeast(0).toFloat()
-        val minimumTrackWidth = minimumCellWidthDp + effectiveSpacing
-        val fittingColumns = if (availableWidth < minimumCellWidthDp) {
+        val availableWidth = window.availableWidthDp.toDouble().coerceAtLeast(0.0)
+        val cellWidth = minimumCellWidthDp.toDouble()
+        val spacing = horizontalSpacing.toDouble()
+        // A negative spacing reduces track pitch, but must never collapse the
+        // pitch to zero or invert the grid's column calculation.
+        val trackPitch = (cellWidth + spacing).coerceAtLeast(MIN_TRACK_PITCH_DP)
+        val occupiedWidthForFirstTrack = (cellWidth + spacing).coerceAtLeast(MIN_TRACK_PITCH_DP)
+        val fittingColumns = if (availableWidth < cellWidth) {
             1
         } else {
-            // GridCells.Adaptive packs the maximum number of minimum-sized
-            // tracks and distributes the remaining cross-axis space evenly.
-            ((availableWidth + effectiveSpacing) / minimumTrackWidth)
-                .toInt()
-                .coerceAtLeast(1)
+            kotlin.math.floor(
+                (availableWidth + spacing).coerceAtLeast(0.0) / trackPitch
+            ).toInt().coerceAtLeast(1)
         }
 
+        // The first track always occupies at least its minimum cell width.
+        val boundedColumns = fittingColumns.coerceAtMost(preferredColumns)
+            .coerceAtLeast(1)
         return AdaptiveGridSpec(
-            columnCount = fittingColumns.coerceAtMost(preferredColumns),
+            columnCount = boundedColumns,
             horizontalSpacingDp = horizontalSpacing,
             verticalSpacingDp = verticalSpacing
         )
     }
 
     private const val COMPACT_HEIGHT_UPPER_BOUND_DP = 480f
+    private const val MIN_SPACING_DP = -24
+    private const val MAX_SPACING_DP = 48
+    private const val MIN_TRACK_PITCH_DP = 1.0
 }
