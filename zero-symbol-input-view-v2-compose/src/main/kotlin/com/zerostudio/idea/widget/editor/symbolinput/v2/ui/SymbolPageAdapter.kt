@@ -26,6 +26,7 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.ui
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -45,8 +46,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.awaitFirstDown
-import androidx.compose.ui.input.pointer.awaitPointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.platform.LocalDensity
@@ -242,10 +241,13 @@ private fun FullSymbolLabel(
         val widthBoundFontSize = with(density) {
             (maxWidth / characterCount.toFloat() * FULL_LABEL_WIDTH_FACTOR).toSp()
         }
+        // TextUnit is not a Comparable value in the Compose API. Compare
+        // scalar sp values explicitly, then reconstruct the fitted TextUnit.
+        val minimumFontSize = MIN_FULL_LABEL_FONT_SIZE_SP.toFloat()
         val fittedFontSize = minOf(
-            baseFontSize,
-            widthBoundFontSize.coerceAtLeast(MIN_FULL_LABEL_FONT_SIZE_SP.sp)
-        )
+            baseFontSize.value,
+            widthBoundFontSize.value.coerceAtLeast(minimumFontSize)
+        ).sp
 
         Text(
             text = label,
