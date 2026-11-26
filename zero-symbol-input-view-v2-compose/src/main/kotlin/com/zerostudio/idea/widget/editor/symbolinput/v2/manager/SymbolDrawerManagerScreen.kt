@@ -430,7 +430,7 @@ fun SymbolDrawerManagerScreen(
             pageCount = { groups.size }
         )
 
-        LaunchedEffect(selectedGroupId, groups.size) {
+        LaunchedEffect(selectedGroupId, groups) {
             if (groups.isNotEmpty()) {
                 val target = groups.indexOfFirst { it.id == selectedGroupId }
                     .coerceIn(0, groups.lastIndex)
@@ -439,7 +439,7 @@ fun SymbolDrawerManagerScreen(
                 }
             }
         }
-        LaunchedEffect(groupPagerState.currentPage, groups) {
+        LaunchedEffect(groupPagerState.currentPage) {
             val pageGroup = groups.getOrNull(groupPagerState.currentPage)
             if (pageGroup != null && pageGroup.id != selectedGroupId) {
                 selectedGroupId = pageGroup.id
