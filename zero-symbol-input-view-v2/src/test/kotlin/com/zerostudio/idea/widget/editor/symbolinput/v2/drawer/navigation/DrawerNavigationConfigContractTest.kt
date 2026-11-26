@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2026 android_zero
  *
- * SPDX-License-Identifier: AGPL-3.0-only AND GPL-3.0-only AND Apache-2.0
+ * SPDX-License-Identifier: AGPL-3.0-only
  *
  * License Information:
  *
@@ -45,7 +45,7 @@
 /*
  * This file is part of ZeroStudio.
  * Copyright (C) 2026 android_zero
- * SPDX-License-Identifier: AGPL-3.0-only AND GPL-3.0-only AND Apache-2.0
+ * SPDX-License-Identifier: AGPL-3.0-only
  */
 package com.zerostudio.idea.widget.editor.symbolinput.v2.drawer.navigation
 
