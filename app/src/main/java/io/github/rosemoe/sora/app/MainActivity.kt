@@ -48,7 +48,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawerToolbar
-import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 
 import android.content.DialogInterface
 import android.graphics.Typeface
@@ -1381,7 +1380,7 @@ private fun MainActivityComposeContent(
             actionHost = actionHost,
             onActionFailure = { _, _, result ->
                 Toast.makeText(
-                    androidx.compose.ui.platform.LocalContext.current,
+                    editor.context,
                     "符号动作执行失败：$result",
                     Toast.LENGTH_SHORT
                 ).show()
