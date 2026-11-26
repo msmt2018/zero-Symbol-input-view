@@ -49,6 +49,7 @@ import android.net.Uri
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.pager.HorizontalPager
@@ -592,6 +593,7 @@ fun SymbolDrawerManagerScreen(
                 selectedGroupId = pageGroup.id
                 selectedSymbolIds = emptySet()
                 dragWorkingOrder = null
+                draggingSymbolId = null
             }
         }
 
@@ -752,32 +754,70 @@ fun SymbolDrawerManagerScreen(
                     // The selected group is already identified by its tab.
                     // Keep the list page free of a duplicate title/action row.
                     if (group.id == selectedGroupId && group.symbols.isNotEmpty() && batchMode) {
-                        Row(
-                            Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
+                        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(
                                 stringResource(R.string.symbol_drawer_102, selectedSymbolIds.size.toString()),
-                                modifier = Modifier.weight(1f),
                                 style = MaterialTheme.typography.bodyMedium
                             )
-                            TextButton(
-                                enabled = selectedSymbolIds.isNotEmpty(),
-                                onClick = { targetDialogOperation = "copy" }
-                            ) { Text(stringResource(R.string.symbol_drawer_070)) }
-                            TextButton(
-                                enabled = selectedSymbolIds.isNotEmpty() &&
-                                    groups.any { it.id != group.id },
-                                onClick = { targetDialogOperation = "move" }
-                            ) { Text(stringResource(R.string.symbol_drawer_183)) }
-                            TextButton(
-                                enabled = selectedSymbolIds.isNotEmpty(),
-                                onClick = {
-                                    if (runUndoable("已删除 " + selectedSymbolIds.size + " 个符号") { manager.removeSymbols(group.id, selectedSymbolIds) }) {
-                                        selectedSymbolIds = emptySet()
-                                    }
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                TextButton(
+                                    modifier = Modifier.weight(1f),
+                                    contentPadding = PaddingValues(horizontal = 3.dp, vertical = 6.dp),
+                                    enabled = selectedSymbolIds.isNotEmpty(),
+                                    onClick = { targetDialogOperation = "copy" }
+                                ) {
+                                    Text(stringResource(R.string.symbol_drawer_070),
+                                        style = MaterialTheme.typography.labelSmall, maxLines = 2)
                                 }
-                            ) { Text(stringResource(R.string.compose_manager_delete_selected)) }
+                                TextButton(
+                                    modifier = Modifier.weight(1f),
+                                    contentPadding = PaddingValues(horizontal = 3.dp, vertical = 6.dp),
+                                    enabled = selectedSymbolIds.isNotEmpty() && groups.any { it.id != group.id },
+                                    onClick = { targetDialogOperation = "move" }
+                                ) {
+                                    Text(stringResource(R.string.symbol_drawer_183),
+                                        style = MaterialTheme.typography.labelSmall, maxLines = 2)
+                                }
+                                TextButton(
+                                    modifier = Modifier.weight(1f),
+                                    contentPadding = PaddingValues(horizontal = 3.dp, vertical = 6.dp),
+                                    enabled = selectedSymbolIds.isNotEmpty(),
+                                    onClick = {
+                                        if (runUndoable("已删除 " + selectedSymbolIds.size + " 个符号") {
+                                            manager.removeSymbols(group.id, selectedSymbolIds)
+                                        }) selectedSymbolIds = emptySet()
+                                    }
+                                ) {
+                                    Text(stringResource(R.string.compose_manager_delete_selected),
+                                        style = MaterialTheme.typography.labelSmall, maxLines = 2)
+                                }
+                            }
+                        }
+                    }
+
+                    if (group.id == selectedGroupId && draggingSymbolId != null) {
+                        val previewSymbol = dragWorkingOrder?.firstOrNull { it.id == draggingSymbolId }
+                            ?: group.symbols.firstOrNull { it.id == draggingSymbolId }
+                        previewSymbol?.let { activeSymbol ->
+                            Card(Modifier.fillMaxWidth()) {
+                                Row(
+                                    Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+                                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        stringResource(R.string.compose_manager_drag_preview, activeSymbol.label),
+                                        modifier = Modifier.weight(1f),
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                    TextButton(onClick = {
+                                        dragWorkingOrder = null
+                                        draggingSymbolId = null
+                                    }) { Text(stringResource(R.string.compose_manager_drag_cancel)) }
+                                }
+                            }
                         }
                     }
 
