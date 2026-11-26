@@ -15,8 +15,6 @@
 package com.zerostudio.idea.widget.editor.symbolinput.v2
 
 import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
@@ -36,7 +34,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SharedPreferencesSy
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolDrawerDefaults
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionExecutor
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionHost
-import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionResult
+import com.zerostudio.idea.widget.drawer.action.SymbolActionResult
 import com.zerostudio.idea.widget.editor.symbolinput.v2.manager.SymbolDrawerManagerScreen
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
@@ -59,7 +57,9 @@ fun SymbolDrawerToolbar(
     actionHost: SymbolActionHost,
     modifier: Modifier = Modifier,
     onActionFailure: (SymbolEntry, Boolean, String) -> Unit = { _, _, _ -> },
-    initiallyExpanded: Boolean = false
+    initiallyExpanded: Boolean = false,
+    requestOpenDocument: (((Uri?) -> Unit) -> Unit)? = null,
+    requestCreateDocument: ((String, (Uri?) -> Unit) -> Unit)? = null
 ) {
     val context = LocalContext.current
     val groupRepository = remember(context) {
@@ -84,22 +84,6 @@ fun SymbolDrawerToolbar(
     val drawerState = rememberSymbolDrawerState(initiallyExpanded = initiallyExpanded)
     var showManager by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
-    var pendingOpenDocument by remember { mutableStateOf<(((Uri?) -> Unit))?>(null) }
-    var pendingCreateDocument by remember { mutableStateOf<(((Uri?) -> Unit))?>(null) }
-
-    val openDocument = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        pendingOpenDocument?.invoke(uri)
-        pendingOpenDocument = null
-    }
-    val createDocument = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument("application/json")
-    ) { uri ->
-        pendingCreateDocument?.invoke(uri)
-        pendingCreateDocument = null
-    }
-
     DisposableEffect(groupRepository) {
         val observer = (groupRepository as? ObservableSymbolGroupRepository)
             ?.observeGroups { groups = groupRepository.loadGroups() }
@@ -144,14 +128,8 @@ fun SymbolDrawerToolbar(
                     onClose = { showManager = false },
                     searchIncludesActionPayload = settings.searchIncludesActionPayload,
                     onOpenSettings = { showSettings = true },
-                    requestOpenDocument = { callback ->
-                        pendingOpenDocument = callback
-                        openDocument.launch(arrayOf("application/json"))
-                    },
-                    requestCreateDocument = { fileName, callback ->
-                        pendingCreateDocument = callback
-                        createDocument.launch(fileName)
-                    }
+                    requestOpenDocument = requestOpenDocument,
+                    requestCreateDocument = requestCreateDocument
                 )
             }
         }
@@ -174,14 +152,8 @@ fun SymbolDrawerToolbar(
                         settingsRepository.reset()
                         settings = settingsRepository.load().settings
                     },
-                    requestOpenDocument = { callback ->
-                        pendingOpenDocument = callback
-                        openDocument.launch(arrayOf("*/*"))
-                    },
-                    requestCreateDocument = { fileName, callback ->
-                        pendingCreateDocument = callback
-                        createDocument.launch(fileName)
-                    }
+                    requestOpenDocument = requestOpenDocument,
+                    requestCreateDocument = requestCreateDocument
                 )
             }
         }
