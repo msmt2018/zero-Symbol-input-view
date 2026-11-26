@@ -33,8 +33,11 @@ import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.draggable
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -64,6 +67,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.PagerSnapDistance
@@ -349,27 +353,73 @@ fun SymbolDrawer(
         // consumes its own scroll first and returns downward remainder through
         // this parent connection when it reaches the first row.
         val fullyExpanded = expansionFraction >= 0.999f
+        val expandedAtGestureStart = rememberUpdatedState(fullyExpanded)
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(drawerHeight)
                 .nestedScroll(nestedScrollConnection)
-                .draggable(
-                    orientation = Orientation.Vertical,
-                    enabled = !fullyExpanded,
-                    onDragStarted = { holder.beginDrag() },
-                    onDragStopped = { velocity ->
-                        if (holder.isDragging) {
-                            holder.endDrag(
-                                fingerVelocityY = velocity,
-                                minimumFlingVelocityPxPerSecond = minimumFlingVelocity
-                            )
+                .pointerInput(holder, minimumFlingVelocity) {
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        val pointerId = down.id
+                        val velocityTracker = VelocityTracker()
+                        velocityTracker.addPosition(down.uptimeMillis, down.position)
+                        var lastPosition = down.position
+                        var axis = 0 // 0 = undecided, 1 = horizontal, 2 = vertical
+                        var ownsDirectDrag = false
+                        var completed = false
+
+                        try {
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                val change = event.changes.firstOrNull { it.id == pointerId }
+                                    ?: break
+                                velocityTracker.addPosition(change.uptimeMillis, change.position)
+
+                                val delta = change.position - lastPosition
+                                val total = change.position - down.position
+                                if (axis == 0 && total.getDistance() > viewConfiguration.touchSlop) {
+                                    axis = when {
+                                        kotlin.math.abs(total.x) >
+                                            kotlin.math.abs(total.y) * 1.15f -> 1
+                                        kotlin.math.abs(total.y) >
+                                            kotlin.math.abs(total.x) * 1.15f -> 2
+                                        else -> 0
+                                    }
+                                    // Snapshot expansion only when the gesture starts.
+                                    // Reaching the expanded anchor mid-drag must not disable
+                                    // this pointer pipeline before UP and strand isDragging.
+                                    if (axis == 2 && !expandedAtGestureStart.value) {
+                                        holder.beginDrag()
+                                        ownsDirectDrag = true
+                                    }
+                                }
+
+                                if (ownsDirectDrag && axis == 2 && delta.y != 0f) {
+                                    holder.dragBy(delta.y)
+                                    change.consume()
+                                }
+                                lastPosition = change.position
+
+                                if (!change.pressed) {
+                                    if (ownsDirectDrag && holder.isDragging) {
+                                        holder.endDrag(
+                                            fingerVelocityY = velocityTracker.calculateVelocity().y,
+                                            minimumFlingVelocityPxPerSecond = minimumFlingVelocity
+                                        )
+                                    }
+                                    completed = true
+                                    break
+                                }
+                            }
+                        } finally {
+                            if (!completed && ownsDirectDrag && holder.isDragging) {
+                                holder.cancelDrag()
+                            }
                         }
-                    },
-                    state = androidx.compose.foundation.gestures.rememberDraggableState { delta ->
-                        holder.dragBy(delta)
                     }
-                ),
+                },
             color = MaterialTheme.colorScheme.surface,
             contentColor = MaterialTheme.colorScheme.onSurface,
             tonalElevation = 2.dp,
