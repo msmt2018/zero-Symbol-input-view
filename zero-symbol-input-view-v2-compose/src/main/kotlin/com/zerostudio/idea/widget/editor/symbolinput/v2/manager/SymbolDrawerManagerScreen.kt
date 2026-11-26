@@ -259,22 +259,27 @@ fun SymbolDrawerManagerScreen(
             .isSuccess
     }
     fun runUndoable(message: String = undoMessage, command: () -> Unit): Boolean {
-        val previousGroups = manager.groups.toList()
-        val previousUsage = usageState.snapshot()
-        val previousSelection = selectedGroupId
-        val completed = runCommand(command)
-        val usageRevisionAfterCommand = usageState.revision()
-        if (completed) {
-            undoLabel = message
-            undoAction = {
-                manager.replaceAll(previousGroups)
-                usageSnapshot = if (usageState.revision() == usageRevisionAfterCommand) {
-                    usageState.restore(previousUsage)
-                } else usageState.snapshot()
-                selectedGroupId = previousSelection
+        return runCatching {
+            val previousGroups = manager.groups.toList()
+            val previousUsage = usageState.snapshot()
+            val previousSelection = selectedGroupId
+            val completed = runCommand(command)
+            val usageRevisionAfterCommand = usageState.revision()
+            if (completed) {
+                undoLabel = message
+                undoAction = {
+                    runCatching {
+                        manager.replaceAll(previousGroups)
+                        usageSnapshot = if (usageState.revision() == usageRevisionAfterCommand) {
+                            usageState.restore(previousUsage)
+                        } else usageState.snapshot()
+                        selectedGroupId = previousSelection
+                    }.onFailure { errorMessage = it.message ?: "撤销操作失败" }
+                }
             }
-        }
-        return completed
+            completed
+        }.onFailure { errorMessage = it.message ?: "分组操作失败" }
+            .getOrDefault(false)
     }
 
     val documentPicker = rememberJsonDocumentPicker(
@@ -288,8 +293,10 @@ fun SymbolDrawerManagerScreen(
                 ?: error("The host must provide a CreateDocument launcher")
         },
         onImported = { json ->
+            val isLegacyImport = pendingFileImportLegacy
+            pendingFileImportLegacy = false
             runCatching {
-                val imported = if (pendingFileImportLegacy) {
+                val imported = if (isLegacyImport) {
                     LegacySymbolDataCodec.decode(json)
                 } else {
                     SymbolGroupBundleCodec.decode(json)
