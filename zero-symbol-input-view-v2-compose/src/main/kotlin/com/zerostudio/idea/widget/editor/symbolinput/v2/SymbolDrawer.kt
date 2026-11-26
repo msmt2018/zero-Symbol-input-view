@@ -310,19 +310,28 @@ fun SymbolDrawer(
             else state.selectedPage = state.selectedPage.coerceIn(0, safeGroups.lastIndex)
         }
 
+        // Gesture ownership is exclusive at each stable stage:
+        // - Before full expansion, the sheet owns the vertical drag because
+        //   the symbol grid is intentionally non-scrollable.
+        // - At full expansion, the grid owns scrolling and its nested-scroll
+        //   remainder is handed back to the sheet, allowing a downward drag
+        //   to collapse only after the grid reaches its first row.
+        //
+        // Do not install draggable and nestedScroll simultaneously. Competing
+        // parent/child drag pipelines can consume the same pointer stream and
+        // leave the holder stuck at the expanded anchor.
+        val fullyExpanded = expansionFraction >= 0.999f
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(drawerHeight)
-                .nestedScroll(nestedScrollConnection)
-                // A disabled LazyVerticalGrid cannot dispatch nested-scroll
-                // gestures. The sheet therefore owns a direct vertical drag
-                // while it is not fully expanded. At the expanded anchor the
-                // grid owns scrolling and nested-scroll returns downward
-                // remainder to the sheet when the grid reaches its first row.
+                .then(
+                    if (fullyExpanded) Modifier.nestedScroll(nestedScrollConnection)
+                    else Modifier
+                )
                 .draggable(
                     orientation = Orientation.Vertical,
-                    enabled = expansionFraction < 0.999f,
+                    enabled = !fullyExpanded,
                     onDragStarted = { holder.beginDrag() },
                     onDragStopped = { velocity ->
                         if (holder.isDragging) {
@@ -390,20 +399,7 @@ fun SymbolDrawer(
                                 onSymbolClick(entry)
                             },
                             onSymbolLongClick = onSymbolLongClick,
-                            onExpandedSheetDragStart = if (expansionFraction >= 0.999f) {
-                                { holder.beginDrag() }
-                            } else {
-                                null
-                            },
-                            onExpandedSheetDrag = { fingerDeltaY ->
-                                holder.dragBy(fingerDeltaY)
-                            },
-                            onExpandedSheetDragEnd = { fingerVelocityY ->
-                                holder.endDrag(
-                                    fingerVelocityY = fingerVelocityY,
-                                    minimumFlingVelocityPxPerSecond = minimumFlingVelocity
-                                )
-                            }
+
                         )
                     }
                 }
