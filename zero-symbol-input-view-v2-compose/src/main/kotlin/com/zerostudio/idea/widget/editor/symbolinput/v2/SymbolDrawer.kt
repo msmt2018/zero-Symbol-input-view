@@ -411,8 +411,8 @@ fun SymbolDrawer(
                                     // Reaching the expanded anchor mid-drag must not disable
                                     // this pointer pipeline before UP and strand isDragging.
                                     val shouldOwnDirectDrag = axis == 2 && when {
-                                        !isExpandedAtDown -> total.y < 0f
                                         dragFromIndicator -> total.y > 0f
+                                        !isExpandedAtDown -> total.y < 0f
                                         else -> false
                                     }
                                     if (shouldOwnDirectDrag) {
