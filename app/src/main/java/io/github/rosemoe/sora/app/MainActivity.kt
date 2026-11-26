@@ -54,6 +54,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolDrawerDefault
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SharedPreferencesSymbolGroupRepository
+import com.zerostudio.idea.widget.editor.symbolinput.v2.data.AndroidLegacySymbolDataMigration
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupRepository
 import com.zerostudio.idea.widget.editor.symbolinput.v2.manager.SymbolDrawerManagerScreen
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettingsScreen
@@ -303,6 +304,7 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "请从符号抽屉打开符号管理", Toast.LENGTH_SHORT).show()
         }
         val symbolGroupRepository = SharedPreferencesSymbolGroupRepository(this)
+        AndroidLegacySymbolDataMigration.importIfV2Empty(this, symbolGroupRepository)
         val symbolSettingsRepository = SharedPreferencesSymbolDrawerSettingsRepository(this)
         androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
         setContent {
