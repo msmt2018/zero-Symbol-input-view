@@ -385,66 +385,6 @@ fun SymbolDrawerManagerScreen(
                         onClick = {
                             moreMenuExpanded = false
                             if (previewModeActive) {
-                                previewModeActive = false
-                                previewSnapshot = null
-                                previewSelectedGroupId = null
-                            } else {
-                                previewSnapshot = groups.map { it.copy(symbols = it.symbols.toList()) }
-                                previewSelectedGroupId = selectedGroupId
-                                previewModeActive = true
-                            }
-                        }
-                    )
-                }
-            }
-            if (onClose != null) {
-                TextButton(onClick = onClose) {
-                    Text(stringResource(R.string.compose_manager_close))
-                }
-            }
-        }
-        if (previewModeActive) {
-                                previewModeActive = false
-                                previewSnapshot = null
-                                previewSelectedGroupId = null
-                            } else {
-                                previewSnapshot = groups.map { it.copy(symbols = it.symbols.toList()) }
-                                previewSelectedGroupId = selectedGroupId
-                                previewModeActive = true
-                            }
-                        }
-                    )
-                }
-            }
-        }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            if (searchFeatureVisible) {
-                TextButton(onClick = {
-                    searchVisible = !searchVisible
-                    if (!searchVisible) searchQuery = ""
-                }) {
-                    Text(stringResource(if (searchVisible) R.string.symbol_drawer_139 else R.string.symbol_drawer_132))
-                }
-            }
-            if (favoritesFeatureVisible) {
-                TextButton(onClick = { activeFilter = SymbolManagerFilter.FAVORITES }) {
-                    Text(if (activeFilter == SymbolManagerFilter.FAVORITES) "✓ " + stringResource(R.string.compose_manager_filter_favorites) else stringResource(R.string.compose_manager_filter_favorites))
-                }
-            }
-            if (recentFeatureVisible) {
-                TextButton(onClick = { activeFilter = SymbolManagerFilter.RECENT }) {
-                    Text(if (activeFilter == SymbolManagerFilter.RECENT) "✓ " + stringResource(R.string.compose_manager_filter_recent) else stringResource(R.string.compose_manager_filter_recent))
-                }
-            }
-            TextButton(onClick = { activeFilter = SymbolManagerFilter.ALL }) {
-                Text(if (activeFilter == SymbolManagerFilter.ALL) "✓ " + stringResource(R.string.compose_manager_filter_all) else stringResource(R.string.compose_manager_filter_all))
-            }
-            TextButton(onClick = {
-                if (batchMode) selectedSymbolIds = emptySet()
-                batchMode = !batchMode
-            }) { Text(if (batchMode) stringResource(R.string.compose_manager_batch_done) else stringResource(R.string.compose_manager_batch_select)) }
-        }
-        if (previewModeActive) {
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
