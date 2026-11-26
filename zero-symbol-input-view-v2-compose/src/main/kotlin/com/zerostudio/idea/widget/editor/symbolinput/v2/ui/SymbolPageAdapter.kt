@@ -68,7 +68,7 @@ import kotlin.math.abs
  * gestures remain with the grid until it reaches its first item. When grid
  * scrolling is disabled by a collapsed/partial sheet anchor, downward gestures
  * are handed directly to the sheet even if the grid retains an old scroll
- * offset. Upward gestures remain available to the outer drawer gesture owner.
+ * offset. Upward gestures remain with the outer drawer while it is partial and with the grid when fully expanded.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
