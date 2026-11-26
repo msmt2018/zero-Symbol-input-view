@@ -55,7 +55,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -122,6 +122,10 @@ fun SymbolDrawerSettingsScreen(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val clipboard = LocalClipboardManager.current
     val tabTitles = listOf("外观", "布局", "平板/大屏", "交互", "性能/搜索", "数据管理")
+    // Each View V2 settings tab retains its own scroll position.
+    val tabScrollStates = remember {
+        List(tabTitles.size) { ScrollState(0) }
+    }
 
     Column(
         modifier = modifier.fillMaxSize().padding(12.dp),
@@ -158,7 +162,7 @@ fun SymbolDrawerSettingsScreen(
         }
 
         Column(
-            modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
+            modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(tabScrollStates[selectedTab.coerceIn(tabTitles.indices)]),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             when (selectedTab) {
