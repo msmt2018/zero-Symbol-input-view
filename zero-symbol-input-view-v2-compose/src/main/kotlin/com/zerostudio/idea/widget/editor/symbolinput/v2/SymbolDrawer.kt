@@ -186,7 +186,7 @@ fun SymbolDrawer(
     // only (two rows by default); the group indicator is progressively revealed
     // while expanding instead of reserving permanent header/handle space.
     val collapsedHeight = (
-        config.collapsedRows * config.cellHeightDp +
+        config.collapsedRows * maxOf(config.cellHeightDp, config.minimumTouchTargetDp) +
             (config.collapsedRows - 1).coerceAtLeast(0) * config.cellVerticalSpacingDp + 8
         ).coerceAtLeast(1).dp
     val collapsedHeightPx = with(density) { collapsedHeight.roundToPx() }
@@ -194,19 +194,20 @@ fun SymbolDrawer(
     val naturalRows = safeGroups.maxOfOrNull { group ->
         ((group.symbols.size + config.columns - 1) / config.columns).coerceAtLeast(1)
     } ?: config.collapsedRows
+    val touchCellHeightDp = maxOf(config.cellHeightDp, config.minimumTouchTargetDp)
     val naturalGridHeightPx = with(density) {
-        (naturalRows * config.cellHeightDp +
+        (naturalRows * touchCellHeightDp +
             (naturalRows - 1).coerceAtLeast(0) * config.cellVerticalSpacingDp + 8).dp.roundToPx()
     }.coerceAtLeast(collapsedHeightPx)
     val indicatorHeightPx = with(density) { config.indicatorHeightDp.coerceAtLeast(0).dp.roundToPx() }
-    val screenHeightCapPx = with(density) {
-        (configuration.screenHeightDp * 0.28f).dp.roundToPx()
-    }
-    val configuredHeightCapPx = with(density) {
-        config.maxExpandedHeightDp.dp.roundToPx()
-    }
-    val expandedHeightPx = (naturalGridHeightPx + indicatorHeightPx)
-        .coerceAtMost(minOf(screenHeightCapPx, configuredHeightCapPx).coerceAtLeast(collapsedHeightPx))
+    val screenMinimumHeightPx = with(density) { (configuration.screenHeightDp * 0.20f).dp.roundToPx() }
+    val screenHeightCapPx = with(density) { (configuration.screenHeightDp * 0.28f).dp.roundToPx() }
+    val configuredHeightCapPx = with(density) { config.maxExpandedHeightDp.dp.roundToPx() }
+    val expandedHeightCapPx = minOf(screenHeightCapPx, configuredHeightCapPx)
+        .coerceAtLeast(collapsedHeightPx)
+    val desiredExpandedHeightPx = maxOf(naturalGridHeightPx + indicatorHeightPx, screenMinimumHeightPx)
+    val expandedHeightPx = desiredExpandedHeightPx
+        .coerceAtMost(expandedHeightCapPx)
         .coerceAtLeast(collapsedHeightPx)
     val holder = state.stateHolder
     val drawerSnapshot = rememberDrawerStateSnapshot(holder)
