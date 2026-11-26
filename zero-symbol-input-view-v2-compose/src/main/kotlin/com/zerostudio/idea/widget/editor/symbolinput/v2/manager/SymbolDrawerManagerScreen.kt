@@ -105,6 +105,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import com.zerostudio.idea.widget.editor.symbolinput.v2.compose.R
 import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.AdaptiveContentLayoutResolver
 import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowAdaptiveInfo
@@ -791,29 +793,6 @@ fun SymbolDrawerManagerScreen(
                         }
                     }
 
-                    if (group.id == selectedGroupId && draggingSymbolId != null) {
-                        val previewSymbol = dragWorkingOrder?.firstOrNull { it.id == draggingSymbolId }
-                            ?: group.symbols.firstOrNull { it.id == draggingSymbolId }
-                        previewSymbol?.let { activeSymbol ->
-                            Card(Modifier.fillMaxWidth()) {
-                                Row(
-                                    Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-                                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        stringResource(R.string.compose_manager_drag_preview, activeSymbol.label),
-                                        modifier = Modifier.weight(1f),
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
-                                    TextButton(onClick = {
-                                        dragWorkingOrder = null
-                                        draggingSymbolId = null
-                                    }) { Text(stringResource(R.string.compose_manager_drag_cancel)) }
-                                }
-                            }
-                        }
-                    }
-
                     if (pageVisibleSymbols.isEmpty()) {
                         Text(
                             if (group.symbols.isEmpty()) {
@@ -1061,6 +1040,34 @@ fun SymbolDrawerManagerScreen(
             }
             }
         }
+
+    draggingSymbolId?.let { activeId ->
+        val activeSymbol = groups.asSequence()
+            .flatMap { it.symbols.asSequence() }
+            .firstOrNull { it.id == activeId }
+        activeSymbol?.let { symbol ->
+            Popup(
+                alignment = androidx.compose.ui.Alignment.TopCenter,
+                properties = PopupProperties(focusable = false)
+            ) {
+                Card(Modifier.padding(8.dp)) {
+                    Row(
+                        Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                    ) {
+                        Text(
+                            stringResource(R.string.compose_manager_drag_preview, symbol.label),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        TextButton(onClick = {
+                            dragWorkingOrder = null
+                            draggingSymbolId = null
+                        }) { Text(stringResource(R.string.compose_manager_drag_cancel)) }
+                    }
+                }
+            }
+        }
+    }
 
     copyGroupSourceId?.let { sourceId ->
         val source = groups.firstOrNull { it.id == sourceId }
