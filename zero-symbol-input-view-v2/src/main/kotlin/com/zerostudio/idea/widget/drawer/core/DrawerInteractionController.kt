@@ -37,6 +37,7 @@ class DrawerInteractionController(
     private var downX = 0f
     private var downY = 0f
     private var lastY = 0f
+    // Keep companion-constant initializers explicitly typed for Kotlin FIR.
     private var gestureAxis: Int = AXIS_UNDECIDED
     private var dragging = false
     private var attached = false
