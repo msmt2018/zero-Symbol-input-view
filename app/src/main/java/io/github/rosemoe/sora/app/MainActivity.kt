@@ -23,6 +23,33 @@
  ******************************************************************************/
 package io.github.rosemoe.sora.app
 
+
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.weight
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawer
+import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolDrawerDefaultGroups
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
+
 import android.content.DialogInterface
 import android.graphics.Typeface
 import android.net.Uri
@@ -179,87 +206,32 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         CrashHandler.INSTANCE.init(this)
         binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
 
-        setSupportActionBar(binding.activityToolbar)
-        applyEdgeToEdge(this, binding.toolbarContainer, binding.root)
-
-        val typeface = Typeface.createFromAsset(assets, "JetBrainsMono-Regular.ttf")
-
-
-        // Setup Listeners
-        binding.apply {
-            btnGotoPrev.setOnClickListener(::gotoPrev)
-            btnGotoNext.setOnClickListener(::gotoNext)
-            btnReplace.setOnClickListener(::replace)
-            btnReplaceAll.setOnClickListener(::replaceAll)
-            searchOptions.setOnClickListener(::showSearchOptions)
-        }
-
-        // Configure symbol input view
-        // val inputView = binding.symbolInput
-        // inputView.bindEditor(binding.editor)
-        // inputView.addSymbols(SYMBOLS, SYMBOL_INSERT_TEXT)
-        // inputView.forEachButton { it.typeface = typeface }
-        val symbolInputView = findViewById<SymbolDrawerView>(R.id.advanced_symbol_input)
-        symbolInputView.applySettings(SharedPreferencesSymbolDrawerSettingsRepository(this).load().settings)
-        val actionExecutor = SymbolActionExecutor()
-        val actionHost = SoraCodeEditorSymbolActionHost(binding.editor) {
-            showSymbolDrawerManager(symbolInputView)
-        }
-        symbolInputView.onSymbolActionListener =
-            SymbolDrawerView.OnSymbolActionListener { symbol, longPress ->
-                val action = if (longPress) symbol.longAction else symbol.shortAction
-                if (action != null) {
-                    val result = actionExecutor.execute(action, actionHost)
-                    if (result !is SymbolActionResult.Executed) {
-                        Toast.makeText(this, "符号动作执行失败：$result", Toast.LENGTH_SHORT).show()
+        // The XML binding is retained only as a source for the existing CodeEditor
+        // widget and non-UI compatibility helpers. The Activity content itself is
+        // rendered by Compose; no XML root or legacy toolbar is attached.
+        (binding.editor.parent as? android.view.ViewGroup)?.removeView(binding.editor)
+        searchMenu = PopupMenu(this, View(this)).apply {
+            inflate(R.menu.menu_search_options)
+            setOnMenuItemClickListener { item ->
+                item.isChecked = !item.isChecked
+                if (item.isChecked) {
+                    when (item.itemId) {
+                        R.id.search_option_regex ->
+                            menu.findItem(R.id.search_option_whole_word)?.isChecked = false
+                        R.id.search_option_whole_word ->
+                            menu.findItem(R.id.search_option_regex)?.isChecked = false
                     }
                 }
-            }
-        symbolInputView.onOpenManagerListener = {
-            showSymbolDrawerManager(symbolInputView)
-        }
-        symbolInputView.onOpenSettingsListener = {
-            showSymbolDrawerSettings(symbolInputView)
-        }
-        
-
-        // Commit search when text changed
-        binding.searchEditor.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(charSequence: CharSequence, i: Int, i1: Int, i2: Int) {}
-            override fun onTextChanged(charSequence: CharSequence, i: Int, i1: Int, i2: Int) {}
-            override fun afterTextChanged(editable: Editable) {
+                computeSearchOptions()
                 tryCommitSearch()
+                true
             }
-        })
-
-        // Search options
-        searchMenu = PopupMenu(this, binding.searchOptions)
-        searchMenu.inflate(R.menu.menu_search_options)
-        searchMenu.setOnMenuItemClickListener {
-            // Update option states
-            it.isChecked = !it.isChecked
-            if (it.isChecked) {
-                // Regex and whole word mode can not be both chose
-                when (it.itemId) {
-                    R.id.search_option_regex -> {
-                        searchMenu.menu.findItem(R.id.search_option_whole_word)!!.isChecked = false
-                    }
-
-                    R.id.search_option_whole_word -> {
-                        searchMenu.menu.findItem(R.id.search_option_regex)!!.isChecked = false
-                    }
-                }
-            }
-            // Update search options and commit search with the new options
-            computeSearchOptions()
-            tryCommitSearch()
-            true
         }
 
-        // Configure editor
-        binding.editor.apply {
+        val editor = binding.editor
+        val typeface = Typeface.createFromAsset(assets, "JetBrainsMono-Regular.ttf")
+        editor.apply {
             registerInlayHintRenderers(
                 TextInlayHintRenderer.DefaultInstance,
                 ColorInlayHintRenderer.DefaultInstance
@@ -268,99 +240,90 @@ class MainActivity : AppCompatActivity() {
             props.stickyScroll = true
             setLineSpacing(2f, 1.1f)
             nonPrintablePaintingFlags =
-                CodeEditor.FLAG_DRAW_WHITESPACE_LEADING or CodeEditor.FLAG_DRAW_LINE_SEPARATOR or CodeEditor.FLAG_DRAW_WHITESPACE_IN_SELECTION or CodeEditor.FLAG_DRAW_SOFT_WRAP
-            // Update display dynamically
-            // Use CodeEditor#subscribeEvent to add listeners of different events to editor
+                CodeEditor.FLAG_DRAW_WHITESPACE_LEADING or
+                    CodeEditor.FLAG_DRAW_LINE_SEPARATOR or
+                    CodeEditor.FLAG_DRAW_WHITESPACE_IN_SELECTION or
+                    CodeEditor.FLAG_DRAW_SOFT_WRAP
             subscribeAlways<SelectionChangeEvent> { updatePositionText() }
             subscribeAlways<PublishSearchResultEvent> { updatePositionText() }
             subscribeAlways<ContentChangeEvent> {
-                postDelayedInLifecycle(
-                    ::updateBtnState,
-                    50
-                )
+                postDelayedInLifecycle(::updateBtnState, 50)
             }
-            subscribeAlways<SideIconClickEvent> {
-                toast(R.string.tip_side_icon)
-            }
-            subscribeAlways<InlayHintClickEvent> {
-                toast(R.string.tip_inlay_hint)
-            }
+            subscribeAlways<SideIconClickEvent> { toast(R.string.tip_side_icon) }
+            subscribeAlways<InlayHintClickEvent> { toast(R.string.tip_inlay_hint) }
             subscribeAlways<TextSizeChangeEvent> { event ->
-                Log.d(
-                    TAG,
-                    "TextSizeChangeEvent onReceive() called with: oldTextSize = [${event.oldTextSize}], newTextSize = [${event.newTextSize}]"
-                )
+                Log.d(TAG, "TextSizeChangeEvent: " + event.oldTextSize + " -> " + event.newTextSize)
             }
-
             subscribeAlways<KeyBindingEvent> { event ->
                 if (event.eventType == EditorKeyEvent.Type.DOWN) {
-                    toast(
-                        "Keybinding event: " + generateKeybindingString(event),
-                        Toast.LENGTH_LONG
-                    )
+                    toast("Keybinding event: " + generateKeybindingString(event), Toast.LENGTH_LONG)
                 }
             }
-
             searcher.replaceOptions = EditorSearcher.ReplaceOptions(true)
-            // Handle span interactions
             EditorSpanInteractionHandler(this)
-            getComponent<EditorAutoCompletion>()
-                .setEnabledAnimation(true)
+            getComponent<EditorAutoCompletion>().setEnabledAnimation(true)
         }
 
-        // Load textmate themes and grammars
         setupTextmate()
-
-        // Load monarch themes and grammars
         setupMonarch()
-
-        // Before using Textmate Language, TextmateColorScheme should be applied
         ensureTextmateTheme()
-
-        // Set editor language to textmate Java
-        val editor = binding.editor
-        val language = TextMateLanguage.create(
-            "source.java", true
-        )
-        editor.setEditorLanguage(language)
+        editor.setEditorLanguage(TextMateLanguage.create("source.java", true))
 
         val savedText = savedInstanceState?.getString("text")
         if (savedText != null) {
             val textSize = savedInstanceState.getFloat("font.size")
-            if (textSize > 0f) {
-                editor.textSizePx = textSize
-            }
+            if (textSize > 0f) editor.textSizePx = textSize
             editor.setText(savedText)
             val left = savedInstanceState.getInt("position.left").coerceIn(0, editor.text.length)
             val right = savedInstanceState.getInt("position.right").coerceIn(0, editor.text.length)
             val leftPos = editor.text.indexer.getCharPosition(left.coerceAtMost(right))
             val rightPos = editor.text.indexer.getCharPosition(right.coerceAtLeast(left))
-            editor.setSelectionRegion(
-                leftPos.line,
-                leftPos.column,
-                rightPos.line,
-                rightPos.column,
-                false
-            )
-            editor.scroller.startScroll(
-                savedInstanceState.getInt("scroll.x"),
-                savedInstanceState.getInt("scroll.y"),
-                0,
-                0,
-                0
-            )
+            editor.setSelectionRegion(leftPos.line, leftPos.column, rightPos.line, rightPos.column, false)
+            editor.scroller.startScroll(savedInstanceState.getInt("scroll.x"), savedInstanceState.getInt("scroll.y"), 0, 0, 0)
             editor.scroller.abortAnimation()
             editor.postInvalidate()
         } else {
-            // Open assets file
             openAssetsFile("samples/sample.txt")
         }
-
         updatePositionText()
         updateBtnState()
-
-        switchThemeIfRequired(this, binding.editor)
+        switchThemeIfRequired(this, editor)
         computeSearchOptions()
+
+        val actionExecutor = SymbolActionExecutor()
+        val actionHost = SoraCodeEditorSymbolActionHost(editor) {
+            Toast.makeText(this, "符号管理入口", Toast.LENGTH_SHORT).show()
+        }
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
+        setContent {
+            androidx.compose.material3.MaterialTheme {
+                MainActivityComposeContent(
+                    editor = editor,
+                    onSearchChanged = { query ->
+                        binding.searchEditor.setText(query)
+                        tryCommitSearch()
+                    },
+                    onReplaceChanged = { replacement -> binding.replaceEditor.setText(replacement) },
+                    onNext = { runCatching { editor.searcher.gotoNext() } },
+                    onPrevious = { runCatching { editor.searcher.gotoPrevious() } },
+                    onReplace = { runCatching { editor.searcher.replaceCurrentMatch(binding.replaceEditor.text.toString()) } },
+                    onReplaceAll = { runCatching { editor.searcher.replaceAll(binding.replaceEditor.text.toString()) } },
+                    onUndo = { editor.undo(); updateBtnState() },
+                    onRedo = { editor.redo(); updateBtnState() },
+                    onFormat = { editor.formatCodeAsync() },
+                    onChooseLanguage = ::chooseLanguage,
+                    onChooseTheme = ::chooseTheme,
+                    onOpenLogs = ::openLogs,
+                    onLoadLargeFile = { openAssetsFile("samples/big_sample.txt") },
+                    onSymbolAction = { symbol ->
+                        val result = actionExecutor.execute(symbol.shortAction, actionHost)
+                        if (result !is SymbolActionResult.Executed) {
+                            Toast.makeText(this, "符号动作执行失败：" + result, Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                )
+            }
+        }
     }
 
     /**
@@ -1239,7 +1202,82 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        findViewById<SymbolDrawerView>(R.id.advanced_symbol_input)?.onHostResume()
     }
 
+}
+
+@Composable
+private fun MainActivityComposeContent(
+    editor: CodeEditor,
+    onSearchChanged: (String) -> Unit,
+    onReplaceChanged: (String) -> Unit,
+    onNext: () -> Unit,
+    onPrevious: () -> Unit,
+    onReplace: () -> Unit,
+    onReplaceAll: () -> Unit,
+    onUndo: () -> Unit,
+    onRedo: () -> Unit,
+    onFormat: () -> Unit,
+    onChooseLanguage: () -> Unit,
+    onChooseTheme: () -> Unit,
+    onOpenLogs: () -> Unit,
+    onLoadLargeFile: () -> Unit,
+    onSymbolAction: (SymbolEntry) -> Unit
+) {
+    var search by remember { mutableStateOf("") }
+    var replacement by remember { mutableStateOf("") }
+    Column(Modifier.fillMaxSize().padding(top = 8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Button(onClick = onUndo) { Text("撤销") }
+            Button(onClick = onRedo) { Text("重做") }
+            Button(onClick = onFormat) { Text("格式化") }
+            Button(onClick = onChooseLanguage) { Text("语言") }
+            Button(onClick = onChooseTheme) { Text("主题") }
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            OutlinedTextField(
+                value = search,
+                onValueChange = { search = it; onSearchChanged(it) },
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                label = { Text("搜索") }
+            )
+            OutlinedTextField(
+                value = replacement,
+                onValueChange = { replacement = it; onReplaceChanged(it) },
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                label = { Text("替换") }
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Button(onClick = onPrevious) { Text("上一个") }
+            Button(onClick = onNext) { Text("下一个") }
+            Button(onClick = onReplace) { Text("替换") }
+            Button(onClick = onReplaceAll) { Text("全部替换") }
+            Button(onClick = onLoadLargeFile) { Text("大文件") }
+            Button(onClick = onOpenLogs) { Text("日志") }
+        }
+        AndroidView(
+            factory = { editor },
+            modifier = Modifier.fillMaxWidth().weight(1f)
+        )
+        SymbolDrawer(
+            groups = SymbolDrawerDefaultGroups.createGroups(),
+            modifier = Modifier.fillMaxWidth(),
+            onSymbolClick = onSymbolAction,
+            onOpenManager = { /* The manager is migrated in the next UI pass. */ },
+            onOpenSettings = { /* Settings are migrated in the next UI pass. */ }
+        )
+        Spacer(Modifier.height(4.dp))
+    }
 }
