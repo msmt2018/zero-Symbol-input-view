@@ -70,12 +70,11 @@ object AdaptiveGridResolver {
         // A negative spacing reduces track pitch, but must never collapse the
         // pitch to zero or invert the grid's column calculation.
         val trackPitch = (cellWidth + spacing).coerceAtLeast(MIN_TRACK_PITCH_DP)
-        val occupiedWidthForFirstTrack = (cellWidth + spacing).coerceAtLeast(MIN_TRACK_PITCH_DP)
         val fittingColumns = if (availableWidth < cellWidth) {
             1
         } else {
             kotlin.math.floor(
-                (availableWidth + spacing).coerceAtLeast(0.0) / trackPitch
+                (availableWidth - spacing).coerceAtLeast(0.0) / trackPitch
             ).toInt().coerceAtLeast(1)
         }
 
