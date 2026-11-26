@@ -474,7 +474,27 @@ fun SymbolDrawer(
                                 onSymbolClick(entry)
                             },
                             onSymbolLongClick = onSymbolLongClick,
-
+                            // At the maximum anchor, the grid owns vertical
+                            // scrolling until it reaches its first item. Only
+                            // then does its pointer-arbitration layer hand a
+                            // downward drag to the drawer, matching View V2's
+                            // childCanScrollUp interception rule.
+                            onExpandedSheetDragStart = if (fullyExpanded) {
+                                { holder.beginDrag() }
+                            } else null,
+                            onExpandedSheetDrag = if (fullyExpanded) {
+                                { delta -> holder.dragBy(delta) }
+                            } else null,
+                            onExpandedSheetDragEnd = if (fullyExpanded) {
+                                { velocity ->
+                                    if (holder.isDragging) {
+                                        holder.endDrag(
+                                            fingerVelocityY = velocity,
+                                            minimumFlingVelocityPxPerSecond = minimumFlingVelocity
+                                        )
+                                    }
+                                }
+                            } else null
                         )
                     }
                 }
