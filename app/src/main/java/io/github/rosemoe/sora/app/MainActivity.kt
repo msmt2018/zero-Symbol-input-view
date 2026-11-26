@@ -65,6 +65,8 @@ import android.view.View
 import android.widget.PopupMenu
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts.GetContent
+import androidx.activity.result.contract.ActivityResultContracts.OpenDocument
+import androidx.activity.result.contract.ActivityResultContracts.CreateDocument
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.savedstate.write
@@ -193,6 +195,17 @@ class MainActivity : AppCompatActivity() {
     private var searchOptions = SearchOptions(false, false)
     private var undo: MenuItem? = null
     private var redo: MenuItem? = null
+    private var pendingSymbolDocumentOpen: ((Uri?) -> Unit)? = null
+    private var pendingSymbolDocumentCreate: ((Uri?) -> Unit)? = null
+
+    private val openSymbolDocumentLauncher = registerForActivityResult(OpenDocument()) { uri ->
+        pendingSymbolDocumentOpen?.invoke(uri)
+        pendingSymbolDocumentOpen = null
+    }
+    private val createSymbolDocumentLauncher = registerForActivityResult(CreateDocument("application/json")) { uri ->
+        pendingSymbolDocumentCreate?.invoke(uri)
+        pendingSymbolDocumentCreate = null
+    }
 
 
 
@@ -315,7 +328,15 @@ class MainActivity : AppCompatActivity() {
                         menuHost.inflate(R.menu.menu_main)
                         menuHost.menu.findItem(itemId)?.let(::onOptionsItemSelected)
                     },
-                    actionHost = actionHost
+                    actionHost = actionHost,
+                    requestOpenDocument = { callback ->
+                        pendingSymbolDocumentOpen = callback
+                        openSymbolDocumentLauncher.launch(arrayOf("application/json"))
+                    },
+                    requestCreateDocument = { fileName, callback ->
+                        pendingSymbolDocumentCreate = callback
+                        createSymbolDocumentLauncher.launch(fileName)
+                    }
                 )
             }
         }
@@ -1185,7 +1206,9 @@ private fun MainActivityComposeContent(
     onOpenLogs: () -> Unit,
     onLoadLargeFile: () -> Unit,
     onMenuAction: (Int) -> Unit,
-    actionHost: SymbolActionHost
+    actionHost: SymbolActionHost,
+    requestOpenDocument: (((Uri?) -> Unit) -> Unit),
+    requestCreateDocument: ((String, (Uri?) -> Unit) -> Unit)
 ) {
     var search by remember { mutableStateOf("") }
     var replacement by remember { mutableStateOf("") }
@@ -1378,6 +1401,8 @@ private fun MainActivityComposeContent(
         SymbolDrawerToolbar(
             modifier = Modifier.fillMaxWidth(),
             actionHost = actionHost,
+            requestOpenDocument = requestOpenDocument,
+            requestCreateDocument = requestCreateDocument,
             onActionFailure = { _, _, result ->
                 Toast.makeText(
                     editor.context,
