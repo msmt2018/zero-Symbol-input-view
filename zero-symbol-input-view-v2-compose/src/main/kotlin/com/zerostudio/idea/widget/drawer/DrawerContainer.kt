@@ -118,6 +118,7 @@ class DrawerContainerState internal constructor(
     private var geometryInitialized = false
     internal val isGeometryInitialized: Boolean get() = geometryInitialized
 
+    /** Whether the current target/height represents an expanded drawer state. */
     val expanded: Boolean
         get() {
             val anchors = stateHolder.anchors
@@ -130,8 +131,13 @@ class DrawerContainerState internal constructor(
             }
         }
 
+    /** Requests expansion to the maximum resolved anchor. */
     fun expand() { controller.expand() }
+
+    /** Requests collapse to the minimum resolved anchor. */
     fun collapse() { controller.collapse() }
+
+    /** Toggles between the minimum and maximum resolved anchors. */
     fun toggle() { if (expanded) controller.collapse() else controller.expand() }
 
     internal fun synchronizeGeometry(
@@ -150,16 +156,32 @@ class DrawerContainerState internal constructor(
     }
 }
 
+/**
+ * Remembers a [DrawerContainerState] at the current Composition call site.
+ *
+ * @param initiallyExpanded whether the first resolved geometry should start at its maximum anchor.
+ * @return the state instance associated with this Composition identity.
+ */
 @Composable
 fun rememberDrawerContainerState(initiallyExpanded: Boolean = false): DrawerContainerState =
     remember { DrawerContainerState(initiallyExpanded) }
 
 /**
- * Reusable Compose drawer container.
+ * Displays a reusable native Compose drawer container.
  *
- * The host, peek slot and expanded slot are composable content lambdas. Gesture
- * jobs and animation state are owned by Composition; there are no View,
- * nested-scrolling, attach/detach or manual disposal contracts.
+ * The host, peek slot and expanded slot are Composable content. Gesture and
+ * animation effects are Composition-owned; this API has no Android View,
+ * attach/detach or manual View-disposal contract.
+ *
+ * @param config anchor, presentation, interaction, navigation and visual configuration.
+ * @param modifier modifier applied to the outer container layout.
+ * @param state state holder associated with this drawer instance.
+ * @param title optional title shown by the expanded surface.
+ * @param pages ordered navigation pages with stable IDs.
+ * @param selectedPageId externally selected page ID; null leaves selection to the container.
+ * @param onPageSelected callback emitted after a page-selection request is accepted.
+ * @param onDismiss callback emitted when the drawer requests dismissal.
+ * @param content host content rendered in the container's BoxScope.
  */
 @Composable
 fun DrawerContainer(
