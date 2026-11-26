@@ -5,6 +5,9 @@
  */
 package com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive
 
+import kotlin.math.floor
+import kotlin.math.roundToInt
+
 data class AdaptiveGridSpec(
     val columnCount: Int,
     val horizontalSpacingDp: Int,
@@ -23,7 +26,8 @@ data class AdaptiveGridSpec(
  * The preferred column count is an upper bound. The resolver uses the effective
  * track pitch (cell width plus spacing), including supported negative spacing,
  * so compact layouts do not lose columns merely because cells intentionally
- * overlap. The result remains bounded by the configured preferred count.
+ * overlap. Positive spacing grows with wider adaptive windows; fixed layouts
+ * preserve the exact configured spacing.
  */
 object AdaptiveGridResolver {
     fun resolve(
@@ -43,17 +47,22 @@ object AdaptiveGridResolver {
                 compactHeightVerticalSpacingScale in 0f..1f
         )
 
-        // Preserve the configured spacing, including intentional negative
-        // overlap. Clamping is limited to the public supported range.
-        val horizontalSpacing = baseHorizontalSpacingDp.coerceIn(MIN_SPACING_DP, MAX_SPACING_DP)
-        val configuredVerticalSpacing = baseVerticalSpacingDp.coerceIn(MIN_SPACING_DP, MAX_SPACING_DP)
+        val configuredHorizontal = baseHorizontalSpacingDp.coerceIn(MIN_SPACING_DP, MAX_SPACING_DP)
+        val configuredVertical = baseVerticalSpacingDp.coerceIn(MIN_SPACING_DP, MAX_SPACING_DP)
+        val spacingScale = when {
+            !adaptive || window.availableWidthDp < MEDIUM_WIDTH_DP -> 1f
+            window.availableWidthDp < EXPANDED_WIDTH_DP -> 1.25f
+            else -> 1.5f
+        }
+        val horizontalSpacing = adaptPositiveSpacing(configuredHorizontal, spacingScale)
+        val scaledVerticalSpacing = adaptPositiveSpacing(configuredVertical, spacingScale)
         val verticalSpacing = if (
             window.availableHeightDp < COMPACT_HEIGHT_UPPER_BOUND_DP &&
-            configuredVerticalSpacing > 0
+            scaledVerticalSpacing > 0
         ) {
-            (configuredVerticalSpacing * compactHeightVerticalSpacingScale).toInt()
+            (scaledVerticalSpacing * compactHeightVerticalSpacingScale).roundToInt()
         } else {
-            configuredVerticalSpacing
+            scaledVerticalSpacing
         }
 
         if (!adaptive || lockColumnCount) {
@@ -67,20 +76,15 @@ object AdaptiveGridResolver {
         val availableWidth = window.availableWidthDp.toDouble().coerceAtLeast(0.0)
         val cellWidth = minimumCellWidthDp.toDouble()
         val spacing = horizontalSpacing.toDouble()
-        // A negative spacing reduces track pitch, but must never collapse the
-        // pitch to zero or invert the grid's column calculation.
         val trackPitch = (cellWidth + spacing).coerceAtLeast(MIN_TRACK_PITCH_DP)
         val fittingColumns = if (availableWidth < cellWidth) {
             1
         } else {
-            kotlin.math.floor(
-                (availableWidth - spacing).coerceAtLeast(0.0) / trackPitch
-            ).toInt().coerceAtLeast(1)
+            floor((availableWidth - spacing).coerceAtLeast(0.0) / trackPitch)
+                .toInt().coerceAtLeast(1)
         }
 
-        // The first track always occupies at least its minimum cell width.
-        val boundedColumns = fittingColumns.coerceAtMost(preferredColumns)
-            .coerceAtLeast(1)
+        val boundedColumns = fittingColumns.coerceAtMost(preferredColumns).coerceAtLeast(1)
         return AdaptiveGridSpec(
             columnCount = boundedColumns,
             horizontalSpacingDp = horizontalSpacing,
@@ -88,8 +92,17 @@ object AdaptiveGridResolver {
         )
     }
 
+    private fun adaptPositiveSpacing(spacingDp: Int, scale: Float): Int {
+        if (spacingDp <= 0 || scale == 1f) return spacingDp
+        val scaled = (spacingDp * scale).roundToInt()
+        return if (scale >= 1.5f) maxOf(MIN_EXPANDED_SPACING_DP, scaled) else scaled
+    }
+
     private const val COMPACT_HEIGHT_UPPER_BOUND_DP = 480f
+    private const val MEDIUM_WIDTH_DP = 600f
+    private const val EXPANDED_WIDTH_DP = 840f
     private const val MIN_SPACING_DP = -24
     private const val MAX_SPACING_DP = 48
+    private const val MIN_EXPANDED_SPACING_DP = 5
     private const val MIN_TRACK_PITCH_DP = 1.0
 }
