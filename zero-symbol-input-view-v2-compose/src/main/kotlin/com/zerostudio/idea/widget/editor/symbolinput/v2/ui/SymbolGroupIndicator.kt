@@ -57,8 +57,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ScrollableTabRow
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -73,6 +71,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
+import com.zerostudio.idea.widget.editor.symbolinput.v2.ui.LiquidScrollableTabRow
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.GroupIndicatorStyle
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
 import kotlin.math.PI
@@ -105,27 +104,12 @@ fun SymbolGroupIndicator(
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (settings.indicatorStyle == GroupIndicatorStyle.TEXT_TABS) {
-            ScrollableTabRow(
-                selectedTabIndex = selected,
-                modifier = Modifier.weight(1f),
-                edgePadding = 0.dp,
-                containerColor = Color.Transparent,
-                contentColor = primaryColor
-            ) {
-                groups.forEachIndexed { index, group ->
-                    Tab(
-                        selected = index == selected,
-                        onClick = { onGroupSelected(index) },
-                        text = {
-                            Text(
-                                text = group.title,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    )
-                }
-            }
+            LiquidScrollableTabRow(
+                titles = groups.map { it.title },
+                selectedIndex = selected,
+                onTabSelected = onGroupSelected,
+                modifier = Modifier.weight(1f)
+            )
         } else if (textMode) {
             LazyRow(
                 modifier = Modifier.weight(1f),
