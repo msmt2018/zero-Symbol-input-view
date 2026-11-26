@@ -148,8 +148,7 @@ import java.io.FileOutputStream
 import java.lang.ref.WeakReference
 import java.util.zip.ZipFile
 import java.util.regex.PatternSyntaxException
-import com.zerostudio.idea.widget.drawer.action.SymbolActionExecutor
-import com.zerostudio.idea.widget.drawer.action.SymbolActionResult
+import com.zerostudio.idea.widget.editor.symbolinput.v2.action.SymbolActionHost
 
 
 /**
@@ -286,7 +285,6 @@ class MainActivity : AppCompatActivity() {
         switchThemeIfRequired(this, editor)
         computeSearchOptions()
 
-        val actionExecutor = SymbolActionExecutor()
         val actionHost = SoraCodeEditorSymbolActionHost(editor) {
             // The Compose drawer routes the built-in OpenManager action to its
             // native manager surface; this host callback remains a safe fallback.
@@ -318,12 +316,7 @@ class MainActivity : AppCompatActivity() {
                         menuHost.inflate(R.menu.menu_main)
                         menuHost.menu.findItem(itemId)?.let(::onOptionsItemSelected)
                     },
-                    onSymbolAction = { symbol ->
-                        val result = actionExecutor.execute(symbol.shortAction, actionHost)
-                        if (result !is SymbolActionResult.Executed) {
-                            Toast.makeText(this, "符号动作执行失败：" + result, Toast.LENGTH_SHORT).show()
-                        }
-                    }
+                    actionHost = actionHost
                 )
             }
         }
@@ -1193,7 +1186,7 @@ private fun MainActivityComposeContent(
     onOpenLogs: () -> Unit,
     onLoadLargeFile: () -> Unit,
     onMenuAction: (Int) -> Unit,
-    onSymbolAction: (SymbolEntry) -> Unit
+    actionHost: SymbolActionHost
 ) {
     var search by remember { mutableStateOf("") }
     var replacement by remember { mutableStateOf("") }
@@ -1385,7 +1378,14 @@ private fun MainActivityComposeContent(
         )
         SymbolDrawerToolbar(
             modifier = Modifier.fillMaxWidth(),
-            onSymbolAction = onSymbolAction
+            actionHost = actionHost,
+            onActionFailure = { _, _, result ->
+                Toast.makeText(
+                    androidx.compose.ui.platform.LocalContext.current,
+                    "符号动作执行失败：$result",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
         )
         Spacer(Modifier.height(4.dp))
     }
