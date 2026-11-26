@@ -174,6 +174,7 @@ fun SymbolDrawerManagerScreen(
     var activeFilter by remember { mutableStateOf(SymbolManagerFilter.ALL) }
     var batchMode by remember { mutableStateOf(false) }
     var undoLabel by remember { mutableStateOf<String?>(null) }
+    var operationMessage by remember { mutableStateOf<String?>(null) }
     var undoAction by remember { mutableStateOf<(() -> Unit)?>(null) }
     var targetDialogOperation by remember { mutableStateOf<String?>(null) }
     var deleteGroupId by remember { mutableStateOf<String?>(null) }
@@ -371,7 +372,10 @@ fun SymbolDrawerManagerScreen(
                         onClick = {
                             moreMenuExpanded = false
                             runCatching { SymbolGroupBundleCodec.encode(groups) }
-                                .onSuccess { clipboard.setText(AnnotatedString(it)) }
+                                .onSuccess {
+                                    clipboard.setText(AnnotatedString(it))
+                                    operationMessage = "符号分组 JSON 已复制到剪贴板"
+                                }
                                 .onFailure { errorMessage = it.message ?: "Unable to export groups" }
                         }
                     )
@@ -389,7 +393,10 @@ fun SymbolDrawerManagerScreen(
                         onClick = {
                             moreMenuExpanded = false
                             runCatching { LegacySymbolDataCodec.encode(groups) }
-                                .onSuccess { clipboard.setText(AnnotatedString(it)) }
+                                .onSuccess {
+                                    clipboard.setText(AnnotatedString(it))
+                                    operationMessage = "V1 兼容 JSON 已复制到剪贴板"
+                                }
                                 .onFailure { errorMessage = it.message ?: "Legacy export is not supported for this data" }
                         }
                     )
@@ -429,6 +436,19 @@ fun SymbolDrawerManagerScreen(
             if (onClose != null) {
                 TextButton(onClick = onClose) {
                     Text(stringResource(R.string.compose_manager_close))
+                }
+            }
+        }
+
+        operationMessage?.let { message ->
+            Card(Modifier.fillMaxWidth()) {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                ) {
+                    Text(message, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
+                    TextButton(onClick = { operationMessage = null }) { Text("关闭") }
                 }
             }
         }
@@ -673,7 +693,7 @@ fun SymbolDrawerManagerScreen(
                             TextButton(
                                 enabled = selectedSymbolIds.isNotEmpty(),
                                 onClick = {
-                                    if (runUndoable { manager.removeSymbols(group.id, selectedSymbolIds) }) {
+                                    if (runUndoable("已删除 " + selectedSymbolIds.size + " 个符号") { manager.removeSymbols(group.id, selectedSymbolIds) }) {
                                         selectedSymbolIds = emptySet()
                                     }
                                 }
@@ -813,7 +833,9 @@ fun SymbolDrawerManagerScreen(
                                                     text = { Text(if (symbol.id in usageSnapshot.favorites) "取消收藏" else "收藏") },
                                                     onClick = {
                                                         symbolMenuId = null
+                                                        val wasFavorite = symbol.id in usageSnapshot.favorites
                                                         usageSnapshot = usageState.toggleFavorite(symbol.id)
+                                                        operationMessage = if (wasFavorite) "已取消收藏" else "已加入收藏"
                                                         undoAction = null
                                                         undoLabel = null
                                                     }
@@ -823,6 +845,7 @@ fun SymbolDrawerManagerScreen(
                                                     onClick = {
                                                         symbolMenuId = null
                                                         usageSnapshot = usageState.recordRecentlyUsed(symbol.id)
+                                                        operationMessage = "已标记为最近使用"
                                                         undoAction = null
                                                         undoLabel = null
                                                     }
@@ -1012,7 +1035,9 @@ fun SymbolDrawerManagerScreen(
                             modifier = Modifier.fillMaxWidth(),
                             onClick = {
                                 val operation = targetDialogOperation
-                                val completed = runUndoable {
+                                val completed = runUndoable(
+                                    if (operation == "copy") "已复制符号到目标分组" else "已移动符号到目标分组"
+                                ) {
                                     if (operation == "copy") {
                                         manager.copySymbols(
                                             selectedGroup.id,
