@@ -21,18 +21,18 @@ android {
 }
 
 dependencies {
-    implementation(libs.androidx.core.ktx)
-    implementation("androidx.activity:activity-ktx:1.9.3")
+    implementation(libs.androidx.core.ktx.v2)
+    implementation("androidx.activity:activity-ktx:1.13.0")
     implementation(libs.kotlin.stdlib)
     implementation("androidx.recyclerview:recyclerview:1.4.0")
     implementation("androidx.viewpager2:viewpager2:1.1.0")
     implementation(libs.material)
     implementation(libs.gson)
-    api(libs.androidx.annotation)
+    api(libs.androidx.annotation.v2)
     testImplementation(libs.junit)
-    androidTestImplementation("androidx.test:runner:1.6.2")
-    androidTestImplementation("androidx.test.ext:junit:1.2.1")
-    androidTestImplementation("androidx.test:core:1.6.1")
+    androidTestImplementation("androidx.test:runner:1.7.0")
+    androidTestImplementation("androidx.test.ext:junit:1.3.0")
+    androidTestImplementation("androidx.test:core:1.7.0")
 }
 
 android {

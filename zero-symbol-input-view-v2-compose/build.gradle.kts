@@ -32,12 +32,12 @@ android {
 dependencies {
     // Existing V2 domain, persistence, JSON, action and extension contracts are
     // retained as the migration baseline while their UI adapters are replaced.
-    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.core.ktx.v2)
     implementation(libs.kotlin.stdlib)
     implementation(libs.gson)
-    api(libs.androidx.annotation)
+    api(libs.androidx.annotation.v2)
 
-    val composeBom = platform("androidx.compose:compose-bom:2025.12.01")
+    val composeBom = platform("androidx.compose:compose-bom:2026.11.01")
     implementation(composeBom)
     api("androidx.compose.runtime:runtime")
     api("androidx.compose.ui:ui")
@@ -47,9 +47,9 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
 
     testImplementation(libs.junit)
-    androidTestImplementation("androidx.test:runner:1.6.2")
-    androidTestImplementation("androidx.test.ext:junit:1.2.1")
-    androidTestImplementation("androidx.test:core:1.6.1")
+    androidTestImplementation("androidx.test:runner:1.7.0")
+    androidTestImplementation("androidx.test.ext:junit:1.3.0")
+    androidTestImplementation("androidx.test:core:1.7.0")
     androidTestImplementation(composeBom)
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
