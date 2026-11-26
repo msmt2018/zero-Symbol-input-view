@@ -73,9 +73,9 @@ object AdaptiveContentLayoutResolver {
         val width = window.availableWidthDp
         val height = window.availableHeightDp
 
-        // These match Android's current width window-size breakpoints. Large
-        // and extra-large windows retain a bounded reading/content measure
-        // instead of stretching settings and management surfaces edge-to-edge.
+        // Keep content bounded by the current window class while allowing
+        // large and extra-large windows to use their explicitly configured
+        // wider reading measure.
         val (targetMaxWidth, padding, dialogFraction, columns) = when {
             width < 600f -> Quadruple(
                 policy.compactMaxWidthDp, policy.compactPaddingDp,
@@ -126,13 +126,14 @@ object AdaptiveContentLayoutResolver {
         val spec = resolve(window, policy)
         val availableWidthPx = (window.availableWidthDp.toDouble() * density.toDouble())
             .coerceAtMost(Int.MAX_VALUE.toDouble()).toInt().coerceAtLeast(0)
-        val horizontalInsetPx = (spec.horizontalPaddingDp.toDouble() * density.toDouble())
+        val fractionWidthPx = (windowWidthPx.toDouble() * spec.dialogWidthFraction)
             .coerceAtMost(Int.MAX_VALUE.toDouble()).toInt().coerceAtLeast(0)
-        val usableWindowPx = (availableWidthPx - horizontalInsetPx * 2).coerceAtLeast(0)
-        val fractionWidthPx = (usableWindowPx * spec.dialogWidthFraction).toInt()
         val contentMaxWidthPx = (spec.maxContentWidthDp.toDouble() * density.toDouble())
-            .coerceAtMost(Int.MAX_VALUE.toDouble()).toInt()
-        return minOf(windowWidthPx, usableWindowPx, fractionWidthPx, contentMaxWidthPx)
+            .coerceAtMost(Int.MAX_VALUE.toDouble()).toInt().coerceAtLeast(0)
+
+        // Dialog fractions are relative to the actual host window. Padding is
+        // a content-layout concern and must not be subtracted a second time.
+        return minOf(windowWidthPx, availableWidthPx, fractionWidthPx, contentMaxWidthPx)
             .coerceAtLeast(0)
     }
 
