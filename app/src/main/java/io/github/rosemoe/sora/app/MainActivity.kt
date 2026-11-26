@@ -25,6 +25,8 @@ package io.github.rosemoe.sora.app
 
 
 import androidx.activity.compose.setContent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -46,6 +48,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
@@ -1217,6 +1220,22 @@ private fun MainActivityComposeContent(
     var replacement by remember { mutableStateOf("") }
     var showManager by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
+    // Activity Result ownership stays in the host app. The Compose library
+    // receives only one-shot URI callbacks and does not depend on Activity APIs.
+    var pendingOpenDocumentResult by remember { mutableStateOf<((Uri?) -> Unit)?>(null) }
+    var pendingCreateDocumentResult by remember { mutableStateOf<((Uri?) -> Unit)?>(null) }
+    val openJsonDocumentLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        pendingOpenDocumentResult?.invoke(uri)
+        pendingOpenDocumentResult = null
+    }
+    val createJsonDocumentLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        pendingCreateDocumentResult?.invoke(uri)
+        pendingCreateDocumentResult = null
+    }
     var showSearchPanel by remember { mutableStateOf(false) }
     var overflowMenuExpanded by remember { mutableStateOf(false) }
     var groups by remember(groupRepository) {
@@ -1465,6 +1484,14 @@ private fun MainActivityComposeContent(
                     onReset = {
                         settingsRepository.reset()
                         drawerSettings = settingsRepository.load().settings
+                    },
+                    requestOpenDocument = { onResult ->
+                        pendingOpenDocumentResult = onResult
+                        openJsonDocumentLauncher.launch(arrayOf("*/*"))
+                    },
+                    requestCreateDocument = { fileName, onResult ->
+                        pendingCreateDocumentResult = onResult
+                        createJsonDocumentLauncher.launch(fileName)
                     }
                 )
             }
