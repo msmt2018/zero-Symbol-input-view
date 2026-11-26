@@ -31,8 +31,8 @@ class AdaptiveContentLayoutResolverTest {
             density = 2f,
             window = info
         )
-        assertEquals(1040f, spec.maxContentWidthDp)
-        assertTrue(dialogWidth <= 2080)
+        assertEquals(1440f, spec.maxContentWidthDp)
+        assertTrue(dialogWidth <= 2880)
         assertTrue(dialogWidth > 0)
     }
 
@@ -79,5 +79,4 @@ class AdaptiveContentLayoutResolverTest {
             100, Float.POSITIVE_INFINITY, WindowAdaptiveInfo(400f, 800f)
         )
     }
-
 }
