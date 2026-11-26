@@ -365,17 +365,18 @@ fun SymbolDrawerSettingsScreen(
                 }
 
                 5 -> {
-                    SettingsSection("设置备份与恢复") {
-                        Text(
-                            "设置数据独立备份。支持复制 JSON、导出文件、粘贴 JSON 导入和选择文件导入。",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    SettingsDataCard(
+                        title = "设置备份与恢复",
+                        description = "设置数据独立备份。支持复制 JSON、导出文件、粘贴 JSON 导入和选择文件导入。"
+                    ) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(
                                 onClick = {
                                     runCatching { SymbolDrawerSettingsCodec.encode(current) }
-                                        .onSuccess { clipboard.setText(AnnotatedString(it)); feedbackMessage = "设置 JSON 已复制" }
+                                        .onSuccess {
+                                            clipboard.setText(AnnotatedString(it))
+                                            feedbackMessage = "设置 JSON 已复制"
+                                        }
                                         .onFailure { errorMessage = it.message ?: "导出设置 JSON 失败" }
                                 },
                                 modifier = Modifier.weight(1f)
@@ -413,12 +414,10 @@ fun SymbolDrawerSettingsScreen(
                         }
                     }
 
-                    SettingsSection("符号分组备份与恢复") {
-                        Text(
-                            "符号分组数据与控件设置分开存储。文件导入会先校验 JSON，再由你确认替换当前分组。",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    SettingsDataCard(
+                        title = "符号分组备份与恢复",
+                        description = "符号分组数据与控件设置分开存储。文件导入会先校验 JSON，再由你确认替换当前分组。"
+                    ) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(
                                 onClick = {
@@ -427,7 +426,10 @@ fun SymbolDrawerSettingsScreen(
                                         errorMessage = "符号分组仓库不可用"
                                     } else {
                                         runCatching { SymbolGroupBundleCodec.encode(repository.loadGroups()) }
-                                            .onSuccess { clipboard.setText(AnnotatedString(it)); feedbackMessage = "符号分组 JSON 已复制" }
+                                            .onSuccess {
+                                                clipboard.setText(AnnotatedString(it))
+                                                feedbackMessage = "符号分组 JSON 已复制"
+                                            }
                                             .onFailure { errorMessage = it.message ?: "导出符号分组 JSON 失败" }
                                     }
                                 },
@@ -563,6 +565,32 @@ fun SymbolDrawerSettingsScreen(
                 TextButton(onClick = { errorMessage = null }) { Text("确定") }
             }
         )
+    }
+}
+
+@Composable
+private fun SettingsDataCard(
+    title: String,
+    description: String,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Card(Modifier.fillMaxWidth()) {
+        Column(
+            Modifier.fillMaxWidth().padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+            )
+            Text(
+                description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            content(this)
+        }
     }
 }
 
