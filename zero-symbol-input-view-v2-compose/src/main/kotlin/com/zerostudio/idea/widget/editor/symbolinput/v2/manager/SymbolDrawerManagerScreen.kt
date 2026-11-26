@@ -45,6 +45,8 @@
 
 package com.zerostudio.idea.widget.editor.symbolinput.v2.manager
 
+import android.net.Uri
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -73,6 +75,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DragHandle
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Icon
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
@@ -119,6 +125,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawer
 import com.zerostudio.idea.widget.editor.symbolinput.v2.rememberSymbolDrawerState
+import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.rememberJsonDocumentPicker
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 
@@ -136,7 +143,10 @@ fun SymbolDrawerManagerScreen(
     usageRepository: SymbolUsageRepository? = null,
     searchIncludesActionPayload: Boolean = false,
     sharedUsageState: SymbolDrawerUsageState? = null,
-    extensionRegistry: SymbolDrawerExtensionRegistry? = null
+    extensionRegistry: SymbolDrawerExtensionRegistry? = null,
+    onOpenSettings: (() -> Unit)? = null,
+    requestOpenDocument: (((Uri?) -> Unit) -> Unit)? = null,
+    requestCreateDocument: ((String, (Uri?) -> Unit) -> Unit)? = null
 ) {
     val manager = remember(repository) { SymbolGroupManager(repository) }
     val compositionScope = rememberCoroutineScope()
@@ -149,6 +159,7 @@ fun SymbolDrawerManagerScreen(
     var editingSymbol by remember { mutableStateOf<SymbolEntry?>(null) }
     var importDialog by remember { mutableStateOf(false) }
     var importJson by remember { mutableStateOf("") }
+    var pendingFileImportLegacy by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var selectedSymbolIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
     var dragWorkingOrder by remember { mutableStateOf<List<SymbolEntry>?>(null) }
@@ -172,6 +183,9 @@ fun SymbolDrawerManagerScreen(
     val recentFeatureVisible = extensionSnapshot.builtInVisibility[SymbolDrawerBuiltInFeatures.RECENT] ?: true
     val effectiveActions = availableActions.ifEmpty { extensionSnapshot.actions }
     var activeFilter by remember { mutableStateOf(SymbolManagerFilter.ALL) }
+    var favoritesDialog by remember { mutableStateOf(false) }
+    var recentDialog by remember { mutableStateOf(false) }
+    var draggingSymbolId by remember { mutableStateOf<Long?>(null) }
     var batchMode by remember { mutableStateOf(false) }
     var undoLabel by remember { mutableStateOf<String?>(null) }
     var operationMessage by remember { mutableStateOf<String?>(null) }
@@ -183,7 +197,6 @@ fun SymbolDrawerManagerScreen(
     var symbolMenuId by remember { mutableStateOf<Long?>(null) }
     var copyGroupSourceId by remember { mutableStateOf<String?>(null) }
     var moreMenuExpanded by remember { mutableStateOf(false) }
-    var importLegacyJson by remember { mutableStateOf(false) }
     var previewModeActive by remember { mutableStateOf(false) }
     var previewSnapshot by remember { mutableStateOf<List<SymbolGroup>?>(null) }
     var previewSelectedGroupId by remember { mutableStateOf<String?>(null) }
@@ -261,6 +274,34 @@ fun SymbolDrawerManagerScreen(
         }
         return completed
     }
+
+    val documentPicker = rememberJsonDocumentPicker(
+        contentResolver = context.contentResolver,
+        requestOpenDocument = { onResult ->
+            requestOpenDocument?.invoke(onResult)
+                ?: error("The host must provide an OpenDocument launcher")
+        },
+        requestCreateDocument = { fileName, onResult ->
+            requestCreateDocument?.invoke(fileName, onResult)
+                ?: error("The host must provide a CreateDocument launcher")
+        },
+        onImported = { json ->
+            runCatching {
+                val imported = if (pendingFileImportLegacy) {
+                    LegacySymbolDataCodec.decode(json)
+                } else {
+                    SymbolGroupBundleCodec.decode(json)
+                }
+                if (runUndoable("已导入分组数据") { manager.replaceAll(imported) }) {
+                    selectedGroupId = imported.firstOrNull()?.id
+                    pendingFileImportLegacy = false
+                    refresh()
+                }
+            }.onFailure { errorMessage = it.message ?: "JSON 文件导入失败" }
+        },
+        onExported = { operationMessage = "V1 兼容 JSON 文件已导出" },
+        onError = { errorMessage = it.message ?: "JSON 文件操作失败" }
+    )
 
     DisposableEffect(extensionRegistry) {
         val handle = extensionRegistry?.observe(emitCurrent = true) { snapshot ->
