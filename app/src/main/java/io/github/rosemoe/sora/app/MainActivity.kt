@@ -1462,7 +1462,16 @@ private fun MainActivityComposeContent(
                 SymbolDrawerManagerScreen(
                     repository = groupRepository,
                     onClose = { showManager = false },
-                    searchIncludesActionPayload = drawerSettings.searchIncludesActionPayload
+                    searchIncludesActionPayload = drawerSettings.searchIncludesActionPayload,
+                    onOpenSettings = { showSettings = true },
+                    requestOpenDocument = { onResult ->
+                        pendingOpenDocumentResult = onResult
+                        openJsonDocumentLauncher.launch(arrayOf("application/json"))
+                    },
+                    requestCreateDocument = { fileName, onResult ->
+                        pendingCreateDocumentResult = onResult
+                        createJsonDocumentLauncher.launch(fileName)
+                    }
                 )
             }
         }
