@@ -84,19 +84,19 @@ class ComposeMigrationContractTest {
         compose.runOnIdle { assertEquals(1, clicks) }
     }
 
-    @Test fun symbolDrawerExposesManagerEntryPoint() {
-        var opened = 0
+    @Test fun symbolDrawerDoesNotRenderRedundantManagerEntryPoint() {
         compose.setContent {
             MaterialTheme {
                 SymbolDrawer(
-                    groups = emptyList(),
+                    groups = groups(),
                     onSymbolClick = {},
-                    onOpenManager = { opened++ }
+                    onOpenManager = { error("Manager must not be exposed as a drawer header button") }
                 )
             }
         }
-        compose.onNodeWithText("Symbol manager").assertIsDisplayed().performClick()
-        compose.runOnIdle { assertEquals(1, opened) }
+        compose.onNodeWithText("First").assertIsDisplayed()
+        compose.onNodeWithText("Second").assertDoesNotExist()
+        compose.onAllNodesWithText("Symbol manager").assertCountEquals(0)
     }
 
     @Test fun drawerContainerUsesCompositionOwnedExpansionState() {
