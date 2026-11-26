@@ -1,19 +1,25 @@
 # Zero Symbol Input View V2 — Compose API Documentation
 
-This documentation targets `zero-symbol-input-view-v2-compose`. Its symbol drawer and generic Drawer UI are native Jetpack Compose APIs. The legacy `zero-symbol-input-view-v2` artifact is a separate Android View implementation.
+This directory documents only `zero-symbol-input-view-v2-compose`. Production Kotlin source is authoritative for signatures, visibility, default arguments and exception behavior.
 
 ## Documentation map
 
-01 Quick start · 02 SymbolDrawer Compose API · 03 Models and actions · 04 Action runtime · 05 Data and management · 06 Settings · 07 Universal Compose Drawer · 08 Navigation/panels/style · 09 Adaptive window · 10 API index · 11 Interaction/built-ins · 12 Extension framework · 13 Public packages · 14 Drawer API · 15 Symbol extensions · 16 Testing/release.
+| Documents | Scope |
+|---|---|
+| 01–06 | Quick start, symbol drawer, models/actions, action runtime, data management and settings |
+| 07–09 | Generic Compose Drawer, navigation/panels/style and adaptive window |
+| 10–13 | API index, interactions/built-ins, extension framework and editor-neutral contracts |
+| 14–16 | Drawer reference, symbol extension guide and testing/release/troubleshooting |
+| [17 Complete KDoc API reference](17-kdoc-api-reference.md) | Public API map, parameter contracts, state/thread/error and compatibility boundaries |
 
 ## Canonical packages
 
-- Compose symbol UI: `com.zerostudio.idea.widget.editor.symbolinput.v2`.
-- Symbol models/data/settings: `com.zerostudio.idea.widget.editor.symbolinput.v2.*`.
-- Generic Compose Drawer: `com.zerostudio.idea.widget.drawer.*`.
-- Editor-neutral actions: `com.zerostudio.idea.widget.drawer.action`.
+- Symbol UI: `com.zerostudio.idea.widget.editor.symbolinput.v2`
+- Symbol models/actions/data/settings: `com.zerostudio.idea.widget.editor.symbolinput.v2.*`
+- Generic Compose Drawer: `com.zerostudio.idea.widget.drawer.*`
+- Editor-neutral actions: `com.zerostudio.idea.widget.drawer.action`
 
-The former `com.zerostudio.idea.widget.editor.symbolinput.v2.drawer` namespace is no longer canonical.
+The generic Drawer source is physically located in `com.zerostudio.idea.widget.drawer.*`; the former symbol-input `.drawer` namespace is not canonical.
 
 ## Dependency
 
@@ -23,23 +29,26 @@ dependencies {
 }
 ```
 
-Use the Compose artifact's own published coordinates and a successfully published version. The View artifact's publication validation does not prove that the Compose artifact has been published.
+External Maven consumers must use the Compose artifact's actual published coordinates and a successfully published version. Do not reuse the View artifact coordinates.
 
-## Architecture layers
+## API selection
 
-1. Editor-neutral text/action contracts.
-2. Domain models, validation and action execution.
-3. Repositories, codecs and migration.
-4. Drawer anchors, state, geometry and interaction policy.
-5. Navigation, panels, adaptive layout and extensions.
-6. Compose UI and screens.
+- Symbol input: `SymbolDrawer` + `rememberSymbolDrawerState`
+- Generic drawer: `DrawerContainer` + `rememberDrawerContainerState`
+- Pages/panels: `DrawerPage`, `DrawerPageHost`, `DrawerPanelContent`
+- State/anchors: `DrawerStateHolder`, `DrawerController`, `DrawerAnchorStrategy`
+- Data: `SymbolGroupRepository`, `SymbolGroupManager`
+- Settings: `SymbolDrawerSettingsRepository`, `SymbolDrawerSettingsScreen`
+- Editor integration: `SymbolActionHost`, `SymbolTextDocument`
 
-Refactor bottom-up. Keep core/data/domain independent of UI rendering.
+## KDoc / Dokka
 
-## Lifecycle boundary
+Use standard KDoc for public Kotlin declarations. Document `@param`, `@return`, `@throws` and `@see` where applicable. Distinguish internal implementation, Composable slots, Kotlin typealiases and persistence contracts. A typealias is not a standalone Java class; a Composable slot is not a View factory.
 
-The Compose API does not require Activity, Fragment, ViewModel or LifecycleOwner as its page-state contract, and does not wrap legacy controls with AndroidView. Compose still has Composition, recomposition, remember scopes and effect cancellation. “Zero lifecycle” does not mean absence of all lifecycle semantics.
+## Composition boundary
+
+The module does not require Activity, Fragment, ViewModel or LifecycleOwner as its UI state contract. It creates no traditional Android Views and does not wrap legacy controls with AndroidView. Compose still has Composition, recomposition, remember and effect-cancellation semantics.
 
 ## Artifact separation
 
-The legacy artifact exposes View classes and View factories; this artifact exposes Composables and Composable slots. Their similarly named Drawer APIs are not interchangeable. Do not depend on both UI artifacts in the same app.
+The legacy View artifact exposes Android View classes/factories; this module exposes Composables/Composable slots. They are not interchangeable and should not both be included as an application's Drawer UI dependency.
