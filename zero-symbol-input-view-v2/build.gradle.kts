@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2026 android_zero
  *
- * SPDX-License-Identifier: AGPL-3.0-only AND GPL-3.0-only AND Apache-2.0
+ * SPDX-License-Identifier: AGPL-3.0-only
  *
  * License Information:
  *
@@ -102,7 +102,7 @@ afterEvaluate {
                     licenses {
                         license {
                             name.set(
-                                "AGPL-3.0-only AND GPL-3.0-only AND Apache-2.0"
+                                "AGPL-3.0-only"
                             )
                             url.set(
                                 "https://github.com/msmt2018/zero-Symbol-input-view"
