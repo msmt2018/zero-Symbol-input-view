@@ -57,6 +57,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -102,7 +104,29 @@ fun SymbolGroupIndicator(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (textMode) {
+        if (settings.indicatorStyle == GroupIndicatorStyle.TEXT_TABS) {
+            ScrollableTabRow(
+                selectedTabIndex = selected,
+                modifier = Modifier.weight(1f),
+                edgePadding = 0.dp,
+                containerColor = Color.Transparent,
+                contentColor = primaryColor
+            ) {
+                groups.forEachIndexed { index, group ->
+                    Tab(
+                        selected = index == selected,
+                        onClick = { onGroupSelected(index) },
+                        text = {
+                            Text(
+                                text = group.title,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    )
+                }
+            }
+        } else if (textMode) {
             LazyRow(
                 modifier = Modifier.weight(1f),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
