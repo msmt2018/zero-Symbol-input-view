@@ -192,6 +192,45 @@ class CustomAnchorStrategy(anchors: List<DrawerAnchor>) : DrawerAnchorStrategy {
     }
 }
 
+/**
+ * Four proportional resting positions for a screen-height drawer.
+ *
+ * Fractions are measured against the host viewport, then clamped to the
+ * configured minimum and maximum visible heights. The stable IDs are
+ * intentionally semantic so hosts can address each stage without depending
+ * on list order.
+ */
+data class FourStageAnchorStrategy(
+    val thirtyPercent: Float = 0.30f,
+    val fiftyPercent: Float = 0.50f,
+    val eightyPercent: Float = 0.80f
+) : DrawerAnchorStrategy {
+    init {
+        require(thirtyPercent.isFinite() && fiftyPercent.isFinite() && eightyPercent.isFinite())
+        require(thirtyPercent > 0f && thirtyPercent < fiftyPercent)
+        require(fiftyPercent < eightyPercent && eightyPercent < 1f)
+    }
+
+    override val id: String = ID
+
+    override fun resolve(input: DrawerAnchorInput): List<DrawerAnchor> {
+        val maximum = input.maxHeightPx.coerceAtLeast(input.minHeightPx)
+        fun height(fraction: Float): Int =
+            (input.viewportHeightPx * fraction).toInt().coerceIn(input.minHeightPx, maximum)
+
+        return listOf(
+            DrawerAnchor("peek", height(thirtyPercent), DrawerAnchorState.PEEK),
+            DrawerAnchor("half", height(fiftyPercent), DrawerAnchorState.HALF_EXPANDED),
+            DrawerAnchor("large", height(eightyPercent), DrawerAnchorState.CUSTOM),
+            DrawerAnchor("expanded", height(1f), DrawerAnchorState.EXPANDED)
+        )
+    }
+
+    companion object {
+        const val ID = "four-stage"
+    }
+}
+
 /** Named factories make the four supported policies explicit at call sites. */
 object DrawerAnchorStrategies {
     @JvmStatic fun existingHeight(): DrawerAnchorStrategy = ExistingHeightAnchorStrategy()
@@ -199,6 +238,11 @@ object DrawerAnchorStrategies {
         halfExpandedFraction: Float = 0.5f,
         useAutomaticPeekHeight: Boolean = true
     ): DrawerAnchorStrategy = ThreeStageAnchorStrategy(halfExpandedFraction, useAutomaticPeekHeight)
+    @JvmStatic fun fourStage(
+        thirtyPercent: Float = 0.30f,
+        fiftyPercent: Float = 0.50f,
+        eightyPercent: Float = 0.80f
+    ): DrawerAnchorStrategy = FourStageAnchorStrategy(thirtyPercent, fiftyPercent, eightyPercent)
     @JvmStatic fun contentBased(): DrawerAnchorStrategy = ContentBasedAnchorStrategy()
     @JvmStatic fun custom(anchors: List<DrawerAnchor>): DrawerAnchorStrategy = CustomAnchorStrategy(anchors)
 }
