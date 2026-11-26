@@ -149,9 +149,7 @@ import java.util.zip.ZipFile
 import java.util.regex.PatternSyntaxException
 import com.zerostudio.idea.widget.drawer.action.SymbolActionExecutor
 import com.zerostudio.idea.widget.drawer.action.SymbolActionResult
-import com.zerostudio.idea.widget.editor.symbolinput.v2.manager.SymbolDrawerManagerScreen
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SharedPreferencesSymbolDrawerSettingsRepository
-import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettingsScreen
 
 
 /**
@@ -1163,39 +1161,6 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             e.printStackTrace()
         }
-    }
-
-    private fun showSymbolDrawerSettings(drawer: SymbolDrawerView) {
-        val settings = SymbolDrawerSettingsScreen(this).apply {
-            onSettingsChanged = drawer::applySettings
-            onError = { error ->
-                Toast.makeText(this@MainActivity, "设置保存失败：${error.message}", Toast.LENGTH_LONG).show()
-            }
-        }
-        MaterialAlertDialogBuilder(this)
-            .setTitle("符号抽屉设置")
-            .setView(settings)
-            .setPositiveButton("完成", null)
-            .show()
-    }
-
-    private fun showSymbolDrawerManager(drawer: SymbolDrawerView) {
-        val manager = SymbolDrawerManagerScreen(this).apply {
-            onError = { error ->
-                Toast.makeText(this@MainActivity, "符号管理失败：${error.message}", Toast.LENGTH_LONG).show()
-            }
-        }
-        // Use the V2 manager-to-drawer binding as the single live update path.
-        // It synchronizes committed repository snapshots immediately and also
-        // connects the toolbar's usage callback to the manager's recent list.
-        val drawerBinding = manager.bindToDrawer(drawer)
-        MaterialAlertDialogBuilder(this)
-            .setTitle("符号管理")
-            .setView(manager)
-            .setPositiveButton("关闭", null)
-            .setNeutralButton("设置") { _, _ -> showSymbolDrawerSettings(drawer) }
-            .setOnDismissListener { drawerBinding.close() }
-            .show()
     }
 
     override fun onResume() {
