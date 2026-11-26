@@ -46,8 +46,6 @@
 package com.zerostudio.idea.widget.editor.symbolinput.v2.settings
 
 import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -104,7 +102,9 @@ fun SymbolDrawerSettingsScreen(
     onSettingsChange: (SymbolDrawerSettings) -> Unit,
     modifier: Modifier = Modifier,
     onReset: (() -> Unit)? = null,
-    groupRepository: SymbolGroupRepository? = null
+    groupRepository: SymbolGroupRepository? = null,
+    requestOpenDocument: (((Uri?) -> Unit) -> Unit)? = null,
+    requestCreateDocument: ((String, (Uri?) -> Unit) -> Unit)? = null
 ) {
     // View V2 always follows the host system theme. Keep the same persisted
     // value instead of exposing independent light/dark controls in Compose.
@@ -127,31 +127,19 @@ fun SymbolDrawerSettingsScreen(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var feedbackMessage by remember { mutableStateOf<String?>(null) }
     var pendingFileImportGroups by remember { mutableStateOf(false) }
-    var pendingOpenResult by remember { mutableStateOf<((Uri?) -> Unit)?>(null) }
-    var pendingCreateResult by remember { mutableStateOf<((Uri?) -> Unit)?>(null) }
     val clipboard = LocalClipboardManager.current
     val context = LocalContext.current
-    val openDocumentLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        pendingOpenResult?.invoke(uri)
-        pendingOpenResult = null
-    }
-    val createDocumentLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument("application/json")
-    ) { uri ->
-        pendingCreateResult?.invoke(uri)
-        pendingCreateResult = null
-    }
     val documentPicker = rememberJsonDocumentPicker(
         contentResolver = context.contentResolver,
         requestOpenDocument = { onResult ->
-            pendingOpenResult = onResult
-            openDocumentLauncher.launch(arrayOf("*/*"))
+            val request = requestOpenDocument
+                ?: error("The host must provide an OpenDocument launcher")
+            request(onResult)
         },
         requestCreateDocument = { fileName, onResult ->
-            pendingCreateResult = onResult
-            createDocumentLauncher.launch(fileName)
+            val request = requestCreateDocument
+                ?: error("The host must provide a CreateDocument launcher")
+            request(fileName, onResult)
         },
         onImported = { json ->
             runCatching {
