@@ -353,6 +353,25 @@ fun SymbolDrawer(
         // this parent connection when it reaches the first row.
         val fullyExpanded = expansionFraction >= 0.999f
         val expandedAtGestureStart = rememberUpdatedState(fullyExpanded)
+        val indicatorDragBoundaryPx = with(density) {
+            layoutConfig.indicatorHeightDp.dp.toPx()
+        }
+        val indicatorBoundaryAtGestureStart = rememberUpdatedState(indicatorDragBoundaryPx)
+        // Keep these callbacks stable across anchor changes. If they were
+        // replaced when the drawer left the expanded anchor, an active child
+        // pointerInput gesture would be cancelled before UP.
+        val expandedSheetDragStart = remember(holder) { { holder.beginDrag() } }
+        val expandedSheetDrag = remember(holder) { { delta: Float -> holder.dragBy(delta) } }
+        val expandedSheetDragEnd = remember(holder, minimumFlingVelocity) {
+            { velocity: Float ->
+                if (holder.isDragging) {
+                    holder.endDrag(
+                        fingerVelocityY = velocity,
+                        minimumFlingVelocityPxPerSecond = minimumFlingVelocity
+                    )
+                }
+            }
+        }
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -363,6 +382,7 @@ fun SymbolDrawer(
                         val down = awaitFirstDown(requireUnconsumed = false)
                         val pointerId = down.id
                         val isExpandedAtDown = expandedAtGestureStart.value
+                        val dragFromIndicator = down.position.y <= indicatorBoundaryAtGestureStart.value
                         val velocityTracker = VelocityTracker()
                         velocityTracker.addPosition(down.uptimeMillis, down.position)
                         var lastPosition = down.position
@@ -390,7 +410,12 @@ fun SymbolDrawer(
                                     // Snapshot expansion only when the gesture starts.
                                     // Reaching the expanded anchor mid-drag must not disable
                                     // this pointer pipeline before UP and strand isDragging.
-                                    if (axis == 2 && !isExpandedAtDown) {
+                                    val shouldOwnDirectDrag = axis == 2 && when {
+                                        !isExpandedAtDown -> total.y < 0f
+                                        dragFromIndicator -> total.y > 0f
+                                        else -> false
+                                    }
+                                    if (shouldOwnDirectDrag) {
                                         holder.beginDrag()
                                         ownsDirectDrag = true
                                     }
@@ -474,27 +499,12 @@ fun SymbolDrawer(
                                 onSymbolClick(entry)
                             },
                             onSymbolLongClick = onSymbolLongClick,
-                            // At the maximum anchor, the grid owns vertical
-                            // scrolling until it reaches its first item. Only
-                            // then does its pointer-arbitration layer hand a
-                            // downward drag to the drawer, matching View V2's
-                            // childCanScrollUp interception rule.
-                            onExpandedSheetDragStart = if (fullyExpanded) {
-                                { holder.beginDrag() }
-                            } else null,
-                            onExpandedSheetDrag = if (fullyExpanded) {
-                                { delta -> holder.dragBy(delta) }
-                            } else null,
-                            onExpandedSheetDragEnd = if (fullyExpanded) {
-                                { velocity ->
-                                    if (holder.isDragging) {
-                                        holder.endDrag(
-                                            fingerVelocityY = velocity,
-                                            minimumFlingVelocityPxPerSecond = minimumFlingVelocity
-                                        )
-                                    }
-                                }
-                            } else null
+                            // The grid keeps ownership while it can scroll
+                            // backward; once at its first item it hands a
+                            // downward drag to the drawer, matching View V2.
+                            onExpandedSheetDragStart = expandedSheetDragStart,
+                            onExpandedSheetDrag = expandedSheetDrag,
+                            onExpandedSheetDragEnd = expandedSheetDragEnd
                         )
                     }
                 }
