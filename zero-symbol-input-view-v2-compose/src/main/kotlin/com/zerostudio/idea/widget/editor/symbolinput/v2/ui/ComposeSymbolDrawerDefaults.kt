@@ -8,7 +8,7 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.ui
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.res.stringResource
-import com.zerostudio.idea.widget.editor.symbolinput.v2.R
+import com.zerostudio.idea.widget.editor.symbolinput.v2.compose.R
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolDrawerDefaultGroups
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 
