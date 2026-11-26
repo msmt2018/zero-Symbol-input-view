@@ -17,7 +17,14 @@ data class AdaptiveGridSpec(
     }
 }
 
-/** Resolves a grid that can reflow inside a fixed-height host without changing host geometry. */
+/**
+ * Resolves a responsive grid from the width actually allocated by its parent.
+ *
+ * The preferred column count is an upper bound. Each cell is kept at least
+ * [minimumCellWidthDp] wide whenever the available width permits it. Negative
+ * spacing remains supported for the symbol drawer's compact presentation, but
+ * it is not allowed to make the column-count calculation divide by zero.
+ */
 object AdaptiveGridResolver {
     fun resolve(
         window: WindowAdaptiveInfo,
@@ -26,35 +33,56 @@ object AdaptiveGridResolver {
         baseHorizontalSpacingDp: Int,
         adaptive: Boolean = true,
         baseVerticalSpacingDp: Int = baseHorizontalSpacingDp,
-        lockColumnCount: Boolean = false
+        lockColumnCount: Boolean = false,
+        compactHeightVerticalSpacingScale: Float = 0.75f
     ): AdaptiveGridSpec {
         require(preferredColumns >= 1)
         require(minimumCellWidthDp.isFinite() && minimumCellWidthDp > 0f)
-        // Settings are validated at persistence boundaries, but DrawerConfig is
-        // also a public runtime input and may be supplied by older hosts. Clamp
-        // it here so a layout callback can never crash the UI thread because a
-        // host passed an out-of-range spacing value.
-        val safeHorizontalSpacing = baseHorizontalSpacingDp.coerceIn(-24, 48)
-        val safeVerticalSpacing = baseVerticalSpacingDp.coerceIn(-24, 48)
-        if (!adaptive) return AdaptiveGridSpec(
-            preferredColumns,
-            safeHorizontalSpacing,
-            safeVerticalSpacing
+        require(
+            compactHeightVerticalSpacingScale.isFinite() &&
+                compactHeightVerticalSpacingScale in 0f..1f
         )
 
-        val spacingAdjustment = when (window.sizeClass) {
-            WindowSizeClass.COMPACT -> 0
-            WindowSizeClass.MEDIUM -> 1
-            WindowSizeClass.EXPANDED -> 3
+        // Runtime config can originate from an older host or persisted user
+        // settings. Clamp only to the supported spacing range; do not silently
+        // add size-class spacing, which would override the user's chosen value.
+        val horizontalSpacing = baseHorizontalSpacingDp.coerceIn(-24, 48)
+        val configuredVerticalSpacing = baseVerticalSpacingDp.coerceIn(-24, 48)
+        val verticalSpacing = if (window.availableHeightDp < COMPACT_HEIGHT_UPPER_BOUND_DP &&
+            configuredVerticalSpacing > 0
+        ) {
+            (configuredVerticalSpacing * compactHeightVerticalSpacingScale).toInt()
+        } else {
+            configuredVerticalSpacing
         }
-        val spacing = (safeHorizontalSpacing + spacingAdjustment).coerceIn(-24, 48)
-        val verticalSpacing = (safeVerticalSpacing + spacingAdjustment).coerceIn(-24, 48)
-        val effectiveSpacing = spacing.coerceAtLeast(0)
-        val columns = if (lockColumnCount) preferredColumns else {
-            (window.availableWidthDp / (minimumCellWidthDp + effectiveSpacing))
+
+        if (!adaptive || lockColumnCount) {
+            return AdaptiveGridSpec(
+                columnCount = preferredColumns,
+                horizontalSpacingDp = horizontalSpacing,
+                verticalSpacingDp = verticalSpacing
+            )
+        }
+
+        val availableWidth = window.availableWidthDp.coerceAtLeast(0f)
+        val effectiveSpacing = horizontalSpacing.coerceAtLeast(0).toFloat()
+        val minimumTrackWidth = minimumCellWidthDp + effectiveSpacing
+        val fittingColumns = if (availableWidth < minimumCellWidthDp) {
+            1
+        } else {
+            // GridCells.Adaptive packs the maximum number of minimum-sized
+            // tracks and distributes the remaining cross-axis space evenly.
+            ((availableWidth + effectiveSpacing) / minimumTrackWidth)
                 .toInt()
-                .coerceIn(1, preferredColumns)
+                .coerceAtLeast(1)
         }
-        return AdaptiveGridSpec(columns, spacing, verticalSpacing)
+
+        return AdaptiveGridSpec(
+            columnCount = fittingColumns.coerceAtMost(preferredColumns),
+            horizontalSpacingDp = horizontalSpacing,
+            verticalSpacingDp = verticalSpacing
+        )
     }
+
+    private const val COMPACT_HEIGHT_UPPER_BOUND_DP = 480f
 }

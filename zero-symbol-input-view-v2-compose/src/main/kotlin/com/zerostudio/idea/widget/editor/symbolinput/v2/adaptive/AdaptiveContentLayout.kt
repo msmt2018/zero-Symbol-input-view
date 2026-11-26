@@ -26,25 +26,42 @@ data class AdaptiveContentLayoutPolicy(
     val compactMaxWidthDp: Float = 560f,
     val mediumMaxWidthDp: Float = 840f,
     val expandedMaxWidthDp: Float = 1040f,
+    val largeMaxWidthDp: Float = 1200f,
+    val extraLargeMaxWidthDp: Float = 1440f,
     val compactPaddingDp: Float = 12f,
     val mediumPaddingDp: Float = 24f,
     val expandedPaddingDp: Float = 32f,
+    val largePaddingDp: Float = 40f,
+    val extraLargePaddingDp: Float = 48f,
     val compactDialogFraction: Float = 0.96f,
     val mediumDialogFraction: Float = 0.88f,
     val expandedDialogFraction: Float = 0.72f,
-    val twoColumnBreakpointDp: Float = 840f
+    val largeDialogFraction: Float = 0.64f,
+    val extraLargeDialogFraction: Float = 0.56f,
+    val twoColumnBreakpointDp: Float = 840f,
+    val threeColumnBreakpointDp: Float = 1200f,
+    val fourColumnBreakpointDp: Float = 1600f
 ) {
     init {
-        require(compactMaxWidthDp.isFinite() && compactMaxWidthDp > 0f)
-        require(mediumMaxWidthDp.isFinite() && mediumMaxWidthDp >= compactMaxWidthDp)
-        require(expandedMaxWidthDp.isFinite() && expandedMaxWidthDp >= mediumMaxWidthDp)
-        require(compactPaddingDp.isFinite() && compactPaddingDp >= 0f)
-        require(mediumPaddingDp.isFinite() && mediumPaddingDp >= 0f)
-        require(expandedPaddingDp.isFinite() && expandedPaddingDp >= 0f)
-        require(compactDialogFraction.isFinite() && compactDialogFraction in 0.5f..1f)
-        require(mediumDialogFraction.isFinite() && mediumDialogFraction in 0.5f..1f)
-        require(expandedDialogFraction.isFinite() && expandedDialogFraction in 0.5f..1f)
+        val widths = listOf(
+            compactMaxWidthDp, mediumMaxWidthDp, expandedMaxWidthDp,
+            largeMaxWidthDp, extraLargeMaxWidthDp
+        )
+        require(widths.all { it.isFinite() && it > 0f })
+        require(widths.zipWithNext().all { (a, b) -> b >= a })
+        val paddings = listOf(
+            compactPaddingDp, mediumPaddingDp, expandedPaddingDp,
+            largePaddingDp, extraLargePaddingDp
+        )
+        require(paddings.all { it.isFinite() && it >= 0f })
+        val fractions = listOf(
+            compactDialogFraction, mediumDialogFraction, expandedDialogFraction,
+            largeDialogFraction, extraLargeDialogFraction
+        )
+        require(fractions.all { it.isFinite() && it in 0.5f..1f })
         require(twoColumnBreakpointDp.isFinite() && twoColumnBreakpointDp > 0f)
+        require(threeColumnBreakpointDp >= twoColumnBreakpointDp)
+        require(fourColumnBreakpointDp >= threeColumnBreakpointDp)
     }
 }
 
@@ -52,19 +69,50 @@ object AdaptiveContentLayoutResolver {
     fun resolve(
         window: WindowAdaptiveInfo,
         policy: AdaptiveContentLayoutPolicy = AdaptiveContentLayoutPolicy()
-    ): AdaptiveContentLayoutSpec = when (window.sizeClass) {
-        WindowSizeClass.COMPACT -> AdaptiveContentLayoutSpec(
-            policy.compactMaxWidthDp, policy.compactPaddingDp, 8f, 1,
-            policy.compactDialogFraction
-        )
-        WindowSizeClass.MEDIUM -> AdaptiveContentLayoutSpec(
-            policy.mediumMaxWidthDp, policy.mediumPaddingDp, 12f, 1,
-            policy.mediumDialogFraction
-        )
-        WindowSizeClass.EXPANDED -> AdaptiveContentLayoutSpec(
-            policy.expandedMaxWidthDp, policy.expandedPaddingDp, 16f,
-            if (window.availableWidthDp >= policy.twoColumnBreakpointDp) 2 else 1,
-            policy.expandedDialogFraction
+    ): AdaptiveContentLayoutSpec {
+        val width = window.availableWidthDp
+        val height = window.availableHeightDp
+
+        // These match Android's current width window-size breakpoints. Large
+        // and extra-large windows retain a bounded reading/content measure
+        // instead of stretching settings and management surfaces edge-to-edge.
+        val (targetMaxWidth, padding, dialogFraction, columns) = when {
+            width < 600f -> Quadruple(
+                policy.compactMaxWidthDp, policy.compactPaddingDp,
+                policy.compactDialogFraction, 1
+            )
+            width < 840f -> Quadruple(
+                policy.mediumMaxWidthDp, policy.mediumPaddingDp,
+                policy.mediumDialogFraction, 1
+            )
+            width < 1200f -> Quadruple(
+                policy.expandedMaxWidthDp, policy.expandedPaddingDp,
+                policy.expandedDialogFraction, 2
+            )
+            width < 1600f -> Quadruple(
+                policy.largeMaxWidthDp, policy.largePaddingDp,
+                policy.largeDialogFraction, 3
+            )
+            else -> Quadruple(
+                policy.extraLargeMaxWidthDp, policy.extraLargePaddingDp,
+                policy.extraLargeDialogFraction, 4
+            )
+        }
+
+        val availableContentWidth = (width - padding * 2f).coerceAtLeast(1f)
+        val maxContentWidth = minOf(targetMaxWidth, availableContentWidth)
+        val verticalSpacing = when {
+            height < 480f -> 8f
+            height < 900f -> 12f
+            else -> 16f
+        }
+
+        return AdaptiveContentLayoutSpec(
+            maxContentWidthDp = maxContentWidth,
+            horizontalPaddingDp = minOf(padding, (width - 1f).coerceAtLeast(0f) / 2f),
+            verticalSpacingDp = verticalSpacing,
+            cardColumns = columns,
+            dialogWidthFraction = dialogFraction
         )
     }
 
@@ -76,11 +124,22 @@ object AdaptiveContentLayoutResolver {
     ): Int {
         require(windowWidthPx >= 0 && density.isFinite() && density > 0f)
         val spec = resolve(window, policy)
-        val availablePx = (window.availableWidthDp.toDouble() * density.toDouble())
+        val availableWidthPx = (window.availableWidthDp.toDouble() * density.toDouble())
             .coerceAtMost(Int.MAX_VALUE.toDouble()).toInt().coerceAtLeast(0)
-        val fractionWidth = (availablePx * spec.dialogWidthFraction).toInt()
-        val maxWidth = (spec.maxContentWidthDp.toDouble() * density.toDouble())
+        val horizontalInsetPx = (spec.horizontalPaddingDp.toDouble() * density.toDouble())
+            .coerceAtMost(Int.MAX_VALUE.toDouble()).toInt().coerceAtLeast(0)
+        val usableWindowPx = (availableWidthPx - horizontalInsetPx * 2).coerceAtLeast(0)
+        val fractionWidthPx = (usableWindowPx * spec.dialogWidthFraction).toInt()
+        val contentMaxWidthPx = (spec.maxContentWidthDp.toDouble() * density.toDouble())
             .coerceAtMost(Int.MAX_VALUE.toDouble()).toInt()
-        return minOf(windowWidthPx, fractionWidth, maxWidth).coerceAtLeast(0)
+        return minOf(windowWidthPx, usableWindowPx, fractionWidthPx, contentMaxWidthPx)
+            .coerceAtLeast(0)
     }
+
+    private data class Quadruple(
+        val maxWidth: Float,
+        val padding: Float,
+        val dialogFraction: Float,
+        val columns: Int
+    )
 }
