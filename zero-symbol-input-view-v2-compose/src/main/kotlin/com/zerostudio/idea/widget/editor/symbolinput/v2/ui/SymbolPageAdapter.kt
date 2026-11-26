@@ -64,11 +64,11 @@ import kotlin.math.abs
 /**
  * Composition-native replacement for the former RecyclerView/ListAdapter page.
  *
- * The grid owns its scroll state. When the sheet is fully expanded, a downward
- * gesture is offered to the sheet only after the grid reaches its first item;
- * upward gestures and downward gestures while the grid can scroll backward
- * remain owned by the grid. This gives a short/non-scrollable grid a reliable
- * way to collapse the sheet without stealing normal symbol-list scrolling.
+ * The grid owns its scroll state. While grid scrolling is enabled, downward
+ * gestures remain with the grid until it reaches its first item. When grid
+ * scrolling is disabled by a collapsed/partial sheet anchor, downward gestures
+ * are handed directly to the sheet even if the grid retains an old scroll
+ * offset. Upward gestures remain available to the outer drawer gesture owner.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -126,8 +126,8 @@ fun SymbolPage(
                         if (!crossedSlop) continue
 
                         // Horizontal paging and upward grid scrolling always
-                        // remain with descendants. The sheet claims only a
-                        // downward gesture when the grid is already at its top.
+                        // remain with descendants. The sheet claims downward
+                        // motion when the grid is disabled or has reached its top.
                         if (abs(accumulatedX) >= abs(accumulatedY) ||
                             accumulatedY <= 0f ||
                             (latestUserScrollEnabled.value && gridState.canScrollBackward)
