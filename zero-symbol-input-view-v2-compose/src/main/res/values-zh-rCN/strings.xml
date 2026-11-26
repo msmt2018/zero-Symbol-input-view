@@ -391,8 +391,8 @@
     <string name="compose_manager_title">符号管理</string>
     <string name="compose_manager_close">关闭</string>
     <string name="compose_manager_add_group">新建分组</string>
-    <string name="compose_manager_export">复制 JSON</string>
-    <string name="compose_manager_import">导入 JSON</string>
+    <string name="compose_manager_export">导出到剪贴板</string>
+    <string name="compose_manager_import">剪切板导入</string>
     <string name="compose_manager_groups">分组</string>
     <string name="compose_manager_rename">重命名</string>
     <string name="compose_manager_delete">删除</string>
@@ -407,7 +407,7 @@
     <string name="compose_manager_edit_symbol">编辑符号</string>
     <string name="compose_manager_symbol_label">符号标签</string>
     <string name="compose_manager_insert_text">插入文本动作</string>
-    <string name="compose_manager_import_title">导入符号分组</string>
+    <string name="compose_manager_import_title">剪切板导入</string>
     <string name="compose_manager_json">JSON</string>
     <string name="compose_manager_error">操作失败</string>
     <string name="compose_manager_ok">确定</string>
@@ -421,10 +421,18 @@
     <string name="compose_manager_undo_message">操作已完成</string>
     <string name="compose_manager_undo">撤销</string>
     <string name="compose_manager_more">更多</string>
-    <string name="compose_manager_export_legacy">导出 V1 兼容 JSON</string>
-    <string name="compose_manager_import_legacy">导入 V1 兼容 JSON</string>
+    <string name="compose_manager_export_legacy">导出 V1 兼容 JSON 文件</string>
+    <string name="compose_manager_import_legacy">导入 V1 兼容 JSON 文件</string>
     <string name="compose_manager_preview">预览工具栏</string>
     <string name="compose_manager_restore_preview">恢复预览前数据</string>
     <string name="compose_manager_finish_preview">结束预览</string>
     <string name="compose_manager_confirm_delete_group">确定删除此分组？</string>
+    <string name="compose_manager_settings">设置</string>
+    <string name="compose_manager_clipboard_import">剪切板导入</string>
+    <string name="compose_manager_paste_clipboard">从剪贴板粘贴</string>
+    <string name="compose_manager_drag_preview">正在调整排序：%1$s</string>
+    <string name="compose_manager_drag_cancel">取消排序</string>
+    <string name="compose_manager_favorites_title">收藏</string>
+    <string name="compose_manager_recent_title">最近使用</string>
+    <string name="compose_manager_empty_usage">当前列表为空。</string>
 </resources>
