@@ -425,41 +425,44 @@ fun SymbolDrawerManagerScreen(
         }
         HorizontalDivider()
         Text(stringResource(R.string.compose_manager_groups), style = MaterialTheme.typography.titleMedium)
-        LazyColumn(
-            modifier = Modifier.fillMaxWidth().weight(0.42f),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+        val selectedGroupIndex = groups.indexOfFirst { it.id == selectedGroupId }.coerceAtLeast(0)
+        androidx.compose.material3.ScrollableTabRow(
+            selectedTabIndex = selectedGroupIndex,
+            modifier = Modifier.fillMaxWidth(),
+            edgePadding = 0.dp
         ) {
-            itemsIndexed(groups, key = { _, group -> group.id }) { index, group ->
-                Card {
-                    Row(
-                        Modifier.fillMaxWidth().padding(8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        TextButton(onClick = {
-                            selectedGroupId = group.id
-                            selectedSymbolIds = emptySet()
-                        }, modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = if (selectedGroupId == group.id) "● ${group.title}" else group.title,
-                                color = if (selectedGroupId == group.id) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                        TextButton(enabled = index > 0, onClick = {
-                            runUndoable { manager.moveGroup(index, index - 1) }
-                        }) { Text("↑") }
-                        TextButton(enabled = index < groups.lastIndex, onClick = {
-                            runUndoable { manager.moveGroup(index, index + 1) }
-                        }) { Text("↓") }
-                        TextButton(onClick = {
-                            editingGroupId = group.id
-                            groupName = group.title
-                            groupDialog = true
-                        }) { Text(stringResource(R.string.compose_manager_rename)) }
-                        TextButton(onClick = { deleteGroupId = group.id }) {
-                            Text(stringResource(R.string.compose_manager_delete))
-                        }
-                    }
+            groups.forEachIndexed { index, group ->
+                androidx.compose.material3.Tab(
+                    selected = index == selectedGroupIndex,
+                    onClick = {
+                        selectedGroupId = group.id
+                        selectedSymbolIds = emptySet()
+                    },
+                    text = { Text(group.title, maxLines = 1) }
+                )
+            }
+        }
+        selectedGroup?.let { group ->
+            val groupIndex = groups.indexOfFirst { it.id == group.id }
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+            ) {
+                Text(group.title, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
+                TextButton(enabled = groupIndex > 0, onClick = {
+                    runUndoable { manager.moveGroup(groupIndex, groupIndex - 1) }
+                }) { Text("↑") }
+                TextButton(enabled = groupIndex < groups.lastIndex, onClick = {
+                    runUndoable { manager.moveGroup(groupIndex, groupIndex + 1) }
+                }) { Text("↓") }
+                TextButton(onClick = {
+                    editingGroupId = group.id
+                    groupName = group.title
+                    groupDialog = true
+                }) { Text(stringResource(R.string.compose_manager_rename)) }
+                TextButton(onClick = { deleteGroupId = group.id }) {
+                    Text(stringResource(R.string.compose_manager_delete))
                 }
             }
         }
