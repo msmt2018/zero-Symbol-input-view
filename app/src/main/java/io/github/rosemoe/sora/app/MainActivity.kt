@@ -1282,8 +1282,32 @@ private fun MainActivityComposeContent(
                     )
                     androidx.compose.material3.HorizontalDivider()
                     androidx.compose.material3.DropdownMenuItem(
-                        text = { Text("光标移动：行首/行尾/上下左右") },
+                        text = { Text("光标移至行尾") },
                         onClick = { overflowMenuExpanded = false; onMenuAction(R.id.goto_end) }
+                    )
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("光标上移") },
+                        onClick = { overflowMenuExpanded = false; onMenuAction(R.id.move_up) }
+                    )
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("光标下移") },
+                        onClick = { overflowMenuExpanded = false; onMenuAction(R.id.move_down) }
+                    )
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("光标左移") },
+                        onClick = { overflowMenuExpanded = false; onMenuAction(R.id.move_left) }
+                    )
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("光标右移") },
+                        onClick = { overflowMenuExpanded = false; onMenuAction(R.id.move_right) }
+                    )
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("光标移至行首") },
+                        onClick = { overflowMenuExpanded = false; onMenuAction(R.id.home) }
+                    )
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("光标移至文档末尾") },
+                        onClick = { overflowMenuExpanded = false; onMenuAction(R.id.end) }
                     )
                     androidx.compose.material3.DropdownMenuItem(
                         text = { Text("切换自动换行") },
