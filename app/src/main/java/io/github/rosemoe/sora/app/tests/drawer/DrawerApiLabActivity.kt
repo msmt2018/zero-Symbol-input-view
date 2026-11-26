@@ -199,11 +199,11 @@ private fun DrawerApiLabScreen() {
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        AnchorButton("30%", "peek", selectedAnchor) {
+                        AnchorButton("30%", "peek", selectedAnchor, Modifier.weight(1f)) {
                             selectedAnchor = it
                             drawerState.controller.moveToAnchor(it)
                         }
-                        AnchorButton("50%", "half", selectedAnchor) {
+                        AnchorButton("50%", "half", selectedAnchor, Modifier.weight(1f)) {
                             selectedAnchor = it
                             drawerState.controller.moveToAnchor(it)
                         }
@@ -212,11 +212,11 @@ private fun DrawerApiLabScreen() {
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        AnchorButton("80%", "large", selectedAnchor) {
+                        AnchorButton("80%", "large", selectedAnchor, Modifier.weight(1f)) {
                             selectedAnchor = it
                             drawerState.controller.moveToAnchor(it)
                         }
-                        AnchorButton("100%", "expanded", selectedAnchor) {
+                        AnchorButton("100%", "expanded", selectedAnchor, Modifier.weight(1f)) {
                             selectedAnchor = it
                             drawerState.controller.moveToAnchor(it)
                         }
@@ -275,12 +275,13 @@ private fun AnchorButton(
     label: String,
     anchorId: String,
     selectedAnchor: String,
+    modifier: Modifier = Modifier,
     onSelect: (String) -> Unit
 ) {
     val selected = selectedAnchor == anchorId
     Button(
         onClick = { onSelect(anchorId) },
-        modifier = Modifier.weight(1f)
+        modifier = modifier
     ) {
         Text(if (selected) "✓ $label" else label)
     }
