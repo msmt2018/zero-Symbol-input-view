@@ -1206,6 +1206,78 @@ fun SymbolDrawerManagerScreen(
         )
     }
 
+    if (favoritesDialog) {
+        val favoriteEntries = groups.flatMap { group ->
+            group.symbols.filter { it.id in usageSnapshot.favorites }.map { group.title to it }
+        }
+        AlertDialog(
+            onDismissRequest = { favoritesDialog = false },
+            title = { Text(stringResource(R.string.compose_manager_favorites_title)) },
+            text = {
+                if (favoriteEntries.isEmpty()) {
+                    Text(stringResource(R.string.compose_manager_empty_usage))
+                } else {
+                    Column(
+                        Modifier.fillMaxWidth().heightIn(max = 440.dp).verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        favoriteEntries.forEach { (groupTitle, symbol) ->
+                            Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                                Text(symbol.label, style = MaterialTheme.typography.titleSmall)
+                                Text(groupTitle, style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            HorizontalDivider(thickness = 0.5.dp)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { favoritesDialog = false }) {
+                    Text(stringResource(R.string.compose_manager_close))
+                }
+            }
+        )
+    }
+
+    if (recentDialog) {
+        val groupTitlesBySymbol = groups.flatMap { group ->
+            group.symbols.map { it.id to group.title }
+        }.toMap()
+        val symbolsById = groups.flatMap { it.symbols }.associateBy { it.id }
+        val recentEntries = usageSnapshot.recent.mapNotNull { id ->
+            symbolsById[id]?.let { symbol -> (groupTitlesBySymbol[id].orEmpty()) to symbol }
+        }
+        AlertDialog(
+            onDismissRequest = { recentDialog = false },
+            title = { Text(stringResource(R.string.compose_manager_recent_title)) },
+            text = {
+                if (recentEntries.isEmpty()) {
+                    Text(stringResource(R.string.compose_manager_empty_usage))
+                } else {
+                    Column(
+                        Modifier.fillMaxWidth().heightIn(max = 440.dp).verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        recentEntries.forEach { (groupTitle, symbol) ->
+                            Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                                Text(symbol.label, style = MaterialTheme.typography.titleSmall)
+                                Text(groupTitle, style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            HorizontalDivider(thickness = 0.5.dp)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { recentDialog = false }) {
+                    Text(stringResource(R.string.compose_manager_close))
+                }
+            }
+        )
+    }
+
     if (importDialog) {
         AlertDialog(
             onDismissRequest = { importDialog = false },
