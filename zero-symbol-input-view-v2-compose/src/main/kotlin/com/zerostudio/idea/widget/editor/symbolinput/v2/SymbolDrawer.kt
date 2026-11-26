@@ -309,8 +309,17 @@ fun SymbolDrawer(
             }
         }
 
-        val drawerHeight = with(density) { animatedHeightPx.toDp() }
-        val expansionFraction = ((animatedHeightPx - collapsedHeightPx).toFloat() /
+        // Render the state-holder's exact pixel position while a finger owns
+        // the gesture. Feeding every pointer delta through animateIntAsState
+        // adds a frame of lag and lets the indicator/grid threshold oscillate
+        // around the expanded anchor during fast drags.
+        val renderedHeightPx = if (drawerSnapshot.isDragging) {
+            drawerSnapshot.currentHeightPx
+        } else {
+            animatedHeightPx
+        }
+        val drawerHeight = with(density) { renderedHeightPx.toDp() }
+        val expansionFraction = ((renderedHeightPx - collapsedHeightPx).toFloat() /
             (expandedHeightPx - collapsedHeightPx).coerceAtLeast(1)).coerceIn(0f, 1f)
         val revealedIndicatorHeight =
             (layoutConfig.indicatorHeightDp * expansionFraction).coerceAtLeast(0f).dp
