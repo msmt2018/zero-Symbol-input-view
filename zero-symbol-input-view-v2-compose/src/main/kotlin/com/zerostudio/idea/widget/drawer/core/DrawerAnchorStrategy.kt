@@ -61,6 +61,10 @@ interface DrawerAnchorStrategy {
     /** Stable semantic identifier; must be non-blank. */
     val id: String
 
+    /** Whether this policy intentionally supports a fully hidden (zero-height) anchor. */
+    val allowsHiddenAnchor: Boolean
+        get() = false
+
     /** Calculates candidate anchors in pixel coordinates for [input]. */
     fun resolve(input: DrawerAnchorInput): List<DrawerAnchor>
 }
@@ -231,6 +235,45 @@ data class FourStageAnchorStrategy(
     }
 }
 
+/**
+ * Four proportional drawer heights plus a true zero-height hidden state.
+ *
+ * Unlike a conventional peek sheet, the hidden anchor has no visible handle
+ * and leaves the entire host surface available for interaction.
+ */
+data class HiddenFourStageAnchorStrategy(
+    val thirtyPercent: Float = 0.30f,
+    val fiftyPercent: Float = 0.50f,
+    val eightyPercent: Float = 0.80f
+) : DrawerAnchorStrategy {
+    init {
+        require(thirtyPercent.isFinite() && fiftyPercent.isFinite() && eightyPercent.isFinite())
+        require(thirtyPercent > 0f && thirtyPercent < fiftyPercent)
+        require(fiftyPercent < eightyPercent && eightyPercent < 1f)
+    }
+
+    override val id: String = ID
+    override val allowsHiddenAnchor: Boolean = true
+
+    override fun resolve(input: DrawerAnchorInput): List<DrawerAnchor> {
+        val maximum = input.maxHeightPx.coerceAtLeast(0)
+        fun height(fraction: Float): Int =
+            (input.viewportHeightPx * fraction).toInt().coerceIn(0, maximum)
+
+        return listOf(
+            DrawerAnchor("hidden", 0, DrawerAnchorState.PEEK),
+            DrawerAnchor("peek", height(thirtyPercent), DrawerAnchorState.PEEK),
+            DrawerAnchor("half", height(fiftyPercent), DrawerAnchorState.HALF_EXPANDED),
+            DrawerAnchor("large", height(eightyPercent), DrawerAnchorState.CUSTOM),
+            DrawerAnchor("expanded", height(1f), DrawerAnchorState.EXPANDED)
+        )
+    }
+
+    companion object {
+        const val ID = "hidden-four-stage"
+    }
+}
+
 /** Named factories make the four supported policies explicit at call sites. */
 object DrawerAnchorStrategies {
     @JvmStatic fun existingHeight(): DrawerAnchorStrategy = ExistingHeightAnchorStrategy()
@@ -243,6 +286,11 @@ object DrawerAnchorStrategies {
         fiftyPercent: Float = 0.50f,
         eightyPercent: Float = 0.80f
     ): DrawerAnchorStrategy = FourStageAnchorStrategy(thirtyPercent, fiftyPercent, eightyPercent)
+    @JvmStatic fun fourStageWithHidden(
+        thirtyPercent: Float = 0.30f,
+        fiftyPercent: Float = 0.50f,
+        eightyPercent: Float = 0.80f
+    ): DrawerAnchorStrategy = HiddenFourStageAnchorStrategy(thirtyPercent, fiftyPercent, eightyPercent)
     @JvmStatic fun contentBased(): DrawerAnchorStrategy = ContentBasedAnchorStrategy()
     @JvmStatic fun custom(anchors: List<DrawerAnchor>): DrawerAnchorStrategy = CustomAnchorStrategy(anchors)
 }
