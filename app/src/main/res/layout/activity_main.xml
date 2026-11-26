@@ -90,11 +90,6 @@
         android:background="?attr/colorSurface"
         android:elevation="8dp">
 
-        <com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawerView
-            android:id="@+id/advanced_symbol_input"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
-
         <TextView
             android:id="@+id/position_display"
             android:layout_width="match_parent"
