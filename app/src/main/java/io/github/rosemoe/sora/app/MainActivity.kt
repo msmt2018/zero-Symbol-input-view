@@ -33,7 +33,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.weight
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -148,7 +147,6 @@ import java.io.FileOutputStream
 import java.lang.ref.WeakReference
 import java.util.zip.ZipFile
 import java.util.regex.PatternSyntaxException
-import com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawerView
 import com.zerostudio.idea.widget.drawer.action.SymbolActionExecutor
 import com.zerostudio.idea.widget.drawer.action.SymbolActionResult
 import com.zerostudio.idea.widget.editor.symbolinput.v2.manager.SymbolDrawerManagerScreen
