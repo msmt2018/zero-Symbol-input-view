@@ -27,6 +27,7 @@ data class AdaptiveLayoutSpec(
 data class AdaptiveLayoutPolicy(
     val listDetailBreakpointDp: Float = WindowAdaptiveInfo.EXPANDED_WIDTH_DP,
     val supportingPaneBreakpointDp: Float = WindowAdaptiveInfo.MEDIUM_WIDTH_DP,
+    val minimumMultiPaneHeightDp: Float = 480f,
     val feedMinimumColumnWidthDp: Float = 280f,
     val feedMaximumColumns: Int = 4,
     val supportingPaneMainWeight: Float = 0.7f,
@@ -35,6 +36,7 @@ data class AdaptiveLayoutPolicy(
     init {
         require(listDetailBreakpointDp.isFinite() && listDetailBreakpointDp > 0f)
         require(supportingPaneBreakpointDp.isFinite() && supportingPaneBreakpointDp > 0f)
+        require(minimumMultiPaneHeightDp.isFinite() && minimumMultiPaneHeightDp > 0f)
         require(feedMinimumColumnWidthDp.isFinite() && feedMinimumColumnWidthDp > 0f)
         require(feedMaximumColumns >= 1)
         require(supportingPaneMainWeight.isFinite() && supportingPaneMainWeight > 0f)
@@ -49,36 +51,51 @@ object AdaptiveLayoutResolver {
         policy: AdaptiveLayoutPolicy = AdaptiveLayoutPolicy()
     ): AdaptiveLayoutSpec {
         val width = info.availableWidthDp
+        val height = info.availableHeightDp
         val separatedHinge = info.foldingFeature.isSeparating && info.foldingFeature.hasBounds
+        // Android's adaptive guidance explicitly treats width and height as
+        // independent classes. A compact-height landscape window should not
+        // force a two-pane arrangement merely because its width is sufficient.
+        val hasMultiPaneSpace = height >= policy.minimumMultiPaneHeightDp
+        val useHingeBoundary = separatedHinge && hasMultiPaneSpace
+
         return when (type) {
             CanonicalLayoutType.LIST_DETAIL -> {
-                val dualPane = width >= policy.listDetailBreakpointDp || separatedHinge
+                val dualPane = hasMultiPaneSpace &&
+                    (width >= policy.listDetailBreakpointDp || separatedHinge)
                 AdaptiveLayoutSpec(
-                    type,
-                    if (dualPane) PaneArrangement.SIDE_BY_SIDE else PaneArrangement.SINGLE,
+                    layoutType = type,
+                    arrangement = if (dualPane) PaneArrangement.SIDE_BY_SIDE else PaneArrangement.SINGLE,
                     primaryPaneWeight = if (dualPane) 0.4f else 1f,
                     secondaryPaneWeight = if (dualPane) 0.6f else 0f,
-                    useHingeAsBoundary = separatedHinge
+                    useHingeAsBoundary = useHingeBoundary
                 )
             }
+
             CanonicalLayoutType.FEED -> {
                 val columns = (width / policy.feedMinimumColumnWidthDp).toInt()
                     .coerceIn(1, policy.feedMaximumColumns)
                 AdaptiveLayoutSpec(
-                    type,
-                    if (columns == 1) PaneArrangement.FEED_GRID else PaneArrangement.FEED_GRID,
+                    layoutType = type,
+                    arrangement = PaneArrangement.FEED_GRID,
                     feedColumnCount = columns,
-                    useHingeAsBoundary = separatedHinge
+                    useHingeAsBoundary = useHingeBoundary
                 )
             }
+
             CanonicalLayoutType.SUPPORTING_PANE -> {
-                val showSupporting = width >= policy.supportingPaneBreakpointDp || separatedHinge
+                val showSupporting = hasMultiPaneSpace &&
+                    (width >= policy.supportingPaneBreakpointDp || separatedHinge)
                 AdaptiveLayoutSpec(
-                    type,
-                    if (showSupporting) PaneArrangement.MAIN_WITH_SUPPORTING else PaneArrangement.STACKED,
+                    layoutType = type,
+                    arrangement = if (showSupporting) {
+                        PaneArrangement.MAIN_WITH_SUPPORTING
+                    } else {
+                        PaneArrangement.STACKED
+                    },
                     primaryPaneWeight = if (showSupporting) policy.supportingPaneMainWeight else 1f,
                     secondaryPaneWeight = if (showSupporting) policy.supportingPaneSecondaryWeight else 0f,
-                    useHingeAsBoundary = separatedHinge
+                    useHingeAsBoundary = useHingeBoundary
                 )
             }
         }

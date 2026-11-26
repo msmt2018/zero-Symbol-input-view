@@ -21,11 +21,18 @@ enum class WindowInsetsMode {
 }
 
 /**
- * Supplies adaptive window information from the actual Compose layout bounds.
+ * Publishes adaptive information from the actual constraints supplied by the
+ * Compose parent. The constraints therefore follow the app window through
+ * rotation, split-screen, fold/unfold and freeform resizing.
  *
- * Recomposition automatically updates the snapshot when the host resizes,
- * enters split-screen, changes density or updates its folding-feature input.
- * There is no View listener, attach observer, close handle or lifecycle API.
+ * The parent should provide bounded window/content constraints. If one axis is
+ * unbounded, its minimum constraint is used as the best available local bound
+ * rather than converting infinity to a misleading zero-sized window.
+ *
+ * Insets are reported separately from the measured bounds. Consumers use
+ * [WindowAdaptiveInfo.availableWidthDp] and [WindowAdaptiveInfo.availableHeightDp]
+ * to make layout decisions without coupling this observer to a particular
+ * Activity, View, WindowMetrics owner or lifecycle.
  */
 @Composable
 fun AdaptiveWindowObserver(
@@ -36,22 +43,41 @@ fun AdaptiveWindowObserver(
 ) {
     val density = LocalDensity.current
     val layoutDirection = LocalLayoutDirection.current
+
     BoxWithConstraints(modifier = modifier) {
+        val measuredWidthDp = maxWidth.value
+            .takeIf(Float::isFinite)
+            ?: minWidth.value.takeIf(Float::isFinite)
+            ?: 0f
+        val measuredHeightDp = maxHeight.value
+            .takeIf(Float::isFinite)
+            ?: minHeight.value.takeIf(Float::isFinite)
+            ?: 0f
+
         val safeInsets = if (insetsMode == WindowInsetsMode.SUBTRACT_SYSTEM_INSETS) {
             WindowInsets.safeDrawing
         } else {
             WindowInsets(0, 0, 0, 0)
         }
         val insets = WindowInsetsDp(
-            left = with(density) { safeInsets.getLeft(density, layoutDirection).toDp().value },
-            top = with(density) { safeInsets.getTop(density).toDp().value },
-            right = with(density) { safeInsets.getRight(density, layoutDirection).toDp().value },
-            bottom = with(density) { safeInsets.getBottom(density).toDp().value }
+            left = with(density) {
+                safeInsets.getLeft(density, layoutDirection).toDp().value
+            },
+            top = with(density) {
+                safeInsets.getTop(density).toDp().value
+            },
+            right = with(density) {
+                safeInsets.getRight(density, layoutDirection).toDp().value
+            },
+            bottom = with(density) {
+                safeInsets.getBottom(density).toDp().value
+            }
         )
+
         content(
             WindowAdaptiveInfo(
-                widthDp = maxWidth.value.takeIf { it.isFinite() } ?: 0f,
-                heightDp = maxHeight.value.takeIf { it.isFinite() } ?: 0f,
+                widthDp = measuredWidthDp,
+                heightDp = measuredHeightDp,
                 density = density.density,
                 insets = insets,
                 foldingFeature = foldingFeature
