@@ -18,10 +18,7 @@ plugins {
 }
 
 android {
-    // Compose BOM 2026.11.01 resolves Compose 1.13 artifacts requiring API 37 extension 1.
-    compileSdk = 37
-    compileSdkExtension = 1
-
+    // The root Android convention configures API 37.1 for every module.
     namespace = "com.zerostudio.idea.widget.editor.symbolinput.v2"
     defaultConfig {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
