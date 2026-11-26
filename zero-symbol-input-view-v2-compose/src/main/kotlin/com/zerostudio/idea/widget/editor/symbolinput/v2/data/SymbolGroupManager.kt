@@ -91,6 +91,16 @@ class SymbolGroupManager(
 
     fun duplicateGroup(groupId: String, index: Int = groups.size): SymbolGroup {
         val source = groups.firstOrNull { it.id == groupId } ?: error("Group not found: $groupId")
+        // Reject capacity overflow before allocating a second copy of a potentially
+        // large symbol/action graph. The UI can surface this validation error
+        // without risking a large transient allocation or repository write.
+        require(groups.size < SymbolGroupBundleCodec.MAX_GROUPS) {
+            "The maximum number of symbol groups has been reached"
+        }
+        val currentSymbolCount = groups.sumOf { it.symbols.size.toLong() }
+        require(currentSymbolCount + source.symbols.size <= SymbolGroupBundleCodec.MAX_TOTAL_SYMBOLS) {
+            "Duplicating this group would exceed the total symbol limit"
+        }
         // Symbol IDs are globally stable within the repository, not merely within one group.
         // Seed from every group so a duplicated group cannot reuse an ID owned by its source.
         val usedSymbolIds = groups.asSequence()
