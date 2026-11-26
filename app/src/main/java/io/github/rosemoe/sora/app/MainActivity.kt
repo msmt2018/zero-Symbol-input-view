@@ -25,8 +25,6 @@ package io.github.rosemoe.sora.app
 
 
 import androidx.activity.compose.setContent
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -42,7 +40,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,17 +47,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.compose.ui.window.Dialog
-import com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawer
-import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolDrawerDefaultGroups
+import com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawerToolbar
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
-import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
-import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SharedPreferencesSymbolGroupRepository
-import com.zerostudio.idea.widget.editor.symbolinput.v2.data.AndroidLegacySymbolDataMigration
-import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupRepository
-import com.zerostudio.idea.widget.editor.symbolinput.v2.manager.SymbolDrawerManagerScreen
-import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettingsScreen
-import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettingsRepository
 
 import android.content.DialogInterface
 import android.graphics.Typeface
@@ -162,7 +150,6 @@ import java.util.zip.ZipFile
 import java.util.regex.PatternSyntaxException
 import com.zerostudio.idea.widget.drawer.action.SymbolActionExecutor
 import com.zerostudio.idea.widget.drawer.action.SymbolActionResult
-import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SharedPreferencesSymbolDrawerSettingsRepository
 
 
 /**
@@ -305,9 +292,6 @@ class MainActivity : AppCompatActivity() {
             // native manager surface; this host callback remains a safe fallback.
             Toast.makeText(this, "请从符号抽屉打开符号管理", Toast.LENGTH_SHORT).show()
         }
-        val symbolGroupRepository = SharedPreferencesSymbolGroupRepository(this)
-        AndroidLegacySymbolDataMigration.importIfV2Empty(this, symbolGroupRepository)
-        val symbolSettingsRepository = SharedPreferencesSymbolDrawerSettingsRepository(this)
         androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
         setContent {
             androidx.compose.material3.MaterialTheme {
@@ -334,8 +318,6 @@ class MainActivity : AppCompatActivity() {
                         menuHost.inflate(R.menu.menu_main)
                         menuHost.menu.findItem(itemId)?.let(::onOptionsItemSelected)
                     },
-                    groupRepository = symbolGroupRepository,
-                    settingsRepository = symbolSettingsRepository,
                     onSymbolAction = { symbol ->
                         val result = actionExecutor.execute(symbol.shortAction, actionHost)
                         if (result !is SymbolActionResult.Executed) {
@@ -1211,47 +1193,12 @@ private fun MainActivityComposeContent(
     onOpenLogs: () -> Unit,
     onLoadLargeFile: () -> Unit,
     onMenuAction: (Int) -> Unit,
-    groupRepository: SymbolGroupRepository,
-    settingsRepository: SymbolDrawerSettingsRepository,
     onSymbolAction: (SymbolEntry) -> Unit
 ) {
     var search by remember { mutableStateOf("") }
     var replacement by remember { mutableStateOf("") }
-    var showManager by remember { mutableStateOf(false) }
-    var showSettings by remember { mutableStateOf(false) }
-    // Activity Result ownership stays in the host app. The Compose library
-    // receives only one-shot URI callbacks and does not depend on Activity APIs.
-    var pendingOpenDocumentResult by remember { mutableStateOf<((Uri?) -> Unit)?>(null) }
-    var pendingCreateDocumentResult by remember { mutableStateOf<((Uri?) -> Unit)?>(null) }
-    val openJsonDocumentLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        pendingOpenDocumentResult?.invoke(uri)
-        pendingOpenDocumentResult = null
-    }
-    val createJsonDocumentLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument("application/json")
-    ) { uri ->
-        pendingCreateDocumentResult?.invoke(uri)
-        pendingCreateDocumentResult = null
-    }
     var showSearchPanel by remember { mutableStateOf(false) }
     var overflowMenuExpanded by remember { mutableStateOf(false) }
-    var groups by remember(groupRepository) {
-        mutableStateOf(groupRepository.loadGroups().ifEmpty {
-            SymbolDrawerDefaultGroups.createGroups().also(groupRepository::saveGroups)
-        })
-    }
-    var drawerSettings by remember(settingsRepository) {
-        mutableStateOf(settingsRepository.load().settings)
-    }
-    DisposableEffect(groupRepository) {
-        val observer = (groupRepository as? com.zerostudio.idea.widget.editor.symbolinput.v2.data.ObservableSymbolGroupRepository)
-            ?.observeGroups {
-                groups = groupRepository.loadGroups()
-            }
-        onDispose { observer?.close() }
-    }
     Column(Modifier.fillMaxSize()) {
         // Keep the editor's original compact action-bar structure: primary
         // actions remain in the toolbar, while secondary commands live in the
@@ -1439,70 +1386,10 @@ private fun MainActivityComposeContent(
             factory = { editor },
             modifier = Modifier.fillMaxWidth().weight(1f)
         )
-        SymbolDrawer(
-            groups = groups,
+        SymbolDrawerToolbar(
             modifier = Modifier.fillMaxWidth(),
-            settings = drawerSettings,
-            onSymbolClick = { symbol ->
-                if (symbol.shortAction == SymbolAction.OpenManager) {
-                    showManager = true
-                } else {
-                    onSymbolAction(symbol)
-                }
-            }
+            onSymbolAction = onSymbolAction
         )
         Spacer(Modifier.height(4.dp))
-    }
-    if (showManager) {
-        Dialog(onDismissRequest = { showManager = false }) {
-            Surface(
-                modifier = Modifier.fillMaxWidth().fillMaxHeight(0.9f),
-                shape = MaterialTheme.shapes.large
-            ) {
-                SymbolDrawerManagerScreen(
-                    repository = groupRepository,
-                    onClose = { showManager = false },
-                    searchIncludesActionPayload = drawerSettings.searchIncludesActionPayload,
-                    onOpenSettings = { showSettings = true },
-                    requestOpenDocument = { onResult ->
-                        pendingOpenDocumentResult = onResult
-                        openJsonDocumentLauncher.launch(arrayOf("application/json"))
-                    },
-                    requestCreateDocument = { fileName, onResult ->
-                        pendingCreateDocumentResult = onResult
-                        createJsonDocumentLauncher.launch(fileName)
-                    }
-                )
-            }
-        }
-    }
-    if (showSettings) {
-        Dialog(onDismissRequest = { showSettings = false }) {
-            Surface(
-                modifier = Modifier.fillMaxWidth().fillMaxHeight(0.9f),
-                shape = MaterialTheme.shapes.large
-            ) {
-                SymbolDrawerSettingsScreen(
-                    settings = drawerSettings,
-                    groupRepository = groupRepository,
-                    onSettingsChange = { updated ->
-                        drawerSettings = updated
-                        settingsRepository.save(updated)
-                    },
-                    onReset = {
-                        settingsRepository.reset()
-                        drawerSettings = settingsRepository.load().settings
-                    },
-                    requestOpenDocument = { onResult ->
-                        pendingOpenDocumentResult = onResult
-                        openJsonDocumentLauncher.launch(arrayOf("*/*"))
-                    },
-                    requestCreateDocument = { fileName, onResult ->
-                        pendingCreateDocumentResult = onResult
-                        createJsonDocumentLauncher.launch(fileName)
-                    }
-                )
-            }
-        }
     }
 }
