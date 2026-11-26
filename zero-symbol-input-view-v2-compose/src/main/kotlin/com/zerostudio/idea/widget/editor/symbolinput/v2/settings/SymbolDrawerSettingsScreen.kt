@@ -80,6 +80,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import com.zerostudio.idea.widget.editor.symbolinput.v2.compose.R
@@ -110,6 +113,36 @@ fun SymbolDrawerSettingsScreen(
     var importJson by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val clipboard = LocalClipboardManager.current
+    val context = LocalContext.current
+    var pendingExportJson by remember { mutableStateOf<String?>(null) }
+    val openDocument = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            runCatching {
+                val json = context.contentResolver.openInputStream(uri)?.use {
+                    JsonDocumentIO.readUtf8Json(it)
+                } ?: error("无法读取所选 JSON 文件")
+                if (importGroups) {
+                    val repository = requireNotNull(groupRepository)
+                    repository.saveGroups(SymbolGroupBundleCodec.decode(json))
+                } else {
+                    val decoded = SymbolDrawerSettingsCodec.decodeStrict(json)
+                    current = decoded
+                    onSettingsChange(decoded)
+                }
+            }.onFailure { errorMessage = it.message ?: "导入失败" }
+        }
+    }
+    val createDocument = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        val json = pendingExportJson
+        if (uri != null && json != null) {
+            runCatching {
+                context.contentResolver.openOutputStream(uri)?.use {
+                    JsonDocumentIO.writeUtf8Json(it, json)
+                } ?: error("无法写入所选文件")
+            }.onFailure { errorMessage = it.message ?: "导出失败" }
+        }
+        pendingExportJson = null
+    }
 
     Column(
         modifier = modifier.fillMaxSize().padding(16.dp),
@@ -188,6 +221,14 @@ fun SymbolDrawerSettingsScreen(
                     Button(onClick = {
                         clipboard.setText(AnnotatedString(SymbolDrawerSettingsCodec.encode(current)))
                     }, modifier = Modifier.fillMaxWidth()) { Text("复制设置 JSON") }
+                    OutlinedButton(onClick = {
+                        pendingExportJson = SymbolDrawerSettingsCodec.encode(current)
+                        createDocument.launch("symbol-drawer-settings.json")
+                    }, modifier = Modifier.fillMaxWidth()) { Text("导出设置文件") }
+                    OutlinedButton(onClick = {
+                        importGroups = false
+                        openDocument.launch(arrayOf("application/json", "text/*"))
+                    }, modifier = Modifier.fillMaxWidth()) { Text("导入设置文件") }
                     Button(
                         onClick = {
                             val repository = groupRepository
@@ -198,6 +239,28 @@ fun SymbolDrawerSettingsScreen(
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) { Text("复制符号分组 JSON") }
+                    OutlinedButton(
+                        onClick = {
+                            val repository = groupRepository
+                            if (repository == null) errorMessage = "符号分组仓库不可用"
+                            else runCatching { SymbolGroupBundleCodec.encode(repository.loadGroups()) }
+                                .onSuccess { json ->
+                                    pendingExportJson = json
+                                    createDocument.launch("symbol-drawer-groups.json")
+                                }
+                                .onFailure { errorMessage = it.message ?: "导出符号分组失败" }
+                        },
+                        enabled = groupRepository != null,
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("导出符号分组文件") }
+                    OutlinedButton(
+                        onClick = {
+                            importGroups = true
+                            openDocument.launch(arrayOf("application/json", "text/*"))
+                        },
+                        enabled = groupRepository != null,
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("导入符号分组文件") }
                     OutlinedButton(onClick = {
                         importGroups = false
                         importJson = clipboard.getText()?.text.orEmpty()
