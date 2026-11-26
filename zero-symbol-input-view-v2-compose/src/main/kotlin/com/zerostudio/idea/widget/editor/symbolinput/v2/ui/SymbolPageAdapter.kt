@@ -48,6 +48,7 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.ui
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -62,6 +63,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -128,19 +130,24 @@ private fun SymbolCell(
         verticalArrangement = Arrangement.Center
     ) {
         if (settings.showSymbolLabels) {
-            Text(
-                text = entry.label,
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontSize = settings.symbolLabelTextSizeSp.sp,
-                    fontWeight = if (settings.showFullSymbolLabels) FontWeight.Medium else FontWeight.Normal
-                ),
-                maxLines = if (settings.showFullSymbolLabels) 3 else 2,
-                overflow = TextOverflow.Ellipsis
-            )
+            if (settings.showFullSymbolLabels) {
+                FullSymbolLabel(entry.label, settings.symbolLabelTextSizeSp)
+            } else {
+                Text(
+                    text = entry.label,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = settings.symbolLabelTextSizeSp.sp
+                    ),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         } else {
             Text(
                 text = entry.icon ?: entry.label,
+                modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.bodyLarge,
                 maxLines = 1,
@@ -149,3 +156,46 @@ private fun SymbolCell(
         }
     }
 }
+
+/**
+ * Full-label mode keeps the complete symbol text on one line. The font is
+ * reduced against the cell's actual measured width rather than truncating the
+ * label or allowing it to wrap into the next row.
+ *
+ * Density conversion is performed through LocalDensity so font scaling remains
+ * correct on windows with different display density and user font scale.
+ */
+@Composable
+private fun FullSymbolLabel(
+    label: String,
+    configuredTextSizeSp: Int
+) {
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val density = LocalDensity.current
+        val baseFontSize = configuredTextSizeSp.coerceAtLeast(MIN_FULL_LABEL_FONT_SIZE_SP).sp
+        val characterCount = label.codePointCount(0, label.length).coerceAtLeast(1)
+        val widthBoundFontSize = with(density) {
+            (maxWidth / characterCount.toFloat() * FULL_LABEL_WIDTH_FACTOR).toSp()
+        }
+        val fittedFontSize = minOf(
+            baseFontSize,
+            widthBoundFontSize.coerceAtLeast(MIN_FULL_LABEL_FONT_SIZE_SP.sp)
+        )
+
+        Text(
+            text = label,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontSize = fittedFontSize,
+                fontWeight = FontWeight.Medium
+            ),
+            softWrap = false,
+            maxLines = 1,
+            overflow = TextOverflow.Clip
+        )
+    }
+}
+
+private const val MIN_FULL_LABEL_FONT_SIZE_SP = 8
+private const val FULL_LABEL_WIDTH_FACTOR = 0.92f
