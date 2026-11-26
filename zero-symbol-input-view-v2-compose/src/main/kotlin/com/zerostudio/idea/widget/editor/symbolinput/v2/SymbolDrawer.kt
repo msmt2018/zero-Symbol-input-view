@@ -329,7 +329,13 @@ fun SymbolDrawer(
         val nestedScrollConnection = remember(holder, density.density, minimumFlingVelocity) {
             DrawerNestedScrollConnection(
                 stateHolder = holder,
-                minimumFlingVelocityPxPerSecond = minimumFlingVelocity
+                minimumFlingVelocityPxPerSecond = minimumFlingVelocity,
+                // The symbol grid owns scrolling only when a gesture begins at
+                // the fully expanded anchor. At every intermediate height the
+                // direct drawer recognizer is the sole vertical-drag owner.
+                canStartNestedScroll = {
+                    holder.currentHeightPx >= holder.anchors.maxOf { it.heightPx }
+                }
             )
         }
 
