@@ -67,7 +67,6 @@ typealias DrawerState = com.zerostudio.idea.widget.drawer.core.DrawerState
 
 /** Compose-native drawer entry point. */
 typealias SymbolDrawerState = com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawerState
-typealias DrawerContainerState = com.zerostudio.idea.widget.drawer.DrawerContainerState
 
 /** Compose-native generic drawer container facade. */
 @androidx.compose.runtime.Composable
