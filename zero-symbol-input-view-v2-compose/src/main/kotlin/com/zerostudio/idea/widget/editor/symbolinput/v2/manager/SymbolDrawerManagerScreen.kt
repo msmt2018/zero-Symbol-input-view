@@ -47,6 +47,8 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.manager
 
 import android.net.Uri
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
@@ -98,6 +100,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -829,8 +832,20 @@ fun SymbolDrawerManagerScreen(
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             itemsIndexed(pageDisplayedSymbols, key = { _, symbol -> symbol.id }) { _, symbol ->
+                                val dragScale by animateFloatAsState(
+                                    targetValue = if (draggingSymbolId == symbol.id) 1.045f else 1f,
+                                    animationSpec = spring(dampingRatio = 0.62f, stiffness = 520f),
+                                    label = "symbol-reorder-scale"
+                                )
                                 Card(
-                                    modifier = Modifier.animateItem().combinedClickable(
+                                    modifier = Modifier
+                                        .animateItem()
+                                        .graphicsLayer {
+                                            scaleX = dragScale
+                                            scaleY = dragScale
+                                            shadowElevation = if (dragScale > 1f) 10.dp.toPx() else 0f
+                                        }
+                                        .combinedClickable(
                                         onClick = {
                                             if (batchMode) {
                                                 selectedSymbolIds = if (symbol.id in selectedSymbolIds) selectedSymbolIds - symbol.id
