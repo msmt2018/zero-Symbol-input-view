@@ -67,7 +67,8 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
+import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
@@ -90,6 +91,7 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.data.SymbolGroupReposito
  * Immutable settings editor rendered entirely with Compose. The host persists
  * snapshots; local state prevents rapid slider changes from using stale values.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SymbolDrawerSettingsScreen(
     settings: SymbolDrawerSettings,
@@ -124,11 +126,27 @@ fun SymbolDrawerSettingsScreen(
         modifier = modifier.fillMaxSize().padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(
-            stringResource(R.string.compose_settings_title),
-            style = MaterialTheme.typography.headlineSmall
-        )
-        TabRow(selectedTabIndex = selectedTab.coerceIn(tabTitles.indices)) {
+        Card(Modifier.fillMaxWidth()) {
+            Column(
+                Modifier.fillMaxWidth().padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    stringResource(R.string.compose_settings_title),
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    "配置符号抽屉外观、布局、交互和数据备份。设置变更会立即应用。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        ScrollableTabRow(
+            selectedTabIndex = selectedTab.coerceIn(tabTitles.indices),
+            edgePadding = 0.dp
+        ) {
             tabTitles.forEachIndexed { index, label ->
                 Tab(
                     selected = selectedTab == index,
@@ -297,52 +315,65 @@ fun SymbolDrawerSettingsScreen(
                 }
 
                 5 -> {
-                    SettingsSection("设置数据备份与恢复") {
+                    SettingsSection("设置备份与恢复") {
                         Text(
-                            "设置与符号分组分别使用 JSON 格式备份。导入前会完整解析并校验数据；导入成功后立即更新当前设置或符号分组。",
-                            style = MaterialTheme.typography.bodyMedium
+                            "单独备份或恢复当前符号控件设置。导入前会完整解析并校验 JSON。",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Button(
-                            onClick = {
-                                runCatching { SymbolDrawerSettingsCodec.encode(current) }
-                                    .onSuccess { clipboard.setText(AnnotatedString(it)) }
-                                    .onFailure { errorMessage = it.message ?: "导出设置 JSON 失败" }
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text("复制设置 JSON") }
-                        Button(
-                            onClick = {
-                                val repository = groupRepository
-                                if (repository == null) {
-                                    errorMessage = "符号分组仓库不可用"
-                                } else {
-                                    runCatching { SymbolGroupBundleCodec.encode(repository.loadGroups()) }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(
+                                onClick = {
+                                    runCatching { SymbolDrawerSettingsCodec.encode(current) }
                                         .onSuccess { clipboard.setText(AnnotatedString(it)) }
-                                        .onFailure { errorMessage = it.message ?: "导出符号分组 JSON 失败" }
-                                }
-                            },
-                            enabled = groupRepository != null,
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text("复制符号分组 JSON") }
-                        OutlinedButton(
-                            onClick = {
-                                importGroups = false
-                                importJson = clipboard.getText()?.text.orEmpty()
-                                errorMessage = null
-                                importDialog = true
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text("从剪贴板导入设置 JSON") }
-                        OutlinedButton(
-                            onClick = {
-                                importGroups = true
-                                importJson = clipboard.getText()?.text.orEmpty()
-                                errorMessage = null
-                                importDialog = true
-                            },
-                            enabled = groupRepository != null,
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text("从剪贴板导入符号分组 JSON") }
+                                        .onFailure { errorMessage = it.message ?: "导出设置 JSON 失败" }
+                                },
+                                modifier = Modifier.weight(1f)
+                            ) { Text("复制设置 JSON") }
+                            OutlinedButton(
+                                onClick = {
+                                    importGroups = false
+                                    importJson = clipboard.getText()?.text.orEmpty()
+                                    errorMessage = null
+                                    importDialog = true
+                                },
+                                modifier = Modifier.weight(1f)
+                            ) { Text("导入设置 JSON") }
+                        }
+                    }
+
+                    SettingsSection("符号分组备份与恢复") {
+                        Text(
+                            "符号分组数据独立于设置数据。导入成功后立即写入分组仓库。",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(
+                                onClick = {
+                                    val repository = groupRepository
+                                    if (repository == null) {
+                                        errorMessage = "符号分组仓库不可用"
+                                    } else {
+                                        runCatching { SymbolGroupBundleCodec.encode(repository.loadGroups()) }
+                                            .onSuccess { clipboard.setText(AnnotatedString(it)) }
+                                            .onFailure { errorMessage = it.message ?: "导出符号分组 JSON 失败" }
+                                    }
+                                },
+                                enabled = groupRepository != null,
+                                modifier = Modifier.weight(1f)
+                            ) { Text("复制分组 JSON") }
+                            OutlinedButton(
+                                onClick = {
+                                    importGroups = true
+                                    importJson = clipboard.getText()?.text.orEmpty()
+                                    errorMessage = null
+                                    importDialog = true
+                                },
+                                enabled = groupRepository != null,
+                                modifier = Modifier.weight(1f)
+                            ) { Text("导入分组 JSON") }
+                        }
                     }
 
                     Card(Modifier.fillMaxWidth()) {
@@ -426,40 +457,49 @@ fun SymbolDrawerSettingsScreen(
 
 @Composable
 private fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium)
-            HorizontalDivider()
-            content(this)
-        }
+    Column(
+        Modifier.fillMaxWidth().padding(horizontal = 2.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            title,
+            modifier = Modifier.padding(start = 4.dp, top = 10.dp, bottom = 2.dp),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+        )
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        content(this)
     }
 }
 
 @Composable
 private fun SwitchSetting(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(label, modifier = Modifier.weight(1f))
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
+    Card(Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 5.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+            Switch(checked = checked, onCheckedChange = onCheckedChange)
+        }
     }
 }
 
 @Composable
 private fun IntSetting(label: String, value: Int, minimum: Int, maximum: Int, onValue: (Int) -> Unit) {
-    Column {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(label, style = MaterialTheme.typography.bodyMedium)
-            Text(value.toString(), style = MaterialTheme.typography.labelLarge)
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("$label：$value", style = MaterialTheme.typography.bodyMedium)
+            }
+            Slider(
+                value = value.toFloat().coerceIn(minimum.toFloat(), maximum.toFloat()),
+                onValueChange = { onValue(it.toInt().coerceIn(minimum, maximum)) },
+                valueRange = minimum.toFloat()..maximum.toFloat(),
+                steps = (maximum - minimum - 1).coerceAtLeast(0)
+            )
         }
-        Slider(
-            value = value.toFloat().coerceIn(minimum.toFloat(), maximum.toFloat()),
-            onValueChange = { onValue(it.toInt().coerceIn(minimum, maximum)) },
-            valueRange = minimum.toFloat()..maximum.toFloat(),
-            steps = (maximum - minimum - 1).coerceAtLeast(0)
-        )
     }
 }
 
@@ -471,20 +511,27 @@ private fun <T : Enum<T>> EnumSetting(
     onValue: (T) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    Column {
-        Text(label, style = MaterialTheme.typography.bodyMedium)
-        OutlinedButton(onClick = { expanded = true }) {
-            Text(value.name.replace('_', ' '))
-        }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            values.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(option.name.replace('_', ' ')) },
-                    onClick = {
-                        expanded = false
-                        onValue(option)
+    Card(Modifier.fillMaxWidth()) {
+        Column(
+            Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(label, style = MaterialTheme.typography.bodyMedium)
+            Box {
+                OutlinedButton(onClick = { expanded = true }) {
+                    Text(value.name.replace('_', ' '))
+                }
+                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    values.forEach { option ->
+                        DropdownMenuItem(
+                            text = { Text(option.name.replace('_', ' ')) },
+                            onClick = {
+                                expanded = false
+                                onValue(option)
+                            }
+                        )
                     }
-                )
+                }
             }
         }
     }
