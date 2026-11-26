@@ -306,7 +306,7 @@ fun DrawerContainer(
     // register lifecycle-bound back callbacks; the host can collapse this
     // composition-owned state from its own platform integration.
 
-    Box(modifier.fillMaxSize()) {
+    Box(Modifier.fillMaxSize()) {
         content()
 
         if ((expanded || config.presentationMode == DrawerPresentationMode.FULL_SCREEN) && config.style.drawScrim) {
