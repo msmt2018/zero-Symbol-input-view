@@ -717,6 +717,7 @@ fun SymbolDrawerManagerScreen(
         }
             BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
                 val density = LocalDensity.current
+                val dragHandleCenterInsetPx = with(density) { 20.dp.toPx() }
                 val widthDp = maxWidth.value.takeIf { it.isFinite() } ?: 600f
                 val heightDp = maxHeight.value.takeIf { it.isFinite() } ?: 800f
                 val windowInfo = remember(widthDp, heightDp, density.density) {
@@ -896,7 +897,7 @@ fun SymbolDrawerManagerScreen(
                                                         onDragStart = {
                                                             symbolListState.layoutInfo.visibleItemsInfo
                                                                 .firstOrNull { it.key == symbol.id }?.let { info ->
-                                                                    pointerX = info.offset.x + info.size.width - 20f
+                                                                    pointerX = info.offset.x + info.size.width - dragHandleCenterInsetPx
                                                                     pointerY = info.offset.y + info.size.height / 2f
                                                                     dragWorkingOrder = group.symbols.toList()
                                                                     draggingSymbolId = symbol.id
