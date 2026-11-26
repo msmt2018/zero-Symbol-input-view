@@ -236,6 +236,19 @@ class ComposeMigrationContractTest {
         compose.onNodeWithText("Appearance").assertIsDisplayed()
         compose.onNodeWithText("Performance").performScrollTo().assertIsDisplayed()
     }
+    @Test fun stableDrawerApiFacadeRendersComposeContent() {
+        compose.setContent {
+            MaterialTheme {
+                com.zerostudio.idea.widget.drawer.DrawerContainer(
+                    config = com.zerostudio.idea.widget.drawer.DrawerConfig(),
+                    title = "Public drawer API",
+                    content = { Text("Public API content") }
+                )
+            }
+        }
+        compose.onNodeWithText("Public API content").assertIsDisplayed()
+    }
+
 }
 private class ObservableTestRepository(initial: List<SymbolGroup>) : ObservableSymbolGroupRepository {
     @Volatile private var snapshot: List<SymbolGroup> = initial
