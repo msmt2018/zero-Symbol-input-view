@@ -1298,6 +1298,42 @@ private fun MainActivityComposeContent(
                         onClick = { overflowMenuExpanded = false; onMenuAction(R.id.softKbdEnabled) }
                     )
                     androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("切换硬键盘时隐藏软键盘") },
+                        onClick = { overflowMenuExpanded = false; onMenuAction(R.id.disableSoftKbdOnHardKbd) }
+                    )
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("固定行号面板") },
+                        onClick = { overflowMenuExpanded = false; onMenuAction(R.id.ln_panel_fixed) }
+                    )
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("行号面板跟随滚动") },
+                        onClick = { overflowMenuExpanded = false; onMenuAction(R.id.ln_panel_follow) }
+                    )
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("切换行号固定显示") },
+                        onClick = { overflowMenuExpanded = false; onMenuAction(R.id.pin_line_number) }
+                    )
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("切换放大镜") },
+                        onClick = { overflowMenuExpanded = false; onMenuAction(R.id.magnifier) }
+                    )
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("切换 ICU") },
+                        onClick = { overflowMenuExpanded = false; onMenuAction(R.id.useIcu) }
+                    )
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("切换补全动画") },
+                        onClick = { overflowMenuExpanded = false; onMenuAction(R.id.completionAnim) }
+                    )
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("清理崩溃日志") },
+                        onClick = { overflowMenuExpanded = false; onMenuAction(R.id.clear_logs) }
+                    )
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("启动搜索操作模式") },
+                        onClick = { overflowMenuExpanded = false; onMenuAction(R.id.search_am) }
+                    )
+                    androidx.compose.material3.DropdownMenuItem(
                         text = { Text("切换语言") },
                         onClick = { overflowMenuExpanded = false; onMenuAction(R.id.switch_language) }
                     )
