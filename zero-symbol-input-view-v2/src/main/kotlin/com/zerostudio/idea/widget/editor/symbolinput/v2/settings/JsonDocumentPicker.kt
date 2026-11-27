@@ -46,6 +46,7 @@
 package com.zerostudio.idea.widget.editor.symbolinput.v2.settings
 
 import android.content.Context
+import com.zerostudio.idea.widget.editor.symbolinput.v2.R
 import android.content.ContextWrapper
 import android.net.Uri
 import androidx.activity.ComponentActivity
