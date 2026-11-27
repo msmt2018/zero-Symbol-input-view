@@ -342,9 +342,9 @@ class SymbolDrawerView @JvmOverloads constructor(
         }
         settingsDialog?.dismiss()
         settingsDialog = AlertDialog.Builder(context)
-            .setTitle(context.getString(R.string.symbol_drawer_185))
+            .setTitle(context.getString(R.string.symbol_settings_symbol_drawer_settings))
             .setView(screen)
-            .setPositiveButton(context.getString(R.string.symbol_drawer_075), null)
+            .setPositiveButton(context.getString(R.string.symbol_manager_ok), null)
             .create()
             .also { it.show() }
     }
