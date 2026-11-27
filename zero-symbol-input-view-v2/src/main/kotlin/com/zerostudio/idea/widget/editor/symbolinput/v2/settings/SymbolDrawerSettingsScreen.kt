@@ -451,7 +451,7 @@ class SymbolDrawerSettingsScreen(
                 .onFailure { error ->
                     extensionRegistry?.reportError(extension.id, error)
                     page.addView(TextView(context).apply {
-                        text = context.getString(R.string.symbol_drawer_ext_page_error, extension.title, error.message ?: "Unknown error")
+                        text = context.getString(R.string.symbol_drawer_ext_page_error, extension.title, error.message ?: context.getString(R.string.symbol_drawer_unknown_error))
                         setTextColor(android.graphics.Color.RED)
                     }, matchWrap())
                 }
@@ -463,7 +463,7 @@ class SymbolDrawerSettingsScreen(
                             addExtensionView(page, view, setting.id) { setting.onViewDisposed(view) }
                         }
                         .onFailure { error -> page.addView(TextView(context).apply {
-                            text = context.getString(R.string.symbol_drawer_setting_error, setting.title, error.message ?: "Unknown error")
+                            text = context.getString(R.string.symbol_drawer_setting_error, setting.title, error.message ?: context.getString(R.string.symbol_drawer_unknown_error))
                             setTextColor(android.graphics.Color.RED)
                         }, matchWrap()) }
                 }
@@ -701,7 +701,7 @@ class SymbolDrawerSettingsScreen(
             setPadding(spaceDp(10), spaceDp(6), spaceDp(10), spaceDp(6))
             background = surfaceBackground(surfaceColor(), 0.05f, 12)
         }
-        val valueLabel = label("$title：$value")
+        val valueLabel = label(context.getString(R.string.symbol_settings_value_summary, title, value))
         row.addView(valueLabel, matchWrap())
         row.addView(SeekBar(context).apply {
             max = maximum - minimum
@@ -709,7 +709,7 @@ class SymbolDrawerSettingsScreen(
             var trackingTouch = false
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(bar: SeekBar?, progress: Int, fromUser: Boolean) {
-                    valueLabel.text = "$title：${progress + minimum}"
+                    valueLabel.text = context.getString(R.string.symbol_settings_value_summary, title, progress + minimum)
                     // Keyboard and accessibility adjustments do not dispatch
                     // onStart/onStopTrackingTouch. Persist those user changes
                     // immediately, while touch drags still commit once on release.

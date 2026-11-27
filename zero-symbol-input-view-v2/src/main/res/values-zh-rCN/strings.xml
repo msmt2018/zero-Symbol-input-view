@@ -3,7 +3,7 @@
     <string name="symbol_accessibility_tap_long_press">%1$s，短按%2$s，长按%3$s</string>
     <string name="group_indicator_style_3d_roller">3D 滚轮</string>
     <string name="group_indicator_style_hud_arc_gauge">HUD 弧形仪表</string>
-    <string name="symbol_extension_extension">[扩展] </string>
+    <string name="symbol_extension_label_prefix">[扩展] </string>
     <string name="symbol_action_syntax_c_set_cursor_position_separate_from_selection_markers">$C   设置光标位置（与选区标记分开使用）</string>
     <string name="symbol_action_syntax_cap_capitalize_selected_text">$CAP 将当前选中文本首字母大写</string>
     <string name="symbol_action_syntax_e_set_selection_end">$E   设置选区结束位置</string>
@@ -349,4 +349,7 @@
     <string name="legacy_action_label_32">撤销</string>
     <string name="legacy_action_label_33">重做</string>
     <string name="group_indicator_style_triangle_pointer">三角指针</string>
+    <string name="symbol_action_source_v1_prefix">[V1] </string>
+    <string name="symbol_action_source_v2_prefix">[V2] </string>
+    <string name="symbol_settings_value_summary">%1$s：%2$s</string>
 </resources>

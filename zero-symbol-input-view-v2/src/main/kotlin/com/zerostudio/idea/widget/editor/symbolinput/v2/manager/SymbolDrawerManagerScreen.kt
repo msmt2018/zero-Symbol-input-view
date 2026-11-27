@@ -1376,10 +1376,10 @@ class SymbolDrawerManagerScreen(
         val preserveLongAction = existing?.longAction != null && longLegacyIndex == null
 
         val legacyOptions = LegacySymbolActionCatalog.values.mapIndexed { index, id ->
-            SymbolActionOption("[V1] " + LegacySymbolActionCatalog.labels[index], legacyId = id)
+            SymbolActionOption(context.getString(R.string.symbol_action_source_v1_prefix) + LegacySymbolActionCatalog.labels[index], legacyId = id)
         }
         val builtinOptions = BuiltinSymbolActionCatalog.options(context).map { option ->
-            SymbolActionOption("[V2] " + option.label, builtin = option)
+            SymbolActionOption(context.getString(R.string.symbol_action_source_v2_prefix) + option.label, builtin = option)
         }
         val extensionOptions = extensionRegistry?.actions().orEmpty().map { extension ->
             SymbolActionOption(context.getString(R.string.symbol_extension_extension) + extension.title, extension = extension)
