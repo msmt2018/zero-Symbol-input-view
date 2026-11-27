@@ -50,6 +50,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.zerostudio.idea.widget.editor.symbolinput.v2.compose.R
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.BuiltinSymbolActionCatalog
+import com.zerostudio.idea.widget.editor.symbolinput.v2.manager.localizedBuiltinSymbolActionOptions
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.BuiltinSymbolActionOption
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.LegacySymbolActionAdapter
 import com.zerostudio.idea.widget.editor.symbolinput.v2.data.LegacySymbolActionDefinitions
@@ -158,7 +159,7 @@ internal fun SymbolActionEditorDialog(
         }
     }
     val builtinOptions = remember(context, builtinSourcePrefix) {
-        BuiltinSymbolActionCatalog.options(context).map { option ->
+        localizedBuiltinSymbolActionOptions(context).map { option ->
             SymbolActionPickerOption(
                 key = "v2:${option.commandId}",
                 label = builtinSourcePrefix + option.label,
