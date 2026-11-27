@@ -25,8 +25,6 @@ package com.zerostudio.idea.widget.editor.symbolinput.v2.ui
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -35,20 +33,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -59,7 +52,6 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.model.DrawerConfig
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSettings
-import kotlin.math.abs
 
 /**
  * Composition-native replacement for the former RecyclerView/ListAdapter page.
@@ -79,82 +71,9 @@ fun SymbolPage(
     modifier: Modifier = Modifier,
     userScrollEnabled: Boolean = false,
     onSymbolClick: (SymbolEntry) -> Unit,
-    onSymbolLongClick: ((SymbolEntry) -> Unit)? = null,
-    onExpandedSheetDragStart: (() -> Unit)? = null,
-    onExpandedSheetDrag: ((Float) -> Unit)? = null,
-    onExpandedSheetDragEnd: ((Float) -> Unit)? = null
+    onSymbolLongClick: ((SymbolEntry) -> Unit)? = null
 ) {
     val gridState = rememberLazyGridState()
-    val latestUserScrollEnabled = rememberUpdatedState(userScrollEnabled)
-    val dragStart = onExpandedSheetDragStart
-    val drag = onExpandedSheetDrag
-    val dragEnd = onExpandedSheetDragEnd
-    val sheetDragEnabled = dragStart != null && drag != null && dragEnd != null
-
-    val dragArbitrationModifier = if (sheetDragEnabled) {
-        Modifier.pointerInput(gridState, dragStart, drag, dragEnd) {
-            val startDrag = requireNotNull(dragStart)
-            val dragBy = requireNotNull(drag)
-            val endDrag = requireNotNull(dragEnd)
-            awaitEachGesture {
-                val down = awaitFirstDown(
-                    requireUnconsumed = false,
-                    pass = PointerEventPass.Initial
-                )
-                val pointerId = down.id
-                val velocityTracker = VelocityTracker().apply {
-                    addPosition(down.uptimeMillis, down.position)
-                }
-                var previous = down.position
-                var accumulatedX = 0f
-                var accumulatedY = 0f
-                var ownsGesture = false
-
-                while (true) {
-                    val event = awaitPointerEvent(PointerEventPass.Initial)
-                    val change = event.changes.firstOrNull { it.id == pointerId } ?: break
-                    if (!change.pressed) break
-
-                    val delta = change.position - previous
-                    previous = change.position
-
-                    if (!ownsGesture) {
-                        accumulatedX += delta.x
-                        accumulatedY += delta.y
-                        val crossedSlop = abs(accumulatedX) > viewConfiguration.touchSlop ||
-                            abs(accumulatedY) > viewConfiguration.touchSlop
-                        if (!crossedSlop) continue
-
-                        // Horizontal paging and upward grid scrolling always
-                        // remain with descendants. The sheet claims downward
-                        // motion when the grid is disabled or has reached its top.
-                        if (abs(accumulatedX) >= abs(accumulatedY) ||
-                            accumulatedY <= 0f ||
-                            (latestUserScrollEnabled.value && gridState.canScrollBackward)
-                        ) {
-                            break
-                        }
-
-                        ownsGesture = true
-                        velocityTracker.addPosition(change.uptimeMillis, change.position)
-                        startDrag()
-                        dragBy(accumulatedY)
-                        change.consume()
-                    } else {
-                        velocityTracker.addPosition(change.uptimeMillis, change.position)
-                        dragBy(delta.y)
-                        change.consume()
-                    }
-                }
-
-                if (ownsGesture) {
-                    endDrag(velocityTracker.calculateVelocity().y)
-                }
-            }
-        }
-    } else {
-        Modifier
-    }
 
     LazyVerticalGrid(
         state = gridState,
