@@ -129,6 +129,10 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerBu
 import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerExtensionRegistry
 import com.zerostudio.idea.widget.editor.symbolinput.v2.extension.SymbolDrawerExtensionSnapshot
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolEntry
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.CursorTarget
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.DeleteKind
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SelectionTransform
+import com.zerostudio.idea.widget.editor.symbolinput.v2.model.ClipboardOperation
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolAction
 import com.zerostudio.idea.widget.editor.symbolinput.v2.model.SymbolGroup
 import com.zerostudio.idea.widget.editor.symbolinput.v2.SymbolDrawer
@@ -1472,14 +1476,50 @@ private fun symbolActionDisplayName(
         is SymbolAction.InsertText -> stringResource(R.string.compose_ui_action_insert_text)
         is SymbolAction.ReplaceSelection -> stringResource(R.string.compose_ui_action_replace_selection)
         is SymbolAction.SurroundSelection -> stringResource(R.string.compose_ui_action_surround_selection)
-        is SymbolAction.MoveCursor -> stringResource(R.string.compose_ui_action_move_cursor, action.target.name)
-        is SymbolAction.Delete -> stringResource(R.string.compose_ui_action_delete, action.kind.name)
-        is SymbolAction.TransformSelection -> stringResource(R.string.compose_ui_action_transform, action.transform.name)
+        is SymbolAction.MoveCursor -> stringResource(R.string.compose_ui_action_move_cursor, cursorTargetLabel(action.target))
+        is SymbolAction.Delete -> stringResource(R.string.compose_ui_action_delete, deleteKindLabel(action.kind))
+        is SymbolAction.TransformSelection -> stringResource(R.string.compose_ui_action_transform, selectionTransformLabel(action.transform))
         is SymbolAction.EditorCommand -> BuiltinSymbolActionCatalog.find(LocalContext.current, action.commandId)?.label
             ?: stringResource(R.string.compose_ui_action_editor_command, action.commandId)
-        is SymbolAction.Clipboard -> stringResource(R.string.compose_ui_action_clipboard, action.operation.name)
+        is SymbolAction.Clipboard -> stringResource(R.string.compose_ui_action_clipboard, clipboardOperationLabel(action.operation))
         SymbolAction.OpenManager -> stringResource(R.string.compose_ui_action_open_manager)
         is SymbolAction.Composite -> stringResource(R.string.compose_ui_action_composite, action.actions.size)
         is SymbolAction.Extension -> stringResource(R.string.compose_ui_action_extension, action.extensionId)
     }
+}
+
+
+@Composable
+private fun cursorTargetLabel(target: CursorTarget): String = when (target) {
+    CursorTarget.LEFT -> stringResource(R.string.compose_ui_cursor_left)
+    CursorTarget.RIGHT -> stringResource(R.string.compose_ui_cursor_right)
+    CursorTarget.UP -> stringResource(R.string.compose_ui_cursor_up)
+    CursorTarget.DOWN -> stringResource(R.string.compose_ui_cursor_down)
+    CursorTarget.LINE_START -> stringResource(R.string.compose_ui_cursor_line_start)
+    CursorTarget.LINE_END -> stringResource(R.string.compose_ui_cursor_line_end)
+    CursorTarget.DOCUMENT_START -> stringResource(R.string.compose_ui_cursor_document_start)
+    CursorTarget.DOCUMENT_END -> stringResource(R.string.compose_ui_cursor_document_end)
+}
+
+@Composable
+private fun deleteKindLabel(kind: DeleteKind): String = when (kind) {
+    DeleteKind.BACKWARD -> stringResource(R.string.compose_ui_delete_backward)
+    DeleteKind.FORWARD -> stringResource(R.string.compose_ui_delete_forward)
+    DeleteKind.CURRENT_LINE -> stringResource(R.string.compose_ui_delete_current_line)
+    DeleteKind.TO_LINE_START -> stringResource(R.string.compose_ui_delete_to_line_start)
+    DeleteKind.TO_LINE_END -> stringResource(R.string.compose_ui_delete_to_line_end)
+}
+
+@Composable
+private fun selectionTransformLabel(transform: SelectionTransform): String = when (transform) {
+    SelectionTransform.UPPERCASE -> stringResource(R.string.compose_ui_transform_uppercase)
+    SelectionTransform.LOWERCASE -> stringResource(R.string.compose_ui_transform_lowercase)
+    SelectionTransform.TOGGLE_CASE -> stringResource(R.string.compose_ui_transform_toggle_case)
+}
+
+@Composable
+private fun clipboardOperationLabel(operation: ClipboardOperation): String = when (operation) {
+    ClipboardOperation.COPY -> stringResource(R.string.compose_ui_clipboard_copy)
+    ClipboardOperation.CUT -> stringResource(R.string.compose_ui_clipboard_cut)
+    ClipboardOperation.PASTE -> stringResource(R.string.compose_ui_clipboard_paste)
 }

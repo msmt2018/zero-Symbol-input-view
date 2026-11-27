@@ -545,4 +545,23 @@
     <string name="compose_ui_json_open_failed">无法打开所选 JSON 文档</string>
     <string name="compose_ui_json_create_failed">无法创建所选 JSON 文档</string>
     <string name="compose_ui_json_import_limit_exceeded">所选 JSON 文件超过 %1$d 字节的导入限制</string>
+    <string name="compose_ui_cursor_left">左移</string>
+    <string name="compose_ui_cursor_right">右移</string>
+    <string name="compose_ui_cursor_up">上移</string>
+    <string name="compose_ui_cursor_down">下移</string>
+    <string name="compose_ui_cursor_line_start">行首</string>
+    <string name="compose_ui_cursor_line_end">行尾</string>
+    <string name="compose_ui_cursor_document_start">文档开头</string>
+    <string name="compose_ui_cursor_document_end">文档结尾</string>
+    <string name="compose_ui_delete_backward">向后删除</string>
+    <string name="compose_ui_delete_forward">向前删除</string>
+    <string name="compose_ui_delete_current_line">删除当前行</string>
+    <string name="compose_ui_delete_to_line_start">删除至行首</string>
+    <string name="compose_ui_delete_to_line_end">删除至行尾</string>
+    <string name="compose_ui_transform_uppercase">转为大写</string>
+    <string name="compose_ui_transform_lowercase">转为小写</string>
+    <string name="compose_ui_transform_toggle_case">切换大小写</string>
+    <string name="compose_ui_clipboard_copy">复制</string>
+    <string name="compose_ui_clipboard_cut">剪切</string>
+    <string name="compose_ui_clipboard_paste">粘贴</string>
 </resources>
