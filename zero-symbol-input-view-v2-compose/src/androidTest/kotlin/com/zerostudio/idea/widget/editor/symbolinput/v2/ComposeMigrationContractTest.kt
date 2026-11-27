@@ -246,10 +246,19 @@ class ComposeMigrationContractTest {
         compose.onNodeWithText("Appearance").assertIsDisplayed()
         compose.onNodeWithText("性能/搜索").performClick()
         compose.onNodeWithText("Performance").assertIsDisplayed()
-        // The performance page is a separately selected settings tab. Its section
-        // heading is the stable contract; individual controls can be below the
-        // viewport and are not guaranteed to expose scroll semantics themselves.
-        compose.onNodeWithText("Performance").assertIsDisplayed()
+        val cacheLabel = if (
+            compose.onAllNodesWithText("Page cache limit", substring = true)
+                .fetchSemanticsNodes().isNotEmpty()
+        ) {
+            "Page cache limit"
+        } else {
+            "页面缓存数量"
+        }
+        // IntSetting appends the current numeric value to the label, so use
+        // substring matching rather than an exact-text semantics query.
+        compose.onNodeWithText(cacheLabel, substring = true)
+            .performScrollTo()
+            .assertIsDisplayed()
     }
     @Test fun stableDrawerApiFacadeRendersComposeContent() {
         compose.setContent {
