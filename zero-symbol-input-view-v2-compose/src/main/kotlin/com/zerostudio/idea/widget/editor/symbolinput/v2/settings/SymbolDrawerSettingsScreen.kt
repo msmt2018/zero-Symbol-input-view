@@ -80,6 +80,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import android.content.Context
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
@@ -642,6 +644,7 @@ private fun <T : Enum<T>> EnumSetting(
     values: List<T>,
     onValue: (T) -> Unit
 ) {
+    val context = LocalContext.current
     var expanded by remember { mutableStateOf(false) }
     Card(Modifier.fillMaxWidth()) {
         Column(
@@ -651,12 +654,12 @@ private fun <T : Enum<T>> EnumSetting(
             Text(label, style = MaterialTheme.typography.bodyMedium)
             Box {
                 OutlinedButton(onClick = { expanded = true }) {
-                    Text(value.name.replace('_', ' '))
+                    Text(enumSettingLabel(context, value))
                 }
                 DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                     values.forEach { option ->
                         DropdownMenuItem(
-                            text = { Text(option.name.replace('_', ' ')) },
+                            text = { Text(enumSettingLabel(context, option)) },
                             onClick = {
                                 expanded = false
                                 onValue(option)
@@ -667,4 +670,70 @@ private fun <T : Enum<T>> EnumSetting(
             }
         }
     }
+}
+
+
+private fun enumSettingLabel(context: Context, value: Enum<*>): String = when (value) {
+    is ThemeMode -> context.getString(when (value) {
+        ThemeMode.SYSTEM -> R.string.compose_ui_theme_system
+        ThemeMode.LIGHT -> R.string.compose_ui_theme_light
+        ThemeMode.DARK -> R.string.compose_ui_theme_dark
+    })
+    is GroupIndicatorStyle -> context.getString(when (value) {
+        GroupIndicatorStyle.TEXT, GroupIndicatorStyle.TEXT_TABS -> R.string.group_indicator_style_text_tabs
+        GroupIndicatorStyle.PILL -> R.string.group_indicator_style_pill_slider
+        GroupIndicatorStyle.DOTS -> R.string.group_indicator_style_page_dots
+        GroupIndicatorStyle.UNDERLINE -> R.string.group_indicator_style_bottom_underline
+        GroupIndicatorStyle.GOOEY_METABALL -> R.string.group_indicator_style_liquid_metaball
+        GroupIndicatorStyle.ELASTIC_WORM -> R.string.group_indicator_style_elastic_worm
+        GroupIndicatorStyle.SPRING_BLOB -> R.string.group_indicator_style_spring_blob
+        GroupIndicatorStyle.LIQUID_MERGE -> R.string.group_indicator_style_liquid_merge
+        GroupIndicatorStyle.VERNIER_TICKS -> R.string.group_indicator_style_precision_vernier_ticks
+        GroupIndicatorStyle.MECHANICAL_RULER -> R.string.group_indicator_style_mechanical_ruler
+        GroupIndicatorStyle.WHEEL_ROLLER -> R.string.group_indicator_style_3d_roller
+        GroupIndicatorStyle.CAMERA_DIAL -> R.string.group_indicator_style_camera_dial
+        GroupIndicatorStyle.RADIAL_RING -> R.string.group_indicator_style_radial_progress
+        GroupIndicatorStyle.RADAR_SWEEP -> R.string.symbol_manager_radar_sweep
+        GroupIndicatorStyle.HUD_ARC -> R.string.group_indicator_style_hud_arc_gauge
+        GroupIndicatorStyle.ORBIT_DOTS -> R.string.group_indicator_style_orbit_dots
+        GroupIndicatorStyle.ELASTIC_WAVE -> R.string.group_indicator_style_elastic_wave
+        GroupIndicatorStyle.SINE_WAVE -> R.string.group_indicator_style_sine_wave
+        GroupIndicatorStyle.BOUNCE_TRACK -> R.string.group_indicator_style_bounce_track
+        GroupIndicatorStyle.SPRING_SLIDER -> R.string.group_indicator_style_spring_slider
+        GroupIndicatorStyle.MORPHING_BAR -> R.string.group_indicator_style_morphing_progress_bar
+        GroupIndicatorStyle.SEGMENTED_TRACK -> R.string.group_indicator_style_segmented_track
+        GroupIndicatorStyle.PROGRESS_LINE -> R.string.group_indicator_style_continuous_progress_line
+        GroupIndicatorStyle.DOUBLE_TRACK -> R.string.group_indicator_style_double_track
+        GroupIndicatorStyle.MINIMAL_DASHES -> R.string.group_indicator_style_minimal_ticks
+        GroupIndicatorStyle.SQUARE_TICKS -> R.string.group_indicator_style_square_ticks
+        GroupIndicatorStyle.DIAMOND_MARKERS -> R.string.group_indicator_style_diamond_markers
+        GroupIndicatorStyle.TRIANGLE_POINTER -> R.string.group_indicator_style_triangle_pointer
+        GroupIndicatorStyle.HEXAGON_NODES -> R.string.group_indicator_style_hexagon_nodes
+        GroupIndicatorStyle.GLOWING_NODES -> R.string.group_indicator_style_glowing_nodes
+        GroupIndicatorStyle.PULSE_DOTS -> R.string.group_indicator_style_pulse_dots
+        GroupIndicatorStyle.STACKED_CARDS -> R.string.group_indicator_style_stacked_cards
+        GroupIndicatorStyle.MINI_PREVIEW -> R.string.group_indicator_style_mini_page_preview
+        GroupIndicatorStyle.THUMBNAIL_STRIP -> R.string.group_indicator_style_thumbnail_strip
+        GroupIndicatorStyle.NUMBER_BADGES -> R.string.group_indicator_style_number_badges
+        GroupIndicatorStyle.VERTICAL_RAIL -> R.string.group_indicator_style_vertical_rail
+        GroupIndicatorStyle.ARC_NODES -> R.string.group_indicator_style_arc_nodes
+        GroupIndicatorStyle.FLUID_TRAIL -> R.string.group_indicator_style_fluid_trail
+        GroupIndicatorStyle.DIGITAL_COUNTER -> R.string.group_indicator_style_digital_counter
+        GroupIndicatorStyle.STEPPER -> R.string.group_indicator_style_stepper
+    })
+    is HapticMode -> context.getString(when (value) {
+        HapticMode.OFF -> R.string.compose_ui_haptic_off
+        HapticMode.SELECTION -> R.string.compose_ui_haptic_selection
+        HapticMode.ALL -> R.string.compose_ui_haptic_all
+    })
+    is LargeScreenLayoutMode -> context.getString(when (value) {
+        LargeScreenLayoutMode.AUTO -> R.string.symbol_layout_adapt_to_large_screens
+        LargeScreenLayoutMode.BOTTOM -> R.string.symbol_layout_dock_to_bottom
+        LargeScreenLayoutMode.SIDE -> R.string.symbol_layout_dock_to_side
+    })
+    is SideDockEdge -> context.getString(when (value) {
+        SideDockEdge.LEFT -> R.string.symbol_layout_left
+        SideDockEdge.RIGHT -> R.string.symbol_layout_right
+    })
+    else -> value.name.replace('_', ' ')
 }
