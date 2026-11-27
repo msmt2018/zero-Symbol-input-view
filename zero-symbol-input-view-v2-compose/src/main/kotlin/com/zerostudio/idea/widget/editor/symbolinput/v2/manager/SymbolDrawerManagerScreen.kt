@@ -279,11 +279,11 @@ fun SymbolDrawerManagerScreen(
                             usageState.restore(previousUsage)
                         } else usageState.snapshot()
                         selectedGroupId = previousSelection
-                    }.onFailure { errorMessage = it.message ?: "撤销操作失败" }
+                    }.onFailure { errorMessage = it.message ?: stringResource(R.string.compose_ui_undo_failed) }
                 }
             }
             completed
-        }.onFailure { errorMessage = it.message ?: "分组操作失败" }
+        }.onFailure { errorMessage = it.message ?: stringResource(R.string.compose_ui_group_operation_failed) }
             .getOrDefault(false)
     }
 
@@ -306,15 +306,15 @@ fun SymbolDrawerManagerScreen(
                 } else {
                     SymbolGroupBundleCodec.decode(json)
                 }
-                if (runUndoable("已导入分组数据") { manager.replaceAll(imported) }) {
+                if (runUndoable(stringResource(R.string.compose_ui_groups_imported)) { manager.replaceAll(imported) }) {
                     selectedGroupId = imported.firstOrNull()?.id
                     pendingFileImportLegacy = false
                     refresh()
                 }
-            }.onFailure { errorMessage = it.message ?: "JSON 文件导入失败" }
+            }.onFailure { errorMessage = it.message ?: stringResource(R.string.compose_ui_json_import_failed) }
         },
-        onExported = { operationMessage = "V1 兼容 JSON 文件已导出" },
-        onError = { errorMessage = it.message ?: "JSON 文件操作失败" }
+        onExported = { operationMessage = stringResource(R.string.compose_ui_v1_json_exported) },
+        onError = { errorMessage = it.message ?: stringResource(R.string.compose_ui_json_operation_failed) }
     )
 
     DisposableEffect(extensionRegistry) {
@@ -357,7 +357,7 @@ fun SymbolDrawerManagerScreen(
             compositionScope.launch {
                 runCatching { manager.reload() }
                     .onSuccess { refresh() }
-                    .onFailure { errorMessage = it.message ?: "Unable to reload symbol groups" }
+                    .onFailure { errorMessage = it.message ?: stringResource(R.string.compose_ui_groups_reload_failed) }
             }
         }
         onDispose { handle?.close() }
@@ -458,7 +458,7 @@ fun SymbolDrawerManagerScreen(
                         onClick = {
                             moreMenuExpanded = false
                             selectedGroup?.let { group ->
-                                runUndoable("已复制分组") {
+                                runUndoable(stringResource(R.string.compose_ui_group_copied)) {
                                     val duplicate = manager.duplicateGroup(group.id)
                                     selectedGroupId = duplicate.id
                                 }
@@ -472,9 +472,9 @@ fun SymbolDrawerManagerScreen(
                             runCatching { SymbolGroupBundleCodec.encode(groups) }
                                 .onSuccess {
                                     clipboard.setText(AnnotatedString(it))
-                                    operationMessage = "符号分组 JSON 已复制到剪贴板"
+                                    operationMessage = stringResource(R.string.compose_ui_group_json_copied)
                                 }
-                                .onFailure { errorMessage = it.message ?: "Unable to export groups" }
+                                .onFailure { errorMessage = it.message ?: stringResource(R.string.compose_ui_groups_export_failed) }
                         }
                     )
                     DropdownMenuItem(
@@ -490,7 +490,7 @@ fun SymbolDrawerManagerScreen(
                             moreMenuExpanded = false
                             runCatching { LegacySymbolDataCodec.encode(groups) }
                                 .onSuccess { documentPicker.saveJson("symbol-groups-v1.json", it) }
-                                .onFailure { errorMessage = it.message ?: "V1 JSON 导出失败" }
+                                .onFailure { errorMessage = it.message ?: stringResource(R.string.compose_ui_v1_export_failed) }
                         }
                     )
                     DropdownMenuItem(
@@ -540,7 +540,7 @@ fun SymbolDrawerManagerScreen(
                     verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
                 ) {
                     Text(message, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
-                    TextButton(onClick = { operationMessage = null }) { Text("关闭") }
+                    TextButton(onClick = { operationMessage = null }) { Text(stringResource(R.string.compose_ui_close)) }
                 }
             }
         }
@@ -560,7 +560,7 @@ fun SymbolDrawerManagerScreen(
                                     manager.replaceAll(snapshot.map { it.copy(symbols = it.symbols.toList()) })
                                     selectedGroupId = previewSelectedGroupId
                                     refresh()
-                                }.onFailure { errorMessage = it.message ?: "Unable to restore preview snapshot" }
+                                }.onFailure { errorMessage = it.message ?: stringResource(R.string.compose_ui_preview_restore_failed) }
                             }) { Text(stringResource(R.string.compose_manager_restore_preview)) }
                             TextButton(onClick = {
                                 previewModeActive = false
@@ -641,23 +641,23 @@ fun SymbolDrawerManagerScreen(
                                     onDismissRequest = { groupMenuId = null }
                                 ) {
                                     DropdownMenuItem(
-                                        text = { Text("上移分组") },
+                                        text = { Text(stringResource(R.string.compose_ui_group_move_up)) },
                                         enabled = index > 0,
                                         onClick = {
                                             groupMenuId = null
-                                            runUndoable("已调整分组顺序") { manager.moveGroup(index, index - 1) }
+                                            runUndoable(stringResource(R.string.compose_ui_groups_reordered)) { manager.moveGroup(index, index - 1) }
                                         }
                                     )
                                     DropdownMenuItem(
-                                        text = { Text("下移分组") },
+                                        text = { Text(stringResource(R.string.compose_ui_group_move_down)) },
                                         enabled = index < groups.lastIndex,
                                         onClick = {
                                             groupMenuId = null
-                                            runUndoable("已调整分组顺序") { manager.moveGroup(index, index + 1) }
+                                            runUndoable(stringResource(R.string.compose_ui_groups_reordered)) { manager.moveGroup(index, index + 1) }
                                         }
                                     )
                                     DropdownMenuItem(
-                                        text = { Text("添加分组") },
+                                        text = { Text(stringResource(R.string.compose_ui_group_add)) },
                                         onClick = {
                                             groupMenuId = null
                                             editingGroupId = null
@@ -666,7 +666,7 @@ fun SymbolDrawerManagerScreen(
                                         }
                                     )
                                     DropdownMenuItem(
-                                        text = { Text("复制分组内容到…") },
+                                        text = { Text(stringResource(R.string.compose_ui_group_copy_contents_to)) },
                                         enabled = groups.size > 1 && group.symbols.isNotEmpty(),
                                         onClick = {
                                             groupMenuId = null
@@ -674,14 +674,14 @@ fun SymbolDrawerManagerScreen(
                                         }
                                     )
                                     DropdownMenuItem(
-                                        text = { Text("复制分组") },
+                                        text = { Text(stringResource(R.string.compose_ui_group_copy)) },
                                         enabled = groups.size < SymbolGroupBundleCodec.MAX_GROUPS &&
                                             groups.sumOf { it.symbols.size.toLong() } +
                                                 group.symbols.size.toLong() <=
                                                 SymbolGroupBundleCodec.MAX_TOTAL_SYMBOLS,
                                         onClick = {
                                             groupMenuId = null
-                                            runUndoable("已复制分组") {
+                                            runUndoable(stringResource(R.string.compose_ui_group_copied)) {
                                                 val duplicate = manager.duplicateGroup(group.id, index + 1)
                                                 selectedGroupId = duplicate.id
                                             }
@@ -802,7 +802,7 @@ fun SymbolDrawerManagerScreen(
                                     contentPadding = PaddingValues(horizontal = 3.dp, vertical = 6.dp),
                                     enabled = selectedSymbolIds.isNotEmpty(),
                                     onClick = {
-                                        if (runUndoable("已删除 " + selectedSymbolIds.size + " 个符号") {
+                                        if (runUndoable(stringResource(R.string.compose_ui_symbols_deleted, selectedSymbolIds.size)) {
                                             manager.removeSymbols(group.id, selectedSymbolIds)
                                         }) selectedSymbolIds = emptySet()
                                     }
@@ -948,7 +948,7 @@ fun SymbolDrawerManagerScreen(
                                                             draggingSymbolId = null
                                                             if (reordered != null &&
                                                                 reordered.map { it.id } != group.symbols.map { it.id }
-                                                            ) runUndoable("已调整符号顺序") {
+                                                            ) runUndoable(stringResource(R.string.compose_ui_symbols_reordered)) {
                                                                 manager.reorderSymbols(group.id, reordered.map { it.id })
                                                             }
                                                         },
@@ -962,7 +962,7 @@ fun SymbolDrawerManagerScreen(
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.DragHandle,
-                                                contentDescription = "Drag handle",
+                                                contentDescription = stringResource(R.string.compose_ui_drag_handle),
                                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
@@ -973,37 +973,37 @@ fun SymbolDrawerManagerScreen(
                                             ) {
                                                 val symbolIndex = group.symbols.indexOfFirst { it.id == symbol.id }
                                                 DropdownMenuItem(
-                                                    text = { Text(if (symbol.id in usageSnapshot.favorites) "取消收藏" else "收藏") },
+                                                    text = { Text(if (symbol.id in usageSnapshot.favorites) stringResource(R.string.compose_ui_favorite_remove) else stringResource(R.string.compose_ui_favorite_add)) },
                                                     onClick = {
                                                         symbolMenuId = null
                                                         val wasFavorite = symbol.id in usageSnapshot.favorites
                                                         usageSnapshot = usageState.toggleFavorite(symbol.id)
-                                                        operationMessage = if (wasFavorite) "已取消收藏" else "已加入收藏"
+                                                        operationMessage = if (wasFavorite) stringResource(R.string.compose_ui_favorite_removed) else stringResource(R.string.compose_ui_favorite_added)
                                                         undoAction = null
                                                         undoLabel = null
                                                     }
                                                 )
                                                 DropdownMenuItem(
-                                                    text = { Text("标记为最近使用") },
+                                                    text = { Text(stringResource(R.string.compose_ui_mark_recent)) },
                                                     onClick = {
                                                         symbolMenuId = null
                                                         usageSnapshot = usageState.recordRecentlyUsed(symbol.id)
-                                                        operationMessage = "已标记为最近使用"
+                                                        operationMessage = stringResource(R.string.compose_ui_marked_recent)
                                                         undoAction = null
                                                         undoLabel = null
                                                     }
                                                 )
                                                 DropdownMenuItem(
-                                                    text = { Text("复制到当前分组") },
+                                                    text = { Text(stringResource(R.string.compose_ui_copy_to_current_group)) },
                                                     onClick = {
                                                         symbolMenuId = null
-                                                        runUndoable("已复制符号") {
+                                                        runUndoable(stringResource(R.string.compose_ui_symbol_copied)) {
                                                             manager.copySymbols(group.id, setOf(symbol.id), group.id)
                                                         }
                                                     }
                                                 )
                                                 DropdownMenuItem(
-                                                    text = { Text("复制到其他分组…") },
+                                                    text = { Text(stringResource(R.string.compose_ui_copy_to_other_group)) },
                                                     enabled = groups.any { it.id != group.id },
                                                     onClick = {
                                                         symbolMenuId = null
@@ -1013,7 +1013,7 @@ fun SymbolDrawerManagerScreen(
                                                     }
                                                 )
                                                 DropdownMenuItem(
-                                                    text = { Text("移动到其他分组…") },
+                                                    text = { Text(stringResource(R.string.compose_ui_move_to_other_group)) },
                                                     enabled = groups.any { it.id != group.id },
                                                     onClick = {
                                                         symbolMenuId = null
@@ -1023,22 +1023,22 @@ fun SymbolDrawerManagerScreen(
                                                     }
                                                 )
                                                 DropdownMenuItem(
-                                                    text = { Text("上移") },
+                                                    text = { Text(stringResource(R.string.compose_ui_item_move_up)) },
                                                     enabled = symbolIndex > 0,
                                                     onClick = {
                                                         symbolMenuId = null
-                                                        if (symbolIndex > 0) runUndoable("已调整符号顺序") {
+                                                        if (symbolIndex > 0) runUndoable(stringResource(R.string.compose_ui_symbols_reordered)) {
                                                             manager.moveSymbol(group.id, symbolIndex, symbolIndex - 1)
                                                         }
                                                     }
                                                 )
                                                 DropdownMenuItem(
-                                                    text = { Text("下移") },
+                                                    text = { Text(stringResource(R.string.compose_ui_item_move_down)) },
                                                     enabled = symbolIndex >= 0 && symbolIndex < group.symbols.lastIndex,
                                                     onClick = {
                                                         symbolMenuId = null
                                                         if (symbolIndex >= 0 && symbolIndex < group.symbols.lastIndex) {
-                                                            runUndoable("已调整符号顺序") {
+                                                            runUndoable(stringResource(R.string.compose_ui_symbols_reordered)) {
                                                                 manager.moveSymbol(group.id, symbolIndex, symbolIndex + 1)
                                                             }
                                                         }
@@ -1137,7 +1137,7 @@ fun SymbolDrawerManagerScreen(
         val source = groups.firstOrNull { it.id == sourceId }
         AlertDialog(
             onDismissRequest = { copyGroupSourceId = null },
-            title = { Text("复制分组内容") },
+            title = { Text(stringResource(R.string.compose_ui_group_copy_contents_title)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     groups.filter { it.id != sourceId }.forEach { target ->
@@ -1145,7 +1145,7 @@ fun SymbolDrawerManagerScreen(
                             modifier = Modifier.fillMaxWidth(),
                             onClick = {
                                 if (source != null) {
-                                    runUndoable("已复制分组内容") {
+                                    runUndoable(stringResource(R.string.compose_ui_group_contents_copied)) {
                                         manager.copySymbols(
                                             source.id,
                                             source.symbols.mapTo(mutableSetOf()) { it.id },
@@ -1177,7 +1177,7 @@ fun SymbolDrawerManagerScreen(
             TextButton(onClick = {
                 runCatching { undoAction?.invoke() }
                     .onSuccess { refresh() }
-                    .onFailure { errorMessage = it.message ?: "Unable to undo operation" }
+                    .onFailure { errorMessage = it.message ?: stringResource(R.string.compose_ui_undo_operation_failed) }
                 undoAction = null
                 undoLabel = null
             }) { Text(stringResource(R.string.compose_manager_undo)) }
@@ -1192,7 +1192,7 @@ fun SymbolDrawerManagerScreen(
             text = { Text(group?.title.orEmpty()) },
             confirmButton = {
                 TextButton(onClick = {
-                    if (runUndoable("已删除分组") { manager.removeGroup(groupId) }) deleteGroupId = null
+                    if (runUndoable(stringResource(R.string.compose_ui_group_deleted)) { manager.removeGroup(groupId) }) deleteGroupId = null
                 }) { Text(stringResource(R.string.compose_manager_delete)) }
             },
             dismissButton = {
@@ -1207,11 +1207,11 @@ fun SymbolDrawerManagerScreen(
         val symbol = groups.firstOrNull { it.id == groupId }?.symbols?.firstOrNull { it.id == symbolId }
         AlertDialog(
             onDismissRequest = { deleteSymbolTarget = null },
-            title = { Text("删除符号") },
+            title = { Text(stringResource(R.string.compose_ui_symbol_delete_title)) },
             text = { Text(symbol?.label.orEmpty()) },
             confirmButton = {
                 TextButton(onClick = {
-                    if (runUndoable("已删除符号：" + symbol?.label.orEmpty()) {
+                    if (runUndoable(stringResource(R.string.compose_ui_symbol_deleted, symbol?.label.orEmpty())) {
                         manager.removeSymbol(groupId, symbolId)
                     }) deleteSymbolTarget = null
                 }) { Text(stringResource(R.string.compose_manager_delete)) }
@@ -1238,7 +1238,7 @@ fun SymbolDrawerManagerScreen(
                             onClick = {
                                 val operation = targetDialogOperation
                                 val completed = runUndoable(
-                                    if (operation == "copy") "已复制符号到目标分组" else "已移动符号到目标分组"
+                                    if (operation == "copy") stringResource(R.string.compose_ui_symbol_copied_to_group) else stringResource(R.string.compose_ui_symbol_moved_to_group)
                                 ) {
                                     if (operation == "copy") {
                                         manager.copySymbols(
@@ -1294,7 +1294,7 @@ fun SymbolDrawerManagerScreen(
                 TextButton(onClick = {
                     val name = groupName.trim()
                     if (name.isNotEmpty()) {
-                        runUndoable(if (editingGroupId == null) "已添加分组" else "已重命名分组") {
+                        runUndoable(if (editingGroupId == null) stringResource(R.string.compose_ui_group_added) else stringResource(R.string.compose_ui_group_renamed)) {
                             val currentId = editingGroupId
                             if (currentId == null) {
                                 selectedGroupId = manager.addGroup(name).id
@@ -1317,7 +1317,7 @@ fun SymbolDrawerManagerScreen(
             extensions = effectiveActions,
             onDismiss = { symbolDialog = false },
             onSave = { symbol ->
-                runUndoable(if (editingSymbol == null) "已添加符号" else "已更新符号") {
+                runUndoable(if (editingSymbol == null) stringResource(R.string.compose_ui_symbol_added) else stringResource(R.string.compose_ui_symbol_updated)) {
                     if (editingSymbol == null) {
                         manager.addSymbol(targetGroupId, symbol)
                     } else {
@@ -1410,13 +1410,13 @@ fun SymbolDrawerManagerScreen(
                 TextButton(onClick = {
                     val json = clipboard.getText()?.text.orEmpty()
                     if (json.isBlank()) {
-                        errorMessage = "剪贴板没有可导入的 JSON 内容"
+                        errorMessage = stringResource(R.string.compose_ui_clipboard_empty_json)
                     } else {
                         val imported = runCatching { SymbolGroupBundleCodec.decode(json) }
-                            .onFailure { errorMessage = it.message ?: "剪贴板 JSON 无效" }
+                            .onFailure { errorMessage = it.message ?: stringResource(R.string.compose_ui_clipboard_invalid_json) }
                             .getOrNull()
                         if (imported != null &&
-                            runUndoable("已从剪贴板导入分组") { manager.replaceAll(imported) }
+                            runUndoable(stringResource(R.string.compose_ui_clipboard_groups_imported)) { manager.replaceAll(imported) }
                         ) {
                             selectedGroupId = imported.firstOrNull()?.id
                             refresh()
@@ -1458,6 +1458,7 @@ private fun symbolActionSummary(
     return stringResource(R.string.symbol_interaction_tap_long_press, shortName, longName)
 }
 
+@Composable
 private fun symbolActionDisplayName(
     action: SymbolAction,
     legacyId: Int?,
@@ -1468,16 +1469,16 @@ private fun symbolActionDisplayName(
         legacyLabels.getOrNull(index)?.let { return it }
     }
     return when (action) {
-        is SymbolAction.InsertText -> "插入文本"
-        is SymbolAction.ReplaceSelection -> "替换选区"
-        is SymbolAction.SurroundSelection -> "包围选区"
-        is SymbolAction.MoveCursor -> "移动光标：" + action.target.name
-        is SymbolAction.Delete -> "删除：" + action.kind.name
-        is SymbolAction.TransformSelection -> "转换选区：" + action.transform.name
-        is SymbolAction.EditorCommand -> "编辑器命令：" + action.commandId
-        is SymbolAction.Clipboard -> "剪贴板：" + action.operation.name
-        SymbolAction.OpenManager -> "打开符号管理"
-        is SymbolAction.Composite -> "组合动作（" + action.actions.size + "）"
-        is SymbolAction.Extension -> "扩展动作：" + action.extensionId
+        is SymbolAction.InsertText -> stringResource(R.string.compose_ui_action_insert_text)
+        is SymbolAction.ReplaceSelection -> stringResource(R.string.compose_ui_action_replace_selection)
+        is SymbolAction.SurroundSelection -> stringResource(R.string.compose_ui_action_surround_selection)
+        is SymbolAction.MoveCursor -> stringResource(R.string.compose_ui_action_move_cursor, action.target.name)
+        is SymbolAction.Delete -> stringResource(R.string.compose_ui_action_delete, action.kind.name)
+        is SymbolAction.TransformSelection -> stringResource(R.string.compose_ui_action_transform, action.transform.name)
+        is SymbolAction.EditorCommand -> stringResource(R.string.compose_ui_action_editor_command, action.commandId)
+        is SymbolAction.Clipboard -> stringResource(R.string.compose_ui_action_clipboard, action.operation.name)
+        SymbolAction.OpenManager -> stringResource(R.string.compose_ui_action_open_manager)
+        is SymbolAction.Composite -> stringResource(R.string.compose_ui_action_composite, action.actions.size)
+        is SymbolAction.Extension -> stringResource(R.string.compose_ui_action_extension, action.extensionId)
     }
 }

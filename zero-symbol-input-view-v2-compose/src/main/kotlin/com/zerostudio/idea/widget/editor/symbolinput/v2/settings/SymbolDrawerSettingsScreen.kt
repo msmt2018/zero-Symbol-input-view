@@ -153,14 +153,14 @@ fun SymbolDrawerSettingsScreen(
                         .copy(themeMode = ThemeMode.SYSTEM)
                     current = decoded
                     onSettingsChange(decoded)
-                    feedbackMessage = "设置文件导入成功"
+                    feedbackMessage = stringResource(R.string.compose_ui_settings_file_imported)
                 }
-            }.onFailure { errorMessage = it.message ?: "JSON 文件导入失败" }
+            }.onFailure { errorMessage = it.message ?: stringResource(R.string.compose_ui_json_import_failed) }
         },
-        onExported = { feedbackMessage = "JSON 文件导出成功" },
-        onError = { errorMessage = it.message ?: "JSON 文件操作失败" }
+        onExported = { feedbackMessage = stringResource(R.string.compose_ui_settings_json_exported) },
+        onError = { errorMessage = it.message ?: stringResource(R.string.compose_ui_json_operation_failed) }
     )
-    val tabTitles = listOf("外观", "布局", "平板/大屏", "交互", "性能/搜索", "数据管理")
+    val tabTitles = listOf(stringResource(R.string.compose_ui_settings_tab_appearance), stringResource(R.string.compose_ui_settings_tab_layout), stringResource(R.string.compose_ui_settings_tab_large_screen), stringResource(R.string.compose_ui_settings_tab_interaction), stringResource(R.string.compose_ui_settings_tab_performance), stringResource(R.string.compose_ui_settings_tab_data))
     // Each View V2 settings tab retains its own scroll position.
     val tabScrollStates = remember {
         List(tabTitles.size) { ScrollState(0) }
@@ -181,7 +181,7 @@ fun SymbolDrawerSettingsScreen(
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    "配置符号抽屉外观、布局、交互和数据备份。设置变更会立即应用。",
+                    stringResource(R.string.compose_ui_settings_intro),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -223,7 +223,7 @@ fun SymbolDrawerSettingsScreen(
                         current.showFullSymbolLabels
                     ) { value -> update { it.copy(showFullSymbolLabels = value) } }
                     Text(
-                        "完整标签模式会保留符号的全部文本，并根据单元格宽度自动缩小字号。",
+                        stringResource(R.string.compose_ui_settings_full_labels_hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -290,9 +290,9 @@ fun SymbolDrawerSettingsScreen(
                     ) { value -> update { it.copy(minimumTouchTargetDp = value) } }
                 }
 
-                2 -> SettingsSection("平板与大屏") {
+                2 -> SettingsSection(stringResource(R.string.compose_ui_settings_large_screen_title)) {
                     Text(
-                        "大屏布局由窗口尺寸类别、可用空间和宿主布局约束自动决定。符号控件在手机上保持底部停靠；在宽窗口中由自适应布局策略选择合适的内容区域。此页面与 View V2 一样仅提供布局说明，不增加独立的停靠边缘配置。",
+                        stringResource(R.string.compose_ui_settings_large_screen_hint),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -319,7 +319,7 @@ fun SymbolDrawerSettingsScreen(
                         current.rememberExpandedState
                     ) { value -> update { it.copy(rememberExpandedState = value) } }
                     Text(
-                        "以下选项控制抽屉展开/关闭动画与触觉反馈。",
+                        stringResource(R.string.compose_ui_settings_interaction_hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -359,8 +359,8 @@ fun SymbolDrawerSettingsScreen(
 
                 5 -> {
                     SettingsDataCard(
-                        title = "设置备份与恢复",
-                        description = "设置数据独立备份。支持复制 JSON、导出文件、粘贴 JSON 导入和选择文件导入。"
+                        title = stringResource(R.string.compose_ui_settings_backup_title),
+                        description = stringResource(R.string.compose_ui_settings_backup_description)
                     ) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(
@@ -368,12 +368,12 @@ fun SymbolDrawerSettingsScreen(
                                     runCatching { SymbolDrawerSettingsCodec.encode(current) }
                                         .onSuccess {
                                             clipboard.setText(AnnotatedString(it))
-                                            feedbackMessage = "设置 JSON 已复制"
+                                            feedbackMessage = stringResource(R.string.compose_ui_settings_json_copied)
                                         }
-                                        .onFailure { errorMessage = it.message ?: "导出设置 JSON 失败" }
+                                        .onFailure { errorMessage = it.message ?: stringResource(R.string.compose_ui_settings_export_json_failed) }
                                 },
                                 modifier = Modifier.weight(1f)
-                            ) { Text("复制 JSON") }
+                            ) { Text(stringResource(R.string.compose_ui_settings_copy_json)) }
                             OutlinedButton(
                                 onClick = {
                                     runCatching {
@@ -381,10 +381,10 @@ fun SymbolDrawerSettingsScreen(
                                             "symbol-drawer-settings.json",
                                             SymbolDrawerSettingsCodec.encode(current)
                                         )
-                                    }.onFailure { errorMessage = it.message ?: "导出设置文件失败" }
+                                    }.onFailure { errorMessage = it.message ?: stringResource(R.string.compose_ui_settings_export_file_failed) }
                                 },
                                 modifier = Modifier.weight(1f)
-                            ) { Text("导出文件") }
+                            ) { Text(stringResource(R.string.compose_ui_settings_export_file)) }
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             OutlinedButton(
@@ -396,56 +396,56 @@ fun SymbolDrawerSettingsScreen(
                                     importDialog = true
                                 },
                                 modifier = Modifier.weight(1f)
-                            ) { Text("粘贴 JSON 导入") }
+                            ) { Text(stringResource(R.string.compose_ui_settings_paste_import)) }
                             OutlinedButton(
                                 onClick = {
                                     pendingFileImportGroups = false
                                     documentPicker.openJson()
                                 },
                                 modifier = Modifier.weight(1f)
-                            ) { Text("从文件导入") }
+                            ) { Text(stringResource(R.string.compose_ui_settings_import_file)) }
                         }
                     }
 
                     SettingsDataCard(
-                        title = "符号分组备份与恢复",
-                        description = "符号分组数据与控件设置分开存储。文件导入会先校验 JSON，再由你确认替换当前分组。"
+                        title = stringResource(R.string.compose_ui_groups_backup_title),
+                        description = stringResource(R.string.compose_ui_groups_backup_description)
                     ) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(
                                 onClick = {
                                     val repository = groupRepository
                                     if (repository == null) {
-                                        errorMessage = "符号分组仓库不可用"
+                                        errorMessage = stringResource(R.string.compose_ui_groups_repository_unavailable)
                                     } else {
                                         runCatching { SymbolGroupBundleCodec.encode(repository.loadGroups()) }
                                             .onSuccess {
                                                 clipboard.setText(AnnotatedString(it))
-                                                feedbackMessage = "符号分组 JSON 已复制"
+                                                feedbackMessage = stringResource(R.string.compose_ui_groups_json_copied)
                                             }
-                                            .onFailure { errorMessage = it.message ?: "导出符号分组 JSON 失败" }
+                                            .onFailure { errorMessage = it.message ?: stringResource(R.string.compose_ui_groups_export_json_failed) }
                                     }
                                 },
                                 enabled = groupRepository != null,
                                 modifier = Modifier.weight(1f)
-                            ) { Text("复制 JSON") }
+                            ) { Text(stringResource(R.string.compose_ui_settings_copy_json)) }
                             OutlinedButton(
                                 onClick = {
                                     val repository = groupRepository
                                     if (repository == null) {
-                                        errorMessage = "符号分组仓库不可用"
+                                        errorMessage = stringResource(R.string.compose_ui_groups_repository_unavailable)
                                     } else {
                                         runCatching {
                                             documentPicker.saveJson(
                                                 "symbol-drawer-groups.json",
                                                 SymbolGroupBundleCodec.encode(repository.loadGroups())
                                             )
-                                        }.onFailure { errorMessage = it.message ?: "导出符号分组文件失败" }
+                                        }.onFailure { errorMessage = it.message ?: stringResource(R.string.compose_ui_groups_export_file_failed) }
                                     }
                                 },
                                 enabled = groupRepository != null,
                                 modifier = Modifier.weight(1f)
-                            ) { Text("导出文件") }
+                            ) { Text(stringResource(R.string.compose_ui_settings_export_file)) }
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             OutlinedButton(
@@ -457,7 +457,7 @@ fun SymbolDrawerSettingsScreen(
                                 },
                                 enabled = groupRepository != null,
                                 modifier = Modifier.weight(1f)
-                            ) { Text("粘贴 JSON 导入") }
+                            ) { Text(stringResource(R.string.compose_ui_settings_paste_import)) }
                             OutlinedButton(
                                 onClick = {
                                     pendingFileImportGroups = true
@@ -465,7 +465,7 @@ fun SymbolDrawerSettingsScreen(
                                 },
                                 enabled = groupRepository != null,
                                 modifier = Modifier.weight(1f)
-                            ) { Text("从文件导入") }
+                            ) { Text(stringResource(R.string.compose_ui_settings_import_file)) }
                         }
                     }
 
@@ -474,9 +474,9 @@ fun SymbolDrawerSettingsScreen(
                             Modifier.fillMaxWidth().padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text("数据安全提示", style = MaterialTheme.typography.titleSmall)
+                            Text(stringResource(R.string.compose_ui_security_title), style = MaterialTheme.typography.titleSmall)
                             Text(
-                                "导入操作会替换对应的设置或分组数据。请在导入前保留备份，并确认 JSON 来源可信。分组文件在覆盖前需要确认。",
+                                stringResource(R.string.compose_ui_security_description),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -489,7 +489,7 @@ fun SymbolDrawerSettingsScreen(
                             current = defaults
                             onSettingsChange(defaults)
                             onReset?.invoke()
-                            feedbackMessage = "已恢复默认设置"
+                            feedbackMessage = stringResource(R.string.compose_ui_settings_restored)
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) { Text(stringResource(R.string.compose_settings_reset)) }
@@ -501,7 +501,7 @@ fun SymbolDrawerSettingsScreen(
     if (importDialog) {
         AlertDialog(
             onDismissRequest = { importDialog = false },
-            title = { Text(if (importGroups) "导入符号分组" else "导入设置") },
+            title = { Text(if (importGroups) stringResource(R.string.compose_ui_import_groups_title) else stringResource(R.string.compose_ui_import_settings_title)) },
             text = {
                 OutlinedTextField(
                     value = importJson,
@@ -525,15 +525,15 @@ fun SymbolDrawerSettingsScreen(
                             current = decoded
                             onSettingsChange(decoded)
                         }
-                    }.onFailure { errorMessage = it.message ?: "导入失败" }
+                    }.onFailure { errorMessage = it.message ?: stringResource(R.string.compose_ui_import_failed) }
                     if (errorMessage == null) {
-                        feedbackMessage = if (importGroups) "符号分组导入成功" else "设置导入成功"
+                        feedbackMessage = if (importGroups) stringResource(R.string.compose_ui_groups_imported_success) else stringResource(R.string.compose_ui_settings_imported_success)
                         importDialog = false
                     }
-                }) { Text("导入") }
+                }) { Text(stringResource(R.string.compose_ui_import)) }
             },
             dismissButton = {
-                TextButton(onClick = { importDialog = false }) { Text("取消") }
+                TextButton(onClick = { importDialog = false }) { Text(stringResource(R.string.compose_ui_cancel)) }
             }
         )
     }
@@ -541,10 +541,10 @@ fun SymbolDrawerSettingsScreen(
     feedbackMessage?.let { message ->
         AlertDialog(
             onDismissRequest = { feedbackMessage = null },
-            title = { Text("操作完成") },
+            title = { Text(stringResource(R.string.compose_ui_operation_completed)) },
             text = { Text(message) },
             confirmButton = {
-                TextButton(onClick = { feedbackMessage = null }) { Text("确定") }
+                TextButton(onClick = { feedbackMessage = null }) { Text(stringResource(R.string.compose_ui_ok)) }
             }
         )
     }
@@ -552,10 +552,10 @@ fun SymbolDrawerSettingsScreen(
     errorMessage?.let { message ->
         AlertDialog(
             onDismissRequest = { errorMessage = null },
-            title = { Text("操作失败") },
+            title = { Text(stringResource(R.string.compose_ui_operation_failed)) },
             text = { Text(message) },
             confirmButton = {
-                TextButton(onClick = { errorMessage = null }) { Text("确定") }
+                TextButton(onClick = { errorMessage = null }) { Text(stringResource(R.string.compose_ui_ok)) }
             }
         )
     }
@@ -623,7 +623,7 @@ private fun IntSetting(label: String, value: Int, minimum: Int, maximum: Int, on
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("$label：$value", style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.compose_ui_value_summary, label, value), style = MaterialTheme.typography.bodyMedium)
             }
             Slider(
                 value = value.toFloat().coerceIn(minimum.toFloat(), maximum.toFloat()),

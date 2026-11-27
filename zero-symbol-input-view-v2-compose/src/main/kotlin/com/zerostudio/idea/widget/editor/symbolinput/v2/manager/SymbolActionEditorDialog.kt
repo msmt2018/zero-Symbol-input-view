@@ -140,48 +140,54 @@ internal fun SymbolActionEditorDialog(
         stringResource(R.string.legacy_action_label_32),
         stringResource(R.string.legacy_action_label_33)
     )
-    val legacyOptions = remember(legacyLabels) {
+    val legacySourcePrefix = stringResource(R.string.compose_ui_action_source_v1)
+    val builtinSourcePrefix = stringResource(R.string.compose_ui_action_source_v2)
+    val extensionSourcePrefix = stringResource(R.string.compose_ui_action_source_extension)
+    val keepCurrentActionLabel = stringResource(R.string.compose_ui_keep_current_action)
+    val noActionLabel = stringResource(R.string.compose_ui_no_action)
+
+    val legacyOptions = remember(legacyLabels, legacySourcePrefix) {
         LegacySymbolActionDefinitions.values.mapIndexed { index, id ->
             SymbolActionPickerOption(
                 key = "v1:$id",
-                label = "[V1] " + legacyLabels[index],
+                label = legacySourcePrefix + legacyLabels[index],
                 legacyId = id
             )
         }
     }
-    val builtinOptions = remember {
+    val builtinOptions = remember(builtinSourcePrefix) {
         BuiltinSymbolActionCatalog.options.map { option ->
             SymbolActionPickerOption(
                 key = "v2:${option.commandId}",
-                label = "[V2] " + option.label,
+                label = builtinSourcePrefix + option.label,
                 builtin = option
             )
         }
     }
-    val extensionOptions = remember(extensions) {
+    val extensionOptions = remember(extensions, extensionSourcePrefix) {
         extensions.map { extension ->
             SymbolActionPickerOption(
                 key = "extension:${extension.id}",
-                label = "[Extension] ${extension.title}",
+                label = extensionSourcePrefix + extension.title,
                 extension = extension
             )
         }
     }
     val commonOptions = legacyOptions + builtinOptions + extensionOptions
-    val shortOptions = remember(commonOptions, preserveShort, existing) {
+    val shortOptions = remember(commonOptions, preserveShort, existing, keepCurrentActionLabel) {
         buildList {
             if (preserveShort) {
-                add(SymbolActionPickerOption("keep:short", "Keep current action", keepCurrent = true))
+                add(SymbolActionPickerOption("keep:short", keepCurrentActionLabel, keepCurrent = true))
             }
             addAll(commonOptions)
         }
     }
-    val longOptions = remember(commonOptions, preserveLong, existing) {
+    val longOptions = remember(commonOptions, preserveLong, existing, keepCurrentActionLabel, noActionLabel) {
         buildList {
             if (preserveLong) {
-                add(SymbolActionPickerOption("keep:long", "Keep current action", keepCurrent = true))
+                add(SymbolActionPickerOption("keep:long", keepCurrentActionLabel, keepCurrent = true))
             }
-            add(SymbolActionPickerOption("none", "None", none = true))
+            add(SymbolActionPickerOption("none", noActionLabel, none = true))
             addAll(commonOptions)
         }
     }
