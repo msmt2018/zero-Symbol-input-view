@@ -427,7 +427,7 @@ class SymbolDrawerManagerScreen(
         manager.replaceAll(imported)
         selectedGroupId = imported.firstOrNull()?.id
         refresh()
-        showUndo(context.getString(R.string.symbol_drawer_096)) {
+        showUndo(context.getString(R.string.symbol_data_imported_legacy_mt_manager_symbol_json)) {
             manager.replaceAll(previous)
             restoreUsageState(previousUsage)
             selectedGroupId = previousSelection
@@ -442,7 +442,7 @@ class SymbolDrawerManagerScreen(
         manager.replaceAll(imported)
         selectedGroupId = imported.firstOrNull()?.id
         refresh()
-        showUndo(context.getString(R.string.symbol_drawer_097)) {
+        showUndo(context.getString(R.string.symbol_data_imported_symbol_drawer_backup)) {
             manager.replaceAll(previous)
             restoreUsageState(previousUsage)
             selectedGroupId = previousSelection
@@ -452,8 +452,8 @@ class SymbolDrawerManagerScreen(
     private fun buildHeader() {
         val row = horizontalRow().apply { gravity = android.view.Gravity.END or android.view.Gravity.CENTER_VERTICAL }
         val searchButton = MaterialButton(context).apply {
-            text = context.getString(R.string.symbol_drawer_132)
-            contentDescription = context.getString(R.string.symbol_drawer_134)
+            text = context.getString(R.string.symbol_search_search)
+            contentDescription = context.getString(R.string.symbol_search_search_symbols)
             tag = "symbol_manager_search_button"
             isAllCaps = false
             textSize = 13f
@@ -477,7 +477,7 @@ class SymbolDrawerManagerScreen(
         this.searchButton = searchButton
         row.addView(searchButton, LayoutParams(LayoutParams.WRAP_CONTENT, dp(40)))
         val menuButton = MaterialButton(context).apply {
-            text = context.getString(R.string.symbol_drawer_156)
+            text = context.getString(R.string.symbol_manager_more)
             isAllCaps = false
             textSize = 13f
             minWidth = dp(64)
@@ -502,29 +502,29 @@ class SymbolDrawerManagerScreen(
 
     private fun showManagerMenu(anchor: View) {
         val menu = PopupMenu(context, anchor, android.view.Gravity.END)
-        menu.menu.add(if (batchMode) context.getString(R.string.symbol_drawer_220) else context.getString(R.string.symbol_drawer_128))
+        menu.menu.add(if (batchMode) context.getString(R.string.symbol_manager_exit_selection) else context.getString(R.string.symbol_manager_select))
             .setOnMenuItemClickListener { setBatchMode(!batchMode); true }
-        menu.menu.add(context.getString(R.string.symbol_drawer_173)).setOnMenuItemClickListener { editSymbol(null); true }
-        menu.menu.add(if (previewModeActive) context.getString(R.string.symbol_drawer_221) else context.getString(R.string.symbol_drawer_229))
+        menu.menu.add(context.getString(R.string.symbol_item_add_symbol)).setOnMenuItemClickListener { editSymbol(null); true }
+        menu.menu.add(if (previewModeActive) context.getString(R.string.symbol_toolbar_exit_preview_editing) else context.getString(R.string.symbol_toolbar_preview_editor))
             .setOnMenuItemClickListener {
                 if (previewModeActive) finishPreviewEditMode() else enterPreviewEditMode()
                 true
             }
-        menu.menu.add(context.getString(R.string.symbol_drawer_172)).setOnMenuItemClickListener {
-            promptGroupName(context.getString(R.string.symbol_drawer_147)) { title ->
+        menu.menu.add(context.getString(R.string.symbol_group_add_group)).setOnMenuItemClickListener {
+            promptGroupName(context.getString(R.string.symbol_group_new_group)) { title ->
                 runCatching { selectedGroupId = manager.addGroup(title).id; refresh() }
                     .onFailure(::reportError)
             }
             true
         }
-        val filters = menu.menu.addSubMenu(context.getString(R.string.symbol_drawer_191))
+        val filters = menu.menu.addSubMenu(context.getString(R.string.symbol_manager_filter))
         buildList {
-            add(ManagerSymbolFilter.ALL to context.getString(R.string.symbol_drawer_035))
+            add(ManagerSymbolFilter.ALL to context.getString(R.string.symbol_manager_all))
             if (isBuiltInFeatureVisible(SymbolDrawerBuiltInFeatures.FAVORITES)) {
-                add(ManagerSymbolFilter.FAVORITES to context.getString(R.string.symbol_drawer_138))
+                add(ManagerSymbolFilter.FAVORITES to context.getString(R.string.symbol_favorites_favorites))
             }
             if (isBuiltInFeatureVisible(SymbolDrawerBuiltInFeatures.RECENT)) {
-                add(ManagerSymbolFilter.RECENT to context.getString(R.string.symbol_drawer_159))
+                add(ManagerSymbolFilter.RECENT to context.getString(R.string.symbol_favorites_recent))
             }
         }.forEach { (filter, label) ->
             filters.add(if (activeFilter == filter) "✓ $label" else label)
@@ -569,36 +569,36 @@ class SymbolDrawerManagerScreen(
         val index = manager.groups.indexOfFirst { it.id == group.id }
         groupPageHost.selectPage(groupPageId(group.id))
         PopupMenu(context, anchor).apply {
-            menu.add(context.getString(R.string.symbol_drawer_087)).apply { isEnabled = index > 0 }
+            menu.add(context.getString(R.string.symbol_manager_move_left)).apply { isEnabled = index > 0 }
                 .setOnMenuItemClickListener { moveGroup(group.id, -1); true }
-            menu.add(context.getString(R.string.symbol_drawer_061)).apply { isEnabled = index >= 0 && index < manager.groups.lastIndex }
+            menu.add(context.getString(R.string.symbol_manager_move_right)).apply { isEnabled = index >= 0 && index < manager.groups.lastIndex }
                 .setOnMenuItemClickListener { moveGroup(group.id, 1); true }
-            menu.add(context.getString(R.string.symbol_drawer_171)).setOnMenuItemClickListener { showAddGroupDialog(); true }
-            menu.add(context.getString(R.string.symbol_drawer_071)).setOnMenuItemClickListener {
+            menu.add(context.getString(R.string.symbol_manager_add)).setOnMenuItemClickListener { showAddGroupDialog(); true }
+            menu.add(context.getString(R.string.symbol_group_duplicate_group)).setOnMenuItemClickListener {
                 runCatching {
                     val duplicate = manager.duplicateGroup(group.id, index + 1)
                     selectedGroupId = duplicate.id
                     refresh()
-                    toast(context.getString(R.string.symbol_drawer_094, duplicate.title))
+                    toast(context.getString(R.string.symbol_group_duplicated_group, duplicate.title))
                 }.onFailure(::reportError)
                 true
             }
-            menu.add(context.getString(R.string.symbol_drawer_068)).apply { isEnabled = manager.groups.size > 1 }
+            menu.add(context.getString(R.string.symbol_manager_copy_to)).apply { isEnabled = manager.groups.size > 1 }
                 .setOnMenuItemClickListener { promptCopyGroupTo(group.id); true }
-            menu.add(context.getString(R.string.symbol_drawer_222)).setOnMenuItemClickListener {
-                promptGroupName(context.getString(R.string.symbol_drawer_223, group.title), group.title) {
+            menu.add(context.getString(R.string.symbol_manager_rename)).setOnMenuItemClickListener {
+                promptGroupName(context.getString(R.string.symbol_manager_rename_alternate, group.title), group.title) {
                     manager.renameGroup(group.id, it)
                     refresh()
                 }
                 true
             }
-            menu.add(context.getString(R.string.symbol_drawer_044)).setOnMenuItemClickListener { confirmDeleteGroup(group.id); true }
+            menu.add(context.getString(R.string.symbol_manager_delete)).setOnMenuItemClickListener { confirmDeleteGroup(group.id); true }
             show()
         }
     }
 
     private fun showAddGroupDialog() {
-        promptGroupName(context.getString(R.string.symbol_drawer_147)) {
+        promptGroupName(context.getString(R.string.symbol_group_new_group)) {
             val created = manager.addGroup(it)
             selectedGroupId = created.id
             refresh()
@@ -620,7 +620,7 @@ class SymbolDrawerManagerScreen(
         val targets = manager.groups.filter { it.id != sourceGroupId }
         if (targets.isEmpty()) return
         AlertDialog.Builder(context)
-            .setTitle(context.getString(R.string.symbol_drawer_067, source.title))
+            .setTitle(context.getString(R.string.symbol_item_copy_symbols_from_to, source.title))
             .setItems(targets.map { it.title }.toTypedArray()) { _, which ->
                 runCatching {
                     val target = targets[which]
@@ -628,17 +628,17 @@ class SymbolDrawerManagerScreen(
                     if (ids.isNotEmpty()) manager.copySymbols(source.id, ids, target.id)
                     selectedGroupId = target.id
                     refresh()
-                    toast(context.getString(R.string.symbol_drawer_095, target.title))
+                    toast(context.getString(R.string.symbol_data_copied_to, target.title))
                 }.onFailure(::reportError)
             }
-            .setNegativeButton(context.getString(R.string.symbol_drawer_057), null)
+            .setNegativeButton(context.getString(R.string.symbol_manager_cancel), null)
             .showAdaptiveDialog()
     }
 
     private fun setSearchVisible(show: Boolean) {
         searchContainer.visibility = if (show) View.VISIBLE else View.GONE
-        searchButton?.text = if (show) context.getString(R.string.symbol_drawer_139) else context.getString(R.string.symbol_drawer_132)
-        searchButton?.contentDescription = if (show) context.getString(R.string.symbol_drawer_140) else context.getString(R.string.symbol_drawer_134)
+        searchButton?.text = if (show) context.getString(R.string.symbol_interaction_collapse) else context.getString(R.string.symbol_search_search)
+        searchButton?.contentDescription = if (show) context.getString(R.string.symbol_search_close_search) else context.getString(R.string.symbol_search_search_symbols)
         if (show) {
             searchField.requestFocus()
         } else {
@@ -651,7 +651,7 @@ class SymbolDrawerManagerScreen(
         searchContainer.tag = "symbol_manager_search_container"
         searchContainer.orientation = VERTICAL
         searchContainer.visibility = View.GONE
-        searchField.hint = context.getString(R.string.symbol_drawer_135)
+        searchField.hint = context.getString(R.string.symbol_search_search_symbol_names_and_actions)
         searchField.setSingleLine(true)
         searchField.textSize = 14f
         searchField.setPadding(dp(14), dp(10), dp(14), dp(10))
@@ -709,7 +709,7 @@ class SymbolDrawerManagerScreen(
         if (!favoriteIds.add(symbol.id)) favoriteIds.remove(symbol.id)
         persistUsageState()
         refreshSymbols()
-        toast(if (symbol.id in favoriteIds) context.getString(R.string.symbol_drawer_091) else context.getString(R.string.symbol_drawer_092))
+        toast(if (symbol.id in favoriteIds) context.getString(R.string.symbol_favorites_added_to_favorites) else context.getString(R.string.symbol_favorites_removed_from_favorites))
     }
 
     /** Records a real toolbar dispatch; unknown/stale IDs are ignored safely. */
@@ -732,7 +732,7 @@ class SymbolDrawerManagerScreen(
     }
 
     private fun buildSymbolList() {
-        emptyView.text = context.getString(R.string.symbol_drawer_115)
+        emptyView.text = context.getString(R.string.symbol_group_no_symbols_in_this_group_tap_add_and_choose_new_symbol)
         emptyView.textSize = 13f
         emptyView.setTextColor(secondaryTextColor())
         emptyView.alpha = 0.75f
@@ -757,9 +757,9 @@ class SymbolDrawerManagerScreen(
         batchSummary.setTextColor(HostThemeColors.secondaryText(context))
         batchSummary.textSize = 12f
         batchBar.addView(batchSummary, LayoutParams(0, dp(40), 1f))
-        batchBar.addView(actionButton(context.getString(R.string.symbol_drawer_066)) { batchCopy() }, LayoutParams(LayoutParams.WRAP_CONTENT, dp(36)))
-        batchBar.addView(actionButton(context.getString(R.string.symbol_drawer_181)) { batchMove() }, LayoutParams(LayoutParams.WRAP_CONTENT, dp(36)))
-        batchBar.addView(actionButton(context.getString(R.string.symbol_drawer_044)) { batchDelete() }, LayoutParams(LayoutParams.WRAP_CONTENT, dp(36)))
+        batchBar.addView(actionButton(context.getString(R.string.symbol_manager_copy)) { batchCopy() }, LayoutParams(LayoutParams.WRAP_CONTENT, dp(36)))
+        batchBar.addView(actionButton(context.getString(R.string.symbol_manager_move)) { batchMove() }, LayoutParams(LayoutParams.WRAP_CONTENT, dp(36)))
+        batchBar.addView(actionButton(context.getString(R.string.symbol_manager_delete)) { batchDelete() }, LayoutParams(LayoutParams.WRAP_CONTENT, dp(36)))
     }
 
     private fun setBatchMode(enabled: Boolean) {
@@ -771,7 +771,7 @@ class SymbolDrawerManagerScreen(
     }
 
     private fun updateBatchSummary() {
-        batchSummary.text = context.getString(R.string.symbol_drawer_102, selectedSymbolIds.size)
+        batchSummary.text = context.getString(R.string.symbol_manager_selected, selectedSymbolIds.size)
     }
 
     private fun toggleBatchSelection(symbol: SymbolEntry) {
@@ -785,7 +785,7 @@ class SymbolDrawerManagerScreen(
         val group = currentGroup() ?: return null
         val ids = selectedSymbolIds.toSet()
         if (ids.isEmpty()) {
-            toast(context.getString(R.string.symbol_drawer_214))
+            toast(context.getString(R.string.symbol_item_select_symbols_first))
             return null
         }
         return group to ids
@@ -801,7 +801,7 @@ class SymbolDrawerManagerScreen(
             selectedSymbolIds.clear()
             updateBatchSummary()
             refresh()
-            showUndo(context.getString(R.string.symbol_drawer_088, ids.size)) {
+            showUndo(context.getString(R.string.symbol_item_deleted_symbols, ids.size)) {
                 manager.replaceAll(before)
                 restoreUsageState(previousUsage)
             }
@@ -811,9 +811,9 @@ class SymbolDrawerManagerScreen(
     private fun batchCopy() {
         val (group, ids) = selectedBatch() ?: return
         val targets = manager.groups.filter { it.id != group.id }
-        if (targets.isEmpty()) { toast(context.getString(R.string.symbol_drawer_213)); return }
+        if (targets.isEmpty()) { toast(context.getString(R.string.symbol_group_create_another_group_first)); return }
         AlertDialog.Builder(context)
-            .setTitle(context.getString(R.string.symbol_drawer_070))
+            .setTitle(context.getString(R.string.symbol_item_copy_selected_symbols_to))
             .setItems(targets.map { it.title }.toTypedArray()) { _, which ->
                 val before = manager.groups.toList()
                 runCatching {
@@ -821,19 +821,19 @@ class SymbolDrawerManagerScreen(
                     manager.copySymbols(group.id, ids, target.id)
                     selectedSymbolIds.clear()
                     refresh()
-                    showUndo(context.getString(R.string.symbol_drawer_093, ids.size)) { manager.replaceAll(before) }
+                    showUndo(context.getString(R.string.symbol_data_copied_symbols, ids.size)) { manager.replaceAll(before) }
                 }.onFailure(::reportError)
             }
-            .setNegativeButton(context.getString(R.string.symbol_drawer_057), null)
+            .setNegativeButton(context.getString(R.string.symbol_manager_cancel), null)
             .showAdaptiveDialog()
     }
 
     private fun batchMove() {
         val (group, ids) = selectedBatch() ?: return
         val targets = manager.groups.filter { it.id != group.id }
-        if (targets.isEmpty()) { toast(context.getString(R.string.symbol_drawer_213)); return }
+        if (targets.isEmpty()) { toast(context.getString(R.string.symbol_group_create_another_group_first)); return }
         AlertDialog.Builder(context)
-            .setTitle(context.getString(R.string.symbol_drawer_183))
+            .setTitle(context.getString(R.string.symbol_item_move_selected_symbols_to))
             .setItems(targets.map { it.title }.toTypedArray()) { _, which ->
                 val before = manager.groups.toList()
                 runCatching {
@@ -842,10 +842,10 @@ class SymbolDrawerManagerScreen(
                     selectedGroupId = target.id
                     selectedSymbolIds.clear()
                     refresh()
-                    showUndo(context.getString(R.string.symbol_drawer_100, ids.size)) { manager.replaceAll(before) }
+                    showUndo(context.getString(R.string.symbol_item_moved_symbols, ids.size)) { manager.replaceAll(before) }
                 }.onFailure(::reportError)
             }
-            .setNegativeButton(context.getString(R.string.symbol_drawer_057), null)
+            .setNegativeButton(context.getString(R.string.symbol_manager_cancel), null)
             .showAdaptiveDialog()
     }
 
@@ -926,7 +926,7 @@ class SymbolDrawerManagerScreen(
                     }
                     refresh()
                     if (before != null && before != manager.groups) {
-                        showUndo(context.getString(R.string.symbol_drawer_101)) {
+                        showUndo(context.getString(R.string.symbol_item_symbol_order_updated)) {
                             manager.replaceAll(before.map { it.copy(symbols = it.symbols.toList()) })
                             selectedGroupId = previousGroupId
                         }
@@ -955,14 +955,14 @@ class SymbolDrawerManagerScreen(
             gravity = android.view.Gravity.CENTER_VERTICAL
         }
         controls.addView(TextView(context).apply {
-            text = context.getString(R.string.symbol_drawer_085)
+            text = context.getString(R.string.symbol_layout_toolbar_preview_editor)
             textSize = 13f
             setTextColor(onSurfaceColor())
             setTypeface(typeface, android.graphics.Typeface.BOLD)
         }, LayoutParams(0, dp(36), 1f))
-        controls.addView(actionButton(context.getString(R.string.symbol_drawer_120)) { restorePreviewEditMode() },
+        controls.addView(actionButton(context.getString(R.string.symbol_manager_restore)) { restorePreviewEditMode() },
             LayoutParams(LayoutParams.WRAP_CONTENT, dp(34)))
-        controls.addView(actionButton(context.getString(R.string.symbol_drawer_075)) { finishPreviewEditMode() },
+        controls.addView(actionButton(context.getString(R.string.symbol_manager_done)) { finishPreviewEditMode() },
             LayoutParams(LayoutParams.WRAP_CONTENT, dp(34)))
         panel.addView(controls, LayoutParams(LayoutParams.MATCH_PARENT, dp(36)))
         previewContent = FrameLayout(context).also {
@@ -1009,7 +1009,7 @@ class SymbolDrawerManagerScreen(
             manager.replaceAll(snapshot.map { it.copy(symbols = it.symbols.toList()) })
             selectedGroupId = previewEditSelectedGroupId
             refresh()
-            toast(context.getString(R.string.symbol_drawer_098))
+            toast(context.getString(R.string.symbol_layout_restored_the_previous_layout))
         }.onFailure(::reportError)
     }
 
@@ -1041,7 +1041,7 @@ class SymbolDrawerManagerScreen(
             setPadding(dp(8), dp(6), dp(8), dp(4))
             background = roundedSurface(surfaceColor(), 14)
             addView(TextView(context).apply {
-                text = context.getString(R.string.symbol_drawer_076)
+                text = context.getString(R.string.symbol_layout_live_toolbar_preview_closes_when_dragging_ends)
                 textSize = 11f
                 setTextColor(secondaryTextColor())
             }, LayoutParams(LayoutParams.MATCH_PARENT, dp(22)))
@@ -1113,7 +1113,7 @@ class SymbolDrawerManagerScreen(
         undoBar.visibility = View.GONE
         undoMessage.textSize = 13f
         undoBar.addView(undoMessage, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
-        undoButton.text = context.getString(R.string.symbol_drawer_136)
+        undoButton.text = context.getString(R.string.symbol_manager_undo)
         undoButton.setOnClickListener {
             val restore = pendingUndo ?: return@setOnClickListener
             pendingUndo = null
@@ -1313,10 +1313,10 @@ class SymbolDrawerManagerScreen(
     private fun confirmDeleteGroup(groupId: String) {
         val group = manager.groups.firstOrNull { it.id == groupId } ?: return
         AlertDialog.Builder(context)
-            .setTitle(context.getString(R.string.symbol_drawer_046))
-            .setMessage(context.getString(R.string.symbol_drawer_045, group.title))
-            .setNegativeButton(context.getString(R.string.symbol_drawer_057), null)
-            .setPositiveButton(context.getString(R.string.symbol_drawer_044)) { _, _ ->
+            .setTitle(context.getString(R.string.symbol_group_delete_group))
+            .setMessage(context.getString(R.string.symbol_item_delete_and_all_its_symbols_use_undo_at_the_bottom_to_re, group.title))
+            .setNegativeButton(context.getString(R.string.symbol_manager_cancel), null)
+            .setPositiveButton(context.getString(R.string.symbol_manager_delete)) { _, _ ->
                 val previous = manager.groups.toList()
                 val previousUsage = snapshotUsageState()
                 val previousSelection = selectedGroupId
@@ -1325,7 +1325,7 @@ class SymbolDrawerManagerScreen(
                     pruneUsageState()
                     selectedGroupId = manager.groups.firstOrNull()?.id
                     refresh()
-                    showUndo(context.getString(R.string.symbol_drawer_089, group.title)) {
+                    showUndo(context.getString(R.string.symbol_group_deleted_group, group.title)) {
                         manager.replaceAll(previous)
                         restoreUsageState(previousUsage)
                         selectedGroupId = previousSelection
@@ -1339,16 +1339,16 @@ class SymbolDrawerManagerScreen(
         val input = EditText(context).apply {
             setSingleLine(true)
             setText(initial)
-            hint = context.getString(R.string.symbol_drawer_039)
+            hint = context.getString(R.string.symbol_group_group_name)
         }
         AlertDialog.Builder(context)
             .setTitle(title)
             .setView(input)
-            .setNegativeButton(context.getString(R.string.symbol_drawer_057), null)
-            .setPositiveButton(context.getString(R.string.symbol_drawer_178)) { _, _ ->
+            .setNegativeButton(context.getString(R.string.symbol_manager_cancel), null)
+            .setPositiveButton(context.getString(R.string.symbol_manager_ok)) { _, _ ->
                 val value = input.text.toString().trim()
                 if (value.isNotEmpty()) runCatching { done(value) }.onFailure(::reportError)
-                else toast(context.getString(R.string.symbol_drawer_040))
+                else toast(context.getString(R.string.symbol_group_group_name_cannot_be_empty))
             }
             .showAdaptiveDialog()
     }
@@ -1356,7 +1356,7 @@ class SymbolDrawerManagerScreen(
     private fun editSymbol(existing: SymbolEntry?) {
         val group = currentGroup() ?: return
         val label = EditText(context).apply {
-            hint = context.getString(R.string.symbol_drawer_154)
+            hint = context.getString(R.string.symbol_settings_display_text)
             setSingleLine(true)
             setText(existing?.label.orEmpty())
         }
@@ -1382,10 +1382,10 @@ class SymbolDrawerManagerScreen(
             SymbolActionOption("[V2] " + option.label, builtin = option)
         }
         val extensionOptions = extensionRegistry?.actions().orEmpty().map { extension ->
-            SymbolActionOption(context.getString(R.string.symbol_drawer_004) + extension.title, extension = extension)
+            SymbolActionOption(context.getString(R.string.symbol_extension_extension) + extension.title, extension = extension)
         }
         val shortOptions = buildList {
-            if (preserveShortAction) add(SymbolActionOption(context.getString(R.string.symbol_drawer_034), keepCurrent = true))
+            if (preserveShortAction) add(SymbolActionOption(context.getString(R.string.symbol_interaction_keep_current_action), keepCurrent = true))
             addAll(legacyOptions)
             addAll(builtinOptions)
             addAll(extensionOptions)
@@ -1394,8 +1394,8 @@ class SymbolDrawerManagerScreen(
         val shortIndex = if (preserveShortAction) 0 else (shortLegacyIndex ?: 0) + shortOffset
 
         val longOptions = buildList {
-            if (preserveLongAction) add(SymbolActionOption(context.getString(R.string.symbol_drawer_033), keepCurrent = true))
-            add(SymbolActionOption(context.getString(R.string.symbol_drawer_151), none = true))
+            if (preserveLongAction) add(SymbolActionOption(context.getString(R.string.symbol_interaction_keep_current_v2_action), keepCurrent = true))
+            add(SymbolActionOption(context.getString(R.string.symbol_interaction_no_long_press_action), none = true))
             addAll(legacyOptions)
             addAll(builtinOptions)
             addAll(extensionOptions)
@@ -1425,7 +1425,7 @@ class SymbolDrawerManagerScreen(
         }
         val shortText = EditText(context).apply {
             hint = shortOptions.getOrNull(shortIndex)?.payloadHint
-                ?: context.getString(R.string.symbol_drawer_050)
+                ?: context.getString(R.string.symbol_interaction_action_payload_text_used_by_insert_text_replace_line_et)
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
             minLines = 2
             setText(
@@ -1437,7 +1437,7 @@ class SymbolDrawerManagerScreen(
         }
         val longText = EditText(context).apply {
             hint = longOptions.getOrNull(longIndex)?.payloadHint
-                ?: context.getString(R.string.symbol_drawer_050)
+                ?: context.getString(R.string.symbol_interaction_action_payload_text_used_by_insert_text_replace_line_et)
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
             minLines = 2
             setText(
@@ -1467,32 +1467,32 @@ class SymbolDrawerManagerScreen(
             orientation = VERTICAL
             setPadding(dp(20), dp(8), dp(20), 0)
             addView(label, matchWrap())
-            addView(TextView(context).apply { text = context.getString(R.string.symbol_drawer_177) }, matchWrap())
+            addView(TextView(context).apply { text = context.getString(R.string.symbol_interaction_tap_action) }, matchWrap())
             addView(shortAction, matchWrap())
             addView(shortText, matchWrap())
-            addView(TextView(context).apply { text = context.getString(R.string.symbol_drawer_224) }, matchWrap())
+            addView(TextView(context).apply { text = context.getString(R.string.symbol_interaction_long_press_action_optional) }, matchWrap())
             addView(longAction, matchWrap())
             addView(longText, matchWrap())
             addView(TextView(context).apply {
                 text = listOf(
-                    context.getString(R.string.symbol_drawer_022),
-                    context.getString(R.string.symbol_drawer_014),
-                    context.getString(R.string.symbol_drawer_007),
-                    context.getString(R.string.symbol_drawer_015),
-                    context.getString(R.string.symbol_drawer_005),
-                    context.getString(R.string.symbol_drawer_011),
-                    context.getString(R.string.symbol_drawer_016),
-                    context.getString(R.string.symbol_drawer_009),
-                    context.getString(R.string.symbol_drawer_021),
-                    context.getString(R.string.symbol_drawer_008),
-                    context.getString(R.string.symbol_drawer_018),
-                    context.getString(R.string.symbol_drawer_020),
-                    context.getString(R.string.symbol_drawer_012),
-                    context.getString(R.string.symbol_drawer_019),
-                    context.getString(R.string.symbol_drawer_010),
-                    context.getString(R.string.symbol_drawer_006),
-                    context.getString(R.string.symbol_drawer_017),
-                    context.getString(R.string.symbol_drawer_013)
+                    context.getString(R.string.symbol_action_syntax_output_a_literal),
+                    context.getString(R.string.symbol_action_syntax_s_set_selection_start),
+                    context.getString(R.string.symbol_action_syntax_e_set_selection_end),
+                    context.getString(R.string.symbol_action_syntax_t_insert_selected_text),
+                    context.getString(R.string.symbol_action_syntax_c_set_cursor_position_separate_from_selection_markers),
+                    context.getString(R.string.symbol_action_syntax_n_insert_a_newline),
+                    context.getString(R.string.symbol_action_syntax_tab_insert_a_tab),
+                    context.getString(R.string.symbol_action_syntax_l_insert_current_line),
+                    context.getString(R.string.symbol_action_syntax_w_insert_current_word),
+                    context.getString(R.string.symbol_action_syntax_i_insert_current_line_indentation),
+                    context.getString(R.string.symbol_action_syntax_u_convert_selected_text_to_uppercase),
+                    context.getString(R.string.symbol_action_syntax_v_convert_selected_text_to_lowercase),
+                    context.getString(R.string.symbol_action_syntax_r_reverse_selected_text),
+                    context.getString(R.string.symbol_action_syntax_up_convert_selected_text_to_uppercase_long_form),
+                    context.getString(R.string.symbol_action_syntax_low_convert_selected_text_to_lowercase_long_form),
+                    context.getString(R.string.symbol_action_syntax_cap_capitalize_selected_text),
+                    context.getString(R.string.symbol_action_syntax_trim_trim_selected_text),
+                    context.getString(R.string.symbol_action_syntax_rev_reverse_selected_text_long_form)
                 ).joinToString("\n")
                 textSize = 12f
                 alpha = 0.7f
@@ -1511,15 +1511,15 @@ class SymbolDrawerManagerScreen(
             ))
         }
         AlertDialog.Builder(context)
-            .setTitle(if (existing == null) context.getString(R.string.symbol_drawer_148) else context.getString(R.string.symbol_drawer_201))
+            .setTitle(if (existing == null) context.getString(R.string.symbol_item_new_symbol) else context.getString(R.string.symbol_item_edit_symbol))
             .setView(formScroll)
-            .setNegativeButton(context.getString(R.string.symbol_drawer_057), null)
-            .setPositiveButton(context.getString(R.string.symbol_drawer_032)) { _, _ ->
+            .setNegativeButton(context.getString(R.string.symbol_manager_cancel), null)
+            .setPositiveButton(context.getString(R.string.symbol_manager_save)) { _, _ ->
                 runCatching {
                     val display = label.text.toString()
-                    require(display.isNotEmpty()) { context.getString(R.string.symbol_drawer_187) }
+                    require(display.isNotEmpty()) { context.getString(R.string.symbol_settings_symbol_display_text_cannot_be_empty) }
                     val shortOption = shortOptions.getOrNull(shortAction.selectedItemPosition)
-                        ?: error(context.getString(R.string.symbol_drawer_215))
+                        ?: error(context.getString(R.string.symbol_interaction_choose_a_valid_tap_action))
                     val keepShort = shortOption.keepCurrent
                     val shortId = if (keepShort) existing?.legacyShortActionId else shortOption.legacyId
                     val shortPayload = if (shortOption.hasPayload) {
@@ -1542,7 +1542,7 @@ class SymbolDrawerManagerScreen(
                     }
 
                     val longOption = longOptions.getOrNull(longAction.selectedItemPosition)
-                        ?: error(context.getString(R.string.symbol_drawer_216))
+                        ?: error(context.getString(R.string.symbol_interaction_choose_a_valid_long_press_action))
                     val keepLong = longOption.keepCurrent
                     val longId = if (keepLong) existing?.legacyLongActionId else longOption.legacyId
                     val longPayload = if (longOption.hasPayload) {
@@ -1586,22 +1586,22 @@ class SymbolDrawerManagerScreen(
 
     private fun showSymbolMenu(symbol: SymbolEntry, anchor: View) {
         val menu = PopupMenu(context, anchor)
-        menu.menu.add(if (symbol.id in favoriteIds) context.getString(R.string.symbol_drawer_058) else context.getString(R.string.symbol_drawer_048))
+        menu.menu.add(if (symbol.id in favoriteIds) context.getString(R.string.symbol_favorites_remove_from_favorites) else context.getString(R.string.symbol_favorites_add_to_favorites))
             .setOnMenuItemClickListener { toggleFavorite(symbol); true }
-        menu.menu.add(context.getString(R.string.symbol_drawer_162)).setOnMenuItemClickListener {
+        menu.menu.add(context.getString(R.string.symbol_favorites_mark_as_recently_used)).setOnMenuItemClickListener {
             markRecentlyUsed(symbol)
             refreshSymbols()
             true
         }
-        menu.menu.add(context.getString(R.string.symbol_drawer_200)).setOnMenuItemClickListener { editSymbol(symbol); true }
-        menu.menu.add(context.getString(R.string.symbol_drawer_069)).setOnMenuItemClickListener {
+        menu.menu.add(context.getString(R.string.symbol_manager_edit)).setOnMenuItemClickListener { editSymbol(symbol); true }
+        menu.menu.add(context.getString(R.string.symbol_group_copy_to_this_group)).setOnMenuItemClickListener {
             currentGroup()?.let { manager.copySymbol(it.id, symbol.id, it.id); refresh() }
             true
         }
-        menu.menu.add(context.getString(R.string.symbol_drawer_182)).setOnMenuItemClickListener { promptMoveSymbol(symbol); true }
-        menu.menu.add(context.getString(R.string.symbol_drawer_024)).setOnMenuItemClickListener { moveSymbol(symbol, -1); true }
-        menu.menu.add(context.getString(R.string.symbol_drawer_025)).setOnMenuItemClickListener { moveSymbol(symbol, 1); true }
-        menu.menu.add(context.getString(R.string.symbol_drawer_044)).setOnMenuItemClickListener {
+        menu.menu.add(context.getString(R.string.symbol_group_move_to_group)).setOnMenuItemClickListener { promptMoveSymbol(symbol); true }
+        menu.menu.add(context.getString(R.string.symbol_manager_move_up)).setOnMenuItemClickListener { moveSymbol(symbol, -1); true }
+        menu.menu.add(context.getString(R.string.symbol_manager_move_down)).setOnMenuItemClickListener { moveSymbol(symbol, 1); true }
+        menu.menu.add(context.getString(R.string.symbol_manager_delete)).setOnMenuItemClickListener {
             confirmDeleteSymbol(symbol)
             true
         }
@@ -1611,10 +1611,10 @@ class SymbolDrawerManagerScreen(
     private fun confirmDeleteSymbol(symbol: SymbolEntry) {
         val group = currentGroup() ?: return
         AlertDialog.Builder(context)
-            .setTitle(context.getString(R.string.symbol_drawer_047))
-            .setMessage(context.getString(R.string.symbol_drawer_179, symbol.label))
-            .setNegativeButton(context.getString(R.string.symbol_drawer_057), null)
-            .setPositiveButton(context.getString(R.string.symbol_drawer_044)) { _, _ ->
+            .setTitle(context.getString(R.string.symbol_item_delete_symbol))
+            .setMessage(context.getString(R.string.symbol_manager_delete_alternate, symbol.label))
+            .setNegativeButton(context.getString(R.string.symbol_manager_cancel), null)
+            .setPositiveButton(context.getString(R.string.symbol_manager_delete)) { _, _ ->
                 val previous = manager.groups.toList()
                 val previousUsage = snapshotUsageState()
                 val previousSelection = selectedGroupId
@@ -1622,7 +1622,7 @@ class SymbolDrawerManagerScreen(
                     manager.removeSymbol(group.id, symbol.id)
                     pruneUsageState()
                     refresh()
-                    showUndo(context.getString(R.string.symbol_drawer_090, symbol.label)) {
+                    showUndo(context.getString(R.string.symbol_item_deleted_symbol, symbol.label)) {
                         manager.replaceAll(previous)
                         restoreUsageState(previousUsage)
                         selectedGroupId = previousSelection
@@ -1646,16 +1646,16 @@ class SymbolDrawerManagerScreen(
         val source = currentGroup() ?: return
         val targets = manager.groups.filter { it.id != source.id }
         if (targets.isEmpty()) {
-            toast(context.getString(R.string.symbol_drawer_167))
+            toast(context.getString(R.string.symbol_group_no_other_groups_are_available_to_move_this_to))
             return
         }
         AlertDialog.Builder(context)
-            .setTitle(context.getString(R.string.symbol_drawer_182))
+            .setTitle(context.getString(R.string.symbol_group_move_to_group))
             .setItems(targets.map { it.title }.toTypedArray()) { _, which ->
                 runCatching { manager.moveSymbolToGroup(source.id, symbol.id, targets[which].id); refresh() }
                     .onFailure(::reportError)
             }
-            .setNegativeButton(context.getString(R.string.symbol_drawer_057), null)
+            .setNegativeButton(context.getString(R.string.symbol_manager_cancel), null)
             .showAdaptiveDialog()
     }
 
@@ -1707,7 +1707,7 @@ class SymbolDrawerManagerScreen(
     private fun toast(message: String) = Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
     private fun reportError(error: Throwable) {
         onError?.invoke(error)
-        toast(error.message ?: context.getString(R.string.symbol_drawer_137))
+        toast(error.message ?: context.getString(R.string.symbol_manager_operation_failed))
     }
 
     private fun matchWrap() = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
@@ -1765,7 +1765,7 @@ class SymbolDrawerManagerScreen(
                     textSize = 20f
                     gravity = android.view.Gravity.CENTER
                     setTextColor(themeProvider()?.secondaryText ?: HostThemeColors.secondaryText(ctx))
-                    contentDescription = context.getString(R.string.symbol_drawer_130)
+                    contentDescription = context.getString(R.string.symbol_item_drag_to_reorder_symbols)
                     isClickable = true
                     isFocusable = true
                 }
@@ -1784,9 +1784,9 @@ class SymbolDrawerManagerScreen(
             val symbol = getItem(position)
             holder.title.text = if (symbol.icon.isNullOrEmpty()) symbol.label else "${symbol.icon}  ${symbol.label}"
             val shortName = symbol.legacyShortActionId?.let { actionName(context, it) } ?: symbol.shortAction.javaClass.simpleName
-            val longName = symbol.legacyLongActionId?.let { actionName(context, it) } ?: symbol.longAction?.javaClass?.simpleName ?: context.getString(R.string.symbol_drawer_150)
-            holder.detail.text = context.getString(R.string.symbol_drawer_176, shortName, longName)
-            holder.root.contentDescription = context.getString(R.string.symbol_drawer_001, symbol.label, shortName, longName)
+            val longName = symbol.legacyLongActionId?.let { actionName(context, it) } ?: symbol.longAction?.javaClass?.simpleName ?: context.getString(R.string.symbol_manager_none)
+            holder.detail.text = context.getString(R.string.symbol_interaction_tap_long_press, shortName, longName)
+            holder.root.contentDescription = context.getString(R.string.symbol_accessibility_tap_long_press, symbol.label, shortName, longName)
             val theme = themeProvider()
             val itemContext = holder.root.context
             holder.root.background = roundedSurface(itemContext, theme?.surface ?: HostThemeColors.surface(itemContext), dp(itemContext, 12))
@@ -1843,7 +1843,7 @@ class SymbolDrawerManagerScreen(
             private fun dp(context: Context, value: Int) = (value * context.resources.displayMetrics.density).toInt()
             private fun actionName(context: Context, id: Int): String {
                 val index = LegacySymbolActionCatalog.values.indexOf(id)
-                return LegacySymbolActionCatalog.labels(context).getOrNull(index) ?: context.getString(R.string.symbol_drawer_049, id)
+                return LegacySymbolActionCatalog.labels(context).getOrNull(index) ?: context.getString(R.string.symbol_interaction_action, id)
             }
         }
 

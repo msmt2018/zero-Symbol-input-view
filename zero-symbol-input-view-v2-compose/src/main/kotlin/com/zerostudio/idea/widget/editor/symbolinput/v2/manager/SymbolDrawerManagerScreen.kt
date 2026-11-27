@@ -391,7 +391,7 @@ fun SymbolDrawerManagerScreen(
                     searchVisible = !searchVisible
                     if (!searchVisible) searchQuery = ""
                 }) {
-                    Text(stringResource(if (searchVisible) R.string.symbol_drawer_139 else R.string.symbol_drawer_132))
+                    Text(stringResource(if (searchVisible) R.string.symbol_interaction_collapse else R.string.symbol_search_search))
                 }
             }
             Box {
@@ -449,7 +449,7 @@ fun SymbolDrawerManagerScreen(
                         )
                     }
                     DropdownMenuItem(
-                        text = { Text(stringResource(R.string.symbol_drawer_071)) },
+                        text = { Text(stringResource(R.string.symbol_group_duplicate_group)) },
                         enabled = selectedGroup != null &&
                             groups.size < SymbolGroupBundleCodec.MAX_GROUPS &&
                             groups.sumOf { it.symbols.size.toLong() } +
@@ -717,7 +717,7 @@ fun SymbolDrawerManagerScreen(
                 onValueChange = { searchQuery = it },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                label = { Text(stringResource(R.string.symbol_drawer_135)) }
+                label = { Text(stringResource(R.string.symbol_search_search_symbol_names_and_actions)) }
             )
         }
             BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
@@ -772,7 +772,7 @@ fun SymbolDrawerManagerScreen(
                     if (group.id == selectedGroupId && group.symbols.isNotEmpty() && batchMode) {
                         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(
-                                stringResource(R.string.symbol_drawer_102, selectedSymbolIds.size.toString()),
+                                stringResource(R.string.symbol_manager_selected, selectedSymbolIds.size.toString()),
                                 style = MaterialTheme.typography.bodyMedium
                             )
                             Row(
@@ -785,7 +785,7 @@ fun SymbolDrawerManagerScreen(
                                     enabled = selectedSymbolIds.isNotEmpty(),
                                     onClick = { targetDialogOperation = "copy" }
                                 ) {
-                                    Text(stringResource(R.string.symbol_drawer_070),
+                                    Text(stringResource(R.string.symbol_item_copy_selected_symbols_to),
                                         style = MaterialTheme.typography.labelSmall, maxLines = 2)
                                 }
                                 TextButton(
@@ -794,7 +794,7 @@ fun SymbolDrawerManagerScreen(
                                     enabled = selectedSymbolIds.isNotEmpty() && groups.any { it.id != group.id },
                                     onClick = { targetDialogOperation = "move" }
                                 ) {
-                                    Text(stringResource(R.string.symbol_drawer_183),
+                                    Text(stringResource(R.string.symbol_item_move_selected_symbols_to),
                                         style = MaterialTheme.typography.labelSmall, maxLines = 2)
                                 }
                                 TextButton(
@@ -819,7 +819,7 @@ fun SymbolDrawerManagerScreen(
                             if (group.symbols.isEmpty()) {
                                 stringResource(R.string.compose_manager_create_group_hint)
                             } else {
-                                stringResource(R.string.symbol_drawer_115)
+                                stringResource(R.string.symbol_group_no_symbols_in_this_group_tap_add_and_choose_new_symbol)
                             },
                             modifier = Modifier.fillMaxWidth().padding(12.dp),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1228,7 +1228,7 @@ fun SymbolDrawerManagerScreen(
         AlertDialog(
             onDismissRequest = { targetDialogOperation = null },
             title = {
-                Text(if (targetDialogOperation == "copy") stringResource(R.string.symbol_drawer_070) else stringResource(R.string.symbol_drawer_183))
+                Text(if (targetDialogOperation == "copy") stringResource(R.string.symbol_item_copy_selected_symbols_to) else stringResource(R.string.symbol_item_move_selected_symbols_to))
             },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -1454,8 +1454,8 @@ private fun symbolActionSummary(
     val shortName = symbolActionDisplayName(symbol.shortAction, symbol.legacyShortActionId, legacyLabels)
     val longName = symbol.longAction?.let {
         symbolActionDisplayName(it, symbol.legacyLongActionId, legacyLabels)
-    } ?: stringResource(R.string.symbol_drawer_150)
-    return stringResource(R.string.symbol_drawer_176, shortName, longName)
+    } ?: stringResource(R.string.symbol_manager_none)
+    return stringResource(R.string.symbol_interaction_tap_long_press, shortName, longName)
 }
 
 private fun symbolActionDisplayName(

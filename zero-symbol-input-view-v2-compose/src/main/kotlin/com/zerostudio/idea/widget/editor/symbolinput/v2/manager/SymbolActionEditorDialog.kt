@@ -220,9 +220,9 @@ internal fun SymbolActionEditorDialog(
     var shortMenuExpanded by remember { mutableStateOf(false) }
     var longMenuExpanded by remember { mutableStateOf(false) }
     var validationError by remember { mutableStateOf<String?>(null) }
-    val emptyLabelMessage = stringResource(R.string.symbol_drawer_187)
-    val shortSelectionError = stringResource(R.string.symbol_drawer_215)
-    val longSelectionError = stringResource(R.string.symbol_drawer_216)
+    val emptyLabelMessage = stringResource(R.string.symbol_settings_symbol_display_text_cannot_be_empty)
+    val shortSelectionError = stringResource(R.string.symbol_interaction_choose_a_valid_tap_action)
+    val longSelectionError = stringResource(R.string.symbol_interaction_choose_a_valid_long_press_action)
 
     val selectedShort = shortOptions.firstOrNull { it.key == shortKey } ?: shortOptions.first()
     val selectedLong = longOptions.firstOrNull { it.key == longKey } ?: longOptions.first()
@@ -249,7 +249,7 @@ internal fun SymbolActionEditorDialog(
                     label = { Text(stringResource(R.string.compose_manager_symbol_label)) }
                 )
 
-                Text(stringResource(R.string.symbol_drawer_177), style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.symbol_interaction_tap_action), style = MaterialTheme.typography.titleSmall)
                 Box {
                     OutlinedButton(
                         onClick = { shortMenuExpanded = true },
@@ -279,11 +279,11 @@ internal fun SymbolActionEditorDialog(
                         minLines = 2,
                         label = { Text(selectedShort.builtin?.payloadHint
                             ?: selectedShort.extension?.payloadHint
-                            ?: stringResource(R.string.symbol_drawer_050)) }
+                            ?: stringResource(R.string.symbol_interaction_action_payload_text_used_by_insert_text_replace_line_et)) }
                     )
                 }
 
-                Text(stringResource(R.string.symbol_drawer_224), style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.symbol_interaction_long_press_action_optional), style = MaterialTheme.typography.titleSmall)
                 Box {
                     OutlinedButton(
                         onClick = { longMenuExpanded = true },
@@ -313,7 +313,7 @@ internal fun SymbolActionEditorDialog(
                         minLines = 2,
                         label = { Text(selectedLong.builtin?.payloadHint
                             ?: selectedLong.extension?.payloadHint
-                            ?: stringResource(R.string.symbol_drawer_050)) }
+                            ?: stringResource(R.string.symbol_interaction_action_payload_text_used_by_insert_text_replace_line_et)) }
                     )
                 }
                 validationError?.let {

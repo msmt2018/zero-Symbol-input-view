@@ -201,7 +201,7 @@ fun SymbolDrawerSettingsScreen(
             when (selectedTab) {
                 0 -> SettingsSection(stringResource(R.string.compose_settings_appearance)) {
                     EnumSetting(
-                        stringResource(R.string.symbol_drawer_027),
+                        stringResource(R.string.symbol_settings_theme_mode),
                         current.themeMode,
                         listOf(ThemeMode.SYSTEM)
                     ) { value -> update { it.copy(themeMode = value) } }

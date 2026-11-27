@@ -238,7 +238,7 @@ class SymbolDrawerSettingsScreen(
                 extensionRegistry?.reportError(extensionId, error)
                 safeDispose()
                 page.addView(TextView(context).apply {
-                    text = context.getString(R.string.symbol_drawer_124) + extensionId
+                    text = context.getString(R.string.symbol_extension_failed_to_mount_extension_view) + extensionId
                     setTextColor(android.graphics.Color.RED)
                 }, matchWrap())
             }
@@ -264,13 +264,13 @@ class SymbolDrawerSettingsScreen(
             setPadding(spaceDp(18), spaceDp(16), spaceDp(18), spaceDp(16))
             background = surfaceBackground(surfaceColor(), 0.10f, 22)
             addView(TextView(context).apply {
-                text = context.getString(R.string.symbol_drawer_185)
+                text = context.getString(R.string.symbol_settings_symbol_drawer_settings)
                 textSize = textSp(23f)
                 setTextColor(primaryColor())
                 setTypeface(typeface, Typeface.BOLD)
             }, matchWrap())
             addView(TextView(context).apply {
-                text = context.getString(R.string.symbol_drawer_131)
+                text = context.getString(R.string.symbol_layout_manage_appearance_layout_interaction_performance_and_da)
                 textSize = textSp(13f)
                 setTextColor(onSurfaceColor())
                 alpha = 0.72f
@@ -294,90 +294,90 @@ class SymbolDrawerSettingsScreen(
         content.addView(pageHost, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
 
         val builders: List<Pair<String, () -> Unit>> = listOf(
-            context.getString(R.string.symbol_drawer_074) to {
-                section(context.getString(R.string.symbol_drawer_026))
-                addChoice(context.getString(R.string.symbol_drawer_027), listOf(ThemeMode.SYSTEM), ThemeMode.SYSTEM) {
+            context.getString(R.string.symbol_settings_appearance) to {
+                section(context.getString(R.string.symbol_settings_theme_and_display))
+                addChoice(context.getString(R.string.symbol_settings_theme_mode), listOf(ThemeMode.SYSTEM), ThemeMode.SYSTEM) {
                     update { copy(themeMode = ThemeMode.SYSTEM) }
                 }
-                addChoice(context.getString(R.string.symbol_drawer_041), GroupIndicatorStyle.values().toList(), current.indicatorStyle) {
+                addChoice(context.getString(R.string.symbol_group_group_indicator_style), GroupIndicatorStyle.values().toList(), current.indicatorStyle) {
                     update { copy(indicatorStyle = it) }
                 }
-                addSwitch(context.getString(R.string.symbol_drawer_152), current.showGroupTitles) { update { copy(showGroupTitles = it) } }
-                addSwitch(context.getString(R.string.symbol_drawer_155), current.showSymbolLabels) { update { copy(showSymbolLabels = it) } }
-                addSwitch(context.getString(R.string.symbol_drawer_184), current.showFullSymbolLabels) { update { copy(showFullSymbolLabels = it) } }
-                addHint(context.getString(R.string.symbol_drawer_108))
-                addSeek(context.getString(R.string.symbol_drawer_186), current.symbolLabelTextSizeSp, 8, 32) { update { copy(symbolLabelTextSizeSp = it) } }
-                addSwitch(context.getString(R.string.symbol_drawer_153), current.showActionHints) { update { copy(showActionHints = it) } }
+                addSwitch(context.getString(R.string.symbol_group_show_group_names), current.showGroupTitles) { update { copy(showGroupTitles = it) } }
+                addSwitch(context.getString(R.string.symbol_item_show_symbol_labels), current.showSymbolLabels) { update { copy(showSymbolLabels = it) } }
+                addSwitch(context.getString(R.string.symbol_item_show_full_symbol_labels), current.showFullSymbolLabels) { update { copy(showFullSymbolLabels = it) } }
+                addHint(context.getString(R.string.symbol_layout_keep_symbol_titles_on_one_line_without_truncation_the_g))
+                addSeek(context.getString(R.string.symbol_item_symbol_label_text_size_sp), current.symbolLabelTextSizeSp, 8, 32) { update { copy(symbolLabelTextSizeSp = it) } }
+                addSwitch(context.getString(R.string.symbol_interaction_show_action_hints), current.showActionHints) { update { copy(showActionHints = it) } }
             },
-            context.getString(R.string.symbol_drawer_103) to {
-                section(context.getString(R.string.symbol_drawer_082))
-                addSeek(context.getString(R.string.symbol_drawer_166), current.columns, 1, 30) { update { copy(columns = it) } }
-                addSeek(context.getString(R.string.symbol_drawer_129), current.collapsedRows, 1, 16) { update { copy(collapsedRows = it) } }
-                addSeek(context.getString(R.string.symbol_drawer_054), current.cellHeightDp, 6, 128) { update { copy(cellHeightDp = it) } }
-                addSeek(context.getString(R.string.symbol_drawer_163), current.cellHorizontalSpacingDp, -24, 48) { update { copy(cellHorizontalSpacingDp = it) } }
-                addSeek(context.getString(R.string.symbol_drawer_198), current.cellVerticalSpacingDp, -24, 48) { update { copy(cellVerticalSpacingDp = it) } }
-                addSeek(context.getString(R.string.symbol_drawer_042), current.indicatorHeightDp, 0, 96) { update { copy(indicatorHeightDp = it) } }
-                addSeek(context.getString(R.string.symbol_drawer_157), current.maxExpandedHeightDp, 80, 1800) { update { copy(maxExpandedHeightDp = it) } }
-                addSeek(context.getString(R.string.symbol_drawer_158), current.minimumTouchTargetDp, 20, 112) { update { copy(minimumTouchTargetDp = it) } }
+            context.getString(R.string.symbol_layout_layout) to {
+                section(context.getString(R.string.symbol_layout_size_and_spacing))
+                addSeek(context.getString(R.string.symbol_layout_columns_per_row), current.columns, 1, 30) { update { copy(columns = it) } }
+                addSeek(context.getString(R.string.symbol_layout_rows_shown_when_collapsed), current.collapsedRows, 1, 16) { update { copy(collapsedRows = it) } }
+                addSeek(context.getString(R.string.symbol_layout_cell_height_dp), current.cellHeightDp, 6, 128) { update { copy(cellHeightDp = it) } }
+                addSeek(context.getString(R.string.symbol_layout_horizontal_spacing_dp), current.cellHorizontalSpacingDp, -24, 48) { update { copy(cellHorizontalSpacingDp = it) } }
+                addSeek(context.getString(R.string.symbol_layout_vertical_spacing_dp), current.cellVerticalSpacingDp, -24, 48) { update { copy(cellVerticalSpacingDp = it) } }
+                addSeek(context.getString(R.string.symbol_layout_group_bar_height_dp), current.indicatorHeightDp, 0, 96) { update { copy(indicatorHeightDp = it) } }
+                addSeek(context.getString(R.string.symbol_layout_maximum_expanded_height_dp), current.maxExpandedHeightDp, 80, 1800) { update { copy(maxExpandedHeightDp = it) } }
+                addSeek(context.getString(R.string.symbol_layout_minimum_touch_target_dp), current.minimumTouchTargetDp, 20, 112) { update { copy(minimumTouchTargetDp = it) } }
             },
-            context.getString(R.string.symbol_drawer_104) to {
-                section(context.getString(R.string.symbol_drawer_106))
+            context.getString(R.string.symbol_layout_tablet_mode) to {
+                section(context.getString(R.string.symbol_layout_bottom_toolbar_and_tablet_adaptation))
                 addHint(
-                    context.getString(R.string.symbol_drawer_084) +
-                        context.getString(R.string.symbol_drawer_029)
+                    context.getString(R.string.symbol_layout_the_toolbar_stays_docked_to_the_bottom_on_tablets_split) +
+                        context.getString(R.string.symbol_layout_only_internal_control_sizes_grid_and_spacing_adapt_draw)
                 )
             },
-            context.getString(R.string.symbol_drawer_028) to {
-                section(context.getString(R.string.symbol_drawer_122))
-                addSeek(context.getString(R.string.symbol_drawer_225), current.longPressTimeoutMs, 250, 1000) { update { copy(longPressTimeoutMs = it) } }
-                addSeek(context.getString(R.string.symbol_drawer_083), current.flingVelocityDpPerSecond, 100, 6000) { update { copy(flingVelocityDpPerSecond = it) } }
-                addSwitch(context.getString(R.string.symbol_drawer_123), current.autoCollapseAfterAction) { update { copy(autoCollapseAfterAction = it) } }
-                addSwitch(context.getString(R.string.symbol_drawer_208), current.rememberExpandedState) { update { copy(rememberExpandedState = it) } }
-                addHint(context.getString(R.string.symbol_drawer_107))
-                section(context.getString(R.string.symbol_drawer_051))
-                addSeek(context.getString(R.string.symbol_drawer_052), current.animationDurationMs, 0, 1200) { update { copy(animationDurationMs = it) } }
-                addSwitch(context.getString(R.string.symbol_drawer_037), current.reduceMotion) { update { copy(reduceMotion = it) } }
-                addChoice(context.getString(R.string.symbol_drawer_207), HapticMode.values().toList(), current.hapticMode) { update { copy(hapticMode = it) } }
+            context.getString(R.string.symbol_interaction_interaction) to {
+                section(context.getString(R.string.symbol_interaction_gestures_and_actions))
+                addSeek(context.getString(R.string.symbol_interaction_long_press_timeout_ms), current.longPressTimeoutMs, 250, 1000) { update { copy(longPressTimeoutMs = it) } }
+                addSeek(context.getString(R.string.symbol_interaction_expand_fling_threshold_dp_s), current.flingVelocityDpPerSecond, 100, 6000) { update { copy(flingVelocityDpPerSecond = it) } }
+                addSwitch(context.getString(R.string.symbol_interaction_collapse_after_action), current.autoCollapseAfterAction) { update { copy(autoCollapseAfterAction = it) } }
+                addSwitch(context.getString(R.string.symbol_manager_remember_expanded_state), current.rememberExpandedState) { update { copy(rememberExpandedState = it) } }
+                addHint(context.getString(R.string.symbol_interaction_remember_the_drawers_last_expanded_or_collapsed_state_w))
+                section(context.getString(R.string.symbol_interaction_animation_and_haptics))
+                addSeek(context.getString(R.string.symbol_interaction_animation_duration_ms), current.animationDurationMs, 0, 1200) { update { copy(animationDurationMs = it) } }
+                addSwitch(context.getString(R.string.symbol_interaction_reduce_motion), current.reduceMotion) { update { copy(reduceMotion = it) } }
+                addChoice(context.getString(R.string.symbol_interaction_haptic_feedback), HapticMode.values().toList(), current.hapticMode) { update { copy(hapticMode = it) } }
             },
-            context.getString(R.string.symbol_drawer_119) to {
-                section(context.getString(R.string.symbol_drawer_118))
-                addSeek(context.getString(R.string.symbol_drawer_227), current.pageCacheLimit, 1, 9) { update { copy(pageCacheLimit = it) } }
-                addSwitch(context.getString(R.string.symbol_drawer_228), current.prefetchAdjacentGroups) { update { copy(prefetchAdjacentGroups = it) } }
-                section(context.getString(R.string.symbol_drawer_132))
-                addSwitch(context.getString(R.string.symbol_drawer_133), current.searchIncludesActionPayload) {
+            context.getString(R.string.symbol_search_performance_and_search) to {
+                section(context.getString(R.string.symbol_performance_performance))
+                addSeek(context.getString(R.string.symbol_performance_page_cache_size), current.pageCacheLimit, 1, 9) { update { copy(pageCacheLimit = it) } }
+                addSwitch(context.getString(R.string.symbol_performance_preload_adjacent_groups), current.prefetchAdjacentGroups) { update { copy(prefetchAdjacentGroups = it) } }
+                section(context.getString(R.string.symbol_search_search))
+                addSwitch(context.getString(R.string.symbol_search_include_action_content_in_search), current.searchIncludesActionPayload) {
                     update { copy(searchIncludesActionPayload = it) }
                 }
             },
-            context.getString(R.string.symbol_drawer_144) to {
+            context.getString(R.string.symbol_manager_data_management) to {
                 addDataManagementCard(
-                    context.getString(R.string.symbol_drawer_209),
-                    context.getString(R.string.symbol_drawer_065),
+                    context.getString(R.string.symbol_data_settings_backup),
+                    context.getString(R.string.symbol_data_back_up_appearance_layout_interaction_and_performance_o),
                     listOf(
-                        context.getString(R.string.symbol_drawer_073) to ::copySettingsBackup,
-                        context.getString(R.string.symbol_drawer_081) to ::exportSettingsFile,
-                        context.getString(R.string.symbol_drawer_195) to ::promptImportSettings,
-                        context.getString(R.string.symbol_drawer_031) to { pendingImport = ImportKind.SETTINGS; documentPicker.openJson() }
+                        context.getString(R.string.symbol_data_copy_settings_json) to ::copySettingsBackup,
+                        context.getString(R.string.symbol_data_export_settings_file) to ::exportSettingsFile,
+                        context.getString(R.string.symbol_data_import_settings_from_clipboard) to ::promptImportSettings,
+                        context.getString(R.string.symbol_data_import_settings_from_file) to { pendingImport = ImportKind.SETTINGS; documentPicker.openJson() }
                     )
                 )
                 addDataManagementCard(
-                    context.getString(R.string.symbol_drawer_189),
-                    context.getString(R.string.symbol_drawer_053),
+                    context.getString(R.string.symbol_data_symbol_group_backup),
+                    context.getString(R.string.symbol_data_includes_groups_symbol_content_and_tap_long_press_actio),
                     listOf(
-                        context.getString(R.string.symbol_drawer_072) to ::copyGroupsBackup,
-                        context.getString(R.string.symbol_drawer_080) to ::exportGroupsFile,
-                        context.getString(R.string.symbol_drawer_194) to ::promptImportGroups,
-                        context.getString(R.string.symbol_drawer_030) to { pendingImport = ImportKind.GROUPS; documentPicker.openJson() }
+                        context.getString(R.string.symbol_data_copy_symbol_groups_json) to ::copyGroupsBackup,
+                        context.getString(R.string.symbol_data_export_symbol_groups_file) to ::exportGroupsFile,
+                        context.getString(R.string.symbol_data_import_symbol_groups_from_clipboard) to ::promptImportGroups,
+                        context.getString(R.string.symbol_data_import_symbol_groups_from_file) to { pendingImport = ImportKind.GROUPS; documentPicker.openJson() }
                     )
                 )
                 addDataSafetyNotice()
-                activePage?.addView(actionButton(context.getString(R.string.symbol_drawer_121)) {
+                activePage?.addView(actionButton(context.getString(R.string.symbol_settings_restore_default_settings)) {
                     runCatching {
                         val defaults = SymbolDrawerSettings()
                         repository.save(defaults)
                         current = defaults
                         render()
                         onSettingsChanged?.invoke(current)
-                        toast(context.getString(R.string.symbol_drawer_212))
+                        toast(context.getString(R.string.symbol_settings_settings_restored_to_defaults))
                     }.onFailure(::reportFailure)
                 }, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, dp(50)).apply {
                     topMargin = spaceDp(14)
@@ -489,7 +489,7 @@ class SymbolDrawerSettingsScreen(
      */
     private fun addDataSafetyNotice() {
         val page = activePage ?: return
-        val notice = context.getString(R.string.symbol_drawer_143)
+        val notice = context.getString(R.string.symbol_data_the_two_backups_are_independent_json_structure_field_ty)
         val tag = "zero.symbol.drawer.data-safety-notice"
         val existing = mutableListOf<View>()
         fun collect(parent: ViewGroup) {
@@ -629,52 +629,52 @@ class SymbolDrawerSettingsScreen(
             android.R.layout.simple_spinner_dropdown_item,
             values.map { value ->
                 when (value) {
-                    ThemeMode.SYSTEM -> context.getString(R.string.symbol_drawer_217)
-                    LargeScreenLayoutMode.AUTO -> context.getString(R.string.symbol_drawer_205)
-                    LargeScreenLayoutMode.BOTTOM -> context.getString(R.string.symbol_drawer_063)
-                    LargeScreenLayoutMode.SIDE -> context.getString(R.string.symbol_drawer_062)
-                    SideDockEdge.LEFT -> context.getString(R.string.symbol_drawer_086)
-                    SideDockEdge.RIGHT -> context.getString(R.string.symbol_drawer_060)
-                    GroupIndicatorStyle.TEXT, GroupIndicatorStyle.TEXT_TABS -> context.getString(R.string.symbol_drawer_146)
-                    GroupIndicatorStyle.PILL -> context.getString(R.string.symbol_drawer_203)
-                    GroupIndicatorStyle.DOTS -> context.getString(R.string.symbol_drawer_043)
-                    GroupIndicatorStyle.UNDERLINE -> context.getString(R.string.symbol_drawer_105)
-                    GroupIndicatorStyle.GOOEY_METABALL -> context.getString(R.string.symbol_drawer_169)
-                    GroupIndicatorStyle.ELASTIC_WORM -> context.getString(R.string.symbol_drawer_111)
-                    GroupIndicatorStyle.SPRING_BLOB -> context.getString(R.string.symbol_drawer_112)
-                    GroupIndicatorStyle.LIQUID_MERGE -> context.getString(R.string.symbol_drawer_170)
-                    GroupIndicatorStyle.VERNIER_TICKS -> context.getString(R.string.symbol_drawer_197)
-                    GroupIndicatorStyle.MECHANICAL_RULER -> context.getString(R.string.symbol_drawer_160)
-                    GroupIndicatorStyle.WHEEL_ROLLER -> context.getString(R.string.symbol_drawer_002)
-                    GroupIndicatorStyle.CAMERA_DIAL -> context.getString(R.string.symbol_drawer_175)
-                    GroupIndicatorStyle.RADIAL_RING -> context.getString(R.string.symbol_drawer_174)
-                    GroupIndicatorStyle.RADAR_SWEEP -> context.getString(R.string.symbol_drawer_226)
-                    GroupIndicatorStyle.HUD_ARC -> context.getString(R.string.symbol_drawer_003)
-                    GroupIndicatorStyle.ORBIT_DOTS -> context.getString(R.string.symbol_drawer_218)
-                    GroupIndicatorStyle.ELASTIC_WAVE -> context.getString(R.string.symbol_drawer_110)
-                    GroupIndicatorStyle.SINE_WAVE -> context.getString(R.string.symbol_drawer_164)
-                    GroupIndicatorStyle.BOUNCE_TRACK -> context.getString(R.string.symbol_drawer_114)
-                    GroupIndicatorStyle.SPRING_SLIDER -> context.getString(R.string.symbol_drawer_113)
-                    GroupIndicatorStyle.MORPHING_BAR -> context.getString(R.string.symbol_drawer_116)
-                    GroupIndicatorStyle.SEGMENTED_TRACK -> context.getString(R.string.symbol_drawer_038)
-                    GroupIndicatorStyle.PROGRESS_LINE -> context.getString(R.string.symbol_drawer_219)
-                    GroupIndicatorStyle.DOUBLE_TRACK -> context.getString(R.string.symbol_drawer_055)
-                    GroupIndicatorStyle.MINIMAL_DASHES -> context.getString(R.string.symbol_drawer_161)
-                    GroupIndicatorStyle.SQUARE_TICKS -> context.getString(R.string.symbol_drawer_149)
-                    GroupIndicatorStyle.DIAMOND_MARKERS -> context.getString(R.string.symbol_drawer_206)
-                    GroupIndicatorStyle.TRIANGLE_POINTER -> context.getString(R.string.symbol_drawer_023)
-                    GroupIndicatorStyle.HEXAGON_NODES -> context.getString(R.string.symbol_drawer_036)
-                    GroupIndicatorStyle.GLOWING_NODES -> context.getString(R.string.symbol_drawer_056)
-                    GroupIndicatorStyle.PULSE_DOTS -> context.getString(R.string.symbol_drawer_204)
-                    GroupIndicatorStyle.STACKED_CARDS -> context.getString(R.string.symbol_drawer_059)
-                    GroupIndicatorStyle.MINI_PREVIEW -> context.getString(R.string.symbol_drawer_117)
-                    GroupIndicatorStyle.THUMBNAIL_STRIP -> context.getString(R.string.symbol_drawer_202)
-                    GroupIndicatorStyle.NUMBER_BADGES -> context.getString(R.string.symbol_drawer_141)
-                    GroupIndicatorStyle.VERTICAL_RAIL -> context.getString(R.string.symbol_drawer_064)
-                    GroupIndicatorStyle.ARC_NODES -> context.getString(R.string.symbol_drawer_109)
-                    GroupIndicatorStyle.FLUID_TRAIL -> context.getString(R.string.symbol_drawer_168)
-                    GroupIndicatorStyle.DIGITAL_COUNTER -> context.getString(R.string.symbol_drawer_142)
-                    GroupIndicatorStyle.STEPPER -> context.getString(R.string.symbol_drawer_165)
+                    ThemeMode.SYSTEM -> context.getString(R.string.symbol_manager_follow_host_activity)
+                    LargeScreenLayoutMode.AUTO -> context.getString(R.string.symbol_layout_adapt_to_large_screens)
+                    LargeScreenLayoutMode.BOTTOM -> context.getString(R.string.symbol_layout_dock_to_bottom)
+                    LargeScreenLayoutMode.SIDE -> context.getString(R.string.symbol_layout_dock_to_side)
+                    SideDockEdge.LEFT -> context.getString(R.string.symbol_manager_left)
+                    SideDockEdge.RIGHT -> context.getString(R.string.symbol_manager_right)
+                    GroupIndicatorStyle.TEXT, GroupIndicatorStyle.TEXT_TABS -> context.getString(R.string.group_indicator_style_text_tabs)
+                    GroupIndicatorStyle.PILL -> context.getString(R.string.group_indicator_style_pill_slider)
+                    GroupIndicatorStyle.DOTS -> context.getString(R.string.group_indicator_style_page_dots)
+                    GroupIndicatorStyle.UNDERLINE -> context.getString(R.string.group_indicator_style_bottom_underline)
+                    GroupIndicatorStyle.GOOEY_METABALL -> context.getString(R.string.group_indicator_style_liquid_metaball)
+                    GroupIndicatorStyle.ELASTIC_WORM -> context.getString(R.string.group_indicator_style_elastic_worm)
+                    GroupIndicatorStyle.SPRING_BLOB -> context.getString(R.string.group_indicator_style_spring_blob)
+                    GroupIndicatorStyle.LIQUID_MERGE -> context.getString(R.string.group_indicator_style_liquid_merge)
+                    GroupIndicatorStyle.VERNIER_TICKS -> context.getString(R.string.group_indicator_style_precision_vernier_ticks)
+                    GroupIndicatorStyle.MECHANICAL_RULER -> context.getString(R.string.group_indicator_style_mechanical_ruler)
+                    GroupIndicatorStyle.WHEEL_ROLLER -> context.getString(R.string.group_indicator_style_3d_roller)
+                    GroupIndicatorStyle.CAMERA_DIAL -> context.getString(R.string.group_indicator_style_camera_dial)
+                    GroupIndicatorStyle.RADIAL_RING -> context.getString(R.string.group_indicator_style_radial_progress)
+                    GroupIndicatorStyle.RADAR_SWEEP -> context.getString(R.string.symbol_manager_radar_sweep)
+                    GroupIndicatorStyle.HUD_ARC -> context.getString(R.string.group_indicator_style_hud_arc_gauge)
+                    GroupIndicatorStyle.ORBIT_DOTS -> context.getString(R.string.group_indicator_style_orbit_dots)
+                    GroupIndicatorStyle.ELASTIC_WAVE -> context.getString(R.string.group_indicator_style_elastic_wave)
+                    GroupIndicatorStyle.SINE_WAVE -> context.getString(R.string.group_indicator_style_sine_wave)
+                    GroupIndicatorStyle.BOUNCE_TRACK -> context.getString(R.string.group_indicator_style_bounce_track)
+                    GroupIndicatorStyle.SPRING_SLIDER -> context.getString(R.string.group_indicator_style_spring_slider)
+                    GroupIndicatorStyle.MORPHING_BAR -> context.getString(R.string.group_indicator_style_morphing_progress_bar)
+                    GroupIndicatorStyle.SEGMENTED_TRACK -> context.getString(R.string.group_indicator_style_segmented_track)
+                    GroupIndicatorStyle.PROGRESS_LINE -> context.getString(R.string.group_indicator_style_continuous_progress_line)
+                    GroupIndicatorStyle.DOUBLE_TRACK -> context.getString(R.string.group_indicator_style_double_track)
+                    GroupIndicatorStyle.MINIMAL_DASHES -> context.getString(R.string.group_indicator_style_minimal_ticks)
+                    GroupIndicatorStyle.SQUARE_TICKS -> context.getString(R.string.group_indicator_style_square_ticks)
+                    GroupIndicatorStyle.DIAMOND_MARKERS -> context.getString(R.string.group_indicator_style_diamond_markers)
+                    GroupIndicatorStyle.TRIANGLE_POINTER -> context.getString(R.string.group_indicator_style_triangle_pointer)
+                    GroupIndicatorStyle.HEXAGON_NODES -> context.getString(R.string.group_indicator_style_hexagon_nodes)
+                    GroupIndicatorStyle.GLOWING_NODES -> context.getString(R.string.group_indicator_style_glowing_nodes)
+                    GroupIndicatorStyle.PULSE_DOTS -> context.getString(R.string.group_indicator_style_pulse_dots)
+                    GroupIndicatorStyle.STACKED_CARDS -> context.getString(R.string.group_indicator_style_stacked_cards)
+                    GroupIndicatorStyle.MINI_PREVIEW -> context.getString(R.string.group_indicator_style_mini_page_preview)
+                    GroupIndicatorStyle.THUMBNAIL_STRIP -> context.getString(R.string.group_indicator_style_thumbnail_strip)
+                    GroupIndicatorStyle.NUMBER_BADGES -> context.getString(R.string.group_indicator_style_number_badges)
+                    GroupIndicatorStyle.VERTICAL_RAIL -> context.getString(R.string.group_indicator_style_vertical_rail)
+                    GroupIndicatorStyle.ARC_NODES -> context.getString(R.string.group_indicator_style_arc_nodes)
+                    GroupIndicatorStyle.FLUID_TRAIL -> context.getString(R.string.group_indicator_style_fluid_trail)
+                    GroupIndicatorStyle.DIGITAL_COUNTER -> context.getString(R.string.group_indicator_style_digital_counter)
+                    GroupIndicatorStyle.STEPPER -> context.getString(R.string.group_indicator_style_stepper)
                     else -> value.name.lowercase().replace('_', ' ')
                 }
             }
@@ -730,7 +730,7 @@ class SymbolDrawerSettingsScreen(
     }
 
     private fun copySettingsBackup() = copyJson(
-        "Zero Symbol Drawer settings", SymbolDrawerSettingsCodec.encode(current), context.getString(R.string.symbol_drawer_210)
+        "Zero Symbol Drawer settings", SymbolDrawerSettingsCodec.encode(current), context.getString(R.string.symbol_data_settings_backup_json_copied)
     )
 
     private fun exportSettingsFile() = documentPicker.saveJson(
@@ -738,7 +738,7 @@ class SymbolDrawerSettingsScreen(
     )
 
     private fun copyGroupsBackup() = copyJson(
-        "Zero Symbol Drawer groups", SymbolGroupBundleCodec.encode(groupRepository.loadGroups()), context.getString(R.string.symbol_drawer_188)
+        "Zero Symbol Drawer groups", SymbolGroupBundleCodec.encode(groupRepository.loadGroups()), context.getString(R.string.symbol_data_symbol_groups_json_copied)
     )
 
     private fun exportGroupsFile() = documentPicker.saveJson(
@@ -752,20 +752,20 @@ class SymbolDrawerSettingsScreen(
     }
 
     private fun promptImportSettings() {
-        promptJson(context.getString(R.string.symbol_drawer_079), context.getString(R.string.symbol_drawer_196)) { json ->
+        promptJson(context.getString(R.string.symbol_data_import_settings_backup), context.getString(R.string.symbol_data_paste_settings_json_a_successful_import_replaces_curren)) { json ->
             importSettings(json)
         }
     }
 
     private fun promptImportGroups() {
-        promptJson(context.getString(R.string.symbol_drawer_078), context.getString(R.string.symbol_drawer_193)) { json ->
+        promptJson(context.getString(R.string.symbol_data_import_symbol_groups), context.getString(R.string.symbol_data_paste_v1_symbol_group_json_a_successful_import_replaces)) { json ->
             confirmGroupImport(json)
         }
     }
 
     private fun promptJson(title: String, message: String, imported: (String) -> Unit) {
         val input = EditText(context).apply {
-            hint = context.getString(R.string.symbol_drawer_192)
+            hint = context.getString(R.string.symbol_data_paste_json)
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
             minLines = 6
             gravity = Gravity.TOP
@@ -774,8 +774,8 @@ class SymbolDrawerSettingsScreen(
             .setTitle(title)
             .setMessage(message)
             .setView(input)
-            .setNegativeButton(context.getString(R.string.symbol_drawer_057), null)
-            .setPositiveButton(context.getString(R.string.symbol_drawer_199)) { _, _ ->
+            .setNegativeButton(context.getString(R.string.symbol_manager_cancel), null)
+            .setPositiveButton(context.getString(R.string.symbol_manager_continue)) { _, _ ->
                 runCatching { imported(input.text.toString()) }.onFailure(::reportFailure)
             }
             .showAdaptiveDialog()
@@ -794,7 +794,7 @@ class SymbolDrawerSettingsScreen(
         current = next.copy(themeMode = ThemeMode.SYSTEM)
         render()
         onSettingsChanged?.invoke(current)
-        toast(context.getString(R.string.symbol_drawer_211))
+        toast(context.getString(R.string.symbol_data_settings_backup_validated_and_imported))
     }
 
     private fun confirmGroupImport(json: String) {
@@ -802,14 +802,14 @@ class SymbolDrawerSettingsScreen(
         // reach the repository and cannot partially overwrite the current data.
         val imported = SymbolGroupBundleCodec.decode(json)
         AlertDialog.Builder(context)
-            .setTitle(context.getString(R.string.symbol_drawer_180))
-            .setMessage(context.getString(R.string.symbol_drawer_099, imported.size))
-            .setNegativeButton(context.getString(R.string.symbol_drawer_057), null)
-            .setPositiveButton(context.getString(R.string.symbol_drawer_077)) { _, _ ->
+            .setTitle(context.getString(R.string.symbol_group_confirm_replacing_symbol_groups))
+            .setMessage(context.getString(R.string.symbol_data_validated_groups_replace_all_current_groups, imported.size))
+            .setNegativeButton(context.getString(R.string.symbol_manager_cancel), null)
+            .setPositiveButton(context.getString(R.string.symbol_data_import)) { _, _ ->
                 runCatching {
                     groupRepository.saveGroups(imported)
                     onGroupsChanged?.invoke(imported)
-                    toast(context.getString(R.string.symbol_drawer_190))
+                    toast(context.getString(R.string.symbol_data_symbol_groups_imported))
                 }.onFailure(::reportFailure)
             }
             .showAdaptiveDialog()
@@ -854,7 +854,7 @@ class SymbolDrawerSettingsScreen(
 
     private fun reportFailure(error: Throwable) {
         onError?.invoke(error)
-        toast(error.message ?: context.getString(R.string.symbol_drawer_137))
+        toast(error.message ?: context.getString(R.string.symbol_manager_operation_failed))
     }
 
     private fun toast(message: String) = Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
