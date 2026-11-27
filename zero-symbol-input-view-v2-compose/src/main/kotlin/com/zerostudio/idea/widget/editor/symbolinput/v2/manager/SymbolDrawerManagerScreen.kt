@@ -71,6 +71,8 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.material3.AlertDialog
@@ -845,24 +847,7 @@ fun SymbolDrawerManagerScreen(
                                             scaleY = dragScale
                                             shadowElevation = if (dragScale > 1f) 10.dp.toPx() else 0f
                                         }
-                                        .combinedClickable(
-                                        onClick = {
-                                            if (batchMode) {
-                                                selectedSymbolIds = if (symbol.id in selectedSymbolIds) selectedSymbolIds - symbol.id
-                                                else selectedSymbolIds + symbol.id
-                                            } else {
-                                                selectedGroupId = group.id
-                                                editingSymbol = symbol
-                                                symbolDialog = true
-                                            }
-                                        },
-                                        onLongClick = {
-                                            if (batchMode) {
-                                                selectedSymbolIds = if (symbol.id in selectedSymbolIds) selectedSymbolIds - symbol.id
-                                                else selectedSymbolIds + symbol.id
-                                            } else symbolMenuId = symbol.id
-                                        }
-                                    )
+
                                 ) {
                                     Box {
                                     Row(
@@ -884,7 +869,24 @@ fun SymbolDrawerManagerScreen(
                                                 .background(MaterialTheme.colorScheme.primary)
                                         )
                                         Column(
-                                            Modifier.weight(1f),
+                                            Modifier.weight(1f).combinedClickable(
+                                                onClick = {
+                                                    if (batchMode) {
+                                                        selectedSymbolIds = if (symbol.id in selectedSymbolIds) selectedSymbolIds - symbol.id
+                                                        else selectedSymbolIds + symbol.id
+                                                    } else {
+                                                        selectedGroupId = group.id
+                                                        editingSymbol = symbol
+                                                        symbolDialog = true
+                                                    }
+                                                },
+                                                onLongClick = {
+                                                    if (batchMode) {
+                                                        selectedSymbolIds = if (symbol.id in selectedSymbolIds) selectedSymbolIds - symbol.id
+                                                        else selectedSymbolIds + symbol.id
+                                                    } else symbolMenuId = symbol.id
+                                                }
+                                            ),
                                             verticalArrangement = Arrangement.Center
                                         ) {
                                             Text(
@@ -1073,23 +1075,54 @@ fun SymbolDrawerManagerScreen(
         }
 
     draggingSymbolId?.let { activeId ->
-        val activeSymbol = groups.asSequence()
-            .flatMap { it.symbols.asSequence() }
-            .firstOrNull { it.id == activeId }
+        val activeSymbol = dragWorkingOrder?.firstOrNull { it.id == activeId }
+            ?: groups.asSequence()
+                .flatMap { it.symbols.asSequence() }
+                .firstOrNull { it.id == activeId }
         activeSymbol?.let { symbol ->
             Popup(
                 alignment = androidx.compose.ui.Alignment.TopCenter,
                 properties = PopupProperties(focusable = false)
             ) {
-                Card(Modifier.padding(8.dp)) {
+                Card(Modifier.padding(8.dp).widthIn(max = 360.dp)) {
                     Row(
-                        Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                        Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(
-                            stringResource(R.string.compose_manager_drag_preview, symbol.label),
-                            style = MaterialTheme.typography.bodySmall
-                        )
+                        Row(
+                            Modifier.weight(1f).horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                        ) {
+                            (dragWorkingOrder ?: listOf(symbol)).forEach { previewEntry ->
+                                Text(
+                                    text = previewEntry.label,
+                                    modifier = Modifier
+                                        .background(
+                                            if (previewEntry.id == activeId) {
+                                                MaterialTheme.colorScheme.primaryContainer
+                                            } else {
+                                                MaterialTheme.colorScheme.surfaceVariant
+                                            },
+                                            MaterialTheme.shapes.small
+                                        )
+                                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                                    color = if (previewEntry.id == activeId) {
+                                        MaterialTheme.colorScheme.onPrimaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = if (previewEntry.id == activeId) {
+                                        androidx.compose.ui.text.font.FontWeight.Bold
+                                    } else {
+                                        androidx.compose.ui.text.font.FontWeight.Normal
+                                    },
+                                    maxLines = 1
+                                )
+                            }
+                        }
                         TextButton(onClick = {
                             dragWorkingOrder = null
                             draggingSymbolId = null
