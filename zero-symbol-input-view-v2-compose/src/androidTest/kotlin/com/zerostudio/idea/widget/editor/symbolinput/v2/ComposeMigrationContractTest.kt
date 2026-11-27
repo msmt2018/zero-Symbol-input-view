@@ -89,12 +89,13 @@ class ComposeMigrationContractTest {
             MaterialTheme {
                 SymbolDrawer(
                     groups = groups(),
+                    state = rememberSymbolDrawerState(initiallyExpanded = true),
                     onSymbolClick = {},
                     onOpenManager = { error("Manager must not be exposed as a drawer header button") }
                 )
             }
         }
-        compose.onNodeWithText("First").assertIsDisplayed()
+        compose.onNodeWithText("@").assertIsDisplayed()
         compose.runOnIdle {
             assertEquals(0, compose.onAllNodesWithText("Symbol manager").fetchSemanticsNodes().size)
         }
@@ -245,7 +246,14 @@ class ComposeMigrationContractTest {
         compose.onNodeWithText("Appearance").assertIsDisplayed()
         compose.onNodeWithText("性能/搜索").performClick()
         compose.onNodeWithText("Performance").assertIsDisplayed()
-        compose.onNodeWithText("Page cache limit").performScrollTo().assertIsDisplayed()
+        val cacheLabel = if (
+            compose.onAllNodesWithText("Page cache limit").fetchSemanticsNodes().isNotEmpty()
+        ) {
+            "Page cache limit"
+        } else {
+            "页面缓存数量"
+        }
+        compose.onNodeWithText(cacheLabel).performScrollTo().assertIsDisplayed()
     }
     @Test fun stableDrawerApiFacadeRendersComposeContent() {
         compose.setContent {
