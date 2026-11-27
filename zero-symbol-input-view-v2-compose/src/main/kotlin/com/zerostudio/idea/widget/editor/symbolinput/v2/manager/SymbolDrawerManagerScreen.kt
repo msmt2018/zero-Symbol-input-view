@@ -264,7 +264,7 @@ fun SymbolDrawerManagerScreen(
     fun runCommand(command: () -> Unit): Boolean {
         return runCatching(command)
             .onSuccess { refresh() }
-            .onFailure { errorMessage = it.message ?: stringResource(R.string.symbol_drawer_unknown_error) }
+            .onFailure { errorMessage = it.message ?: context.getString(R.string.symbol_drawer_unknown_error) }
             .isSuccess
     }
     fun runUndoable(message: String = undoMessage, command: () -> Unit): Boolean {
@@ -283,11 +283,11 @@ fun SymbolDrawerManagerScreen(
                             usageState.restore(previousUsage)
                         } else usageState.snapshot()
                         selectedGroupId = previousSelection
-                    }.onFailure { errorMessage = it.message ?: stringResource(R.string.compose_ui_undo_failed) }
+                    }.onFailure { errorMessage = it.message ?: context.getString(R.string.compose_ui_undo_failed) }
                 }
             }
             completed
-        }.onFailure { errorMessage = it.message ?: stringResource(R.string.compose_ui_group_operation_failed) }
+        }.onFailure { errorMessage = it.message ?: context.getString(R.string.compose_ui_group_operation_failed) }
             .getOrDefault(false)
     }
 
@@ -310,15 +310,15 @@ fun SymbolDrawerManagerScreen(
                 } else {
                     SymbolGroupBundleCodec.decode(json)
                 }
-                if (runUndoable(stringResource(R.string.compose_ui_groups_imported)) { manager.replaceAll(imported) }) {
+                if (runUndoable(context.getString(R.string.compose_ui_groups_imported)) { manager.replaceAll(imported) }) {
                     selectedGroupId = imported.firstOrNull()?.id
                     pendingFileImportLegacy = false
                     refresh()
                 }
-            }.onFailure { errorMessage = it.message ?: stringResource(R.string.compose_ui_json_import_failed) }
+            }.onFailure { errorMessage = it.message ?: context.getString(R.string.compose_ui_json_import_failed) }
         },
-        onExported = { operationMessage = stringResource(R.string.compose_ui_v1_json_exported) },
-        onError = { errorMessage = it.message ?: stringResource(R.string.compose_ui_json_operation_failed) }
+        onExported = { operationMessage = context.getString(R.string.compose_ui_v1_json_exported) },
+        onError = { errorMessage = it.message ?: context.getString(R.string.compose_ui_json_operation_failed) }
     )
 
     DisposableEffect(extensionRegistry) {
