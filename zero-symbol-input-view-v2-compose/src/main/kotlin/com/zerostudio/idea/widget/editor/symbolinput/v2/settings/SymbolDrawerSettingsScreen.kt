@@ -154,12 +154,12 @@ fun SymbolDrawerSettingsScreen(
                         .copy(themeMode = ThemeMode.SYSTEM)
                     current = decoded
                     onSettingsChange(decoded)
-                    feedbackMessage = stringResource(R.string.compose_ui_settings_file_imported)
+                    feedbackMessage = context.getString(R.string.compose_ui_settings_file_imported)
                 }
-            }.onFailure { errorMessage = it.message ?: stringResource(R.string.compose_ui_json_import_failed) }
+            }.onFailure { errorMessage = it.message ?: context.getString(R.string.compose_ui_json_import_failed) }
         },
-        onExported = { feedbackMessage = stringResource(R.string.compose_ui_settings_json_exported) },
-        onError = { errorMessage = it.message ?: stringResource(R.string.compose_ui_json_operation_failed) }
+        onExported = { feedbackMessage = context.getString(R.string.compose_ui_settings_json_exported) },
+        onError = { errorMessage = it.message ?: context.getString(R.string.compose_ui_json_operation_failed) }
     )
     val tabTitles = listOf(stringResource(R.string.compose_ui_settings_tab_appearance), stringResource(R.string.compose_ui_settings_tab_layout), stringResource(R.string.compose_ui_settings_tab_large_screen), stringResource(R.string.compose_ui_settings_tab_interaction), stringResource(R.string.compose_ui_settings_tab_performance), stringResource(R.string.compose_ui_settings_tab_data))
     // Each View V2 settings tab retains its own scroll position.
@@ -369,9 +369,9 @@ fun SymbolDrawerSettingsScreen(
                                     runCatching { SymbolDrawerSettingsCodec.encode(current) }
                                         .onSuccess {
                                             clipboard.setText(AnnotatedString(it))
-                                            feedbackMessage = stringResource(R.string.compose_ui_settings_json_copied)
+                                            feedbackMessage = context.getString(R.string.compose_ui_settings_json_copied)
                                         }
-                                        .onFailure { errorMessage = it.message ?: stringResource(R.string.compose_ui_settings_export_json_failed) }
+                                        .onFailure { errorMessage = it.message ?: context.getString(R.string.compose_ui_settings_export_json_failed) }
                                 },
                                 modifier = Modifier.weight(1f)
                             ) { Text(stringResource(R.string.compose_ui_settings_copy_json)) }
@@ -382,7 +382,7 @@ fun SymbolDrawerSettingsScreen(
                                             "symbol-drawer-settings.json",
                                             SymbolDrawerSettingsCodec.encode(current)
                                         )
-                                    }.onFailure { errorMessage = it.message ?: stringResource(R.string.compose_ui_settings_export_file_failed) }
+                                    }.onFailure { errorMessage = it.message ?: context.getString(R.string.compose_ui_settings_export_file_failed) }
                                 },
                                 modifier = Modifier.weight(1f)
                             ) { Text(stringResource(R.string.compose_ui_settings_export_file)) }
@@ -417,14 +417,14 @@ fun SymbolDrawerSettingsScreen(
                                 onClick = {
                                     val repository = groupRepository
                                     if (repository == null) {
-                                        errorMessage = stringResource(R.string.compose_ui_groups_repository_unavailable)
+                                        errorMessage = context.getString(R.string.compose_ui_groups_repository_unavailable)
                                     } else {
                                         runCatching { SymbolGroupBundleCodec.encode(repository.loadGroups()) }
                                             .onSuccess {
                                                 clipboard.setText(AnnotatedString(it))
-                                                feedbackMessage = stringResource(R.string.compose_ui_groups_json_copied)
+                                                feedbackMessage = context.getString(R.string.compose_ui_groups_json_copied)
                                             }
-                                            .onFailure { errorMessage = it.message ?: stringResource(R.string.compose_ui_groups_export_json_failed) }
+                                            .onFailure { errorMessage = it.message ?: context.getString(R.string.compose_ui_groups_export_json_failed) }
                                     }
                                 },
                                 enabled = groupRepository != null,
@@ -434,14 +434,14 @@ fun SymbolDrawerSettingsScreen(
                                 onClick = {
                                     val repository = groupRepository
                                     if (repository == null) {
-                                        errorMessage = stringResource(R.string.compose_ui_groups_repository_unavailable)
+                                        errorMessage = context.getString(R.string.compose_ui_groups_repository_unavailable)
                                     } else {
                                         runCatching {
                                             documentPicker.saveJson(
                                                 "symbol-drawer-groups.json",
                                                 SymbolGroupBundleCodec.encode(repository.loadGroups())
                                             )
-                                        }.onFailure { errorMessage = it.message ?: stringResource(R.string.compose_ui_groups_export_file_failed) }
+                                        }.onFailure { errorMessage = it.message ?: context.getString(R.string.compose_ui_groups_export_file_failed) }
                                     }
                                 },
                                 enabled = groupRepository != null,
@@ -490,7 +490,7 @@ fun SymbolDrawerSettingsScreen(
                             current = defaults
                             onSettingsChange(defaults)
                             onReset?.invoke()
-                            feedbackMessage = stringResource(R.string.compose_ui_settings_restored)
+                            feedbackMessage = context.getString(R.string.compose_ui_settings_restored)
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) { Text(stringResource(R.string.compose_settings_reset)) }
@@ -526,9 +526,9 @@ fun SymbolDrawerSettingsScreen(
                             current = decoded
                             onSettingsChange(decoded)
                         }
-                    }.onFailure { errorMessage = it.message ?: stringResource(R.string.compose_ui_import_failed) }
+                    }.onFailure { errorMessage = it.message ?: context.getString(R.string.compose_ui_import_failed) }
                     if (errorMessage == null) {
-                        feedbackMessage = if (importGroups) stringResource(R.string.compose_ui_groups_imported_success) else stringResource(R.string.compose_ui_settings_imported_success)
+                        feedbackMessage = if (importGroups) context.getString(R.string.compose_ui_groups_imported_success) else context.getString(R.string.compose_ui_settings_imported_success)
                         importDialog = false
                     }
                 }) { Text(stringResource(R.string.compose_ui_import)) }
