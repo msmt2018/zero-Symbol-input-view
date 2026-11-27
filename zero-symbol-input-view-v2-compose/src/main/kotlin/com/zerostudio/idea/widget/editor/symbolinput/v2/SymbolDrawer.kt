@@ -33,10 +33,6 @@ import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -59,7 +55,6 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -372,26 +367,6 @@ fun SymbolDrawer(
             layoutConfig.indicatorHeightDp.dp.toPx()
         }
         val indicatorBoundaryAtGestureStart = rememberUpdatedState(indicatorDragBoundaryPx)
-        // Keep these callbacks stable across anchor changes. If they were
-        // replaced when the drawer left the expanded anchor, an active child
-        // pointerInput gesture would be cancelled before UP.
-        val expandedSheetDragStart = remember(holder) { { holder.beginDrag() } }
-        val expandedSheetDrag = remember(holder) {
-            { delta: Float ->
-                holder.dragBy(delta)
-                Unit
-            }
-        }
-        val expandedSheetDragEnd = remember(holder, minimumFlingVelocity) {
-            { velocity: Float ->
-                if (holder.isDragging) {
-                    holder.endDrag(
-                        fingerVelocityY = velocity,
-                        minimumFlingVelocityPxPerSecond = minimumFlingVelocity
-                    )
-                }
-            }
-        }
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -519,12 +494,6 @@ fun SymbolDrawer(
                                 onSymbolClick(entry)
                             },
                             onSymbolLongClick = onSymbolLongClick,
-                            // The grid keeps ownership while it can scroll
-                            // backward; once at its first item it hands a
-                            // downward drag to the drawer, matching View V2.
-                            onExpandedSheetDragStart = expandedSheetDragStart,
-                            onExpandedSheetDrag = expandedSheetDrag,
-                            onExpandedSheetDragEnd = expandedSheetDragEnd
                         )
                     }
                 }
