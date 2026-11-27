@@ -731,8 +731,8 @@ private fun enumSettingLabel(context: Context, value: Enum<*>): String = when (v
         LargeScreenLayoutMode.SIDE -> R.string.symbol_layout_dock_to_side
     })
     is SideDockEdge -> context.getString(when (value) {
-        SideDockEdge.LEFT -> R.string.symbol_layout_left
-        SideDockEdge.RIGHT -> R.string.symbol_layout_right
+        SideDockEdge.LEFT -> R.string.symbol_manager_left
+        SideDockEdge.RIGHT -> R.string.symbol_manager_right
     })
     else -> value.name.replace('_', ' ')
 }
