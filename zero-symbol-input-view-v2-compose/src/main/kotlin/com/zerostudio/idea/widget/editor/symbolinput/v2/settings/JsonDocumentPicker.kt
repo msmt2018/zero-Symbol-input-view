@@ -78,7 +78,9 @@ fun rememberJsonDocumentPicker(
                                         ?: error(context.getString(R.string.compose_ui_json_open_failed))
                                 }.mapCatching { input ->
                                     input.use { stream ->
-                                        JsonDocumentIO.readUtf8Json(stream)
+                                        JsonDocumentIO.readUtf8Json(stream, JsonDocumentIO.DEFAULT_MAX_IMPORT_BYTES) { limit ->
+                                            context.getString(R.string.compose_ui_json_import_limit_exceeded, limit)
+                                        }
                                     }
                                 }.onSuccess { json ->
                                     if (active.get()) {

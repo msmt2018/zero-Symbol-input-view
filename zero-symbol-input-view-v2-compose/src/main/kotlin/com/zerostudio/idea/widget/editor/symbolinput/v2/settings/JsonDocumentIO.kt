@@ -19,6 +19,18 @@ object JsonDocumentIO {
     fun readUtf8Json(
         input: InputStream,
         maxBytes: Int = DEFAULT_MAX_IMPORT_BYTES
+    ): String = readUtf8Json(input, maxBytes) { size ->
+        "Selected JSON file exceeds the " + size + "-byte import limit"
+    }
+
+    /**
+     * Reads a bounded document while allowing the host UI to localize size-limit errors.
+     * The original overload remains available for context-free API callers.
+     */
+    fun readUtf8Json(
+        input: InputStream,
+        maxBytes: Int,
+        sizeLimitMessage: (Int) -> String
     ): String {
         require(maxBytes >= 0) { "Maximum import size must not be negative" }
         val output = ByteArrayOutputStream(minOf(maxBytes, BUFFER_SIZE))
@@ -33,7 +45,7 @@ object JsonDocumentIO {
                 if (single < 0) break
                 total += 1
                 require(total <= maxBytes.toLong()) {
-                    "Selected JSON file exceeds the " + maxBytes + "-byte import limit"
+                    sizeLimitMessage(maxBytes)
                 }
                 output.write(single)
                 continue

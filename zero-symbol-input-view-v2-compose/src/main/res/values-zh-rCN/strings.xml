@@ -544,4 +544,5 @@
     <string name="compose_ui_no_action">无</string>
     <string name="compose_ui_json_open_failed">无法打开所选 JSON 文档</string>
     <string name="compose_ui_json_create_failed">无法创建所选 JSON 文档</string>
+    <string name="compose_ui_json_import_limit_exceeded">所选 JSON 文件超过 %1$d 字节的导入限制</string>
 </resources>

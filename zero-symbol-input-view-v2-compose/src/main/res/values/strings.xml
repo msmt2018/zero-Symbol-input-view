@@ -544,4 +544,5 @@
     <string name="compose_ui_no_action">None</string>
     <string name="compose_ui_json_open_failed">Unable to open the selected JSON document</string>
     <string name="compose_ui_json_create_failed">Unable to create the selected JSON document</string>
+    <string name="compose_ui_json_import_limit_exceeded">Selected JSON file exceeds the %1$d-byte import limit</string>
 </resources>

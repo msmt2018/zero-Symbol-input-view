@@ -260,7 +260,7 @@ fun SymbolDrawerManagerScreen(
     fun runCommand(command: () -> Unit): Boolean {
         return runCatching(command)
             .onSuccess { refresh() }
-            .onFailure { errorMessage = it.message ?: "Unknown error" }
+            .onFailure { errorMessage = it.message ?: stringResource(R.string.symbol_drawer_unknown_error) }
             .isSuccess
     }
     fun runUndoable(message: String = undoMessage, command: () -> Unit): Boolean {
