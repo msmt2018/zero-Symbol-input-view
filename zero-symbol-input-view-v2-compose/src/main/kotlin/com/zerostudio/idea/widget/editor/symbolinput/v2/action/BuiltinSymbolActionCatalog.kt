@@ -127,12 +127,6 @@ object BuiltinSymbolActionCatalog {
         BuiltinSymbolActionOption("insert_payload", "Editor: Insert payload text", "Text to insert")
     )
 
-
-
-
-    fun find(context: Context, commandId: String): BuiltinSymbolActionOption? =
-        options(context).firstOrNull { it.commandId == commandId }
-
     private val byId = options.associateBy(BuiltinSymbolActionOption::commandId)
     fun find(commandId: String): BuiltinSymbolActionOption? = byId[commandId]
 }
