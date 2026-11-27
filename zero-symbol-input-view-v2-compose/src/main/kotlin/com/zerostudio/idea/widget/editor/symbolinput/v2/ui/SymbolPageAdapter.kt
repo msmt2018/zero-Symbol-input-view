@@ -56,11 +56,11 @@ import com.zerostudio.idea.widget.editor.symbolinput.v2.settings.SymbolDrawerSet
 /**
  * Composition-native replacement for the former RecyclerView/ListAdapter page.
  *
- * The grid owns its scroll state. While grid scrolling is enabled, downward
- * gestures remain with the grid until it reaches its first item. When grid
- * scrolling is disabled by a collapsed/partial sheet anchor, downward gestures
- * are handed directly to the sheet even if the grid retains an old scroll
- * offset. Upward gestures remain with the outer drawer while it is partial and with the grid when fully expanded.
+ * The grid owns its scroll state. At the fully expanded anchor, the parent
+ * drawer receives only unconsumed downward scroll through the nested-scroll
+ * chain. At partial anchors, the drawer's direct gesture recognizer owns the
+ * vertical drag. This adapter intentionally installs no competing pointer
+ * recognizer, preventing two gesture pipelines from moving the same height.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -80,8 +80,7 @@ fun SymbolPage(
         columns = GridCells.Fixed(config.columns.coerceIn(1, 30)),
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 4.dp)
-            .then(dragArbitrationModifier),
+            .padding(horizontal = 4.dp),
         userScrollEnabled = userScrollEnabled,
         verticalArrangement = Arrangement.spacedBy(config.cellVerticalSpacingDp.dp),
         horizontalArrangement = Arrangement.spacedBy(config.cellHorizontalSpacingDp.dp)
