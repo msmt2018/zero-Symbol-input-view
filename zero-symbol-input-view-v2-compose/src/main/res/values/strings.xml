@@ -3,7 +3,7 @@
     <string name="symbol_accessibility_tap_long_press">%1$s, tap %2$s, long press %3$s</string>
     <string name="group_indicator_style_3d_roller">3D roller</string>
     <string name="group_indicator_style_hud_arc_gauge">HUD arc gauge</string>
-    <string name="symbol_extension_extension">[Extension] </string>
+    <string name="symbol_extension_label_prefix">[Extension] </string>
     <string name="symbol_action_syntax_c_set_cursor_position_separate_from_selection_markers">$C   Set cursor position (separate from selection markers)</string>
     <string name="symbol_action_syntax_cap_capitalize_selected_text">$CAP Capitalize selected text</string>
     <string name="symbol_action_syntax_e_set_selection_end">$E   Set selection end</string>
@@ -542,4 +542,6 @@
     <string name="compose_ui_action_source_extension">[Extension] </string>
     <string name="compose_ui_keep_current_action">Keep current action</string>
     <string name="compose_ui_no_action">None</string>
+    <string name="compose_ui_json_open_failed">Unable to open the selected JSON document</string>
+    <string name="compose_ui_json_create_failed">Unable to create the selected JSON document</string>
 </resources>

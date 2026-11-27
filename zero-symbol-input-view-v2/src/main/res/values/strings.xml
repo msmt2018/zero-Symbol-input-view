@@ -352,4 +352,9 @@
     <string name="symbol_action_source_v1_prefix">[V1] </string>
     <string name="symbol_action_source_v2_prefix">[V2] </string>
     <string name="symbol_settings_value_summary">%1$s: %2$s</string>
+    <string name="symbol_data_json_open_failed">Unable to open the selected JSON file</string>
+    <string name="symbol_data_json_export_pending">No JSON export is pending</string>
+    <string name="symbol_data_json_create_failed">Unable to create the selected JSON file</string>
+    <string name="symbol_data_json_picker_host_required">The JSON file picker requires a ComponentActivity host</string>
+    <string name="symbol_data_json_import_limit_exceeded">The selected JSON file exceeds the 16 MiB import limit</string>
 </resources>

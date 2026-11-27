@@ -3,7 +3,7 @@
     <string name="symbol_accessibility_tap_long_press">%1$s，短按%2$s，长按%3$s</string>
     <string name="group_indicator_style_3d_roller">3D 滚轮</string>
     <string name="group_indicator_style_hud_arc_gauge">HUD 弧形仪表</string>
-    <string name="symbol_extension_extension">[扩展] </string>
+    <string name="symbol_extension_label_prefix">[扩展] </string>
     <string name="symbol_action_syntax_c_set_cursor_position_separate_from_selection_markers">$C   设置光标位置（与选区标记分开使用）</string>
     <string name="symbol_action_syntax_cap_capitalize_selected_text">$CAP 将当前选中文本首字母大写</string>
     <string name="symbol_action_syntax_e_set_selection_end">$E   设置选区结束位置</string>
@@ -542,4 +542,6 @@
     <string name="compose_ui_action_source_extension">[扩展] </string>
     <string name="compose_ui_keep_current_action">保留当前动作</string>
     <string name="compose_ui_no_action">无</string>
+    <string name="compose_ui_json_open_failed">无法打开所选 JSON 文档</string>
+    <string name="compose_ui_json_create_failed">无法创建所选 JSON 文档</string>
 </resources>

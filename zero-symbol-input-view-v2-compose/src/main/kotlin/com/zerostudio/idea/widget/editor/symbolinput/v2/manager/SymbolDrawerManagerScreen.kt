@@ -1475,7 +1475,8 @@ private fun symbolActionDisplayName(
         is SymbolAction.MoveCursor -> stringResource(R.string.compose_ui_action_move_cursor, action.target.name)
         is SymbolAction.Delete -> stringResource(R.string.compose_ui_action_delete, action.kind.name)
         is SymbolAction.TransformSelection -> stringResource(R.string.compose_ui_action_transform, action.transform.name)
-        is SymbolAction.EditorCommand -> stringResource(R.string.compose_ui_action_editor_command, action.commandId)
+        is SymbolAction.EditorCommand -> BuiltinSymbolActionCatalog.find(LocalContext.current, action.commandId)?.label
+            ?: stringResource(R.string.compose_ui_action_editor_command, action.commandId)
         is SymbolAction.Clipboard -> stringResource(R.string.compose_ui_action_clipboard, action.operation.name)
         SymbolAction.OpenManager -> stringResource(R.string.compose_ui_action_open_manager)
         is SymbolAction.Composite -> stringResource(R.string.compose_ui_action_composite, action.actions.size)

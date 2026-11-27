@@ -46,6 +46,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.zerostudio.idea.widget.editor.symbolinput.v2.compose.R
 import com.zerostudio.idea.widget.editor.symbolinput.v2.action.BuiltinSymbolActionCatalog
@@ -140,6 +141,7 @@ internal fun SymbolActionEditorDialog(
         stringResource(R.string.legacy_action_undo),
         stringResource(R.string.legacy_action_redo)
     )
+    val context = LocalContext.current
     val legacySourcePrefix = stringResource(R.string.compose_ui_action_source_v1)
     val builtinSourcePrefix = stringResource(R.string.compose_ui_action_source_v2)
     val extensionSourcePrefix = stringResource(R.string.compose_ui_action_source_extension)
@@ -155,8 +157,8 @@ internal fun SymbolActionEditorDialog(
             )
         }
     }
-    val builtinOptions = remember(builtinSourcePrefix) {
-        BuiltinSymbolActionCatalog.options.map { option ->
+    val builtinOptions = remember(context, builtinSourcePrefix) {
+        BuiltinSymbolActionCatalog.options(context).map { option ->
             SymbolActionPickerOption(
                 key = "v2:${option.commandId}",
                 label = builtinSourcePrefix + option.label,

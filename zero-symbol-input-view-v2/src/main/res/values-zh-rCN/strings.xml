@@ -352,4 +352,9 @@
     <string name="symbol_action_source_v1_prefix">[V1] </string>
     <string name="symbol_action_source_v2_prefix">[V2] </string>
     <string name="symbol_settings_value_summary">%1$s：%2$s</string>
+    <string name="symbol_data_json_open_failed">无法打开所选 JSON 文件</string>
+    <string name="symbol_data_json_export_pending">没有待导出的 JSON 数据</string>
+    <string name="symbol_data_json_create_failed">无法创建所选 JSON 文件</string>
+    <string name="symbol_data_json_picker_host_required">JSON 文件选择器需要 ComponentActivity 宿主</string>
+    <string name="symbol_data_json_import_limit_exceeded">所选 JSON 文件超过 16 MiB 导入限制</string>
 </resources>

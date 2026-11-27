@@ -65,6 +65,7 @@ internal class JsonDocumentPicker(
     private val onImported: (String) -> Unit,
     private val onError: (Throwable) -> Unit
 ) {
+    private val appContext = context.applicationContext
     private val activity = context.findComponentActivity()
     private var pendingExport: String? = null
     private val openLauncher: ActivityResultLauncher<Array<String>>?
@@ -104,7 +105,7 @@ internal class JsonDocumentPicker(
     fun openJson() {
         runCatching {
             val launcher = openLauncher
-                ?: error("JSON file picker requires a ComponentActivity host")
+                ?: error(appContext.getString(R.string.symbol_data_json_picker_host_required))
             // Document providers often label JSON as application/octet-stream.
             // Select broadly, then validate the actual contents with the JSON codecs.
             launcher.launch(arrayOf("*/*"))
@@ -114,7 +115,7 @@ internal class JsonDocumentPicker(
     fun saveJson(fileName: String, json: String) {
         val launcher = saveLauncher
         if (launcher == null) {
-            runCatching { onError(IllegalStateException("JSON file picker requires a ComponentActivity host")) }
+            runCatching { onError(IllegalStateException(appContext.getString(R.string.symbol_data_json_picker_host_required))) }
             return
         }
         pendingExport = json
@@ -130,7 +131,7 @@ internal class JsonDocumentPicker(
         // to the settings UI rather than escaping through ActivityResult delivery.
         runCatching {
             val input = activity?.contentResolver?.openInputStream(uri)
-                ?: error("Unable to open selected JSON file")
+                ?: error(appContext.getString(R.string.symbol_data_json_open_failed))
             input.use { stream ->
                 val output = java.io.ByteArrayOutputStream()
                 val buffer = ByteArray(8 * 1024)
@@ -139,7 +140,7 @@ internal class JsonDocumentPicker(
                     val count = stream.read(buffer)
                     if (count < 0) break
                     total += count
-                    require(total <= MAX_IMPORT_BYTES) { "Selected JSON file exceeds the 16 MiB import limit" }
+                    require(total <= MAX_IMPORT_BYTES) { appContext.getString(R.string.symbol_data_json_import_limit_exceeded) }
                     output.write(buffer, 0, count)
                 }
                 output.toString(Charsets.UTF_8.name()).removePrefix("\uFEFF")
@@ -149,9 +150,9 @@ internal class JsonDocumentPicker(
 
     private fun write(uri: Uri) {
         runCatching {
-            val payload = pendingExport ?: error("No JSON export is pending")
+            val payload = pendingExport ?: error(appContext.getString(R.string.symbol_data_json_export_pending))
             val output = activity?.contentResolver?.openOutputStream(uri, "wt")
-                ?: error("Unable to create selected JSON file")
+                ?: error(appContext.getString(R.string.symbol_data_json_create_failed))
             output.bufferedWriter(Charsets.UTF_8).use { it.write(payload) }
             pendingExport = null
         }.onSuccess { }.onFailure { error -> runCatching { onError(error) } }

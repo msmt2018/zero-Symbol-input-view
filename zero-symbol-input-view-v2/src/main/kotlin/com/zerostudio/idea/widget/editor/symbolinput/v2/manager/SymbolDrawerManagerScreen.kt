@@ -1382,7 +1382,7 @@ class SymbolDrawerManagerScreen(
             SymbolActionOption(context.getString(R.string.symbol_action_source_v2_prefix) + option.label, builtin = option)
         }
         val extensionOptions = extensionRegistry?.actions().orEmpty().map { extension ->
-            SymbolActionOption(context.getString(R.string.symbol_extension_extension) + extension.title, extension = extension)
+            SymbolActionOption(context.getString(R.string.symbol_extension_label_prefix) + extension.title, extension = extension)
         }
         val shortOptions = buildList {
             if (preserveShortAction) add(SymbolActionOption(context.getString(R.string.symbol_interaction_keep_current_action), keepCurrent = true))

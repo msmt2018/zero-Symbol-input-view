@@ -49,6 +49,7 @@ fun rememberJsonDocumentPicker(
     onExported: (() -> Unit)? = null,
     onError: (Throwable) -> Unit
 ): JsonDocumentPickerState {
+    val context = LocalContext.current.applicationContext
     val latestOpenRequest = rememberUpdatedState(requestOpenDocument)
     val latestCreateRequest = rememberUpdatedState(requestCreateDocument)
     val latestImported = rememberUpdatedState(onImported)
@@ -65,7 +66,7 @@ fun rememberJsonDocumentPicker(
         if (active.get()) latestError.value(error)
     }
 
-    return remember(contentResolver, active) {
+    return remember(contentResolver, active, context) {
         JsonDocumentPickerState(
             openAction = {
                 if (active.get()) {
@@ -74,7 +75,7 @@ fun rememberJsonDocumentPicker(
                             if (uri != null && active.get()) {
                                 runCatching {
                                     contentResolver.openInputStream(uri)
-                                        ?: error("Unable to open selected JSON document")
+                                        ?: error(context.getString(R.string.compose_ui_json_open_failed))
                                 }.mapCatching { input ->
                                     input.use { stream ->
                                         JsonDocumentIO.readUtf8Json(stream)
@@ -97,7 +98,7 @@ fun rememberJsonDocumentPicker(
                             if (uri != null && active.get()) {
                                 runCatching {
                                     val output = contentResolver.openOutputStream(uri, "wt")
-                                        ?: error("Unable to create selected JSON document")
+                                        ?: error(context.getString(R.string.compose_ui_json_create_failed))
                                     output.use { JsonDocumentIO.writeUtf8Json(it, json) }
                                 }.onSuccess {
                                     if (active.get()) {
