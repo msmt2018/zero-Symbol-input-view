@@ -49,7 +49,6 @@ import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.util.TypedValue
-import androidx.core.content.ContextCompat
 
 /**
  * Resolves colors from the live host theme without linking against a particular
@@ -138,12 +137,12 @@ internal object HostThemeColors {
 
         if (value.resourceId != 0) {
             val colorStateList: ColorStateList? = runCatching {
-                ContextCompat.getColorStateList(context, value.resourceId)
+                context.resources.getColorStateList(value.resourceId)
             }.getOrNull()
             if (colorStateList != null) return colorStateList.defaultColor
 
             return runCatching {
-                ContextCompat.getColor(context, value.resourceId)
+                context.resources.getColor(value.resourceId)
             }.getOrNull() ?: fallback
         }
 
