@@ -1457,8 +1457,8 @@ private fun symbolActionSummary(
     val shortName = symbolActionDisplayName(symbol.shortAction, symbol.legacyShortActionId, legacyLabels)
     val longName = symbol.longAction?.let {
         symbolActionDisplayName(it, symbol.legacyLongActionId, legacyLabels)
-    } ?: context.getString(R.string.symbol_manager_none)
-    return context.getString(R.string.symbol_interaction_tap_long_press, shortName, longName)
+    } ?: LocalContext.current.getString(R.string.symbol_manager_none)
+    return LocalContext.current.getString(R.string.symbol_interaction_tap_long_press, shortName, longName)
 }
 
 @Composable
@@ -1472,53 +1472,53 @@ private fun symbolActionDisplayName(
         legacyLabels.getOrNull(index)?.let { return it }
     }
     return when (action) {
-        is SymbolAction.InsertText -> context.getString(R.string.compose_ui_action_insert_text)
-        is SymbolAction.ReplaceSelection -> context.getString(R.string.compose_ui_action_replace_selection)
-        is SymbolAction.SurroundSelection -> context.getString(R.string.compose_ui_action_surround_selection)
-        is SymbolAction.MoveCursor -> context.getString(R.string.compose_ui_action_move_cursor, cursorTargetLabel(action.target))
-        is SymbolAction.Delete -> context.getString(R.string.compose_ui_action_delete, deleteKindLabel(action.kind))
-        is SymbolAction.TransformSelection -> context.getString(R.string.compose_ui_action_transform, selectionTransformLabel(action.transform))
+        is SymbolAction.InsertText -> LocalContext.current.getString(R.string.compose_ui_action_insert_text)
+        is SymbolAction.ReplaceSelection -> LocalContext.current.getString(R.string.compose_ui_action_replace_selection)
+        is SymbolAction.SurroundSelection -> LocalContext.current.getString(R.string.compose_ui_action_surround_selection)
+        is SymbolAction.MoveCursor -> LocalContext.current.getString(R.string.compose_ui_action_move_cursor, cursorTargetLabel(action.target))
+        is SymbolAction.Delete -> LocalContext.current.getString(R.string.compose_ui_action_delete, deleteKindLabel(action.kind))
+        is SymbolAction.TransformSelection -> LocalContext.current.getString(R.string.compose_ui_action_transform, selectionTransformLabel(action.transform))
         is SymbolAction.EditorCommand -> localizedBuiltinSymbolActionOptions(LocalContext.current).firstOrNull { it.commandId == action.commandId }?.label
-            ?: context.getString(R.string.compose_ui_action_editor_command, action.commandId)
-        is SymbolAction.Clipboard -> context.getString(R.string.compose_ui_action_clipboard, clipboardOperationLabel(action.operation))
-        SymbolAction.OpenManager -> context.getString(R.string.compose_ui_action_open_manager)
-        is SymbolAction.Composite -> context.getString(R.string.compose_ui_action_composite, action.actions.size)
-        is SymbolAction.Extension -> context.getString(R.string.compose_ui_action_extension, action.extensionId)
+            ?: LocalContext.current.getString(R.string.compose_ui_action_editor_command, action.commandId)
+        is SymbolAction.Clipboard -> LocalContext.current.getString(R.string.compose_ui_action_clipboard, clipboardOperationLabel(action.operation))
+        SymbolAction.OpenManager -> LocalContext.current.getString(R.string.compose_ui_action_open_manager)
+        is SymbolAction.Composite -> LocalContext.current.getString(R.string.compose_ui_action_composite, action.actions.size)
+        is SymbolAction.Extension -> LocalContext.current.getString(R.string.compose_ui_action_extension, action.extensionId)
     }
 }
 
 
 @Composable
 private fun cursorTargetLabel(target: CursorTarget): String = when (target) {
-    CursorTarget.LEFT -> context.getString(R.string.compose_ui_cursor_left)
-    CursorTarget.RIGHT -> context.getString(R.string.compose_ui_cursor_right)
-    CursorTarget.UP -> context.getString(R.string.compose_ui_cursor_up)
-    CursorTarget.DOWN -> context.getString(R.string.compose_ui_cursor_down)
-    CursorTarget.LINE_START -> context.getString(R.string.compose_ui_cursor_line_start)
-    CursorTarget.LINE_END -> context.getString(R.string.compose_ui_cursor_line_end)
-    CursorTarget.DOCUMENT_START -> context.getString(R.string.compose_ui_cursor_document_start)
-    CursorTarget.DOCUMENT_END -> context.getString(R.string.compose_ui_cursor_document_end)
+    CursorTarget.LEFT -> LocalContext.current.getString(R.string.compose_ui_cursor_left)
+    CursorTarget.RIGHT -> LocalContext.current.getString(R.string.compose_ui_cursor_right)
+    CursorTarget.UP -> LocalContext.current.getString(R.string.compose_ui_cursor_up)
+    CursorTarget.DOWN -> LocalContext.current.getString(R.string.compose_ui_cursor_down)
+    CursorTarget.LINE_START -> LocalContext.current.getString(R.string.compose_ui_cursor_line_start)
+    CursorTarget.LINE_END -> LocalContext.current.getString(R.string.compose_ui_cursor_line_end)
+    CursorTarget.DOCUMENT_START -> LocalContext.current.getString(R.string.compose_ui_cursor_document_start)
+    CursorTarget.DOCUMENT_END -> LocalContext.current.getString(R.string.compose_ui_cursor_document_end)
 }
 
 @Composable
 private fun deleteKindLabel(kind: DeleteKind): String = when (kind) {
-    DeleteKind.BACKWARD -> context.getString(R.string.compose_ui_delete_backward)
-    DeleteKind.FORWARD -> context.getString(R.string.compose_ui_delete_forward)
-    DeleteKind.CURRENT_LINE -> context.getString(R.string.compose_ui_delete_current_line)
-    DeleteKind.TO_LINE_START -> context.getString(R.string.compose_ui_delete_to_line_start)
-    DeleteKind.TO_LINE_END -> context.getString(R.string.compose_ui_delete_to_line_end)
+    DeleteKind.BACKWARD -> LocalContext.current.getString(R.string.compose_ui_delete_backward)
+    DeleteKind.FORWARD -> LocalContext.current.getString(R.string.compose_ui_delete_forward)
+    DeleteKind.CURRENT_LINE -> LocalContext.current.getString(R.string.compose_ui_delete_current_line)
+    DeleteKind.TO_LINE_START -> LocalContext.current.getString(R.string.compose_ui_delete_to_line_start)
+    DeleteKind.TO_LINE_END -> LocalContext.current.getString(R.string.compose_ui_delete_to_line_end)
 }
 
 @Composable
 private fun selectionTransformLabel(transform: SelectionTransform): String = when (transform) {
-    SelectionTransform.UPPERCASE -> context.getString(R.string.compose_ui_transform_uppercase)
-    SelectionTransform.LOWERCASE -> context.getString(R.string.compose_ui_transform_lowercase)
-    SelectionTransform.TOGGLE_CASE -> context.getString(R.string.compose_ui_transform_toggle_case)
+    SelectionTransform.UPPERCASE -> LocalContext.current.getString(R.string.compose_ui_transform_uppercase)
+    SelectionTransform.LOWERCASE -> LocalContext.current.getString(R.string.compose_ui_transform_lowercase)
+    SelectionTransform.TOGGLE_CASE -> LocalContext.current.getString(R.string.compose_ui_transform_toggle_case)
 }
 
 @Composable
 private fun clipboardOperationLabel(operation: ClipboardOperation): String = when (operation) {
-    ClipboardOperation.COPY -> context.getString(R.string.compose_ui_clipboard_copy)
-    ClipboardOperation.CUT -> context.getString(R.string.compose_ui_clipboard_cut)
-    ClipboardOperation.PASTE -> context.getString(R.string.compose_ui_clipboard_paste)
+    ClipboardOperation.COPY -> LocalContext.current.getString(R.string.compose_ui_clipboard_copy)
+    ClipboardOperation.CUT -> LocalContext.current.getString(R.string.compose_ui_clipboard_cut)
+    ClipboardOperation.PASTE -> LocalContext.current.getString(R.string.compose_ui_clipboard_paste)
 }
