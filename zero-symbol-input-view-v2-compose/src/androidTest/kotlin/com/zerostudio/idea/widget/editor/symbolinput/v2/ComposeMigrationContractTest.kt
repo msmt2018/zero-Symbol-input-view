@@ -244,8 +244,17 @@ class ComposeMigrationContractTest {
         }
         compose.onNodeWithText("Symbol drawer settings").assertIsDisplayed()
         assertEquals(2, compose.onAllNodesWithText("Appearance").fetchSemanticsNodes().size)
-        compose.onNodeWithText("Performance").performClick()
-        compose.onNodeWithText("Performance").assertIsDisplayed()
+
+        // Use the same localized resource as the production tab row. CI runners
+        // may inherit a non-English system locale, so a hard-coded English tab
+        // title can make the instrumentation test fail before exercising the
+        // settings page itself.
+        val performanceTabTitle = androidx.test.platform.app.InstrumentationRegistry
+            .getInstrumentation()
+            .targetContext
+            .getString(com.zerostudio.idea.widget.editor.symbolinput.v2.compose.R.string.compose_ui_settings_tab_performance)
+        compose.onNodeWithText(performanceTabTitle).performClick()
+        compose.onNodeWithText(performanceTabTitle).assertIsDisplayed()
         val cacheLabel = if (
             compose.onAllNodesWithText("Page cache limit", substring = true)
                 .fetchSemanticsNodes().isNotEmpty()
