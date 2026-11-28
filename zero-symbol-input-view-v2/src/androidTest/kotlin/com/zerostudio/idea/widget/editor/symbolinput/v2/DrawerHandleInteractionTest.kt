@@ -59,6 +59,7 @@ import com.zerostudio.idea.widget.drawer.panel.DrawerPanelContent
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zerostudio.idea.widget.drawer.DrawerContainer
+import com.zerostudio.idea.widget.editor.symbolinput.v2.R
 import com.zerostudio.idea.widget.editor.symbolinput.v2.testing.DrawerTestHostActivity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -322,7 +323,7 @@ class DrawerHandleInteractionTest {
                     drawer.layout(0, 0, width, height)
                 }
                 fun findSettingsButton(view: View): ImageButton? {
-                    if (view is ImageButton && view.contentDescription == "符号设置") return view
+                    if (view is ImageButton && view.contentDescription == activity.getString(R.string.symbol_drawer_accessibility_settings)) return view
                     if (view is ViewGroup) {
                         for (index in 0 until view.childCount) {
                             findSettingsButton(view.getChildAt(index))?.let { return it }
