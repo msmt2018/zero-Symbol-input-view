@@ -253,7 +253,7 @@ class ComposeMigrationContractTest {
             .getInstrumentation()
             .targetContext
             .getString(com.zerostudio.idea.widget.editor.symbolinput.v2.compose.R.string.compose_ui_settings_tab_performance)
-        compose.onNodeWithText(performanceTabTitle).performClick()
+        compose.onNodeWithText(performanceTabTitle).performScrollTo().performClick()
         compose.onNodeWithText(performanceTabTitle).assertIsDisplayed()
         val cacheLabel = if (
             compose.onAllNodesWithText("Page cache limit", substring = true)
