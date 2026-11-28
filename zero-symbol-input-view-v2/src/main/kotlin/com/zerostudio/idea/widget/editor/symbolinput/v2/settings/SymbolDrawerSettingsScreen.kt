@@ -231,9 +231,18 @@ class SymbolDrawerSettingsScreen(
         // calculating the legal scroll range.
         content.doOnNextLayout {
             val target = activeScrollView ?: return@doOnNextLayout
-            val contentHeight = target.getChildAt(0)?.measuredHeight ?: 0
-            val maxScroll = (contentHeight - target.height).coerceAtLeast(0)
-            target.scrollTo(0, scrollY.coerceIn(0, maxScroll))
+            // The content host's layout callback can run before the replacement
+            // ScrollView has completed its own child measurement on older View
+            // hierarchies. Defer the range calculation to that ScrollView's
+            // queue so its final laid-out child height is used.
+            target.post {
+                if (activeScrollView !== target || !target.isAttachedToWindow) {
+                    return@post
+                }
+                val pageHeight = target.getChildAt(0)?.height ?: 0
+                val maxScroll = (pageHeight - target.height).coerceAtLeast(0)
+                target.scrollTo(0, scrollY.coerceIn(0, maxScroll))
+            }
         }
     }
 
