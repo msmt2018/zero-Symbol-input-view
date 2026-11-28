@@ -65,7 +65,7 @@ import android.widget.SeekBar
 import android.widget.Spinner
 import android.widget.Switch
 import android.widget.TextView
-import androidx.core.view.doOnLayout
+import androidx.core.view.doOnNextLayout
 import android.widget.Toast
 import android.app.AlertDialog
 import android.text.InputType
@@ -223,17 +223,17 @@ class SymbolDrawerSettingsScreen(
      * be clamped against the transient zero-height viewport.
      */
     private fun restoreActiveScrollPosition(scrollY: Int) {
-        val target = activeScrollView ?: return
-        target.doOnLayout { laidOut ->
-            // A newly rendered ScrollView can complete its own layout before
-            // its WRAP_CONTENT page has received the final measured height.
-            // Restore on the next UI turn so scroll range is computed from the
-            // replacement page, not the transient zero-height measurement.
-            laidOut.post {
-                val contentHeight = (laidOut as? ViewGroup)?.getChildAt(0)?.height ?: 0
-                val maxScroll = (contentHeight - laidOut.height).coerceAtLeast(0)
-                laidOut.scrollTo(0, scrollY.coerceIn(0, maxScroll))
-            }
+        if (scrollY <= 0) return
+
+        // render() replaces the page tree while onSizeChanged() is running.
+        // Wait for the content host's next complete layout so the new ScrollView
+        // and its WRAP_CONTENT page have both been measured and laid out before
+        // calculating the legal scroll range.
+        content.doOnNextLayout {
+            val target = activeScrollView ?: return@doOnNextLayout
+            val contentHeight = target.getChildAt(0)?.measuredHeight ?: 0
+            val maxScroll = (contentHeight - target.height).coerceAtLeast(0)
+            target.scrollTo(0, scrollY.coerceIn(0, maxScroll))
         }
     }
 
