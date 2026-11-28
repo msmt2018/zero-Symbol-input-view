@@ -472,6 +472,17 @@ val verifyComposeArtifactBoundary by tasks.registering {
     }
 }
 
+/**
+ * JitPack invokes the module install task for Maven publication.
+ * Keep this entry point local to the artifact so each V2 module can be
+ * built and published independently from the same Git tag.
+ */
+tasks.register("install") {
+    group = "publishing"
+    description = "Publishes this library's release variant to the local Maven repository for JitPack."
+    dependsOn("publishReleasePublicationToMavenLocal")
+}
+
 afterEvaluate {
     publishing {
         publications {
