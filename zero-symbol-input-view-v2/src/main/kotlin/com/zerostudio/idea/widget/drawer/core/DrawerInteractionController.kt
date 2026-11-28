@@ -99,8 +99,8 @@ class DrawerInteractionController(
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 downX = event.x
-                downY = event.rawY
-                lastY = event.rawY
+                downY = event.y
+                lastY = event.y
                 dragging = false
                 gestureAxis = AXIS_UNDECIDED
                 // Do not lock ancestors before the gesture axis is known.
@@ -112,7 +112,7 @@ class DrawerInteractionController(
             MotionEvent.ACTION_MOVE -> {
                 velocityTracker?.addMovement(event)
                 val dx = event.x - downX
-                val dyFromDown = event.rawY - downY
+                val dyFromDown = event.y - downY
                 if (gestureAxis == AXIS_UNDECIDED && maxOf(abs(dx), abs(dyFromDown)) > touchSlop) {
                     if (abs(dx) > abs(dyFromDown) * AXIS_LOCK_RATIO) {
                         gestureAxis = AXIS_HORIZONTAL
@@ -130,7 +130,7 @@ class DrawerInteractionController(
                     // and reach its top later in the same finger gesture.
                     // lastY is advanced on child-owned moves, so interception
                     // never replays distance already consumed by that child.
-                    val deltaY = event.rawY - lastY
+                    val deltaY = event.y - lastY
                     val childAtTop = deltaY > 0f && childCanScrollUp(event.x, event.y)
                     if (shouldInterceptVerticalDrag(
                             deltaY, height, minimumHeight, maximumHeight, childAtTop
@@ -144,8 +144,8 @@ class DrawerInteractionController(
                         // displacement here and advance lastY before returning;
                         // ViewGroup may deliver this same MOVE to onTouchEvent
                         // immediately after interception, where it must be a no-op.
-                        val dragDelta = lastY - event.rawY
-                        lastY = event.rawY
+                        val dragDelta = lastY - event.y
+                        lastY = event.y
                         if (dragDelta != 0f) {
                             setHeight(
                                 (height + dragDelta.roundToInt()).coerceIn(minimumHeight, maximumHeight)
@@ -153,11 +153,11 @@ class DrawerInteractionController(
                         }
                         return true
                     }
-                    lastY = event.rawY
+                    lastY = event.y
                 } else if (!dragging) {
                     // Preserve the latest child-owned position while the axis
                     // is still undecided (or has been locked horizontally).
-                    lastY = event.rawY
+                    lastY = event.y
                 }
                 return dragging
             }
@@ -171,13 +171,13 @@ class DrawerInteractionController(
         velocityTracker?.addMovement(event)
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
-                lastY = event.rawY
+                lastY = event.y
                 return true
             }
             MotionEvent.ACTION_MOVE -> {
                 if (!dragging) return false
-                val delta = lastY - event.rawY
-                lastY = event.rawY
+                val delta = lastY - event.y
+                lastY = event.y
                 setHeight((height + delta.roundToInt()).coerceIn(minimumHeight, maximumHeight))
                 return true
             }
