@@ -2,4 +2,4 @@ jdk:
   - openjdk17
 
 install:
-  - bash -c 'set -euo pipefail; : "${VERSION:?JitPack must provide VERSION}"; export VERSION; ./gradlew :zero-symbol-input-view-v2:build :zero-symbol-input-view-v2:publishReleasePublicationToMavenLocal :zero-symbol-input-view-v2-compose:build :zero-symbol-input-view-v2-compose:publishReleasePublicationToMavenLocal --no-daemon --stacktrace'
+  - bash -c 'set -euo pipefail; : "${VERSION:?JitPack must provide VERSION}"; export VERSION; ./gradlew :zero-symbol-input-view-v2:install :zero-symbol-input-view-v2-compose:install --no-daemon --stacktrace'
