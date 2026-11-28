@@ -225,7 +225,15 @@ class SymbolDrawerSettingsScreen(
     private fun restoreActiveScrollPosition(scrollY: Int) {
         val target = activeScrollView ?: return
         target.doOnLayout { laidOut ->
-            laidOut.scrollTo(0, scrollY.coerceAtLeast(0))
+            // A newly rendered ScrollView can complete its own layout before
+            // its WRAP_CONTENT page has received the final measured height.
+            // Restore on the next UI turn so scroll range is computed from the
+            // replacement page, not the transient zero-height measurement.
+            laidOut.post {
+                val contentHeight = laidOut.getChildAt(0)?.height ?: 0
+                val maxScroll = (contentHeight - laidOut.height).coerceAtLeast(0)
+                laidOut.scrollTo(0, scrollY.coerceIn(0, maxScroll))
+            }
         }
     }
 
