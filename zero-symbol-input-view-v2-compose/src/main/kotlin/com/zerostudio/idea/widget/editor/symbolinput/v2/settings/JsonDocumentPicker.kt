@@ -15,6 +15,8 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.platform.LocalContext
+import com.zerostudio.idea.widget.editor.symbolinput.v2.compose.R
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
