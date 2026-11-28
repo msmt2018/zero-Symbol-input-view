@@ -106,7 +106,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
@@ -212,43 +211,43 @@ fun SymbolDrawerManagerScreen(
     var previewSnapshot by remember { mutableStateOf<List<SymbolGroup>?>(null) }
     var previewSelectedGroupId by remember { mutableStateOf<String?>(null) }
     val previewDrawerState = rememberSymbolDrawerState(initiallyExpanded = true)
-    val undoMessage = stringResource(R.string.compose_manager_undo_message)
+    val undoMessage = context.getString(R.string.compose_manager_undo_message)
     // Resolve localized V1 action labels once per manager composition rather
     // than rebuilding the 33-label table for every visible grid item.
     val legacyActionLabels = listOf(
-        stringResource(R.string.legacy_action_insert_text),
-        stringResource(R.string.legacy_action_delete_line),
-        stringResource(R.string.legacy_action_clear_line),
-        stringResource(R.string.legacy_action_convert_to_uppercase),
-        stringResource(R.string.legacy_action_convert_to_lowercase),
-        stringResource(R.string.legacy_action_indent_tab),
-        stringResource(R.string.legacy_action_toggle_comment),
-        stringResource(R.string.legacy_action_go_to_line_start),
-        stringResource(R.string.legacy_action_go_to_line_end),
-        stringResource(R.string.legacy_action_move_cursor_left),
-        stringResource(R.string.legacy_action_move_cursor_right),
-        stringResource(R.string.legacy_action_move_cursor_up),
-        stringResource(R.string.legacy_action_move_cursor_down),
-        stringResource(R.string.legacy_action_open_symbol_toolbar_manager),
-        stringResource(R.string.legacy_action_go_to_document_start),
-        stringResource(R.string.legacy_action_go_to_document_end),
-        stringResource(R.string.legacy_action_select_all),
-        stringResource(R.string.legacy_action_copy),
-        stringResource(R.string.legacy_action_cut),
-        stringResource(R.string.legacy_action_paste),
-        stringResource(R.string.legacy_action_format_code),
-        stringResource(R.string.legacy_action_copy_line),
-        stringResource(R.string.legacy_action_cut_line),
-        stringResource(R.string.legacy_action_duplicate_line),
-        stringResource(R.string.legacy_action_replace_line),
-        stringResource(R.string.legacy_action_enter_key),
-        stringResource(R.string.legacy_action_tab_key),
-        stringResource(R.string.legacy_action_shift_tab),
-        stringResource(R.string.legacy_action_clipboard_copy),
-        stringResource(R.string.legacy_action_clipboard_cut),
-        stringResource(R.string.legacy_action_clipboard_paste),
-        stringResource(R.string.legacy_action_undo),
-        stringResource(R.string.legacy_action_redo)
+        context.getString(R.string.legacy_action_insert_text),
+        context.getString(R.string.legacy_action_delete_line),
+        context.getString(R.string.legacy_action_clear_line),
+        context.getString(R.string.legacy_action_convert_to_uppercase),
+        context.getString(R.string.legacy_action_convert_to_lowercase),
+        context.getString(R.string.legacy_action_indent_tab),
+        context.getString(R.string.legacy_action_toggle_comment),
+        context.getString(R.string.legacy_action_go_to_line_start),
+        context.getString(R.string.legacy_action_go_to_line_end),
+        context.getString(R.string.legacy_action_move_cursor_left),
+        context.getString(R.string.legacy_action_move_cursor_right),
+        context.getString(R.string.legacy_action_move_cursor_up),
+        context.getString(R.string.legacy_action_move_cursor_down),
+        context.getString(R.string.legacy_action_open_symbol_toolbar_manager),
+        context.getString(R.string.legacy_action_go_to_document_start),
+        context.getString(R.string.legacy_action_go_to_document_end),
+        context.getString(R.string.legacy_action_select_all),
+        context.getString(R.string.legacy_action_copy),
+        context.getString(R.string.legacy_action_cut),
+        context.getString(R.string.legacy_action_paste),
+        context.getString(R.string.legacy_action_format_code),
+        context.getString(R.string.legacy_action_copy_line),
+        context.getString(R.string.legacy_action_cut_line),
+        context.getString(R.string.legacy_action_duplicate_line),
+        context.getString(R.string.legacy_action_replace_line),
+        context.getString(R.string.legacy_action_enter_key),
+        context.getString(R.string.legacy_action_tab_key),
+        context.getString(R.string.legacy_action_shift_tab),
+        context.getString(R.string.legacy_action_clipboard_copy),
+        context.getString(R.string.legacy_action_clipboard_cut),
+        context.getString(R.string.legacy_action_clipboard_paste),
+        context.getString(R.string.legacy_action_undo),
+        context.getString(R.string.legacy_action_redo)
     )
 
     fun refresh() {
@@ -361,7 +360,7 @@ fun SymbolDrawerManagerScreen(
             compositionScope.launch {
                 runCatching { manager.reload() }
                     .onSuccess { refresh() }
-                    .onFailure { errorMessage = it.message ?: stringResource(R.string.compose_ui_groups_reload_failed) }
+                    .onFailure { errorMessage = it.message ?: context.getString(R.string.compose_ui_groups_reload_failed) }
             }
         }
         onDispose { handle?.close() }
@@ -383,9 +382,9 @@ fun SymbolDrawerManagerScreen(
                 TextButton(onClick = onOpenSettings) {
                     Icon(
                         imageVector = Icons.Default.Settings,
-                        contentDescription = stringResource(R.string.compose_manager_settings)
+                        contentDescription = context.getString(R.string.compose_manager_settings)
                     )
-                    Text(stringResource(R.string.compose_manager_settings))
+                    Text(context.getString(R.string.compose_manager_settings))
                 }
             } else {
                 androidx.compose.foundation.layout.Spacer(Modifier.width(4.dp))
@@ -395,16 +394,16 @@ fun SymbolDrawerManagerScreen(
                     searchVisible = !searchVisible
                     if (!searchVisible) searchQuery = ""
                 }) {
-                    Text(stringResource(if (searchVisible) R.string.symbol_interaction_collapse else R.string.symbol_search_search))
+                    Text(context.getString(if (searchVisible) R.string.symbol_interaction_collapse else R.string.symbol_search_search))
                 }
             }
             Box {
                 OutlinedButton(onClick = { moreMenuExpanded = true }) {
-                    Text(stringResource(R.string.compose_manager_more))
+                    Text(context.getString(R.string.compose_manager_more))
                 }
                 DropdownMenu(expanded = moreMenuExpanded, onDismissRequest = { moreMenuExpanded = false }) {
                     DropdownMenuItem(
-                        text = { Text(stringResource(R.string.compose_manager_add_group)) },
+                        text = { Text(context.getString(R.string.compose_manager_add_group)) },
                         onClick = {
                             moreMenuExpanded = false
                             editingGroupId = null
@@ -413,7 +412,7 @@ fun SymbolDrawerManagerScreen(
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text(stringResource(R.string.compose_manager_add_symbol)) },
+                        text = { Text(context.getString(R.string.compose_manager_add_symbol)) },
                         enabled = selectedGroup != null,
                         onClick = {
                             moreMenuExpanded = false
@@ -424,8 +423,8 @@ fun SymbolDrawerManagerScreen(
                     DropdownMenuItem(
                         text = {
                             Text(
-                                if (batchMode) stringResource(R.string.compose_manager_batch_done)
-                                else stringResource(R.string.compose_manager_batch_select)
+                                if (batchMode) context.getString(R.string.compose_manager_batch_done)
+                                else context.getString(R.string.compose_manager_batch_select)
                             )
                         },
                         onClick = {
@@ -436,7 +435,7 @@ fun SymbolDrawerManagerScreen(
                     )
                     if (favoritesFeatureVisible) {
                         DropdownMenuItem(
-                            text = { Text(stringResource(R.string.compose_manager_filter_favorites)) },
+                            text = { Text(context.getString(R.string.compose_manager_filter_favorites)) },
                             onClick = {
                                 moreMenuExpanded = false
                                 favoritesDialog = true
@@ -445,7 +444,7 @@ fun SymbolDrawerManagerScreen(
                     }
                     if (recentFeatureVisible) {
                         DropdownMenuItem(
-                            text = { Text(stringResource(R.string.compose_manager_filter_recent)) },
+                            text = { Text(context.getString(R.string.compose_manager_filter_recent)) },
                             onClick = {
                                 moreMenuExpanded = false
                                 recentDialog = true
@@ -453,7 +452,7 @@ fun SymbolDrawerManagerScreen(
                         )
                     }
                     DropdownMenuItem(
-                        text = { Text(stringResource(R.string.symbol_group_duplicate_group)) },
+                        text = { Text(context.getString(R.string.symbol_group_duplicate_group)) },
                         enabled = selectedGroup != null &&
                             groups.size < SymbolGroupBundleCodec.MAX_GROUPS &&
                             groups.sumOf { it.symbols.size.toLong() } +
@@ -462,7 +461,7 @@ fun SymbolDrawerManagerScreen(
                         onClick = {
                             moreMenuExpanded = false
                             selectedGroup?.let { group ->
-                                runUndoable(stringResource(R.string.compose_ui_group_copied)) {
+                                runUndoable(context.getString(R.string.compose_ui_group_copied)) {
                                     val duplicate = manager.duplicateGroup(group.id)
                                     selectedGroupId = duplicate.id
                                 }
@@ -470,35 +469,35 @@ fun SymbolDrawerManagerScreen(
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text(stringResource(R.string.compose_manager_export)) },
+                        text = { Text(context.getString(R.string.compose_manager_export)) },
                         onClick = {
                             moreMenuExpanded = false
                             runCatching { SymbolGroupBundleCodec.encode(groups) }
                                 .onSuccess {
                                     clipboard.setText(AnnotatedString(it))
-                                    operationMessage = stringResource(R.string.compose_ui_group_json_copied)
+                                    operationMessage = context.getString(R.string.compose_ui_group_json_copied)
                                 }
-                                .onFailure { errorMessage = it.message ?: stringResource(R.string.compose_ui_groups_export_failed) }
+                                .onFailure { errorMessage = it.message ?: context.getString(R.string.compose_ui_groups_export_failed) }
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text(stringResource(R.string.compose_manager_import)) },
+                        text = { Text(context.getString(R.string.compose_manager_import)) },
                         onClick = {
                             moreMenuExpanded = false
                             importDialog = true
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text(stringResource(R.string.compose_manager_export_legacy)) },
+                        text = { Text(context.getString(R.string.compose_manager_export_legacy)) },
                         onClick = {
                             moreMenuExpanded = false
                             runCatching { LegacySymbolDataCodec.encode(groups) }
                                 .onSuccess { documentPicker.saveJson("symbol-groups-v1.json", it) }
-                                .onFailure { errorMessage = it.message ?: stringResource(R.string.compose_ui_v1_export_failed) }
+                                .onFailure { errorMessage = it.message ?: context.getString(R.string.compose_ui_v1_export_failed) }
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text(stringResource(R.string.compose_manager_import_legacy)) },
+                        text = { Text(context.getString(R.string.compose_manager_import_legacy)) },
                         onClick = {
                             moreMenuExpanded = false
                             pendingFileImportLegacy = true
@@ -508,7 +507,7 @@ fun SymbolDrawerManagerScreen(
                     DropdownMenuItem(
                         text = {
                             Text(
-                                stringResource(
+                                context.getString(
                                     if (previewModeActive) R.string.compose_manager_finish_preview
                                     else R.string.compose_manager_preview
                                 )
@@ -531,7 +530,7 @@ fun SymbolDrawerManagerScreen(
             }
             if (onClose != null) {
                 TextButton(onClick = onClose) {
-                    Text(stringResource(R.string.compose_manager_close))
+                    Text(context.getString(R.string.compose_manager_close))
                 }
             }
         }
@@ -544,7 +543,7 @@ fun SymbolDrawerManagerScreen(
                     verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
                 ) {
                     Text(message, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
-                    TextButton(onClick = { operationMessage = null }) { Text(stringResource(R.string.compose_ui_close)) }
+                    TextButton(onClick = { operationMessage = null }) { Text(context.getString(R.string.compose_ui_close)) }
                 }
             }
         }
@@ -554,7 +553,7 @@ fun SymbolDrawerManagerScreen(
                 Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(
-                            stringResource(R.string.compose_manager_preview),
+                            context.getString(R.string.compose_manager_preview),
                             style = MaterialTheme.typography.titleSmall
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -564,13 +563,13 @@ fun SymbolDrawerManagerScreen(
                                     manager.replaceAll(snapshot.map { it.copy(symbols = it.symbols.toList()) })
                                     selectedGroupId = previewSelectedGroupId
                                     refresh()
-                                }.onFailure { errorMessage = it.message ?: stringResource(R.string.compose_ui_preview_restore_failed) }
-                            }) { Text(stringResource(R.string.compose_manager_restore_preview)) }
+                                }.onFailure { errorMessage = it.message ?: context.getString(R.string.compose_ui_preview_restore_failed) }
+                            }) { Text(context.getString(R.string.compose_manager_restore_preview)) }
                             TextButton(onClick = {
                                 previewModeActive = false
                                 previewSnapshot = null
                                 previewSelectedGroupId = null
-                            }) { Text(stringResource(R.string.compose_manager_finish_preview)) }
+                            }) { Text(context.getString(R.string.compose_manager_finish_preview)) }
                         }
                     }
                     Box(Modifier.fillMaxWidth().height(144.dp)) {
@@ -613,7 +612,7 @@ fun SymbolDrawerManagerScreen(
         }
 
         if (groups.isEmpty()) {
-            Text(stringResource(R.string.compose_manager_create_group_hint))
+            Text(context.getString(R.string.compose_manager_create_group_hint))
         } else {
             ScrollableTabRow(
                 selectedTabIndex = selectedGroupIndex,
@@ -645,23 +644,23 @@ fun SymbolDrawerManagerScreen(
                                     onDismissRequest = { groupMenuId = null }
                                 ) {
                                     DropdownMenuItem(
-                                        text = { Text(stringResource(R.string.compose_ui_group_move_up)) },
+                                        text = { Text(context.getString(R.string.compose_ui_group_move_up)) },
                                         enabled = index > 0,
                                         onClick = {
                                             groupMenuId = null
-                                            runUndoable(stringResource(R.string.compose_ui_groups_reordered)) { manager.moveGroup(index, index - 1) }
+                                            runUndoable(context.getString(R.string.compose_ui_groups_reordered)) { manager.moveGroup(index, index - 1) }
                                         }
                                     )
                                     DropdownMenuItem(
-                                        text = { Text(stringResource(R.string.compose_ui_group_move_down)) },
+                                        text = { Text(context.getString(R.string.compose_ui_group_move_down)) },
                                         enabled = index < groups.lastIndex,
                                         onClick = {
                                             groupMenuId = null
-                                            runUndoable(stringResource(R.string.compose_ui_groups_reordered)) { manager.moveGroup(index, index + 1) }
+                                            runUndoable(context.getString(R.string.compose_ui_groups_reordered)) { manager.moveGroup(index, index + 1) }
                                         }
                                     )
                                     DropdownMenuItem(
-                                        text = { Text(stringResource(R.string.compose_ui_group_add)) },
+                                        text = { Text(context.getString(R.string.compose_ui_group_add)) },
                                         onClick = {
                                             groupMenuId = null
                                             editingGroupId = null
@@ -670,7 +669,7 @@ fun SymbolDrawerManagerScreen(
                                         }
                                     )
                                     DropdownMenuItem(
-                                        text = { Text(stringResource(R.string.compose_ui_group_copy_contents_to)) },
+                                        text = { Text(context.getString(R.string.compose_ui_group_copy_contents_to)) },
                                         enabled = groups.size > 1 && group.symbols.isNotEmpty(),
                                         onClick = {
                                             groupMenuId = null
@@ -678,21 +677,21 @@ fun SymbolDrawerManagerScreen(
                                         }
                                     )
                                     DropdownMenuItem(
-                                        text = { Text(stringResource(R.string.compose_ui_group_copy)) },
+                                        text = { Text(context.getString(R.string.compose_ui_group_copy)) },
                                         enabled = groups.size < SymbolGroupBundleCodec.MAX_GROUPS &&
                                             groups.sumOf { it.symbols.size.toLong() } +
                                                 group.symbols.size.toLong() <=
                                                 SymbolGroupBundleCodec.MAX_TOTAL_SYMBOLS,
                                         onClick = {
                                             groupMenuId = null
-                                            runUndoable(stringResource(R.string.compose_ui_group_copied)) {
+                                            runUndoable(context.getString(R.string.compose_ui_group_copied)) {
                                                 val duplicate = manager.duplicateGroup(group.id, index + 1)
                                                 selectedGroupId = duplicate.id
                                             }
                                         }
                                     )
                                     DropdownMenuItem(
-                                        text = { Text(stringResource(R.string.compose_manager_rename_group)) },
+                                        text = { Text(context.getString(R.string.compose_manager_rename_group)) },
                                         onClick = {
                                             groupMenuId = null
                                             editingGroupId = group.id
@@ -701,7 +700,7 @@ fun SymbolDrawerManagerScreen(
                                         }
                                     )
                                     DropdownMenuItem(
-                                        text = { Text(stringResource(R.string.compose_manager_delete)) },
+                                        text = { Text(context.getString(R.string.compose_manager_delete)) },
                                         enabled = groups.size > 1,
                                         onClick = {
                                             groupMenuId = null
@@ -721,7 +720,7 @@ fun SymbolDrawerManagerScreen(
                 onValueChange = { searchQuery = it },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                label = { Text(stringResource(R.string.symbol_search_search_symbol_names_and_actions)) }
+                label = { Text(context.getString(R.string.symbol_search_search_symbol_names_and_actions)) }
             )
         }
             BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
@@ -776,7 +775,7 @@ fun SymbolDrawerManagerScreen(
                     if (group.id == selectedGroupId && group.symbols.isNotEmpty() && batchMode) {
                         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(
-                                stringResource(R.string.symbol_manager_selected, selectedSymbolIds.size.toString()),
+                                context.getString(R.string.symbol_manager_selected, selectedSymbolIds.size.toString()),
                                 style = MaterialTheme.typography.bodyMedium
                             )
                             Row(
@@ -789,7 +788,7 @@ fun SymbolDrawerManagerScreen(
                                     enabled = selectedSymbolIds.isNotEmpty(),
                                     onClick = { targetDialogOperation = "copy" }
                                 ) {
-                                    Text(stringResource(R.string.symbol_item_copy_selected_symbols_to),
+                                    Text(context.getString(R.string.symbol_item_copy_selected_symbols_to),
                                         style = MaterialTheme.typography.labelSmall, maxLines = 2)
                                 }
                                 TextButton(
@@ -798,7 +797,7 @@ fun SymbolDrawerManagerScreen(
                                     enabled = selectedSymbolIds.isNotEmpty() && groups.any { it.id != group.id },
                                     onClick = { targetDialogOperation = "move" }
                                 ) {
-                                    Text(stringResource(R.string.symbol_item_move_selected_symbols_to),
+                                    Text(context.getString(R.string.symbol_item_move_selected_symbols_to),
                                         style = MaterialTheme.typography.labelSmall, maxLines = 2)
                                 }
                                 TextButton(
@@ -806,12 +805,12 @@ fun SymbolDrawerManagerScreen(
                                     contentPadding = PaddingValues(horizontal = 3.dp, vertical = 6.dp),
                                     enabled = selectedSymbolIds.isNotEmpty(),
                                     onClick = {
-                                        if (runUndoable(stringResource(R.string.compose_ui_symbols_deleted, selectedSymbolIds.size)) {
+                                        if (runUndoable(context.getString(R.string.compose_ui_symbols_deleted, selectedSymbolIds.size)) {
                                             manager.removeSymbols(group.id, selectedSymbolIds)
                                         }) selectedSymbolIds = emptySet()
                                     }
                                 ) {
-                                    Text(stringResource(R.string.compose_manager_delete_selected),
+                                    Text(context.getString(R.string.compose_manager_delete_selected),
                                         style = MaterialTheme.typography.labelSmall, maxLines = 2)
                                 }
                             }
@@ -821,9 +820,9 @@ fun SymbolDrawerManagerScreen(
                     if (pageVisibleSymbols.isEmpty()) {
                         Text(
                             if (group.symbols.isEmpty()) {
-                                stringResource(R.string.compose_manager_create_group_hint)
+                                context.getString(R.string.compose_manager_create_group_hint)
                             } else {
-                                stringResource(R.string.symbol_group_no_symbols_in_this_group_tap_add_and_choose_new_symbol)
+                                context.getString(R.string.symbol_group_no_symbols_in_this_group_tap_add_and_choose_new_symbol)
                             },
                             modifier = Modifier.fillMaxWidth().padding(12.dp),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -952,7 +951,7 @@ fun SymbolDrawerManagerScreen(
                                                             draggingSymbolId = null
                                                             if (reordered != null &&
                                                                 reordered.map { it.id } != group.symbols.map { it.id }
-                                                            ) runUndoable(stringResource(R.string.compose_ui_symbols_reordered)) {
+                                                            ) runUndoable(context.getString(R.string.compose_ui_symbols_reordered)) {
                                                                 manager.reorderSymbols(group.id, reordered.map { it.id })
                                                             }
                                                         },
@@ -966,7 +965,7 @@ fun SymbolDrawerManagerScreen(
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.DragHandle,
-                                                contentDescription = stringResource(R.string.compose_ui_drag_handle),
+                                                contentDescription = context.getString(R.string.compose_ui_drag_handle),
                                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
@@ -977,37 +976,37 @@ fun SymbolDrawerManagerScreen(
                                             ) {
                                                 val symbolIndex = group.symbols.indexOfFirst { it.id == symbol.id }
                                                 DropdownMenuItem(
-                                                    text = { Text(if (symbol.id in usageSnapshot.favorites) stringResource(R.string.compose_ui_favorite_remove) else stringResource(R.string.compose_ui_favorite_add)) },
+                                                    text = { Text(if (symbol.id in usageSnapshot.favorites) context.getString(R.string.compose_ui_favorite_remove) else context.getString(R.string.compose_ui_favorite_add)) },
                                                     onClick = {
                                                         symbolMenuId = null
                                                         val wasFavorite = symbol.id in usageSnapshot.favorites
                                                         usageSnapshot = usageState.toggleFavorite(symbol.id)
-                                                        operationMessage = if (wasFavorite) stringResource(R.string.compose_ui_favorite_removed) else stringResource(R.string.compose_ui_favorite_added)
+                                                        operationMessage = if (wasFavorite) context.getString(R.string.compose_ui_favorite_removed) else context.getString(R.string.compose_ui_favorite_added)
                                                         undoAction = null
                                                         undoLabel = null
                                                     }
                                                 )
                                                 DropdownMenuItem(
-                                                    text = { Text(stringResource(R.string.compose_ui_mark_recent)) },
+                                                    text = { Text(context.getString(R.string.compose_ui_mark_recent)) },
                                                     onClick = {
                                                         symbolMenuId = null
                                                         usageSnapshot = usageState.recordRecentlyUsed(symbol.id)
-                                                        operationMessage = stringResource(R.string.compose_ui_marked_recent)
+                                                        operationMessage = context.getString(R.string.compose_ui_marked_recent)
                                                         undoAction = null
                                                         undoLabel = null
                                                     }
                                                 )
                                                 DropdownMenuItem(
-                                                    text = { Text(stringResource(R.string.compose_ui_copy_to_current_group)) },
+                                                    text = { Text(context.getString(R.string.compose_ui_copy_to_current_group)) },
                                                     onClick = {
                                                         symbolMenuId = null
-                                                        runUndoable(stringResource(R.string.compose_ui_symbol_copied)) {
+                                                        runUndoable(context.getString(R.string.compose_ui_symbol_copied)) {
                                                             manager.copySymbols(group.id, setOf(symbol.id), group.id)
                                                         }
                                                     }
                                                 )
                                                 DropdownMenuItem(
-                                                    text = { Text(stringResource(R.string.compose_ui_copy_to_other_group)) },
+                                                    text = { Text(context.getString(R.string.compose_ui_copy_to_other_group)) },
                                                     enabled = groups.any { it.id != group.id },
                                                     onClick = {
                                                         symbolMenuId = null
@@ -1017,7 +1016,7 @@ fun SymbolDrawerManagerScreen(
                                                     }
                                                 )
                                                 DropdownMenuItem(
-                                                    text = { Text(stringResource(R.string.compose_ui_move_to_other_group)) },
+                                                    text = { Text(context.getString(R.string.compose_ui_move_to_other_group)) },
                                                     enabled = groups.any { it.id != group.id },
                                                     onClick = {
                                                         symbolMenuId = null
@@ -1027,29 +1026,29 @@ fun SymbolDrawerManagerScreen(
                                                     }
                                                 )
                                                 DropdownMenuItem(
-                                                    text = { Text(stringResource(R.string.compose_ui_item_move_up)) },
+                                                    text = { Text(context.getString(R.string.compose_ui_item_move_up)) },
                                                     enabled = symbolIndex > 0,
                                                     onClick = {
                                                         symbolMenuId = null
-                                                        if (symbolIndex > 0) runUndoable(stringResource(R.string.compose_ui_symbols_reordered)) {
+                                                        if (symbolIndex > 0) runUndoable(context.getString(R.string.compose_ui_symbols_reordered)) {
                                                             manager.moveSymbol(group.id, symbolIndex, symbolIndex - 1)
                                                         }
                                                     }
                                                 )
                                                 DropdownMenuItem(
-                                                    text = { Text(stringResource(R.string.compose_ui_item_move_down)) },
+                                                    text = { Text(context.getString(R.string.compose_ui_item_move_down)) },
                                                     enabled = symbolIndex >= 0 && symbolIndex < group.symbols.lastIndex,
                                                     onClick = {
                                                         symbolMenuId = null
                                                         if (symbolIndex >= 0 && symbolIndex < group.symbols.lastIndex) {
-                                                            runUndoable(stringResource(R.string.compose_ui_symbols_reordered)) {
+                                                            runUndoable(context.getString(R.string.compose_ui_symbols_reordered)) {
                                                                 manager.moveSymbol(group.id, symbolIndex, symbolIndex + 1)
                                                             }
                                                         }
                                                     }
                                                 )
                                                 DropdownMenuItem(
-                                                    text = { Text(stringResource(R.string.compose_manager_edit)) },
+                                                    text = { Text(context.getString(R.string.compose_manager_edit)) },
                                                     onClick = {
                                                         symbolMenuId = null
                                                         selectedGroupId = group.id
@@ -1058,7 +1057,7 @@ fun SymbolDrawerManagerScreen(
                                                     }
                                                 )
                                                 DropdownMenuItem(
-                                                    text = { Text(stringResource(R.string.compose_manager_delete)) },
+                                                    text = { Text(context.getString(R.string.compose_manager_delete)) },
                                                     onClick = {
                                                         symbolMenuId = null
                                                         deleteSymbolTarget = group.id to symbol.id
@@ -1130,7 +1129,7 @@ fun SymbolDrawerManagerScreen(
                         TextButton(onClick = {
                             dragWorkingOrder = null
                             draggingSymbolId = null
-                        }) { Text(stringResource(R.string.compose_manager_drag_cancel)) }
+                        }) { Text(context.getString(R.string.compose_manager_drag_cancel)) }
                     }
                 }
             }
@@ -1141,7 +1140,7 @@ fun SymbolDrawerManagerScreen(
         val source = groups.firstOrNull { it.id == sourceId }
         AlertDialog(
             onDismissRequest = { copyGroupSourceId = null },
-            title = { Text(stringResource(R.string.compose_ui_group_copy_contents_title)) },
+            title = { Text(context.getString(R.string.compose_ui_group_copy_contents_title)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     groups.filter { it.id != sourceId }.forEach { target ->
@@ -1149,7 +1148,7 @@ fun SymbolDrawerManagerScreen(
                             modifier = Modifier.fillMaxWidth(),
                             onClick = {
                                 if (source != null) {
-                                    runUndoable(stringResource(R.string.compose_ui_group_contents_copied)) {
+                                    runUndoable(context.getString(R.string.compose_ui_group_contents_copied)) {
                                         manager.copySymbols(
                                             source.id,
                                             source.symbols.mapTo(mutableSetOf()) { it.id },
@@ -1165,7 +1164,7 @@ fun SymbolDrawerManagerScreen(
             },
             confirmButton = {
                 TextButton(onClick = { copyGroupSourceId = null }) {
-                    Text(stringResource(R.string.compose_manager_cancel))
+                    Text(context.getString(R.string.compose_manager_cancel))
                 }
             }
         )
@@ -1181,10 +1180,10 @@ fun SymbolDrawerManagerScreen(
             TextButton(onClick = {
                 runCatching { undoAction?.invoke() }
                     .onSuccess { refresh() }
-                    .onFailure { errorMessage = it.message ?: stringResource(R.string.compose_ui_undo_operation_failed) }
+                    .onFailure { errorMessage = it.message ?: context.getString(R.string.compose_ui_undo_operation_failed) }
                 undoAction = null
                 undoLabel = null
-            }) { Text(stringResource(R.string.compose_manager_undo)) }
+            }) { Text(context.getString(R.string.compose_manager_undo)) }
         }
     }
 
@@ -1192,16 +1191,16 @@ fun SymbolDrawerManagerScreen(
         val group = groups.firstOrNull { it.id == groupId }
         AlertDialog(
             onDismissRequest = { deleteGroupId = null },
-            title = { Text(stringResource(R.string.compose_manager_confirm_delete_group)) },
+            title = { Text(context.getString(R.string.compose_manager_confirm_delete_group)) },
             text = { Text(group?.title.orEmpty()) },
             confirmButton = {
                 TextButton(onClick = {
-                    if (runUndoable(stringResource(R.string.compose_ui_group_deleted)) { manager.removeGroup(groupId) }) deleteGroupId = null
-                }) { Text(stringResource(R.string.compose_manager_delete)) }
+                    if (runUndoable(context.getString(R.string.compose_ui_group_deleted)) { manager.removeGroup(groupId) }) deleteGroupId = null
+                }) { Text(context.getString(R.string.compose_manager_delete)) }
             },
             dismissButton = {
                 TextButton(onClick = { deleteGroupId = null }) {
-                    Text(stringResource(R.string.compose_manager_cancel))
+                    Text(context.getString(R.string.compose_manager_cancel))
                 }
             }
         )
@@ -1211,18 +1210,18 @@ fun SymbolDrawerManagerScreen(
         val symbol = groups.firstOrNull { it.id == groupId }?.symbols?.firstOrNull { it.id == symbolId }
         AlertDialog(
             onDismissRequest = { deleteSymbolTarget = null },
-            title = { Text(stringResource(R.string.compose_ui_symbol_delete_title)) },
+            title = { Text(context.getString(R.string.compose_ui_symbol_delete_title)) },
             text = { Text(symbol?.label.orEmpty()) },
             confirmButton = {
                 TextButton(onClick = {
-                    if (runUndoable(stringResource(R.string.compose_ui_symbol_deleted, symbol?.label.orEmpty())) {
+                    if (runUndoable(context.getString(R.string.compose_ui_symbol_deleted, symbol?.label.orEmpty())) {
                         manager.removeSymbol(groupId, symbolId)
                     }) deleteSymbolTarget = null
-                }) { Text(stringResource(R.string.compose_manager_delete)) }
+                }) { Text(context.getString(R.string.compose_manager_delete)) }
             },
             dismissButton = {
                 TextButton(onClick = { deleteSymbolTarget = null }) {
-                    Text(stringResource(R.string.compose_manager_cancel))
+                    Text(context.getString(R.string.compose_manager_cancel))
                 }
             }
         )
@@ -1232,7 +1231,7 @@ fun SymbolDrawerManagerScreen(
         AlertDialog(
             onDismissRequest = { targetDialogOperation = null },
             title = {
-                Text(if (targetDialogOperation == "copy") stringResource(R.string.symbol_item_copy_selected_symbols_to) else stringResource(R.string.symbol_item_move_selected_symbols_to))
+                Text(if (targetDialogOperation == "copy") context.getString(R.string.symbol_item_copy_selected_symbols_to) else context.getString(R.string.symbol_item_move_selected_symbols_to))
             },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -1242,7 +1241,7 @@ fun SymbolDrawerManagerScreen(
                             onClick = {
                                 val operation = targetDialogOperation
                                 val completed = runUndoable(
-                                    if (operation == "copy") stringResource(R.string.compose_ui_symbol_copied_to_group) else stringResource(R.string.compose_ui_symbol_moved_to_group)
+                                    if (operation == "copy") context.getString(R.string.compose_ui_symbol_copied_to_group) else context.getString(R.string.compose_ui_symbol_moved_to_group)
                                 ) {
                                     if (operation == "copy") {
                                         manager.copySymbols(
@@ -1271,7 +1270,7 @@ fun SymbolDrawerManagerScreen(
             },
             confirmButton = {
                 TextButton(onClick = { targetDialogOperation = null }) {
-                    Text(stringResource(R.string.compose_manager_cancel))
+                    Text(context.getString(R.string.compose_manager_cancel))
                 }
             }
         )
@@ -1282,8 +1281,8 @@ fun SymbolDrawerManagerScreen(
             onDismissRequest = { groupDialog = false },
             title = {
                 Text(
-                    if (editingGroupId == null) stringResource(R.string.compose_manager_add_group)
-                    else stringResource(R.string.compose_manager_rename_group)
+                    if (editingGroupId == null) context.getString(R.string.compose_manager_add_group)
+                    else context.getString(R.string.compose_manager_rename_group)
                 )
             },
             text = {
@@ -1291,14 +1290,14 @@ fun SymbolDrawerManagerScreen(
                     value = groupName,
                     onValueChange = { groupName = it },
                     singleLine = true,
-                    label = { Text(stringResource(R.string.compose_manager_group_name)) }
+                    label = { Text(context.getString(R.string.compose_manager_group_name)) }
                 )
             },
             confirmButton = {
                 TextButton(onClick = {
                     val name = groupName.trim()
                     if (name.isNotEmpty()) {
-                        runUndoable(if (editingGroupId == null) stringResource(R.string.compose_ui_group_added) else stringResource(R.string.compose_ui_group_renamed)) {
+                        runUndoable(if (editingGroupId == null) context.getString(R.string.compose_ui_group_added) else context.getString(R.string.compose_ui_group_renamed)) {
                             val currentId = editingGroupId
                             if (currentId == null) {
                                 selectedGroupId = manager.addGroup(name).id
@@ -1306,10 +1305,10 @@ fun SymbolDrawerManagerScreen(
                         }
                         groupDialog = false
                     }
-                }) { Text(stringResource(R.string.compose_manager_save)) }
+                }) { Text(context.getString(R.string.compose_manager_save)) }
             },
             dismissButton = {
-                TextButton(onClick = { groupDialog = false }) { Text(stringResource(R.string.compose_manager_cancel)) }
+                TextButton(onClick = { groupDialog = false }) { Text(context.getString(R.string.compose_manager_cancel)) }
             }
         )
     }
@@ -1321,7 +1320,7 @@ fun SymbolDrawerManagerScreen(
             extensions = effectiveActions,
             onDismiss = { symbolDialog = false },
             onSave = { symbol ->
-                runUndoable(if (editingSymbol == null) stringResource(R.string.compose_ui_symbol_added) else stringResource(R.string.compose_ui_symbol_updated)) {
+                runUndoable(if (editingSymbol == null) context.getString(R.string.compose_ui_symbol_added) else context.getString(R.string.compose_ui_symbol_updated)) {
                     if (editingSymbol == null) {
                         manager.addSymbol(targetGroupId, symbol)
                     } else {
@@ -1339,10 +1338,10 @@ fun SymbolDrawerManagerScreen(
         }
         AlertDialog(
             onDismissRequest = { favoritesDialog = false },
-            title = { Text(stringResource(R.string.compose_manager_favorites_title)) },
+            title = { Text(context.getString(R.string.compose_manager_favorites_title)) },
             text = {
                 if (favoriteEntries.isEmpty()) {
-                    Text(stringResource(R.string.compose_manager_empty_usage))
+                    Text(context.getString(R.string.compose_manager_empty_usage))
                 } else {
                     Column(
                         Modifier.fillMaxWidth().heightIn(max = 440.dp).verticalScroll(rememberScrollState()),
@@ -1361,7 +1360,7 @@ fun SymbolDrawerManagerScreen(
             },
             confirmButton = {
                 TextButton(onClick = { favoritesDialog = false }) {
-                    Text(stringResource(R.string.compose_manager_close))
+                    Text(context.getString(R.string.compose_manager_close))
                 }
             }
         )
@@ -1377,10 +1376,10 @@ fun SymbolDrawerManagerScreen(
         }
         AlertDialog(
             onDismissRequest = { recentDialog = false },
-            title = { Text(stringResource(R.string.compose_manager_recent_title)) },
+            title = { Text(context.getString(R.string.compose_manager_recent_title)) },
             text = {
                 if (recentEntries.isEmpty()) {
-                    Text(stringResource(R.string.compose_manager_empty_usage))
+                    Text(context.getString(R.string.compose_manager_empty_usage))
                 } else {
                     Column(
                         Modifier.fillMaxWidth().heightIn(max = 440.dp).verticalScroll(rememberScrollState()),
@@ -1399,7 +1398,7 @@ fun SymbolDrawerManagerScreen(
             },
             confirmButton = {
                 TextButton(onClick = { recentDialog = false }) {
-                    Text(stringResource(R.string.compose_manager_close))
+                    Text(context.getString(R.string.compose_manager_close))
                 }
             }
         )
@@ -1408,30 +1407,30 @@ fun SymbolDrawerManagerScreen(
     if (importDialog) {
         AlertDialog(
             onDismissRequest = { importDialog = false },
-            title = { Text(stringResource(R.string.compose_manager_clipboard_import)) },
+            title = { Text(context.getString(R.string.compose_manager_clipboard_import)) },
             text = {},
             confirmButton = {
                 TextButton(onClick = {
                     val json = clipboard.getText()?.text.orEmpty()
                     if (json.isBlank()) {
-                        errorMessage = stringResource(R.string.compose_ui_clipboard_empty_json)
+                        errorMessage = context.getString(R.string.compose_ui_clipboard_empty_json)
                     } else {
                         val imported = runCatching { SymbolGroupBundleCodec.decode(json) }
-                            .onFailure { errorMessage = it.message ?: stringResource(R.string.compose_ui_clipboard_invalid_json) }
+                            .onFailure { errorMessage = it.message ?: context.getString(R.string.compose_ui_clipboard_invalid_json) }
                             .getOrNull()
                         if (imported != null &&
-                            runUndoable(stringResource(R.string.compose_ui_clipboard_groups_imported)) { manager.replaceAll(imported) }
+                            runUndoable(context.getString(R.string.compose_ui_clipboard_groups_imported)) { manager.replaceAll(imported) }
                         ) {
                             selectedGroupId = imported.firstOrNull()?.id
                             refresh()
                             importDialog = false
                         }
                     }
-                }) { Text(stringResource(R.string.compose_manager_paste_clipboard)) }
+                }) { Text(context.getString(R.string.compose_manager_paste_clipboard)) }
             },
             dismissButton = {
                 TextButton(onClick = { importDialog = false }) {
-                    Text(stringResource(R.string.compose_manager_cancel))
+                    Text(context.getString(R.string.compose_manager_cancel))
                 }
             }
         )
@@ -1440,10 +1439,10 @@ fun SymbolDrawerManagerScreen(
     errorMessage?.let { message ->
         AlertDialog(
             onDismissRequest = { errorMessage = null },
-            title = { Text(stringResource(R.string.compose_manager_error)) },
+            title = { Text(context.getString(R.string.compose_manager_error)) },
             text = { Text(message) },
             confirmButton = {
-                TextButton(onClick = { errorMessage = null }) { Text(stringResource(R.string.compose_manager_ok)) }
+                TextButton(onClick = { errorMessage = null }) { Text(context.getString(R.string.compose_manager_ok)) }
             }
         )
     }
@@ -1458,8 +1457,8 @@ private fun symbolActionSummary(
     val shortName = symbolActionDisplayName(symbol.shortAction, symbol.legacyShortActionId, legacyLabels)
     val longName = symbol.longAction?.let {
         symbolActionDisplayName(it, symbol.legacyLongActionId, legacyLabels)
-    } ?: stringResource(R.string.symbol_manager_none)
-    return stringResource(R.string.symbol_interaction_tap_long_press, shortName, longName)
+    } ?: context.getString(R.string.symbol_manager_none)
+    return context.getString(R.string.symbol_interaction_tap_long_press, shortName, longName)
 }
 
 @Composable
@@ -1473,53 +1472,53 @@ private fun symbolActionDisplayName(
         legacyLabels.getOrNull(index)?.let { return it }
     }
     return when (action) {
-        is SymbolAction.InsertText -> stringResource(R.string.compose_ui_action_insert_text)
-        is SymbolAction.ReplaceSelection -> stringResource(R.string.compose_ui_action_replace_selection)
-        is SymbolAction.SurroundSelection -> stringResource(R.string.compose_ui_action_surround_selection)
-        is SymbolAction.MoveCursor -> stringResource(R.string.compose_ui_action_move_cursor, cursorTargetLabel(action.target))
-        is SymbolAction.Delete -> stringResource(R.string.compose_ui_action_delete, deleteKindLabel(action.kind))
-        is SymbolAction.TransformSelection -> stringResource(R.string.compose_ui_action_transform, selectionTransformLabel(action.transform))
+        is SymbolAction.InsertText -> context.getString(R.string.compose_ui_action_insert_text)
+        is SymbolAction.ReplaceSelection -> context.getString(R.string.compose_ui_action_replace_selection)
+        is SymbolAction.SurroundSelection -> context.getString(R.string.compose_ui_action_surround_selection)
+        is SymbolAction.MoveCursor -> context.getString(R.string.compose_ui_action_move_cursor, cursorTargetLabel(action.target))
+        is SymbolAction.Delete -> context.getString(R.string.compose_ui_action_delete, deleteKindLabel(action.kind))
+        is SymbolAction.TransformSelection -> context.getString(R.string.compose_ui_action_transform, selectionTransformLabel(action.transform))
         is SymbolAction.EditorCommand -> localizedBuiltinSymbolActionOptions(LocalContext.current).firstOrNull { it.commandId == action.commandId }?.label
-            ?: stringResource(R.string.compose_ui_action_editor_command, action.commandId)
-        is SymbolAction.Clipboard -> stringResource(R.string.compose_ui_action_clipboard, clipboardOperationLabel(action.operation))
-        SymbolAction.OpenManager -> stringResource(R.string.compose_ui_action_open_manager)
-        is SymbolAction.Composite -> stringResource(R.string.compose_ui_action_composite, action.actions.size)
-        is SymbolAction.Extension -> stringResource(R.string.compose_ui_action_extension, action.extensionId)
+            ?: context.getString(R.string.compose_ui_action_editor_command, action.commandId)
+        is SymbolAction.Clipboard -> context.getString(R.string.compose_ui_action_clipboard, clipboardOperationLabel(action.operation))
+        SymbolAction.OpenManager -> context.getString(R.string.compose_ui_action_open_manager)
+        is SymbolAction.Composite -> context.getString(R.string.compose_ui_action_composite, action.actions.size)
+        is SymbolAction.Extension -> context.getString(R.string.compose_ui_action_extension, action.extensionId)
     }
 }
 
 
 @Composable
 private fun cursorTargetLabel(target: CursorTarget): String = when (target) {
-    CursorTarget.LEFT -> stringResource(R.string.compose_ui_cursor_left)
-    CursorTarget.RIGHT -> stringResource(R.string.compose_ui_cursor_right)
-    CursorTarget.UP -> stringResource(R.string.compose_ui_cursor_up)
-    CursorTarget.DOWN -> stringResource(R.string.compose_ui_cursor_down)
-    CursorTarget.LINE_START -> stringResource(R.string.compose_ui_cursor_line_start)
-    CursorTarget.LINE_END -> stringResource(R.string.compose_ui_cursor_line_end)
-    CursorTarget.DOCUMENT_START -> stringResource(R.string.compose_ui_cursor_document_start)
-    CursorTarget.DOCUMENT_END -> stringResource(R.string.compose_ui_cursor_document_end)
+    CursorTarget.LEFT -> context.getString(R.string.compose_ui_cursor_left)
+    CursorTarget.RIGHT -> context.getString(R.string.compose_ui_cursor_right)
+    CursorTarget.UP -> context.getString(R.string.compose_ui_cursor_up)
+    CursorTarget.DOWN -> context.getString(R.string.compose_ui_cursor_down)
+    CursorTarget.LINE_START -> context.getString(R.string.compose_ui_cursor_line_start)
+    CursorTarget.LINE_END -> context.getString(R.string.compose_ui_cursor_line_end)
+    CursorTarget.DOCUMENT_START -> context.getString(R.string.compose_ui_cursor_document_start)
+    CursorTarget.DOCUMENT_END -> context.getString(R.string.compose_ui_cursor_document_end)
 }
 
 @Composable
 private fun deleteKindLabel(kind: DeleteKind): String = when (kind) {
-    DeleteKind.BACKWARD -> stringResource(R.string.compose_ui_delete_backward)
-    DeleteKind.FORWARD -> stringResource(R.string.compose_ui_delete_forward)
-    DeleteKind.CURRENT_LINE -> stringResource(R.string.compose_ui_delete_current_line)
-    DeleteKind.TO_LINE_START -> stringResource(R.string.compose_ui_delete_to_line_start)
-    DeleteKind.TO_LINE_END -> stringResource(R.string.compose_ui_delete_to_line_end)
+    DeleteKind.BACKWARD -> context.getString(R.string.compose_ui_delete_backward)
+    DeleteKind.FORWARD -> context.getString(R.string.compose_ui_delete_forward)
+    DeleteKind.CURRENT_LINE -> context.getString(R.string.compose_ui_delete_current_line)
+    DeleteKind.TO_LINE_START -> context.getString(R.string.compose_ui_delete_to_line_start)
+    DeleteKind.TO_LINE_END -> context.getString(R.string.compose_ui_delete_to_line_end)
 }
 
 @Composable
 private fun selectionTransformLabel(transform: SelectionTransform): String = when (transform) {
-    SelectionTransform.UPPERCASE -> stringResource(R.string.compose_ui_transform_uppercase)
-    SelectionTransform.LOWERCASE -> stringResource(R.string.compose_ui_transform_lowercase)
-    SelectionTransform.TOGGLE_CASE -> stringResource(R.string.compose_ui_transform_toggle_case)
+    SelectionTransform.UPPERCASE -> context.getString(R.string.compose_ui_transform_uppercase)
+    SelectionTransform.LOWERCASE -> context.getString(R.string.compose_ui_transform_lowercase)
+    SelectionTransform.TOGGLE_CASE -> context.getString(R.string.compose_ui_transform_toggle_case)
 }
 
 @Composable
 private fun clipboardOperationLabel(operation: ClipboardOperation): String = when (operation) {
-    ClipboardOperation.COPY -> stringResource(R.string.compose_ui_clipboard_copy)
-    ClipboardOperation.CUT -> stringResource(R.string.compose_ui_clipboard_cut)
-    ClipboardOperation.PASTE -> stringResource(R.string.compose_ui_clipboard_paste)
+    ClipboardOperation.COPY -> context.getString(R.string.compose_ui_clipboard_copy)
+    ClipboardOperation.CUT -> context.getString(R.string.compose_ui_clipboard_cut)
+    ClipboardOperation.PASTE -> context.getString(R.string.compose_ui_clipboard_paste)
 }
