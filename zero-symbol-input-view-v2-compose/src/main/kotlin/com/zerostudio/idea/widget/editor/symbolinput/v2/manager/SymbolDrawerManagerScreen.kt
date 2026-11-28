@@ -109,6 +109,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import com.zerostudio.idea.widget.editor.symbolinput.v2.compose.R
 import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.AdaptiveContentLayoutResolver
 import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowAdaptiveInfo
@@ -566,7 +568,7 @@ fun SymbolDrawerManagerScreen(
         // The manager preview and the live reorder preview share one in-dialog
         // surface. Dragging only swaps the preview snapshot; it never overlays
         // the dialog with a Popup, and the surface disappears on end/cancel.
-        if (previewModeActive || draggingSymbolId != null) {
+        if (previewModeActive) {
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -600,6 +602,38 @@ fun SymbolDrawerManagerScreen(
                             onSymbolClick = {},
                             onSymbolLongClick = null
                         )
+                    }
+                }
+            }
+        }
+
+        // Live reorder feedback is rendered in a Popup so it is measured in a
+        // separate window layer. It must never become a child of the manager's
+        // scrolling Column: inserting it there changes the list's Y origin while
+        // the pointer is still using the original coordinates.
+        if (draggingSymbolId != null) {
+            Popup(
+                alignment = androidx.compose.ui.Alignment.TopEnd,
+                properties = PopupProperties(focusable = false)
+            ) {
+                Card(Modifier.width(280.dp)) {
+                    Column(
+                        Modifier.padding(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            context.getString(R.string.compose_manager_preview),
+                            style = MaterialTheme.typography.titleSmall
+                        )
+                        Box(Modifier.fillMaxWidth().height(144.dp)) {
+                            SymbolDrawer(
+                                groups = embeddedPreviewGroups,
+                                modifier = Modifier.fillMaxSize(),
+                                state = previewDrawerState,
+                                onSymbolClick = {},
+                                onSymbolLongClick = null
+                            )
+                        }
                     }
                 }
             }
