@@ -451,10 +451,15 @@ class DrawerUiContractTest {
                         }
                     }
                     val density = activity.resources.displayMetrics.density
-                    send(MotionEvent.ACTION_DOWN, 30f * density, 0)
-                    send(MotionEvent.ACTION_MOVE, -320f * density, 120)
+                    // Keep the synthetic pointer inside the measured drawer bounds.
+                    // This mirrors a real upward drag and avoids platform-specific
+                    // raw-coordinate offsets from negative local touch positions.
+                    val downY = height - 30f * density
+                    val dragY = (downY - 320f * density).coerceAtLeast(1f)
+                    send(MotionEvent.ACTION_DOWN, downY, 0)
+                    send(MotionEvent.ACTION_MOVE, dragY, 120)
                     expandedAfterDrag = drawer.isExpanded()
-                    send(MotionEvent.ACTION_UP, -320f * density, 160)
+                    send(MotionEvent.ACTION_UP, dragY, 160)
                 }
             }
             assertTrue(
