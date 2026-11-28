@@ -565,9 +565,9 @@ fun SymbolDrawerManagerScreen(
             groups
         }
 
-        // The manager preview and the live reorder preview share one in-dialog
-        // surface. Dragging only swaps the preview snapshot; it never overlays
-        // the dialog with a Popup, and the surface disappears on end/cancel.
+        // Explicit preview mode remains part of the manager's normal layout.
+        // The transient reorder preview is rendered separately below in a Popup
+        // so its appearance cannot move the list beneath the active pointer.
         if (previewModeActive) {
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
