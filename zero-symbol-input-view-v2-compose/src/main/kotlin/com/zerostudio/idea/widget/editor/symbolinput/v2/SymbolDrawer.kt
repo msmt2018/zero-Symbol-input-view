@@ -411,17 +411,30 @@ fun SymbolDrawer(
                                     // Reaching the expanded anchor mid-drag must not disable
                                     // this pointer pipeline before UP and strand isDragging.
                                     val shouldOwnDirectDrag = axis == 2 && when {
-                                        dragFromIndicator -> total.y > 0f
-                                        !isExpandedAtDown -> total.y < 0f
+                                        // At the fully expanded anchor, the symbol grid owns
+                                        // scrolling. Only a downward gesture beginning on the
+                                        // indicator/handle is a direct drawer-collapse gesture.
+                                        isExpandedAtDown -> dragFromIndicator && total.y > 0f
+                                        // At every intermediate/collapsed height, the drawer
+                                        // owns vertical movement in either useful direction:
+                                        // upward expands and downward collapses. At the minimum
+                                        // anchor, downward movement is deliberately ignored.
+                                        total.y < 0f -> holder.currentHeightPx <
+                                            holder.anchors.maxOf { it.heightPx }
+                                        total.y > 0f -> holder.currentHeightPx >
+                                            holder.anchors.minOf { it.heightPx }
                                         else -> false
                                     }
                                     if (shouldOwnDirectDrag) {
                                         holder.beginDrag()
                                         ownsDirectDrag = true
+                                        // The movement that crossed touch slop is part of the
+                                        // gesture. Applying only the next event's delta drops
+                                        // this initial distance and causes a visible jump/lag.
+                                        holder.dragBy(total.y)
+                                        change.consume()
                                     }
-                                }
-
-                                if (ownsDirectDrag && axis == 2 && delta.y != 0f) {
+                                } else if (ownsDirectDrag && axis == 2 && delta.y != 0f) {
                                     holder.dragBy(delta.y)
                                     change.consume()
                                 }
