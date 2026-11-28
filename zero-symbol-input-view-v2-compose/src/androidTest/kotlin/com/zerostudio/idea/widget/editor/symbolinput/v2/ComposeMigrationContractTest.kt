@@ -244,7 +244,7 @@ class ComposeMigrationContractTest {
         }
         compose.onNodeWithText("Symbol drawer settings").assertIsDisplayed()
         assertEquals(2, compose.onAllNodesWithText("Appearance").fetchSemanticsNodes().size)
-        compose.onNodeWithText("性能/搜索").performClick()
+        compose.onNodeWithText("Performance").performClick()
         compose.onNodeWithText("Performance").assertIsDisplayed()
         val cacheLabel = if (
             compose.onAllNodesWithText("Page cache limit", substring = true)
