@@ -13,8 +13,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ScrollableTabRow
@@ -38,12 +36,14 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.joinAll
 
 /**
- * Material 3 scrollable tabs with an interruptible, edge-driven liquid capsule.
+ * Material 3 scrollable tabs with a connected, water-like liquid capsule.
  *
- * The leading edge accelerates first while the trailing edge follows after a
- * short delay. The capsule then contracts past its resting width and settles
- * with a damped spring. Animatable preserves the live value and velocity when
- * a new selection interrupts an in-flight transition.
+ * A selection change is deliberately not implemented as a translated fixed
+ * indicator. The leading edge flows to the destination first, the trailing
+ * edge follows and stretches the capsule across the source and destination.
+ * The capsule then contracts at the destination and settles with a restrained
+ * spring rebound. Animatable keeps the live edge values and velocities when a
+ * new selection interrupts an in-flight transition.
  *
  * @param titles ordered tab labels.
  * @param selectedIndex selected zero-based tab index; out-of-range values are clamped.
@@ -58,6 +58,7 @@ fun LiquidScrollableTabRow(
     modifier: Modifier = Modifier
 ) {
     if (titles.isEmpty()) return
+
     val selected = selectedIndex.coerceIn(titles.indices)
     val colorScheme = MaterialTheme.colorScheme
 
@@ -69,113 +70,128 @@ fun LiquidScrollableTabRow(
             contentColor = colorScheme.primary,
             divider = {},
             indicator = { positions ->
-                val position = positions.getOrNull(selected)
-                if (position != null) {
-                    val leftEdge = remember { Animatable(position.left.value) }
+                val target = positions.getOrNull(selected)
+                if (target != null) {
+                    val leftEdge = remember {
+                        Animatable(target.left.value)
+                    }
                     val rightEdge = remember {
-                        Animatable(position.left.value + position.width.value)
+                        Animatable(target.left.value + target.width.value)
                     }
                     var previousSelected by remember { mutableIntStateOf(selected) }
 
                     LaunchedEffect(selected, positions.size) {
                         val previous = previousSelected
                         previousSelected = selected
+
+                        val targetLeft = target.left.value
+                        val targetRight = targetLeft + target.width.value
                         if (previous == selected) {
-                            leftEdge.snapTo(position.left.value)
-                            rightEdge.snapTo(position.left.value + position.width.value)
+                            leftEdge.snapTo(targetLeft)
+                            rightEdge.snapTo(targetRight)
                             return@LaunchedEffect
                         }
 
-                        val targetLeft = position.left.value
-                        val targetRight = targetLeft + position.width.value
-                        val targetWidth = (targetRight - targetLeft).coerceAtLeast(1f)
-                        val maxStretchWidth = targetWidth * 2.2f
-                        val overshoot = 5f
                         val movingRight = selected > previous
-
-                        // Stage 1 (0–140ms): the leading edge reaches ahead;
-                        // the trailing edge starts 55ms later and is width-clamped.
                         val sourceLeft = leftEdge.value
                         val sourceRight = rightEdge.value
-                        val stretchLeading = if (movingRight) {
-                            targetRight + overshoot
-                        } else {
-                            targetLeft - overshoot
-                        }
-                        val stretchTrailing = if (movingRight) {
-                            (stretchLeading - maxStretchWidth).coerceAtLeast(sourceLeft)
-                        } else {
-                            (stretchLeading + maxStretchWidth).coerceAtMost(sourceRight)
-                        }
 
+                        // A tiny overshoot gives the advancing water front a
+                        // rounded, energetic arrival without changing tab bounds.
+                        val leadingOvershoot = 3.5f
+
+                        /*
+                         * Phase 1 — FLOW / CONNECT (about 170 ms)
+                         *
+                         * Move the leading edge to the far side of the target.
+                         * The trailing edge follows shortly afterwards, so the
+                         * capsule becomes one continuous body spanning both tabs
+                         * instead of teleporting or drawing two separate pills.
+                         */
                         coroutineScope {
                             val leading = launch {
                                 if (movingRight) {
                                     rightEdge.animateTo(
-                                        stretchLeading,
-                                        animationSpec = tween(140)
+                                        targetRight + leadingOvershoot,
+                                        animationSpec = tween(
+                                            durationMillis = 165,
+                                            easing = androidx.compose.animation.core.FastOutSlowInEasing
+                                        )
                                     )
                                 } else {
                                     leftEdge.animateTo(
-                                        stretchLeading,
-                                        animationSpec = tween(140)
+                                        targetLeft - leadingOvershoot,
+                                        animationSpec = tween(
+                                            durationMillis = 165,
+                                            easing = androidx.compose.animation.core.FastOutSlowInEasing
+                                        )
                                     )
                                 }
                             }
+
                             val trailing = launch {
-                                delay(55)
+                                delay(48)
                                 if (movingRight) {
                                     leftEdge.animateTo(
-                                        stretchTrailing,
-                                        animationSpec = tween(85)
+                                        sourceLeft,
+                                        animationSpec = tween(
+                                            durationMillis = 118,
+                                            easing = androidx.compose.animation.core.LinearOutSlowInEasing
+                                        )
                                     )
                                 } else {
                                     rightEdge.animateTo(
-                                        stretchTrailing,
-                                        animationSpec = tween(85)
+                                        sourceRight,
+                                        animationSpec = tween(
+                                            durationMillis = 118,
+                                            easing = androidx.compose.animation.core.LinearOutSlowInEasing
+                                        )
                                     )
                                 }
                             }
                             joinAll(leading, trailing)
                         }
 
-                        // Stage 2 (140–280ms): contract to a slightly compressed
-                        // capsule while retaining a small directional overshoot.
-                        val compressedWidth = targetWidth * 0.95f
-                        val contractedLeft = if (movingRight) {
-                            stretchLeading - compressedWidth
-                        } else {
-                            stretchLeading
-                        }
-                        val contractedRight = if (movingRight) {
-                            stretchLeading
-                        } else {
-                            stretchLeading + compressedWidth
-                        }
+                        /*
+                         * Phase 2 — CONTRACT / LAND (about 145 ms)
+                         *
+                         * Keep the leading edge at the destination while the
+                         * trailing edge catches up. This is the key liquid
+                         * contraction: the stretched bridge becomes the target
+                         * capsule from its advancing end, not a fixed-width slide.
+                         */
                         coroutineScope {
-                            val left = launch {
+                            if (movingRight) {
                                 leftEdge.animateTo(
-                                    contractedLeft,
-                                    animationSpec = tween(140)
+                                    targetLeft,
+                                    animationSpec = tween(
+                                        durationMillis = 145,
+                                        easing = androidx.compose.animation.core.FastOutSlowInEasing
+                                    )
                                 )
-                            }
-                            val right = launch {
+                            } else {
                                 rightEdge.animateTo(
-                                    contractedRight,
-                                    animationSpec = tween(140)
+                                    targetRight,
+                                    animationSpec = tween(
+                                        durationMillis = 145,
+                                        easing = androidx.compose.animation.core.FastOutSlowInEasing
+                                    )
                                 )
                             }
-                            joinAll(left, right)
                         }
 
-                        // Stage 3: one restrained under-damped settle to the
-                        // exact target bounds. A new click cancels this effect
-                        // and continues from these live edge values/velocities.
+                        /*
+                         * Phase 3 — REBOUND / SETTLE
+                         *
+                         * The spring only resolves the small leading-edge
+                         * overshoot. Its damping keeps the final rebound subtle
+                         * and close to the approximately 400 ms reference motion.
+                         */
                         coroutineScope {
                             val settle = spring<Float>(
-                                dampingRatio = 0.68f,
-                                stiffness = 420f,
-                                visibilityThreshold = 0.35f
+                                dampingRatio = 0.78f,
+                                stiffness = 520f,
+                                visibilityThreshold = 0.25f
                             )
                             val left = launch {
                                 leftEdge.animateTo(targetLeft, animationSpec = settle)
@@ -190,10 +206,11 @@ fun LiquidScrollableTabRow(
                     Canvas(Modifier.fillMaxSize()) {
                         val left = leftEdge.value.dp.toPx()
                         val right = rightEdge.value.dp.toPx()
-                        val top = 5.dp.toPx()
-                        val bottom = size.height - top
-                        val height = (bottom - top).coerceAtLeast(0f)
+                        val verticalInset = 5.dp.toPx()
+                        val top = verticalInset
+                        val height = (size.height - verticalInset * 2f).coerceAtLeast(0f)
                         val width = (right - left).coerceAtLeast(0f)
+
                         if (width > 0f && height > 0f) {
                             drawRoundRect(
                                 color = colorScheme.primary.copy(alpha = 0.14f),
@@ -230,6 +247,7 @@ fun LiquidScrollableTabRow(
                 )
             }
         }
+
         HorizontalDivider(
             thickness = 0.5.dp,
             color = colorScheme.outlineVariant.copy(alpha = 0.72f)
