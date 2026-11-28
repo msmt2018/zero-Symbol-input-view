@@ -65,6 +65,7 @@ import android.widget.SeekBar
 import android.widget.Spinner
 import android.widget.Switch
 import android.widget.TextView
+import androidx.core.view.doOnLayout
 import android.widget.Toast
 import android.app.AlertDialog
 import android.text.InputType
@@ -162,7 +163,7 @@ class SymbolDrawerSettingsScreen(
             spacingReflowInProgress = true
             val previousScroll = activeScrollView?.scrollY ?: 0
             render()
-            activeScrollView?.post { activeScrollView?.scrollTo(0, previousScroll) }
+            restoreActiveScrollPosition(previousScroll)
             spacingReflowInProgress = false
         }
     }
@@ -193,7 +194,7 @@ class SymbolDrawerSettingsScreen(
             post {
                 if (isAttachedToWindow) {
                     render()
-                    activeScrollView?.post { activeScrollView?.scrollTo(0, restoreScroll) }
+                    restoreActiveScrollPosition(restoreScroll)
                 }
             }
         }
@@ -214,6 +215,18 @@ class SymbolDrawerSettingsScreen(
         disposeExtensionViews()
         extensionViewsDisposedOnDetach = true
         super.onDetachedFromWindow()
+    }
+
+    /**
+     * Reflow replaces the active ScrollView. Restore its offset only after the
+     * replacement has completed a real layout pass, otherwise scrollTo() can
+     * be clamped against the transient zero-height viewport.
+     */
+    private fun restoreActiveScrollPosition(scrollY: Int) {
+        val target = activeScrollView ?: return
+        target.doOnLayout { laidOut ->
+            laidOut.scrollTo(0, scrollY.coerceAtLeast(0))
+        }
     }
 
     private fun disposeExtensionViews() {
