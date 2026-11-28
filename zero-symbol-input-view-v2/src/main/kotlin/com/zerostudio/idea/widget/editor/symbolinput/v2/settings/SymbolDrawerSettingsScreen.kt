@@ -230,7 +230,7 @@ class SymbolDrawerSettingsScreen(
             // Restore on the next UI turn so scroll range is computed from the
             // replacement page, not the transient zero-height measurement.
             laidOut.post {
-                val contentHeight = laidOut.getChildAt(0)?.height ?: 0
+                val contentHeight = (laidOut as? ViewGroup)?.getChildAt(0)?.height ?: 0
                 val maxScroll = (contentHeight - laidOut.height).coerceAtLeast(0)
                 laidOut.scrollTo(0, scrollY.coerceIn(0, maxScroll))
             }
