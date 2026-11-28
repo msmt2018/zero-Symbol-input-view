@@ -169,17 +169,19 @@ jobs:
             BASE="https://jitpack.io/com/github/msmt2018/zero-Symbol-input-view/$MODULE/$RELEASE_TAG"
             POM="$BASE/$MODULE-$RELEASE_TAG.pom"
             AAR="$BASE/$MODULE-$RELEASE_TAG.aar"
-            echo "Requesting JitPack artifact: $POM"
+            SOURCES="$BASE/$MODULE-$RELEASE_TAG-sources.jar"
+            echo "Requesting JitPack artifacts: $POM"
             VERIFIED=false
             for attempt in $(seq 1 90); do
               POM_STATUS="$(curl -L -sS -o /dev/null -w '%{http_code}' "$POM" || true)"
               AAR_STATUS="$(curl -L -sS -o /dev/null -w '%{http_code}' "$AAR" || true)"
-              if [[ "$POM_STATUS" == "200" && "$AAR_STATUS" == "200" ]]; then
-                echo "JitPack publication verified: $MODULE:$RELEASE_TAG"
+              SOURCES_STATUS="$(curl -L -sS -o /dev/null -w '%{http_code}' "$SOURCES" || true)"
+              if [[ "$POM_STATUS" == "200" && "$AAR_STATUS" == "200" && "$SOURCES_STATUS" == "200" ]]; then
+                echo "JitPack publication verified: $MODULE:$RELEASE_TAG (POM, AAR, sources)"
                 VERIFIED=true
                 break
               fi
-              echo "$MODULE attempt $attempt/90: POM=$POM_STATUS AAR=$AAR_STATUS"
+              echo "$MODULE attempt $attempt/90: POM=$POM_STATUS AAR=$AAR_STATUS SOURCES=$SOURCES_STATUS"
               sleep 10
             done
             if [[ "$VERIFIED" != "true" ]]; then
