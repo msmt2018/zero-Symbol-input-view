@@ -109,8 +109,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupProperties
 import com.zerostudio.idea.widget.editor.symbolinput.v2.compose.R
 import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.AdaptiveContentLayoutResolver
 import com.zerostudio.idea.widget.editor.symbolinput.v2.adaptive.WindowAdaptiveInfo
@@ -548,7 +546,27 @@ fun SymbolDrawerManagerScreen(
             }
         }
 
-        if (previewModeActive) {
+        val dragPreviewGroupId = draggingSymbolId?.let { activeId ->
+            groups.firstOrNull { group -> group.symbols.any { it.id == activeId } }?.id
+        }
+        val embeddedPreviewGroups = if (
+            draggingSymbolId != null && dragWorkingOrder != null && dragPreviewGroupId != null
+        ) {
+            groups.map { group ->
+                if (group.id == dragPreviewGroupId) {
+                    group.copy(symbols = dragWorkingOrder.orEmpty())
+                } else {
+                    group
+                }
+            }
+        } else {
+            groups
+        }
+
+        // The manager preview and the live reorder preview share one in-dialog
+        // surface. Dragging only swaps the preview snapshot; it never overlays
+        // the dialog with a Popup, and the surface disappears on end/cancel.
+        if (previewModeActive || draggingSymbolId != null) {
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -556,25 +574,27 @@ fun SymbolDrawerManagerScreen(
                             context.getString(R.string.compose_manager_preview),
                             style = MaterialTheme.typography.titleSmall
                         )
-                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            TextButton(onClick = {
-                                val snapshot = previewSnapshot ?: return@TextButton
-                                runCatching {
-                                    manager.replaceAll(snapshot.map { it.copy(symbols = it.symbols.toList()) })
-                                    selectedGroupId = previewSelectedGroupId
-                                    refresh()
-                                }.onFailure { errorMessage = it.message ?: context.getString(R.string.compose_ui_preview_restore_failed) }
-                            }) { Text(context.getString(R.string.compose_manager_restore_preview)) }
-                            TextButton(onClick = {
-                                previewModeActive = false
-                                previewSnapshot = null
-                                previewSelectedGroupId = null
-                            }) { Text(context.getString(R.string.compose_manager_finish_preview)) }
+                        if (previewModeActive && draggingSymbolId == null) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                TextButton(onClick = {
+                                    val snapshot = previewSnapshot ?: return@TextButton
+                                    runCatching {
+                                        manager.replaceAll(snapshot.map { it.copy(symbols = it.symbols.toList()) })
+                                        selectedGroupId = previewSelectedGroupId
+                                        refresh()
+                                    }.onFailure { errorMessage = it.message ?: context.getString(R.string.compose_ui_preview_restore_failed) }
+                                }) { Text(context.getString(R.string.compose_manager_restore_preview)) }
+                                TextButton(onClick = {
+                                    previewModeActive = false
+                                    previewSnapshot = null
+                                    previewSelectedGroupId = null
+                                }) { Text(context.getString(R.string.compose_manager_finish_preview)) }
+                            }
                         }
                     }
                     Box(Modifier.fillMaxWidth().height(144.dp)) {
                         SymbolDrawer(
-                            groups = groups,
+                            groups = embeddedPreviewGroups,
                             modifier = Modifier.fillMaxSize(),
                             state = previewDrawerState,
                             onSymbolClick = {},
@@ -1076,65 +1096,6 @@ fun SymbolDrawerManagerScreen(
             }
             }
         }
-
-    draggingSymbolId?.let { activeId ->
-        val activeSymbol = dragWorkingOrder?.firstOrNull { it.id == activeId }
-            ?: groups.asSequence()
-                .flatMap { it.symbols.asSequence() }
-                .firstOrNull { it.id == activeId }
-        activeSymbol?.let { symbol ->
-            Popup(
-                alignment = androidx.compose.ui.Alignment.TopCenter,
-                properties = PopupProperties(focusable = false)
-            ) {
-                Card(Modifier.padding(8.dp).widthIn(max = 360.dp)) {
-                    Row(
-                        Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
-                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Row(
-                            Modifier.weight(1f).horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-                        ) {
-                            (dragWorkingOrder ?: listOf(symbol)).forEach { previewEntry ->
-                                Text(
-                                    text = previewEntry.label,
-                                    modifier = Modifier
-                                        .background(
-                                            if (previewEntry.id == activeId) {
-                                                MaterialTheme.colorScheme.primaryContainer
-                                            } else {
-                                                MaterialTheme.colorScheme.surfaceVariant
-                                            },
-                                            MaterialTheme.shapes.small
-                                        )
-                                        .padding(horizontal = 8.dp, vertical = 6.dp),
-                                    color = if (previewEntry.id == activeId) {
-                                        MaterialTheme.colorScheme.onPrimaryContainer
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                    },
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = if (previewEntry.id == activeId) {
-                                        androidx.compose.ui.text.font.FontWeight.Bold
-                                    } else {
-                                        androidx.compose.ui.text.font.FontWeight.Normal
-                                    },
-                                    maxLines = 1
-                                )
-                            }
-                        }
-                        TextButton(onClick = {
-                            dragWorkingOrder = null
-                            draggingSymbolId = null
-                        }) { Text(context.getString(R.string.compose_manager_drag_cancel)) }
-                    }
-                }
-            }
-        }
-    }
 
     copyGroupSourceId?.let { sourceId ->
         val source = groups.firstOrNull { it.id == sourceId }
