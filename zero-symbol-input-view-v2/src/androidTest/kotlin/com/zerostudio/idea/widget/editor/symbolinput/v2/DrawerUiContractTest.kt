@@ -60,6 +60,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
+import com.zerostudio.idea.widget.editor.symbolinput.v2.R
 import com.zerostudio.idea.widget.editor.symbolinput.v2.state.DrawerGeometry
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.button.MaterialButton
@@ -208,7 +209,7 @@ class DrawerUiContractTest {
                 )
                 drawer.layout(0, 0, width, height)
 
-                val settings = find(drawer) { it.contentDescription == "符号设置" }
+                val settings = find(drawer) { it.contentDescription == activity.getString(R.string.symbol_drawer_accessibility_settings) }
                 assertEquals(width, (settings.parent as View).right)
                 assertTrue(settings.performClick())
                 assertEquals(1, opened)
@@ -265,10 +266,10 @@ class DrawerUiContractTest {
                 assertEquals(View.GONE, searchContainer.visibility)
                 assertTrue(searchButton.performClick())
                 assertEquals(View.VISIBLE, searchContainer.visibility)
-                assertEquals("收起", searchButton.text.toString())
+                assertEquals(activity.getString(R.string.symbol_interaction_collapse), searchButton.text.toString())
                 assertTrue(searchButton.performClick())
                 assertEquals(View.GONE, searchContainer.visibility)
-                assertEquals("搜索", searchButton.text.toString())
+                assertEquals(activity.getString(R.string.symbol_search_search), searchButton.text.toString())
             }
         }
     }
@@ -784,7 +785,7 @@ class DrawerUiContractTest {
                 val density = activity.resources.displayMetrics.density
                 screen.layout(0, 0, (500f * density).toInt(), (800f * density).toInt())
                 val compactTitle = find(screen) {
-                    it is TextView && it.text == "符号抽屉设置"
+                    it is TextView && it.text == activity.getString(R.string.symbol_settings_symbol_drawer_settings)
                 } as TextView
                 val compactTextSize = compactTitle.textSize
 
