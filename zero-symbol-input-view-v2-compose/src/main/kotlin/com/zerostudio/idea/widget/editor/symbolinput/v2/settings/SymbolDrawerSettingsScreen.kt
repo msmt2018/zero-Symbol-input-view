@@ -106,8 +106,9 @@ fun SymbolDrawerSettingsScreen(
     requestOpenDocument: (((Uri?) -> Unit) -> Unit)? = null,
     requestCreateDocument: ((String, (Uri?) -> Unit) -> Unit)? = null
 ) {
-    // View V2 always follows the host system theme. Keep the same persisted
-    // value instead of exposing independent light/dark controls in Compose.
+    // The component inherits the active host Material 3 theme directly.
+    // Keep SYSTEM only as a backwards-compatible persisted value; theme mode,
+    // Dynamic Color, and palette selection remain responsibilities of the host.
     var current by remember(settings) {
         mutableStateOf(settings.copy(themeMode = ThemeMode.SYSTEM))
     }
@@ -201,11 +202,6 @@ fun SymbolDrawerSettingsScreen(
         ) {
             when (selectedTab) {
                 0 -> SettingsSection(stringResource(R.string.compose_settings_appearance)) {
-                    EnumSetting(
-                        stringResource(R.string.symbol_settings_theme_mode),
-                        current.themeMode,
-                        listOf(ThemeMode.SYSTEM)
-                    ) { value -> update { it.copy(themeMode = value) } }
                     EnumSetting(
                         stringResource(R.string.compose_settings_indicator),
                         current.indicatorStyle,
