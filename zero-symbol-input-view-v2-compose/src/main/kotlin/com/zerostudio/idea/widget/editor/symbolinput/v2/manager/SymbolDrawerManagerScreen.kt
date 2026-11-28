@@ -1479,7 +1479,7 @@ private fun symbolActionDisplayName(
         is SymbolAction.MoveCursor -> stringResource(R.string.compose_ui_action_move_cursor, cursorTargetLabel(action.target))
         is SymbolAction.Delete -> stringResource(R.string.compose_ui_action_delete, deleteKindLabel(action.kind))
         is SymbolAction.TransformSelection -> stringResource(R.string.compose_ui_action_transform, selectionTransformLabel(action.transform))
-        is SymbolAction.EditorCommand -> BuiltinSymbolActionCatalog.find(LocalContext.current, action.commandId)?.label
+        is SymbolAction.EditorCommand -> localizedBuiltinSymbolActionOptions(LocalContext.current).firstOrNull { it.commandId == action.commandId }?.label
             ?: stringResource(R.string.compose_ui_action_editor_command, action.commandId)
         is SymbolAction.Clipboard -> stringResource(R.string.compose_ui_action_clipboard, clipboardOperationLabel(action.operation))
         SymbolAction.OpenManager -> stringResource(R.string.compose_ui_action_open_manager)
