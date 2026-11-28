@@ -45,10 +45,29 @@
 package com.zerostudio.idea.widget.editor.symbolinput.v2.testing
 
 import android.app.Activity
+import android.content.Context
+import android.content.res.Configuration
+import android.os.Build
 import android.os.Bundle
+import android.os.LocaleList
 import android.widget.FrameLayout
+import java.util.Locale
 
 class DrawerTestHostActivity : Activity() {
+    // The View contract tests intentionally assert Chinese resource labels.
+    // Pin the test host locale instead of depending on the runner image locale.
+    override fun attachBaseContext(newBase: Context) {
+        val configuration = Configuration(newBase.resources.configuration)
+        val locale = Locale.SIMPLIFIED_CHINESE
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            configuration.setLocales(LocaleList(locale))
+        } else {
+            @Suppress("DEPRECATION")
+            configuration.locale = locale
+        }
+        super.attachBaseContext(newBase.createConfigurationContext(configuration))
+    }
+
     lateinit var content: FrameLayout
         private set
     override fun onCreate(savedInstanceState: Bundle?) {
