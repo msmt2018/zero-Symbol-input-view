@@ -59,6 +59,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -326,6 +327,11 @@ fun SymbolDrawer(
         val minimumFlingVelocity = with(density) {
             layoutConfig.flingVelocityDpPerSecond.dp.toPx()
         }
+        // A gesture that starts as a direct drawer drag must retain exclusive
+        // ownership until UP/CANCEL. Otherwise reaching the expanded anchor
+        // mid-gesture enables the nested-scroll path as well, applying the same
+        // finger movement through two input pipelines and producing height jitter.
+        var directGestureActive by remember(holder) { mutableStateOf(false) }
         val nestedScrollConnection = remember(holder, density.density, minimumFlingVelocity) {
             DrawerNestedScrollConnection(
                 stateHolder = holder,
@@ -334,7 +340,8 @@ fun SymbolDrawer(
                 // the fully expanded anchor. At every intermediate height the
                 // direct drawer recognizer is the sole vertical-drag owner.
                 canStartNestedScroll = {
-                    holder.currentHeightPx >= holder.anchors.maxOf { it.heightPx }
+                    !directGestureActive &&
+                        holder.currentHeightPx >= holder.anchors.maxOf { it.heightPx }
                 }
             )
         }
@@ -414,7 +421,12 @@ fun SymbolDrawer(
                                         // At the fully expanded anchor, the symbol grid owns
                                         // scrolling. Only a downward gesture beginning on the
                                         // indicator/handle is a direct drawer-collapse gesture.
-                                        isExpandedAtDown -> dragFromIndicator && total.y > 0f
+                                        // At the expanded anchor, allow a downward drag
+                                        // anywhere that is not already being consumed by
+                                        // scrollable content. The list keeps first refusal;
+                                        // the drawer handles blank/non-scrollable surface areas.
+                                        isExpandedAtDown -> total.y > 0f &&
+                                            (dragFromIndicator || !change.isConsumed)
                                         // At every intermediate/collapsed height, the drawer
                                         // owns vertical movement in either useful direction:
                                         // upward expands and downward collapses. At the minimum
@@ -426,6 +438,7 @@ fun SymbolDrawer(
                                         else -> false
                                     }
                                     if (shouldOwnDirectDrag) {
+                                        directGestureActive = true
                                         holder.beginDrag()
                                         ownsDirectDrag = true
                                         // The movement that crossed touch slop is part of the
@@ -447,6 +460,7 @@ fun SymbolDrawer(
                                             minimumFlingVelocityPxPerSecond = minimumFlingVelocity
                                         )
                                     }
+                                    directGestureActive = false
                                     completed = true
                                     break
                                 }
@@ -455,6 +469,8 @@ fun SymbolDrawer(
                             if (!completed && ownsDirectDrag && holder.isDragging) {
                                 holder.cancelDrag()
                             }
+                            // Always release gesture ownership, including pointer cancellation.
+                            directGestureActive = false
                         }
                     }
                 },
