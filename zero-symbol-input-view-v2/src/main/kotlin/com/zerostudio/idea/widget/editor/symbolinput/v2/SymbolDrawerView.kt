@@ -622,8 +622,12 @@ class SymbolDrawerView @JvmOverloads constructor(
         interactionController.onAttached()
         recalculateGeometry()
         if (settings.rememberExpandedState) {
+            // Restore synchronously during attachment. Deferring this with post()
+            // can overwrite an explicit setExpanded() issued by the host
+            // immediately after addView(), making the first real drag start from
+            // a stale persisted anchor.
             val remembered = settingsPreferences.getBoolean(EXPANSION_STATE_KEY, false)
-            post { animateTo(if (remembered) 1f else 0f, animated = false) }
+            animateTo(if (remembered) 1f else 0f, animated = false)
         } else {
             settingsPreferences.edit().remove(EXPANSION_STATE_KEY).apply()
         }
